@@ -445,16 +445,39 @@ inline execution_view &this_group()
 }
 
 
-inline void __set_this_group(const execution_view &g)
+inline execution_view __set_this_group(const execution_view &g)
 {
+  execution_view old_group = this_group();
   this_group() = g;
+  return old_group;
 }
 
 
-inline void __set_this_group(execution_view &&g)
+inline execution_view __set_this_group(execution_view &&g)
 {
+  execution_view old_group = this_group();
   this_group() = std::move(g);
+  return old_group;
 }
+
+
+class __scoped_group
+{
+  public:
+    template<class ExecutionGroup>
+    __scoped_group(ExecutionGroup &this_group)
+       : old_group_(__set_this_group(this_group))
+    {}
+
+    inline ~__scoped_group()
+    {
+      // restore old group
+      __set_this_group(std::move(old_group_));
+    }
+
+  private:
+    execution_view old_group_;
+};
 
 
 template<class Function, class... Args>
@@ -474,21 +497,19 @@ std::future<void> async(const sequential_execution_policy &exec, Function f, Arg
 
   return std::async(std::launch::deferred, [=](Args&&... args)
   {
-    // save old group
-    execution_view old_group = this_group();
+    sequential_group this_group(rng.size(), 0, agent(0));
+    agent& this_agent = this_group.child();
+
+    __scoped_group scope(this_group);
 
     // execute agents sequentially
-    for(size_t i = rng.first; i < rng.last; ++i)
+    for(size_t agent_idx = rng.first; agent_idx < rng.last; ++agent_idx)
     {
-      sequential_group this_group(rng.size(), 0, agent(i));
-
-      __set_this_group(this_group);
+      // move assign the current agent
+      this_agent = std::move(agent(agent_idx));
 
       f(this_group, args...);
     }
-
-    // restore old group
-    __set_this_group(std::move(old_group));
   },
   std::forward<Args>(args)...
   );
@@ -538,10 +559,7 @@ std::future<void> async(const parallel_execution_policy &exec, Function f, Args&
           parallel_group this_group(rng.size(), 0, agent(0));
           agent& this_agent = this_group.child();
 
-          // set current group
-          // XXX this procedure should be RAII
-          __set_this_group(this_group);
-          execution_view old_group = std::this_group();
+          __scoped_group scope(this_group);
 
           for(size_t agent_idx = launch_rng.first; agent_idx < launch_rng.last; ++agent_idx)
           {
@@ -550,9 +568,6 @@ std::future<void> async(const parallel_execution_policy &exec, Function f, Args&
 
             f(this_group, args...);
           }
-
-          // restore old group
-          __set_this_group(std::move(old_group));
         },
         std::forward<Args>(args)...
         );
@@ -605,15 +620,9 @@ std::future<void> async(const concurrent_execution_policy &exec, Function f, Arg
       futures[i] = std::async(std::launch::async, [=](std::reference_wrapper<std::barrier> barrier, Args&&... args)
       {
         concurrent_group this_group(1, 0, barrier, agent(i));
-
-        // set current group
-        execution_view old_group = std::this_group();
-        __set_this_group(this_group);
+        __scoped_group scope(this_group);
 
         f(this_group, args...);
-
-        // restore old group
-        __set_this_group(std::move(old_group));
       },
       std::ref(barrier),
       std::forward<Args>(args)...
