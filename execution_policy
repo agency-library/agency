@@ -9,7 +9,6 @@
 // For our purposes, an ExecutionGroup is a type with the following member types:
 //
 // size_type
-// execution_policy_type
 //
 // And the following member functions:
 //
@@ -160,7 +159,6 @@ class execution_group
 {
   public:
     typedef size_t          size_type;
-    typedef ExecutionPolicy execution_policy_type;
     typedef ExecutionGroup  child_type;
 
     size_type size() const { return size_; }
@@ -280,7 +278,6 @@ class execution_group_traits
 {
   public:
     typedef ExecutionGroup                                 group_type;
-    typedef typename ExecutionGroup::execution_policy_type execution_policy_type;
     typedef typename ExecutionGroup::child_type            child_type;
     typedef typename ExecutionGroup::size_type             size_type;
     
@@ -556,6 +553,8 @@ std::future<void> async(const parallel_execution_policy &exec, Function f, Args&
         // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
         futures[launch_idx] = std::async(std::launch::async, [=](Args&&... args)
         {
+          // XXX generalize the type of groups created inside async(seq) and use that feature
+          //     to implement this loop
           parallel_group this_group(rng.size(), 0, agent(0));
           agent& this_agent = this_group.child();
 
