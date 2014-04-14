@@ -535,22 +535,24 @@ std::future<void> async(const parallel_execution_policy &exec, Function f, Args&
         // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
         futures[launch_idx] = std::async(std::launch::async, [=](Args&&... args)
         {
+          parallel_group this_group(rng.size(), 0, agent(0));
+          agent& this_agent = this_group.child();
+
+          // set current group
+          // XXX this procedure should be RAII
+          __set_this_group(this_group);
+          execution_view old_group = std::this_group();
+
           for(size_t agent_idx = launch_rng.first; agent_idx < launch_rng.last; ++agent_idx)
           {
-            parallel_group this_group(rng.size(), 0, agent(agent_idx));
-
-            // set current group
-            // XXX can probably hoist this stuff out of the loop
-            //     and reuse the current group and agent
-            // XXX this procedure should be RAII
-            __set_this_group(this_group);
-            execution_view old_group = std::this_group();
+            // move assign the current agent
+            this_agent = std::move(agent(agent_idx));
 
             f(this_group, args...);
-
-            // restore old group
-            __set_this_group(std::move(old_group));
           }
+
+          // restore old group
+          __set_this_group(std::move(old_group));
         },
         std::forward<Args>(args)...
         );
