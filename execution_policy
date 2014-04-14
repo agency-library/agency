@@ -1,0 +1,747 @@
+#include <future>
+#include <utility>
+#include <vector>
+#include <barrier>
+#include <functional>
+#include <type_traits>
+#include <exception_list>
+
+// For our purposes, an ExecutionGroup is a type with the following member types:
+//
+// size_type
+// execution_policy_type
+//
+// And the following member functions:
+//
+// size_type size() const;
+// size_type index() const;
+//
+// A ConcurrentGroup is an ExecutionGroup with the following member function:
+//
+// void wait();
+//
+// An ExecutionAgent is a ParallelGroup whose member function size() always returns 1.
+
+
+namespace std
+{
+
+
+struct __integer_range
+{
+  inline size_t size() const
+  {
+    return last - first;
+  }
+
+  inline bool contains(size_t x) const
+  {
+    return first <= x && x < last;
+  }
+
+  inline friend std::ostream &operator<<(std::ostream &os, const __integer_range &rng)
+  {
+    os << "[" << rng.first << ", " << rng.last << ")";
+    return os;
+  }
+
+
+  size_t first, last;
+};
+
+
+template<class OuterPolicy, class InnerPolicy>
+struct __nested_execution_policy
+{
+  OuterPolicy outer_exec;
+  InnerPolicy inner_exec;
+};
+
+
+template<class OuterPolicy, class InnerPolicy>
+__nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPolicy outer, const InnerPolicy &inner)
+{
+  return __nested_execution_policy<OuterPolicy,InnerPolicy>{outer,inner};
+}
+    
+
+class sequential_execution_policy
+{
+  public:
+    inline sequential_execution_policy(size_t n) : rng{0,n} {}
+
+    template<class ExecutionPolicy>
+    __nested_execution_policy<sequential_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
+    inline sequential_execution_policy operator()(size_t n) const
+    {
+      return sequential_execution_policy{n};
+    }
+
+//  private:
+    __integer_range rng;
+};
+
+
+class parallel_execution_policy
+{
+  public:
+    inline parallel_execution_policy(size_t n) : rng{0,n} {}
+
+    template<class ExecutionPolicy>
+    __nested_execution_policy<parallel_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
+    inline parallel_execution_policy operator()(size_t n) const
+    {
+      return parallel_execution_policy{n};
+    }
+
+//  private:
+    inline parallel_execution_policy(__integer_range rng_) : rng(rng) {}
+
+    __integer_range rng;
+};
+
+
+class concurrent_execution_policy
+{
+  public:
+    inline concurrent_execution_policy(size_t n) : rng{0,n} {}
+
+    template<class ExecutionPolicy>
+    __nested_execution_policy<concurrent_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
+    inline concurrent_execution_policy operator()(size_t n) const
+    {
+      return concurrent_execution_policy{n};
+    }
+
+//  private:
+    __integer_range rng;
+};
+
+
+//constexpr sequential_execution_policy seq{0};
+//constexpr parallel_execution_policy   par{0};
+//constexpr concurrent_execution_policy con{0};
+const sequential_execution_policy seq{0};
+const parallel_execution_policy   par{0};
+const concurrent_execution_policy con{0};
+
+
+class agent
+{
+  public:
+    typedef size_t size_type;
+
+    size_type size() const { return 1; }
+    size_type index() const { return index_; }
+
+//  private:
+    agent(size_type idx)
+      : index_(idx)
+    {}
+
+    size_type index_;
+};
+
+
+template<class ExecutionPolicy, class ExecutionGroup>
+class execution_group
+{
+  public:
+    typedef size_t          size_type;
+    typedef ExecutionPolicy execution_policy_type;
+    typedef ExecutionGroup  child_type;
+
+    size_type size() const { return size_; }
+    size_type index() const { return index_; }
+    ExecutionGroup &child() { return child_; }
+    const ExecutionGroup &child() const { return child_; }
+
+//  private:
+    size_type size_;
+    size_type index_;
+    ExecutionGroup child_;
+
+    // XXX not sure about the order of parameters chld & exec
+    execution_group(size_type sz, size_type idx, ExecutionGroup &&chld = ExecutionGroup())
+      : size_(sz),
+        index_(idx),
+        child_(std::move(chld))
+    {}
+
+    // move constructor which can perform reindexing at the same 
+    execution_group(execution_group &&other, size_type idx)
+      : size_(other.size_),
+        index_(idx),
+        child_(std::move(other.child_))
+    {}
+
+    // moves the resources associated with other except for other's child
+    // this sequential_group's child is created by moving the second argument
+    // only the implementation may do this
+    template<class OtherGroup>
+    execution_group(execution_group<ExecutionPolicy, OtherGroup> &&other, ExecutionGroup &&chld)
+      : size_(other.size_),
+        index_(other.index_),
+        child_(std::move(chld))
+    {}
+};
+
+
+template<class ExecutionGroup>
+using basic_sequential_group = execution_group<std::sequential_execution_policy, ExecutionGroup>;
+typedef basic_sequential_group<agent> sequential_group;
+
+
+template<class ExecutionGroup>
+using basic_parallel_group = execution_group<std::parallel_execution_policy, ExecutionGroup>;
+typedef basic_parallel_group<agent> parallel_group;
+
+
+template<class ExecutionGroup>
+class basic_concurrent_group : public execution_group<std::concurrent_execution_policy, ExecutionGroup>
+{
+  private:
+    typedef execution_group<std::concurrent_execution_policy, ExecutionGroup> super_t;
+
+  public:
+    typedef typename super_t::size_type size_type;
+
+    template<class OtherGroup>
+    struct rebind
+    {
+      typedef basic_concurrent_group<OtherGroup> other;
+    };
+
+    void wait()
+    {
+      barrier_.get().count_down_and_wait();
+    }
+
+//  private:
+    basic_concurrent_group(size_type sz, size_type idx, std::barrier &barrier, ExecutionGroup &&chld = ExecutionGroup())
+      : super_t(sz, idx, std::move(chld)),
+        barrier_(barrier)
+    {}
+
+    // move constructor which can perform reindexing at the same 
+    basic_concurrent_group(basic_concurrent_group &&other, size_type idx)
+      : super_t(std::move(other), idx),
+        barrier_(other.barrier_)
+    {}
+
+    // moves the resources associated with other except for other's child
+    // this sequential_group's child is created by moving the second argument
+    // only the implementation may do this
+    template<class OtherGroup>
+    basic_concurrent_group(basic_concurrent_group<OtherGroup> &&other, ExecutionGroup &&chld)
+      : super_t(std::move(other), std::move(chld)),
+        barrier_(other.barrier_)
+    {}
+
+  private:
+    // friend other types of basic_concurrent_group so we can copy their barrier in the move constructor above
+    template<class OtherGroup> friend class basic_concurrent_group;
+
+    std::reference_wrapper<std::barrier> barrier_;
+};
+
+
+typedef basic_concurrent_group<agent> concurrent_group;
+
+
+template<class ExecutionGroup, class OtherChild>
+struct __rebind_execution_group
+{
+  typedef typename ExecutionGroup::template rebind<OtherChild>::other type;
+};
+
+
+template<template<class, class, class...> class ExecutionGroup, class ExecutionPolicy, class OriginalChild, class... T, class OtherChild>
+struct __rebind_execution_group<ExecutionGroup<ExecutionPolicy,OriginalChild, T...>, OtherChild>
+{
+  typedef ExecutionGroup<ExecutionPolicy, OtherChild, T...> type;
+};
+
+
+template<class ExecutionGroup>
+class execution_group_traits
+{
+  public:
+    typedef ExecutionGroup                                 group_type;
+    typedef typename ExecutionGroup::execution_policy_type execution_policy_type;
+    typedef typename ExecutionGroup::child_type            child_type;
+    typedef typename ExecutionGroup::size_type             size_type;
+    
+    template<class OtherChild>
+    using rebind_execution_group = typename __rebind_execution_group<group_type, OtherChild>::type;
+};
+
+
+template<class T>
+struct __has_child_impl
+{
+  typedef char yes_type;
+  struct no_type {char x[2];};
+
+  template<class U> static yes_type test(decltype(&U::child));
+  template<class U> static no_type  test(...);
+
+  public:
+    const static bool value = sizeof(test<T>(0)) == sizeof(yes_type);
+};
+
+
+template<class T>
+struct __has_child :
+  std::integral_constant<
+    bool,
+    __has_child_impl<T>::value
+  >
+{};
+
+
+// XXX we shouldn't recursively create child_
+// XXX instead a new execution_view should be created on demand inside the child() function
+// XXX using a type erasure idiom
+class execution_view
+{
+  public:
+    typedef size_t size_type;
+
+    inline execution_view(const execution_view &g)
+      : size_(g.size_),
+        index_(g.index_),
+        self_(g.self_),
+        child_(g.child_ ? new execution_view(g.child()) : nullptr)
+    {}
+
+    inline execution_view(execution_view &&g) = default;
+
+    template<typename ExecutionGroup>
+    execution_view(ExecutionGroup& g,
+                   typename std::enable_if<__has_child<ExecutionGroup>::value>::type* = 0)
+      : size_(g.size()),
+        index_(g.index()),
+        self_(&g),
+        child_(new execution_view(g.child()))
+    {}
+
+    template<typename ExecutionGroup>
+    execution_view(ExecutionGroup& g,
+                   typename std::enable_if<!__has_child<ExecutionGroup>::value>::type* = 0)
+      : size_(g.size()),
+        index_(g.index()),
+        self_(&g),
+        child_()
+    {}
+
+    inline execution_view &operator=(execution_view &&g) = default;
+
+    inline execution_view &operator=(const execution_view &g)
+    {
+      size_ = g.size_;
+      index_ = g.index_;
+      self_ = g.self_;
+      child_ = g.child_ ? std::unique_ptr<execution_view>(new execution_view(g.child())) : nullptr;
+      return *this;
+    }
+
+    template<typename ExecutionGroup>
+    typename std::enable_if<
+      __has_child<ExecutionGroup>::value,
+      execution_view &
+    >::type
+      operator=(ExecutionGroup& g)
+    {
+      size_ = g.size();
+      index_ = g.index();
+      self_ = g.self_;
+      *child_ = g.child();
+    }
+
+    template<typename ExecutionGroup>
+    typename std::enable_if<
+      !__has_child<ExecutionGroup>::value,
+      execution_view &
+    >::type
+      operator=(ExecutionGroup& g)
+    {
+      size_ = g.size();
+      index_ = g.index();
+      self_ = g.self_;
+      child_ = nullptr;
+    }
+
+    inline size_type size() const
+    {
+      return size_;
+    }
+
+    // XXX could rename this to rank() to distinguish betwen 1D rank and ND index
+    inline size_type index() const
+    {
+      return index_;
+    }
+
+    // XXX i don't like the name child
+    inline execution_view child()
+    {
+      return child_ ? *child_ : *this;
+    }
+
+    // XXX i don't like the name child
+    const execution_view child() const
+    {
+      return child_ ? *child_ : *this;
+    }
+
+  private:
+    // allow empty execution_view for this_group() below
+    inline execution_view(std::nullptr_t)
+      : size_(0),
+        index_(0),
+        self_(nullptr),
+        child_(nullptr)
+    {}
+
+    friend execution_view &this_group();
+
+    size_type size_;
+    size_type index_;
+    void *self_;
+    std::unique_ptr<execution_view> child_;
+};
+
+
+// XXX implement these later
+//// cast execution_group to a particular type of ExecutionGroup
+//// throws if typeof() doesn't match
+//template<typename ExecutionGroup>
+//ExecutionGroup &get(execution_group &g);
+//
+//
+//// cast execution_group to a particular type of ExecutionGroup
+//template<typename ExecutionGroup>
+//const ExecutionGroup &get(const execution_group &g);
+
+
+inline execution_view &this_group()
+{
+  // XXX this should be initialized to a sequential_group with a single agent executing in this_thread
+  static thread_local execution_view current{nullptr};
+  return current;
+}
+
+
+inline void __set_this_group(const execution_view &g)
+{
+  this_group() = g;
+}
+
+
+inline void __set_this_group(execution_view &&g)
+{
+  this_group() = std::move(g);
+}
+
+
+template<class Function, class... Args>
+std::future<void> async(const sequential_execution_policy &exec, Function f, Args&&... args)
+{
+  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
+
+//  // execute agents sequentially
+//  for(size_t i = rng.first; i < rng.last; ++i)
+//  {
+//    sequential_group this_group(num_agents, 0, agent(i));
+//    f(this_group, args...);
+//  }
+//
+//  // return ready
+//  return std::make_ready_future<void>();
+
+  return std::async(std::launch::deferred, [=](Args&&... args)
+  {
+    // save old group
+    execution_view old_group = this_group();
+
+    // execute agents sequentially
+    for(size_t i = rng.first; i < rng.last; ++i)
+    {
+      sequential_group this_group(rng.size(), 0, agent(i));
+
+      __set_this_group(this_group);
+
+      f(this_group, args...);
+    }
+
+    // restore old group
+    __set_this_group(std::move(old_group));
+  },
+  std::forward<Args>(args)...
+  );
+}
+
+
+inline unsigned int __log2(unsigned int x)
+{
+  unsigned int result = 0;
+  while(x >>= 1) ++result;
+  return result;
+}
+
+
+
+template<class Function, class... Args>
+std::future<void> async(const parallel_execution_policy &exec, Function f, Args&&... args)
+{
+  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
+
+  const size_t min_num_agents_per_launch = 1000;
+  size_t num_launches = (rng.size() + min_num_agents_per_launch - 1) / min_num_agents_per_launch;
+  const size_t subscription = std::max(1u, __log2(std::min(1u,std::thread::hardware_concurrency())));
+
+  num_launches = std::min<size_t>(subscription * std::thread::hardware_concurrency(), num_launches);
+  const size_t num_agents_per_launch = (rng.size() + num_launches - 1) / num_launches;
+
+  // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
+  // XXX eliminate this outer async, just join on all the futures
+  return std::async(std::launch::async, [=](Args&&... args)
+  {
+    std::vector<std::future<void>> futures(num_launches);
+
+    // launch asyncs
+    // XXX need to collect exceptions
+    // XXX could use async(con(seq)) for this, but we'd want to avoid creating a barrier
+    //     as well as the expense of manipulating std::this_group
+    for(size_t launch_idx = 0; launch_idx < num_launches; ++launch_idx)
+    {
+      __integer_range launch_rng{launch_idx * num_agents_per_launch, std::min(rng.last, (launch_idx + 1) * num_agents_per_launch)};
+
+      try
+      {
+        // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
+        futures[launch_idx] = std::async(std::launch::async, [=](Args&&... args)
+        {
+          for(size_t agent_idx = launch_rng.first; agent_idx < launch_rng.last; ++agent_idx)
+          {
+            parallel_group this_group(rng.size(), 0, agent(agent_idx));
+
+            // set current group
+            // XXX can probably hoist this stuff out of the loop
+            //     and reuse the current group and agent
+            // XXX this procedure should be RAII
+            __set_this_group(this_group);
+            execution_view old_group = std::this_group();
+
+            f(this_group, args...);
+
+            // restore old group
+            __set_this_group(std::move(old_group));
+          }
+        },
+        std::forward<Args>(args)...
+        );
+      }
+      catch(std::system_error &e)
+      {
+        std::terminate();
+      }
+    }
+
+    // join and collect exceptions
+    exception_list exceptions;
+    for(auto &f : futures)
+    {
+      try
+      {
+        f.get();
+      }
+      catch(...)
+      {
+        __add_current_exception(exceptions);
+      }
+    }
+
+    if(exceptions.size() > 0)
+    {
+      throw exceptions;
+    }
+  },
+  std::forward<Args>(args)...);
+}
+
+
+template<class Function, class... Args>
+std::future<void> async(const concurrent_execution_policy &exec, Function f, Args&&... args)
+{
+  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
+
+  // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
+  return std::async(std::launch::async, [=](Args&&... args)
+  {
+    std::vector<std::future<void>> futures(rng.size());
+
+    std::barrier barrier(rng.size());
+
+    // launch agents
+    for(size_t i = rng.first; i < rng.last; ++i)
+    {
+      // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
+      futures[i] = std::async(std::launch::async, [=](std::reference_wrapper<std::barrier> barrier, Args&&... args)
+      {
+        concurrent_group this_group(1, 0, barrier, agent(i));
+
+        // set current group
+        execution_view old_group = std::this_group();
+        __set_this_group(this_group);
+
+        f(this_group, args...);
+
+        // restore old group
+        __set_this_group(std::move(old_group));
+      },
+      std::ref(barrier),
+      std::forward<Args>(args)...
+      );
+    }
+
+    // join and collect exceptions
+    exception_list exceptions;
+    for(auto &f : futures)
+    {
+      try
+      {
+        f.get();
+      }
+      catch(...)
+      {
+        __add_current_exception(exceptions);
+      }
+    }
+
+    if(exceptions.size() > 0)
+    {
+      throw exceptions;
+    }
+  },
+  std::forward<Args>(args)...);
+}
+
+
+template<class OuterPolicy, class InnerPolicy, class Function>
+struct __async_outer_functor
+{
+  template<class OuterGroup, class Index>
+  struct inner_functor
+  {
+    OuterGroup &outer_group;
+    Function f;
+    Index inner_idx;
+
+    template<class InnerGroup, class... Args>
+    void operator()(InnerGroup &inner_group, Args&&... args) const
+    {
+      // create an execution descriptor for f by:
+      // * reindexing the inner_group
+      // * moving the inner groups and outer groups into a new linked_group
+
+      // XXX are these moves correct?
+      // XXX maybe rebind_execution_group should also be able to rebind the index as well?
+      InnerGroup reindexed_inner_group(std::move(inner_group), inner_idx);
+
+      // rebind the type of the OuterGroup such that InnerGroup is its child, and link the two
+      typename execution_group_traits<OuterGroup>::template rebind_execution_group<InnerGroup> linked_group(std::move(outer_group), std::move(reindexed_inner_group));
+
+      // save old group
+      execution_view old_group = std::this_group();
+
+      __set_this_group(linked_group);
+
+      // call f
+      f(linked_group, args...);
+
+      // restore old group
+      __set_this_group(std::move(old_group));
+    }
+  };
+
+  __nested_execution_policy<OuterPolicy,InnerPolicy> exec_args;
+  Function f;
+
+  template<class OuterGroup, class... Args>
+  void operator()(OuterGroup &outer_group, Args&&... args) const
+  {
+//    // XXX we shouldn't do this n times...
+//    // it's the inner_exec's job to create plurality
+//    std::vector<std::future<void>> futures(exec_args.inner_exec.n);
+//
+//    for(size_t i = 0; i < exec_args.inner_exec.n; ++i)
+//    {
+//      futures[i] = async(exec_args.inner_exec, inner_functor<OuterGroup,size_t>{outer_group, f, i}, args...);
+//    }
+//
+//    // wait for all asyncs
+//    for(auto &f : futures)
+//    {
+//      f.wait();
+//    }
+    typedef typename execution_group_traits<OuterGroup>::size_type size_type;
+
+    async(exec_args.inner_exec, inner_functor<OuterGroup,size_type>{outer_group, f, outer_group.child().index()}, args...).wait();
+  }
+};
+
+
+template<class OuterPolicy, class InnerPolicy, class Function, class... Args>
+std::future<void> async(const __nested_execution_policy<OuterPolicy,InnerPolicy> &exec_args, Function f, Args&&... args)
+{
+  return async(exec_args.outer_exec, __async_outer_functor<OuterPolicy,InnerPolicy,Function>{exec_args,f}, args...);
+
+//  XXX no auto-type for lambda arguments until c++14, and gcc 4.8 has trouble with lambdas + parameter packs
+//
+//  // invoke an n-sized group to implement the outermost group
+//  return async(exec_args.outer_exec(exec_args.n), [&](auto &outer_group)
+//  {
+//    // XXX this vector would use the allocator in outer_group, if one exists
+//    std::vector<std::future<void>> futures(exec_args.inner.n);
+//
+//    for(size_t i = 0; i < exec_args.inner.n; ++i)
+//    {
+//      // create an invocation for the inner_group
+//      futures[i] = async(exec_args.inner_exec, [&](auto &inner_group)
+//      {
+//        // create an execution descriptor for f by linking the outer & inner groups
+//        // XXX are these moves correct?
+//        // XXX should use rebind_execution_group to rebind outer_group<OuterPolicy, inner_group>
+//        //     that way, f will receive the type of group it expects
+//        execution_group<OuterPolicy,decltype(inner_group)> linked_group(std::move(outer_group), std::move(inner_group));
+//
+//        // call f
+//        f(linked_group, args...);
+//      }
+//    } // end for
+//
+//    // wait for all asyncs
+//    for(auto &f : futures)
+//    {
+//      f.wait();
+//    }
+//  });
+}
+
+
+} // end std
+

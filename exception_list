@@ -1,0 +1,41 @@
+#include <exception>
+#include <vector>
+#include <iterator>
+#include <string>
+
+namespace std
+{
+
+
+class exception_list : public exception
+{
+  private:
+    typedef std::vector<exception_ptr> impl_type;
+    impl_type exceptions_;
+
+    friend void __add_current_exception(exception_list &);
+
+  public:
+    typedef exception_ptr                                             value_type;
+    typedef const value_type&                                         reference;
+    typedef const value_type&                                         const_reference;
+    typedef typename impl_type::const_iterator                        const_iterator;
+    typedef const_iterator                                            iterator;
+    typedef typename iterator_traits<const_iterator>::difference_type difference_type;
+    typedef size_t                                                    size_type;
+
+    size_t size() const { return exceptions_.size(); }
+    iterator begin() const { return exceptions_.begin(); }
+    iterator end() const { return exceptions_.end(); }
+    inline virtual const char* what() const noexcept { return "exception_list"; }
+};
+
+
+inline void __add_current_exception(exception_list &exceptions)
+{
+  exceptions.exceptions_.push_back(std::current_exception());
+}
+
+
+}
+

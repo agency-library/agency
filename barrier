@@ -1,0 +1,63 @@
+#pragma once
+
+#include <functional>
+#include <thread>
+#include <atomic>
+
+namespace std
+{
+
+
+class barrier
+{
+  public:
+    inline explicit barrier(size_t num_threads)
+      : barrier(num_threads, std::function<size_t()>([=](){return num_threads;}))
+    {
+      if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
+    }
+
+    inline barrier(size_t num_threads, size_t(*completion)())
+      : barrier(num_threads, std::function<size_t()>(completion))
+    {
+      if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
+    }
+
+    inline barrier(size_t num_threads, function<size_t()> completion)
+      : count_(num_threads),
+        completion_(completion)
+    {
+      if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
+    }
+
+    inline void count_down_and_wait()
+    {
+      if(--count_ == 0)
+      {
+        // call the completion function
+        size_t new_count = completion_();
+        if(new_count == 0) throw std::logic_error("barrier: completion function may not return 0.");
+
+        count_ = new_count;
+
+        // wake everyone up
+        cv_.notify_all();
+      }
+      else
+      {
+        // sleep until woken
+        std::unique_lock<mutex> lock(mutex_);
+        cv_.wait(lock), [this](){ this->count_ == 0; };
+      }
+    }
+
+  private:
+    function<size_t()> completion_;
+    atomic_size_t      count_;
+    mutex              mutex_;
+    condition_variable cv_;
+};
+
+
+}
+
