@@ -171,7 +171,9 @@ class execution_group
     size_type index_;
     ExecutionGroup child_;
 
-    // XXX not sure about the order of parameters chld & exec
+    // XXX not sure about the order of parameters
+    // XXX think idx should come before sz because idx is execution_group's identity
+    // XXX there shouldn't be a default parameter for chld
     execution_group(size_type sz, size_type idx, ExecutionGroup &&chld = ExecutionGroup())
       : size_(sz),
         index_(idx),
@@ -475,6 +477,33 @@ class __scoped_group
   private:
     execution_view old_group_;
 };
+
+
+//template<class ExecutionGroup, class GroupArgs..., class Function, class... Args>
+//std::future<void> async(const __basic_execution_policy<sequential_execution_policy,ExecutionGroup,GroupArgs...> &exec, Function f, Args&&... args)
+//{
+//  return std::async(std::launch::deferred, [=](Args&&... args)
+//  {
+//    typedef typename execution_group_traits<ExecutionGroup>::child_type agent_type;
+//
+//    ExecutionGroup this_group(std::forward<GroupArgs>(exec.args)..., 0, agent_type(0));
+//    agent_type& this_agent = this_group.child();
+//
+//    __scoped_group scope(this_group);
+//
+//    // execute agents sequentially
+//    typedef typename execution_group_traits<ExecutionGroup>::size_type  size_type;
+//    for(size_type agent_idx = 0; agent_idx < this_group.size(); ++agent_idx)
+//    {
+//      // move assign the current agent
+//      this_agent = std::move(agent_type(agent_idx));
+//
+//      f(this_group, args...);
+//    }
+//  ,
+//  std::forward<Args>(args)...
+//  }
+//}
 
 
 template<class Function, class... Args>
