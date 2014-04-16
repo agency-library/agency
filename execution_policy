@@ -146,7 +146,7 @@ class agent
     size_type index() const { return index_; }
 
 //  private:
-    agent(size_type idx)
+    agent(size_type idx = 0)
       : index_(idx)
     {}
 
@@ -172,23 +172,13 @@ class execution_group
     size_type size_;
     ExecutionGroup child_;
 
-    // the order for execution group constructor parameters
-    // 1. state corresponding to the group's identity comes first
-    //    by default, this is just its index
-    //    when there is stuff in addition to the index, the index is the first of these parameters
-    // 2. the size of the group comes next
-    //    by default, this is just a size_t
-    // 3. the child object comes last
-
-    execution_group(size_type idx, size_type sz, ExecutionGroup &&chld)
-      : index_(idx),
+    execution_group(size_type sz, ExecutionGroup &&chld = ExecutionGroup())
+      : index_(0),
         size_(sz),
         child_(std::move(chld))
     {}
 
     // move constructor which can perform reindexing at the same 
-    // when moving from another execution_group, the state, size, and child are moved from the other execution_group
-    // so only the index and other execution_group are parameters, in that order
     execution_group(size_type idx, execution_group &&other)
       : index_(idx),
         size_(other.size_),
@@ -238,8 +228,8 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
     }
 
 //  private:
-    basic_concurrent_group(size_type idx, std::barrier &barrier, size_type sz, ExecutionGroup &&chld)
-      : super_t(idx, sz, std::move(chld)),
+    basic_concurrent_group(std::barrier &barrier, size_type sz, ExecutionGroup &&chld = ExecutionGroup())
+      : super_t(sz, std::move(chld)),
         barrier_(barrier)
     {}
 
@@ -502,7 +492,7 @@ class __scoped_group
 //  {
 //    typedef typename execution_group_traits<ExecutionGroup>::child_type agent_type;
 //
-//    ExecutionGroup this_group(0, std::forward<GroupArgs>(exec.args)..., agent_type(0));
+//    ExecutionGroup this_group(std::forward<GroupArgs>(exec.args)...);
 //    agent_type& this_agent = this_group.child();
 //
 //    __scoped_group scope(this_group);
@@ -539,7 +529,7 @@ std::future<void> async(const sequential_execution_policy &exec, Function f, Arg
 
   return std::async(std::launch::deferred, [=](Args&&... args)
   {
-    sequential_group this_group(0, rng.size(), agent(0));
+    sequential_group this_group(rng.size());
     agent& this_agent = this_group.child();
 
     __scoped_group scope(this_group);
@@ -600,7 +590,7 @@ std::future<void> async(const parallel_execution_policy &exec, Function f, Args&
         {
           // XXX generalize the type of groups created inside async(seq) and use that feature
           //     to implement this loop
-          parallel_group this_group(0, rng.size(), agent(0));
+          parallel_group this_group(rng.size());
           agent& this_agent = this_group.child();
 
           __scoped_group scope(this_group);
@@ -663,7 +653,7 @@ std::future<void> async(const concurrent_execution_policy &exec, Function f, Arg
       // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
       futures[i] = std::async(std::launch::async, [=](std::reference_wrapper<std::barrier> barrier, Args&&... args)
       {
-        concurrent_group this_group(0, barrier, rng.size(), agent(i));
+        concurrent_group this_group(barrier, rng.size(), agent(i));
         __scoped_group scope(this_group);
 
         f(this_group, args...);
