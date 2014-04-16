@@ -158,8 +158,9 @@ template<class ExecutionPolicy, class ExecutionGroup>
 class execution_group
 {
   public:
-    typedef size_t          size_type;
+    typedef ExecutionPolicy execution_policy_type;
     typedef ExecutionGroup  child_type;
+    typedef size_t          size_type;
 
     size_type size() const { return size_; }
     size_type index() const { return index_; }
@@ -167,23 +168,30 @@ class execution_group
     const ExecutionGroup &child() const { return child_; }
 
 //  private:
-    size_type size_;
     size_type index_;
+    size_type size_;
     ExecutionGroup child_;
 
-    // XXX not sure about the order of parameters
-    // XXX think idx should come before sz because idx is execution_group's identity
-    // XXX there shouldn't be a default parameter for chld
-    execution_group(size_type sz, size_type idx, ExecutionGroup &&chld = ExecutionGroup())
-      : size_(sz),
-        index_(idx),
+    // the order for execution group constructor parameters
+    // 1. state corresponding to the group's identity comes first
+    //    by default, this is just its index
+    //    when there is stuff in addition to the index, the index is the first of these parameters
+    // 2. the size of the group comes next
+    //    by default, this is just a size_t
+    // 3. the child object comes last
+
+    execution_group(size_type idx, size_type sz, ExecutionGroup &&chld)
+      : index_(idx),
+        size_(sz),
         child_(std::move(chld))
     {}
 
     // move constructor which can perform reindexing at the same 
-    execution_group(execution_group &&other, size_type idx)
-      : size_(other.size_),
-        index_(idx),
+    // when moving from another execution_group, the state, size, and child are moved from the other execution_group
+    // so only the index and other execution_group are parameters, in that order
+    execution_group(size_type idx, execution_group &&other)
+      : index_(idx),
+        size_(other.size_),
         child_(std::move(other.child_))
     {}
 
@@ -192,8 +200,8 @@ class execution_group
     // only the implementation may do this
     template<class OtherGroup>
     execution_group(execution_group<ExecutionPolicy, OtherGroup> &&other, ExecutionGroup &&chld)
-      : size_(other.size_),
-        index_(other.index_),
+      : index_(other.index_),
+        size_(other.size_),
         child_(std::move(chld))
     {}
 };
@@ -230,14 +238,14 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
     }
 
 //  private:
-    basic_concurrent_group(size_type sz, size_type idx, std::barrier &barrier, ExecutionGroup &&chld = ExecutionGroup())
-      : super_t(sz, idx, std::move(chld)),
+    basic_concurrent_group(size_type idx, std::barrier &barrier, size_type sz, ExecutionGroup &&chld)
+      : super_t(idx, sz, std::move(chld)),
         barrier_(barrier)
     {}
 
     // move constructor which can perform reindexing at the same 
-    basic_concurrent_group(basic_concurrent_group &&other, size_type idx)
-      : super_t(std::move(other), idx),
+    basic_concurrent_group(size_type idx, basic_concurrent_group &&other)
+      : super_t(idx, std::move(other)),
         barrier_(other.barrier_)
     {}
 
@@ -275,6 +283,8 @@ struct __rebind_execution_group<ExecutionGroup<ExecutionPolicy,OriginalChild, T.
 };
 
 
+// XXX perhaps all ExecutionGroups should friend their associated traits class
+// XXX that would be a simple way to handle access
 template<class ExecutionGroup>
 class execution_group_traits
 {
@@ -320,8 +330,8 @@ class execution_view
     typedef size_t size_type;
 
     inline execution_view(const execution_view &g)
-      : size_(g.size_),
-        index_(g.index_),
+      : index_(g.index_),
+        size_(g.size_),
         self_(g.self_),
         child_(g.child_ ? new execution_view(g.child()) : nullptr)
     {}
@@ -331,8 +341,8 @@ class execution_view
     template<typename ExecutionGroup>
     execution_view(ExecutionGroup& g,
                    typename std::enable_if<__has_child<ExecutionGroup>::value>::type* = 0)
-      : size_(g.size()),
-        index_(g.index()),
+      : index_(g.index()),
+        size_(g.size()),
         self_(&g),
         child_(new execution_view(g.child()))
     {}
@@ -340,8 +350,8 @@ class execution_view
     template<typename ExecutionGroup>
     execution_view(ExecutionGroup& g,
                    typename std::enable_if<!__has_child<ExecutionGroup>::value>::type* = 0)
-      : size_(g.size()),
-        index_(g.index()),
+      : index_(g.index()),
+        size_(g.size()),
         self_(&g),
         child_()
     {}
@@ -350,8 +360,8 @@ class execution_view
 
     inline execution_view &operator=(const execution_view &g)
     {
-      size_ = g.size_;
       index_ = g.index_;
+      size_ = g.size_;
       self_ = g.self_;
       child_ = g.child_ ? std::unique_ptr<execution_view>(new execution_view(g.child())) : nullptr;
       return *this;
@@ -364,8 +374,8 @@ class execution_view
     >::type
       operator=(ExecutionGroup& g)
     {
-      size_ = g.size();
       index_ = g.index();
+      size_ = g.size();
       self_ = g.self_;
       *child_ = g.child();
     }
@@ -377,8 +387,8 @@ class execution_view
     >::type
       operator=(ExecutionGroup& g)
     {
-      size_ = g.size();
       index_ = g.index();
+      size_ = g.size();
       self_ = g.self_;
       child_ = nullptr;
     }
@@ -409,16 +419,16 @@ class execution_view
   private:
     // allow empty execution_view for this_group() below
     inline execution_view(std::nullptr_t)
-      : size_(0),
-        index_(0),
+      : index_(0),
+        size_(0),
         self_(nullptr),
         child_(nullptr)
     {}
 
     friend execution_view &this_group();
 
-    size_type size_;
     size_type index_;
+    size_type size_;
     void *self_;
     std::unique_ptr<execution_view> child_;
 };
@@ -479,20 +489,26 @@ class __scoped_group
 };
 
 
+// XXX ExecutionGroup has a nested typedef execution_policy_type
+// XXX so sequential_execution_policy & ExecutionGroup are redundant
 //template<class ExecutionGroup, class GroupArgs..., class Function, class... Args>
-//std::future<void> async(const __basic_execution_policy<sequential_execution_policy,ExecutionGroup,GroupArgs...> &exec, Function f, Args&&... args)
+//typename std::enable_if<
+//  std::is_same<sequential_execution_policy, typename execution_group_traits<ExecutionGroup>::execution_policy_type>::value,
+//  std::future<void>
+//>::type
+//  async(const __grouped_execution_policy<ExecutionGroup,GroupArgs...> &exec, Function f, Args&&... args)
 //{
 //  return std::async(std::launch::deferred, [=](Args&&... args)
 //  {
 //    typedef typename execution_group_traits<ExecutionGroup>::child_type agent_type;
 //
-//    ExecutionGroup this_group(std::forward<GroupArgs>(exec.args)..., 0, agent_type(0));
+//    ExecutionGroup this_group(0, std::forward<GroupArgs>(exec.args)..., agent_type(0));
 //    agent_type& this_agent = this_group.child();
 //
 //    __scoped_group scope(this_group);
 //
 //    // execute agents sequentially
-//    typedef typename execution_group_traits<ExecutionGroup>::size_type  size_type;
+//    typedef typename execution_group_traits<ExecutionGroup>::size_type size_type;
 //    for(size_type agent_idx = 0; agent_idx < this_group.size(); ++agent_idx)
 //    {
 //      // move assign the current agent
@@ -514,7 +530,7 @@ std::future<void> async(const sequential_execution_policy &exec, Function f, Arg
 //  // execute agents sequentially
 //  for(size_t i = rng.first; i < rng.last; ++i)
 //  {
-//    sequential_group this_group(num_agents, 0, agent(i));
+//    sequential_group this_group(0, num_agents, agent(i));
 //    f(this_group, args...);
 //  }
 //
@@ -523,7 +539,7 @@ std::future<void> async(const sequential_execution_policy &exec, Function f, Arg
 
   return std::async(std::launch::deferred, [=](Args&&... args)
   {
-    sequential_group this_group(rng.size(), 0, agent(0));
+    sequential_group this_group(0, rng.size(), agent(0));
     agent& this_agent = this_group.child();
 
     __scoped_group scope(this_group);
@@ -584,7 +600,7 @@ std::future<void> async(const parallel_execution_policy &exec, Function f, Args&
         {
           // XXX generalize the type of groups created inside async(seq) and use that feature
           //     to implement this loop
-          parallel_group this_group(rng.size(), 0, agent(0));
+          parallel_group this_group(0, rng.size(), agent(0));
           agent& this_agent = this_group.child();
 
           __scoped_group scope(this_group);
@@ -647,7 +663,7 @@ std::future<void> async(const concurrent_execution_policy &exec, Function f, Arg
       // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
       futures[i] = std::async(std::launch::async, [=](std::reference_wrapper<std::barrier> barrier, Args&&... args)
       {
-        concurrent_group this_group(1, 0, barrier, agent(i));
+        concurrent_group this_group(0, barrier, rng.size(), agent(i));
         __scoped_group scope(this_group);
 
         f(this_group, args...);
@@ -699,7 +715,7 @@ struct __async_outer_functor
 
       // XXX are these moves correct?
       // XXX maybe rebind_execution_group should also be able to rebind the index as well?
-      InnerGroup reindexed_inner_group(std::move(inner_group), inner_idx);
+      InnerGroup reindexed_inner_group(inner_idx, std::move(inner_group));
 
       // rebind the type of the OuterGroup such that InnerGroup is its child, and link the two
       typename execution_group_traits<OuterGroup>::template rebind_execution_group<InnerGroup> linked_group(std::move(outer_group), std::move(reindexed_inner_group));
