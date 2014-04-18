@@ -14,6 +14,7 @@ class exception_list : public exception
     impl_type exceptions_;
 
     friend void __add_current_exception(exception_list &);
+    friend void __move_exceptions(exception_list &, exception_list &);
 
   public:
     typedef exception_ptr                                             value_type;
@@ -34,6 +35,40 @@ class exception_list : public exception
 inline void __add_current_exception(exception_list &exceptions)
 {
   exceptions.exceptions_.push_back(std::current_exception());
+}
+
+
+inline void __move_exceptions(exception_list &to, exception_list &from)
+{
+  to.exceptions_.insert(to.exceptions_.end(), std::make_move_iterator(from.exceptions_.begin()), std::make_move_iterator(from.exceptions_.end()));
+}
+
+
+template<class FutureIterator>
+inline void __flatten_and_throw_exceptions(FutureIterator first, FutureIterator last)
+{
+  exception_list exceptions;
+
+  for(; first != last; ++first)
+  {
+    try
+    {
+      first->get();
+    }
+    catch(exception_list &e)
+    {
+      __move_exceptions(exceptions, e);
+    }
+    catch(...)
+    {
+      __add_current_exception(exceptions);
+    }
+  }
+
+  if(exceptions.size() > 0)
+  {
+    throw exceptions;
+  }
 }
 
 
