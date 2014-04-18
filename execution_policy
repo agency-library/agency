@@ -5,6 +5,7 @@
 #include <functional>
 #include <type_traits>
 #include <exception_list>
+#include "make_from_tuple.hpp"
 
 // For our purposes, an ExecutionGroup is a type with the following member types:
 //
@@ -24,117 +25,6 @@
 
 namespace std
 {
-
-
-struct __integer_range
-{
-  inline size_t size() const
-  {
-    return last - first;
-  }
-
-  inline bool contains(size_t x) const
-  {
-    return first <= x && x < last;
-  }
-
-  inline friend std::ostream &operator<<(std::ostream &os, const __integer_range &rng)
-  {
-    os << "[" << rng.first << ", " << rng.last << ")";
-    return os;
-  }
-
-
-  size_t first, last;
-};
-
-
-template<class OuterPolicy, class InnerPolicy>
-struct __nested_execution_policy
-{
-  OuterPolicy outer_exec;
-  InnerPolicy inner_exec;
-};
-
-
-template<class OuterPolicy, class InnerPolicy>
-__nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPolicy outer, const InnerPolicy &inner)
-{
-  return __nested_execution_policy<OuterPolicy,InnerPolicy>{outer,inner};
-}
-    
-
-class sequential_execution_policy
-{
-  public:
-    inline sequential_execution_policy(size_t n) : rng{0,n} {}
-
-    template<class ExecutionPolicy>
-    __nested_execution_policy<sequential_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
-    {
-      return __make_nested(operator()(n), exec);
-    }
-
-    inline sequential_execution_policy operator()(size_t n) const
-    {
-      return sequential_execution_policy{n};
-    }
-
-//  private:
-    __integer_range rng;
-};
-
-
-class parallel_execution_policy
-{
-  public:
-    inline parallel_execution_policy(size_t n) : rng{0,n} {}
-
-    template<class ExecutionPolicy>
-    __nested_execution_policy<parallel_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
-    {
-      return __make_nested(operator()(n), exec);
-    }
-
-    inline parallel_execution_policy operator()(size_t n) const
-    {
-      return parallel_execution_policy{n};
-    }
-
-//  private:
-    inline parallel_execution_policy(__integer_range rng_) : rng(rng) {}
-
-    __integer_range rng;
-};
-
-
-class concurrent_execution_policy
-{
-  public:
-    inline concurrent_execution_policy(size_t n) : rng{0,n} {}
-
-    template<class ExecutionPolicy>
-    __nested_execution_policy<concurrent_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
-    {
-      return __make_nested(operator()(n), exec);
-    }
-
-    inline concurrent_execution_policy operator()(size_t n) const
-    {
-      return concurrent_execution_policy{n};
-    }
-
-//  private:
-    __integer_range rng;
-};
-
-
-//constexpr sequential_execution_policy seq{0};
-//constexpr parallel_execution_policy   par{0};
-//constexpr concurrent_execution_policy con{0};
-const sequential_execution_policy seq{0};
-const parallel_execution_policy   par{0};
-const concurrent_execution_policy con{0};
 
 
 class agent
@@ -162,26 +52,38 @@ class execution_group
     typedef ExecutionGroup  child_type;
     typedef size_t          size_type;
 
-    size_type size() const { return size_; }
+    size_type indices_begin() const { return indices_begin_; }
+    size_type indices_end() const { return indices_end_; }
+    size_type size() const { return indices_end() - indices_begin(); }
     size_type index() const { return index_; }
     ExecutionGroup &child() { return child_; }
     const ExecutionGroup &child() const { return child_; }
 
 //  private:
     size_type index_;
-    size_type size_;
+    size_type indices_begin_;
+    size_type indices_end_;
     ExecutionGroup child_;
+
+    execution_group(size_type begin, size_type end, ExecutionGroup &&chld = ExecutionGroup())
+      : index_(0),
+        indices_begin_(begin),
+        indices_end_(end),
+        child_(std::move(chld))
+    {}
 
     execution_group(size_type sz, ExecutionGroup &&chld = ExecutionGroup())
       : index_(0),
-        size_(sz),
+        indices_begin_(0),
+        indices_end_(sz),
         child_(std::move(chld))
     {}
 
     // move constructor which can perform reindexing at the same 
     execution_group(size_type idx, execution_group &&other)
       : index_(idx),
-        size_(other.size_),
+        indices_begin_(other.indices_begin_),
+        indices_end_(other.indices_end_),
         child_(std::move(other.child_))
     {}
 
@@ -191,10 +93,14 @@ class execution_group
     template<class OtherGroup>
     execution_group(execution_group<ExecutionPolicy, OtherGroup> &&other, ExecutionGroup &&chld)
       : index_(other.index_),
-        size_(other.size_),
+        indices_begin_(other.indices_begin_),
+        indices_end_(other.indices_end_),
         child_(std::move(chld))
     {}
 };
+
+
+class sequential_execution_policy;
 
 
 template<class ExecutionGroup>
@@ -202,9 +108,15 @@ using basic_sequential_group = execution_group<std::sequential_execution_policy,
 typedef basic_sequential_group<agent> sequential_group;
 
 
+class parallel_execution_policy;
+
+
 template<class ExecutionGroup>
 using basic_parallel_group = execution_group<std::parallel_execution_policy, ExecutionGroup>;
 typedef basic_parallel_group<agent> parallel_group;
+
+
+class concurrent_execution_policy;
 
 
 template<class ExecutionGroup>
@@ -230,6 +142,11 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
 //  private:
     basic_concurrent_group(std::barrier &barrier, size_type sz, ExecutionGroup &&chld = ExecutionGroup())
       : super_t(sz, std::move(chld)),
+        barrier_(barrier)
+    {}
+
+    basic_concurrent_group(std::barrier &barrier, size_type begin, size_type end, ExecutionGroup &&chld = ExecutionGroup())
+      : super_t(begin, end, std::move(chld)),
         barrier_(barrier)
     {}
 
@@ -285,6 +202,16 @@ class execution_group_traits
     
     template<class OtherChild>
     using rebind_execution_group = typename __rebind_execution_group<group_type, OtherChild>::type;
+
+    static size_type indices_begin(group_type &g)
+    {
+      return g.indices_begin();
+    }
+
+    static size_type indices_end(group_type &g)
+    {
+      return g.indices_end();
+    }
 };
 
 
@@ -479,37 +406,163 @@ class __scoped_group
 };
 
 
-// XXX ExecutionGroup has a nested typedef execution_policy_type
-// XXX so sequential_execution_policy & ExecutionGroup are redundant
-//template<class ExecutionGroup, class GroupArgs..., class Function, class... Args>
-//typename std::enable_if<
-//  std::is_same<sequential_execution_policy, typename execution_group_traits<ExecutionGroup>::execution_policy_type>::value,
-//  std::future<void>
-//>::type
-//  async(const __grouped_execution_policy<ExecutionGroup,GroupArgs...> &exec, Function f, Args&&... args)
-//{
-//  return std::async(std::launch::deferred, [=](Args&&... args)
-//  {
-//    typedef typename execution_group_traits<ExecutionGroup>::child_type agent_type;
-//
-//    ExecutionGroup this_group(std::forward<GroupArgs>(exec.args)...);
-//    agent_type& this_agent = this_group.child();
-//
-//    __scoped_group scope(this_group);
-//
-//    // execute agents sequentially
-//    typedef typename execution_group_traits<ExecutionGroup>::size_type size_type;
-//    for(size_type agent_idx = 0; agent_idx < this_group.size(); ++agent_idx)
-//    {
-//      // move assign the current agent
-//      this_agent = std::move(agent_type(agent_idx));
-//
-//      f(this_group, args...);
-//    }
-//  ,
-//  std::forward<Args>(args)...
-//  }
-//}
+struct __integer_range
+{
+  inline size_t size() const
+  {
+    return last - first;
+  }
+
+  inline bool contains(size_t x) const
+  {
+    return first <= x && x < last;
+  }
+
+  inline friend std::ostream &operator<<(std::ostream &os, const __integer_range &rng)
+  {
+    os << "[" << rng.first << ", " << rng.last << ")";
+    return os;
+  }
+
+
+  size_t first, last;
+};
+
+
+template<class OuterPolicy, class InnerPolicy>
+struct __nested_execution_policy
+{
+  OuterPolicy outer_exec;
+  InnerPolicy inner_exec;
+};
+
+
+template<class OuterPolicy, class InnerPolicy>
+__nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPolicy outer, const InnerPolicy &inner)
+{
+  return __nested_execution_policy<OuterPolicy,InnerPolicy>{outer,inner};
+}
+
+
+template<class ExecutionPolicy, class ExecutionGroup, class ArgTuple>
+struct __grouped_execution_policy
+{
+  ArgTuple args;
+};
+    
+
+class sequential_execution_policy
+{
+  public:
+    inline sequential_execution_policy(size_t n) : rng{0,n} {}
+
+    template<class ExecutionPolicy>
+    __nested_execution_policy<sequential_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
+    // XXX should return __grouped_execution_policy
+    inline sequential_execution_policy operator()(size_t n) const
+    {
+      return sequential_execution_policy{n};
+    }
+
+//  private:
+    __integer_range rng;
+};
+
+
+class parallel_execution_policy
+{
+  public:
+    inline parallel_execution_policy(size_t n) : rng{0,n} {}
+
+    template<class ExecutionPolicy>
+    __nested_execution_policy<parallel_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
+    inline parallel_execution_policy operator()(size_t n) const
+    {
+      return parallel_execution_policy{n};
+    }
+
+//  private:
+    inline parallel_execution_policy(__integer_range rng_) : rng(rng) {}
+
+    __integer_range rng;
+};
+
+
+class concurrent_execution_policy
+{
+  public:
+    inline concurrent_execution_policy(size_t n) : rng{0,n} {}
+
+    template<class ExecutionPolicy>
+    __nested_execution_policy<concurrent_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
+    inline concurrent_execution_policy operator()(size_t n) const
+    {
+      return concurrent_execution_policy{n};
+    }
+
+//  private:
+    __integer_range rng;
+};
+
+
+//constexpr sequential_execution_policy seq{0};
+//constexpr parallel_execution_policy   par{0};
+//constexpr concurrent_execution_policy con{0};
+const sequential_execution_policy seq{0};
+const parallel_execution_policy   par{0};
+const concurrent_execution_policy con{0};
+
+
+template<class ExecutionGroup, class GroupArgTuple, class Function, class... Args>
+future<void> async(const __grouped_execution_policy<sequential_execution_policy,ExecutionGroup,GroupArgTuple> &exec, Function f, Args&&... args)
+{
+  // XXX could generalize the launch policy to allow concurrent_execution_policy to make use of this
+  return std::async(std::launch::deferred, [=](Args&&... args)
+  {
+    exception_list exceptions;
+
+    try
+    {
+      typedef execution_group_traits<ExecutionGroup> traits;
+      typedef typename traits::child_type agent_type;
+
+      ExecutionGroup this_group = make_from_tuple<ExecutionGroup>(exec.args);
+      agent_type& this_agent = this_group.child();
+
+      __scoped_group scope(this_group);
+
+      // execute agents sequentially
+      for(auto agent_idx = traits::indices_begin(this_group);
+          agent_idx < traits::indices_end(this_group);
+          ++agent_idx)
+      {
+        // move assign the current agent
+        this_agent = std::move(agent_type(agent_idx));
+
+        f(this_group, args...);
+      }
+    } // end try
+    catch(...)
+    {
+      __add_current_exception(exceptions);
+      throw exceptions;
+    } // end catch
+  }, // end lambda
+  std::forward<Args>(args)...
+  );
+}
 
 
 template<class Function, class... Args>
@@ -517,34 +570,9 @@ std::future<void> async(const sequential_execution_policy &exec, Function f, Arg
 {
   __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
 
-//  // execute agents sequentially
-//  for(size_t i = rng.first; i < rng.last; ++i)
-//  {
-//    sequential_group this_group(0, num_agents, agent(i));
-//    f(this_group, args...);
-//  }
-//
-//  // return ready
-//  return std::make_ready_future<void>();
-
-  return std::async(std::launch::deferred, [=](Args&&... args)
-  {
-    sequential_group this_group(rng.size());
-    agent& this_agent = this_group.child();
-
-    __scoped_group scope(this_group);
-
-    // execute agents sequentially
-    for(size_t agent_idx = rng.first; agent_idx < rng.last; ++agent_idx)
-    {
-      // move assign the current agent
-      this_agent = std::move(agent(agent_idx));
-
-      f(this_group, args...);
-    }
-  },
-  std::forward<Args>(args)...
-  );
+  auto group_args = std::make_tuple(rng.first,rng.last);
+  typedef __grouped_execution_policy<sequential_execution_policy,sequential_group,decltype(group_args)> policy_type;
+  return async(policy_type{group_args}, f, std::forward<Args>(args)...);
 }
 
 
@@ -588,14 +616,19 @@ std::future<void> async(const parallel_execution_policy &exec, Function f, Args&
         // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
         futures[launch_idx] = std::async(std::launch::async, [=](Args&&... args)
         {
+          typedef execution_group_traits<parallel_group> traits;
+          typedef typename traits::child_type agent_type;
+
           // XXX generalize the type of groups created inside async(seq) and use that feature
           //     to implement this loop
-          parallel_group this_group(rng.size());
+          parallel_group this_group(rng.first, rng.last);
           agent& this_agent = this_group.child();
 
           __scoped_group scope(this_group);
 
-          for(size_t agent_idx = launch_rng.first; agent_idx < launch_rng.last; ++agent_idx)
+          for(auto agent_idx = traits::indices_begin(this_group);
+              agent_idx < traits::indices_end(this_group);
+              ++agent_idx)
           {
             // move assign the current agent
             this_agent = std::move(agent(agent_idx));
