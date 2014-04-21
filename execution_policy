@@ -203,11 +203,13 @@ class execution_group_traits
     template<class OtherChild>
     using rebind_execution_group = typename __rebind_execution_group<group_type, OtherChild>::type;
 
+    // XXX eliminate this
     static size_type indices_begin(group_type &g)
     {
       return g.indices_begin();
     }
 
+    // XXX eliminate this
     static size_type indices_end(group_type &g)
     {
       return g.indices_end();
@@ -447,6 +449,8 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 template<class ExecutionPolicy, class ExecutionGroup, class ArgTuple>
 struct __grouped_execution_policy
 {
+  typedef typename execution_group_traits<ExecutionGroup>::size_type size_type;
+  std::pair<size_type,size_type> rng;
   ArgTuple args;
 };
     
@@ -538,14 +542,14 @@ future<void> async(const __grouped_execution_policy<sequential_execution_policy,
       typedef execution_group_traits<ExecutionGroup> traits;
       typedef typename traits::child_type agent_type;
 
-      ExecutionGroup this_group = make_from_tuple<ExecutionGroup>(exec.args);
+      ExecutionGroup this_group = make_from_tuple<ExecutionGroup>(std::tuple_cat(exec.rng, exec.args));
       agent_type& this_agent = this_group.child();
 
       __scoped_group scope(this_group);
 
       // execute agents sequentially
-      for(auto agent_idx = traits::indices_begin(this_group);
-          agent_idx < traits::indices_end(this_group);
+      for(auto agent_idx = exec.rng.first;
+          agent_idx < exec.rng.second;
           ++agent_idx)
       {
         // move assign the current agent
@@ -570,8 +574,56 @@ std::future<void> async(const sequential_execution_policy &exec, Function f, Arg
 {
   __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
 
-  auto group_args = std::make_tuple(rng.first,rng.last);
-  typedef __grouped_execution_policy<sequential_execution_policy,sequential_group,decltype(group_args)> policy_type;
+  auto group_args = std::make_pair(rng.first,rng.last);
+  typedef __grouped_execution_policy<sequential_execution_policy,sequential_group,std::tuple<>> policy_type;
+  return async(policy_type{group_args}, f, std::forward<Args>(args)...);
+}
+
+
+template<class ExecutionGroup, class GroupArgTuple, class Function, class... Args>
+future<void> async(const __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup,GroupArgTuple> &exec, Function f, Args&&... args)
+{
+  return std::async(std::launch::async, [&](Args&&... args)
+  {
+    typedef execution_group_traits<ExecutionGroup> traits;
+
+    std::vector<std::future<void>> futures(exec.rng.second - exec.rng.first);
+    std::barrier barrier(futures.size());
+
+    // launch agents
+    // XXX could we use the __subgroup idiom here?
+    for(auto agent_idx = exec.rng.first;
+        agent_idx < exec.rng.second;
+        ++agent_idx)
+    {
+      // XXX could call std::async(seq) here with a subgroup if async(seq)'s launch policy was generalized
+      futures[agent_idx] = std::async(std::launch::async, [=](std::reference_wrapper<std::barrier> barrier, Args&&... args)
+      {
+        typedef typename traits::child_type agent_type;
+        auto ctor_args = std::tuple_cat(std::make_tuple(barrier), exec.rng, exec.args, std::forward_as_tuple(agent_type(agent_idx)));
+        ExecutionGroup this_group = make_from_tuple<ExecutionGroup>(std::move(ctor_args));
+
+        __scoped_group scope(this_group);
+
+        f(this_group, args...);
+      },
+      std::ref(barrier),
+      std::forward<Args>(args)...);
+    }
+
+    __flatten_and_throw_exceptions(futures.begin(), futures.end());
+  },
+  std::forward<Args>(args)...);
+}
+
+
+template<class Function, class... Args>
+std::future<void> async(const concurrent_execution_policy &exec, Function f, Args&&... args)
+{
+  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
+
+  auto group_args = std::make_pair(rng.first,rng.last);
+  typedef __grouped_execution_policy<concurrent_execution_policy,concurrent_group,std::tuple<>> policy_type;
   return async(policy_type{group_args}, f, std::forward<Args>(args)...);
 }
 
@@ -643,57 +695,6 @@ std::future<void> async(const parallel_execution_policy &exec, Function f, Args&
       {
         std::terminate();
       }
-    }
-
-    // join and collect exceptions
-    exception_list exceptions;
-    for(auto &f : futures)
-    {
-      try
-      {
-        f.get();
-      }
-      catch(...)
-      {
-        __add_current_exception(exceptions);
-      }
-    }
-
-    if(exceptions.size() > 0)
-    {
-      throw exceptions;
-    }
-  },
-  std::forward<Args>(args)...);
-}
-
-
-template<class Function, class... Args>
-std::future<void> async(const concurrent_execution_policy &exec, Function f, Args&&... args)
-{
-  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
-
-  // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
-  return std::async(std::launch::async, [=](Args&&... args)
-  {
-    std::vector<std::future<void>> futures(rng.size());
-
-    std::barrier barrier(rng.size());
-
-    // launch agents
-    for(size_t i = rng.first; i < rng.last; ++i)
-    {
-      // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
-      futures[i] = std::async(std::launch::async, [=](std::reference_wrapper<std::barrier> barrier, Args&&... args)
-      {
-        concurrent_group this_group(barrier, rng.size(), agent(i));
-        __scoped_group scope(this_group);
-
-        f(this_group, args...);
-      },
-      std::ref(barrier),
-      std::forward<Args>(args)...
-      );
     }
 
     // join and collect exceptions
