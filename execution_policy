@@ -497,10 +497,22 @@ class sequential_execution_policy
       return __make_nested(operator()(n), exec);
     }
 
+    template<class ExecutionGroup>
+    __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> make(size_t n)
+    {
+      return __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>{size_t(0),n};
+    }
+
     // XXX should return __grouped_execution_policy
     inline sequential_execution_policy operator()(size_t n) const
     {
       return sequential_execution_policy{n};
+    }
+
+    template<class ExecutionGroup, class... Args>
+    __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> make(Args&&... args)
+    {
+      return __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>{std::forward<Args>(args)...};
     }
 
 //  private:
@@ -545,6 +557,19 @@ class concurrent_execution_policy
     inline concurrent_execution_policy operator()(size_t n) const
     {
       return concurrent_execution_policy{n};
+    }
+
+    template<class ExecutionGroup>
+    __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> make(size_t n) const
+    {
+      return __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>{size_t(0),n};
+    }
+
+
+    template<class ExecutionGroup, class... Args>
+    __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> make(Args&&... args) const
+    {
+      return __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>{std::forward<Args>(args)...};
     }
 
 //  private:
@@ -613,6 +638,54 @@ std::future<void> async(const sequential_execution_policy &exec, Function f, Arg
 }
 
 
+template<class ExecutionGroup>
+class __subgroup
+{
+  public:
+    typedef execution_group_traits<ExecutionGroup> parent_traits;
+    typedef typename parent_traits::param_type     parent_param_type;
+    typedef typename parent_traits::size_type      size_type;
+
+    struct param_type
+    {
+      size_type begin, end;
+      parent_param_type parent_params;
+    };
+
+    template<class Tuple>
+    __subgroup(const param_type &params)
+      : indices_begin_(params.begin),
+        indices_end_(params.end),
+        group_(parent_traits::make(params.parent_params))
+    {}
+
+    size_type indices_begin() const
+    {
+      return indices_begin_;
+    }
+
+    size_type indices_end() const
+    {
+      return indices_end_;
+    }
+
+    size_type size() const
+    {
+      return indices_end() - indices_begin();
+    }
+
+    ExecutionGroup &group()
+    {
+      return group_;
+    }
+
+  private:
+    size_type indices_begin_;
+    size_type indices_end_;
+    ExecutionGroup group_;
+};
+
+
 template<class ExecutionGroup, class Function, class... Args>
 future<void> async(const __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
 {
@@ -670,10 +743,43 @@ inline unsigned int __log2(unsigned int x)
 }
 
 
+template<class ExecutionGroup, class Function, class... Args>
+future<void> async(const __grouped_execution_policy<parallel_execution_policy,parallel_group> &exec, Function f, Args&&... args)
+{
+  typedef execution_group_traits<ExecutionGroup> traits;
+  typedef typename traits::size_type size_type;
+
+  auto rng = traits::range(exec.params);
+  auto group_size = rng.end() - rng.begin();
+
+  const size_t min_num_agents_per_launch = 1000;
+  size_t num_concurrent_agents = (group_size + min_num_agents_per_launch - 1) / min_num_agents_per_launch;
+  const size_t subscription = std::max(1u, __log2(std::min(1u,std::thread::hardware_concurrency())));
+
+  num_concurrent_agents = std::min<size_t>(subscription * std::thread::hardware_concurrency(), num_concurrent_agents);
+  const size_t num_seq_agents_per_concurrent = (group_size + num_concurrent_agents - 1) / num_concurrent_agents;
+
+  return std::async(std::con.make<parallel_group>(num_concurrent_agents), [=](parallel_group &g, Args&&... args)
+  {
+    auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
+    auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);
+
+    std::async(std::seq.make<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, exec.params), [=](__subgroup<ExecutionGroup> &subgroup, Args&&... args)
+    {
+      f(subgroup.group(), args...);
+    },
+    std::forward<Args>(args)...).wait();
+  },
+  std::forward<Args>(args)...);
+}
+
+
 
 template<class Function, class... Args>
 std::future<void> async(const parallel_execution_policy &exec, Function f, Args&&... args)
 {
+  // XXX implement this in terms of async(__grouped_execution_policy<parallel_execution_policy,parallel_group>)
+
   __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
 
   execution_group_traits<parallel_group>::param_type params{rng.first,rng.last};
