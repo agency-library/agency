@@ -44,13 +44,19 @@ class agent
 };
 
 
+// XXX eliminate ExecutionPolicy parameter; it is never used
 template<class ExecutionPolicy, class ExecutionGroup>
 class execution_group
 {
   public:
+    typedef size_t          size_type;
     typedef ExecutionPolicy execution_policy_type;
     typedef ExecutionGroup  child_type;
-    typedef size_t          size_type;
+
+    struct param_type
+    {
+      size_type begin, end;
+    };
 
     size_type indices_begin() const { return indices_begin_; }
     size_type indices_end() const { return indices_end_; }
@@ -63,20 +69,19 @@ class execution_group
     size_type index_;
     size_type indices_begin_;
     size_type indices_end_;
-    ExecutionGroup child_;
+    child_type child_;
 
-    execution_group(size_type begin, size_type end, ExecutionGroup &&chld = ExecutionGroup())
+    execution_group(size_type begin, size_type end, child_type &&chld = child_type())
       : index_(0),
         indices_begin_(begin),
         indices_end_(end),
         child_(std::move(chld))
     {}
 
-    execution_group(size_type sz, ExecutionGroup &&chld = ExecutionGroup())
-      : index_(0),
-        indices_begin_(0),
-        indices_end_(sz),
-        child_(std::move(chld))
+    execution_group(const param_type &params, child_type &&chld = child_type())
+      : execution_group(params.begin,
+                        params.end,
+                        std::move(chld))
     {}
 
     // move constructor which can perform reindexing at the same 
@@ -91,7 +96,7 @@ class execution_group
     // this sequential_group's child is created by moving the second argument
     // only the implementation may do this
     template<class OtherGroup>
-    execution_group(execution_group<ExecutionPolicy, OtherGroup> &&other, ExecutionGroup &&chld)
+    execution_group(execution_group<ExecutionPolicy, OtherGroup> &&other, child_type &&chld)
       : index_(other.index_),
         indices_begin_(other.indices_begin_),
         indices_end_(other.indices_end_),
@@ -128,6 +133,12 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
   public:
     typedef typename super_t::size_type size_type;
 
+    // XXX optional<barrier&> or something needs to be added to this
+    struct param_type
+    {
+      size_type begin, end;
+    };
+
     template<class OtherGroup>
     struct rebind
     {
@@ -140,14 +151,13 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
     }
 
 //  private:
-    basic_concurrent_group(std::barrier &barrier, size_type sz, ExecutionGroup &&chld = ExecutionGroup())
-      : super_t(sz, std::move(chld)),
+    basic_concurrent_group(size_type begin, size_type end, std::barrier &barrier, ExecutionGroup &&chld = ExecutionGroup())
+      : super_t(begin, end, std::move(chld)),
         barrier_(barrier)
     {}
 
-    basic_concurrent_group(std::barrier &barrier, size_type begin, size_type end, ExecutionGroup &&chld = ExecutionGroup())
-      : super_t(begin, end, std::move(chld)),
-        barrier_(barrier)
+    basic_concurrent_group(const param_type &params, std::barrier &barrier, ExecutionGroup &&chld = ExecutionGroup())
+      : basic_concurrent_group(params.begin,params.end,barrier,std::move(chld))
     {}
 
     // move constructor which can perform reindexing at the same 
@@ -197,6 +207,7 @@ class execution_group_traits
 {
   public:
     typedef ExecutionGroup                                 group_type;
+    typedef typename ExecutionGroup::param_type            param_type;
     typedef typename ExecutionGroup::child_type            child_type;
     typedef typename ExecutionGroup::size_type             size_type;
     
@@ -213,6 +224,28 @@ class execution_group_traits
     static size_type indices_end(group_type &g)
     {
       return g.indices_end();
+    }
+
+    template<class... Args>
+    static group_type make(const param_type &params, Args&&... args)
+    {
+      return group_type(params, std::forward<Args>(args)...);
+    }
+
+    class range_type
+    {
+      public:
+        range_type(size_type b, size_type e) : begin_(b), end_(e) {}
+        size_type begin() const { return begin_; }
+        size_type end() const { return end_; }
+
+      private:
+        size_type begin_, end_;
+    };
+
+    static range_type range(const param_type &params)
+    {
+      return range_type{params.begin, params.end};
     }
 };
 
@@ -446,12 +479,10 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 }
 
 
-template<class ExecutionPolicy, class ExecutionGroup, class ArgTuple>
+template<class ExecutionPolicy, class ExecutionGroup>
 struct __grouped_execution_policy
 {
-  typedef typename execution_group_traits<ExecutionGroup>::size_type size_type;
-  std::pair<size_type,size_type> rng;
-  ArgTuple args;
+  typename execution_group_traits<ExecutionGroup>::param_type params;
 };
     
 
@@ -529,8 +560,8 @@ const parallel_execution_policy   par{0};
 const concurrent_execution_policy con{0};
 
 
-template<class ExecutionGroup, class GroupArgTuple, class Function, class... Args>
-future<void> async(const __grouped_execution_policy<sequential_execution_policy,ExecutionGroup,GroupArgTuple> &exec, Function f, Args&&... args)
+template<class ExecutionGroup, class Function, class... Args>
+future<void> async(const __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
 {
   // XXX could generalize the launch policy to allow concurrent_execution_policy to make use of this
   return std::async(std::launch::deferred, [=](Args&&... args)
@@ -540,16 +571,18 @@ future<void> async(const __grouped_execution_policy<sequential_execution_policy,
     try
     {
       typedef execution_group_traits<ExecutionGroup> traits;
-      typedef typename traits::child_type agent_type;
 
-      ExecutionGroup this_group = make_from_tuple<ExecutionGroup>(std::tuple_cat(exec.rng, exec.args));
+      ExecutionGroup this_group = traits::make(exec.params);
+
+      typedef typename traits::child_type agent_type;
       agent_type& this_agent = this_group.child();
 
       __scoped_group scope(this_group);
 
       // execute agents sequentially
-      for(auto agent_idx = exec.rng.first;
-          agent_idx < exec.rng.second;
+      auto rng = traits::range(exec.params);
+      for(auto agent_idx = rng.begin();
+          agent_idx < rng.end();
           ++agent_idx)
       {
         // move assign the current agent
@@ -574,34 +607,35 @@ std::future<void> async(const sequential_execution_policy &exec, Function f, Arg
 {
   __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
 
-  auto group_args = std::make_pair(rng.first,rng.last);
-  typedef __grouped_execution_policy<sequential_execution_policy,sequential_group,std::tuple<>> policy_type;
-  return async(policy_type{group_args}, f, std::forward<Args>(args)...);
+  auto params = sequential_group::param_type{rng.first,rng.last};
+  typedef __grouped_execution_policy<sequential_execution_policy,sequential_group> policy_type;
+  return async(policy_type{params}, f, std::forward<Args>(args)...);
 }
 
 
-template<class ExecutionGroup, class GroupArgTuple, class Function, class... Args>
-future<void> async(const __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup,GroupArgTuple> &exec, Function f, Args&&... args)
+template<class ExecutionGroup, class Function, class... Args>
+future<void> async(const __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
 {
   return std::async(std::launch::async, [&](Args&&... args)
   {
     typedef execution_group_traits<ExecutionGroup> traits;
 
-    std::vector<std::future<void>> futures(exec.rng.second - exec.rng.first);
+    auto rng = traits::range(exec.params);
+
+    std::vector<std::future<void>> futures(rng.end() - rng.begin());
     std::barrier barrier(futures.size());
 
     // launch agents
     // XXX could we use the __subgroup idiom here?
-    for(auto agent_idx = exec.rng.first;
-        agent_idx < exec.rng.second;
+    for(auto agent_idx = rng.begin();
+        agent_idx < rng.end();
         ++agent_idx)
     {
       // XXX could call std::async(seq) here with a subgroup if async(seq)'s launch policy was generalized
       futures[agent_idx] = std::async(std::launch::async, [=](std::reference_wrapper<std::barrier> barrier, Args&&... args)
       {
         typedef typename traits::child_type agent_type;
-        auto ctor_args = std::tuple_cat(std::make_tuple(barrier), exec.rng, exec.args, std::forward_as_tuple(agent_type(agent_idx)));
-        ExecutionGroup this_group = make_from_tuple<ExecutionGroup>(std::move(ctor_args));
+        ExecutionGroup this_group = traits::make(exec.params, barrier, agent_type(agent_idx));
 
         __scoped_group scope(this_group);
 
@@ -622,9 +656,9 @@ std::future<void> async(const concurrent_execution_policy &exec, Function f, Arg
 {
   __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
 
-  auto group_args = std::make_pair(rng.first,rng.last);
-  typedef __grouped_execution_policy<concurrent_execution_policy,concurrent_group,std::tuple<>> policy_type;
-  return async(policy_type{group_args}, f, std::forward<Args>(args)...);
+  auto params = concurrent_group::param_type{rng.first,rng.last};
+  typedef __grouped_execution_policy<concurrent_execution_policy,concurrent_group> policy_type;
+  return async(policy_type{params}, f, std::forward<Args>(args)...);
 }
 
 
@@ -641,6 +675,8 @@ template<class Function, class... Args>
 std::future<void> async(const parallel_execution_policy &exec, Function f, Args&&... args)
 {
   __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
+
+  execution_group_traits<parallel_group>::param_type params{rng.first,rng.last};
 
   const size_t min_num_agents_per_launch = 1000;
   size_t num_launches = (rng.size() + min_num_agents_per_launch - 1) / min_num_agents_per_launch;
@@ -673,6 +709,8 @@ std::future<void> async(const parallel_execution_policy &exec, Function f, Args&
 
           // XXX generalize the type of groups created inside async(seq) and use that feature
           //     to implement this loop
+          // XXX this_group's size() is wrong when we create it like this
+          //     use the __subgroup feature from the prototype header
           parallel_group this_group(rng.first, rng.last);
           agent& this_agent = this_group.child();
 
