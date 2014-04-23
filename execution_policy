@@ -56,6 +56,10 @@ class execution_group
     class param_type
     {
       public:
+        param_type(const param_type& other)
+          : param_type(other.begin(), other.end())
+        {}
+
         param_type(size_type b, size_type e)
           : begin_(b), end_(e)
         {}
@@ -155,6 +159,10 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
         param_type(size_type begin, size_type end, std::reference_wrapper<std::barrier> barrier)
           : super_t::param_type(begin,end),
             barrier_(barrier)
+        {}
+
+        param_type(const param_type &other)
+          : param_type(other.begin(), other.end(), other.barrier())
         {}
 
         std::reference_wrapper<std::barrier> barrier() const
@@ -527,6 +535,10 @@ class __grouped_execution_policy
   public:
     typedef typename execution_group_traits<ExecutionGroup>::param_type param_type;
 
+    __grouped_execution_policy(const __grouped_execution_policy& other)
+      : params_(other.params_)
+    {}
+
     __grouped_execution_policy(const param_type &params)
       : params_(params)
     {}
@@ -555,7 +567,9 @@ class sequential_execution_policy
     template<class ExecutionGroup>
     __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> make(size_t n) const
     {
-      return __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>{size_t(0),n};
+      typedef typename __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>::param_type param_type;
+      param_type params(0,n);
+      return __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>(params);
     }
 
     // XXX should return __grouped_execution_policy
@@ -567,7 +581,9 @@ class sequential_execution_policy
     template<class ExecutionGroup, class... Args>
     __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> make(Args&&... args) const
     {
-      return __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>{std::forward<Args>(args)...};
+      typedef typename __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>::param_type param_type;
+      param_type params(std::forward<Args>(args)...);
+      return __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>(params);
     }
 
 //  private:
@@ -617,14 +633,16 @@ class concurrent_execution_policy
     template<class ExecutionGroup>
     __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> make(size_t n) const
     {
-      return __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>{size_t(0),n};
+      typedef typename __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>::param_type param_type;
+      param_type params(0,n);
+      return __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>(params);
     }
 
 
     template<class ExecutionGroup, class... Args>
     __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> make(Args&&... args) const
     {
-      return __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>{std::forward<Args>(args)...};
+      return __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>(std::forward<Args>(args)...);
     }
 
 //  private:
@@ -702,16 +720,39 @@ class __subgroup
     typedef typename parent_traits::size_type      size_type;
     typedef typename parent_traits::child_type     child_type;
 
-    struct param_type
+    class param_type
     {
-      size_type begin, end;
-      parent_param_type parent_params;
+      public:
+        param_type(size_type begin, size_type end, const parent_param_type &parent_params)
+          : begin_(begin),
+            end_(end),
+            parent_params_(parent_params)
+        {}
+
+        size_type begin() const
+        {
+          return begin_;
+        }
+
+        size_type end() const
+        {
+          return end_;
+        }
+
+        const parent_param_type &parent_params() const
+        {
+          return parent_params_;
+        }
+
+      private:
+        size_type begin_, end_;
+        parent_param_type parent_params_;
     };
 
     __subgroup(const param_type &params)
-      : indices_begin_(params.begin),
-        indices_end_(params.end),
-        group_(parent_traits::make(params.parent_params))
+      : indices_begin_(params.begin()),
+        indices_end_(params.end()),
+        group_(parent_traits::make(params.parent_params()))
     {}
 
     size_type indices_begin() const
@@ -793,7 +834,7 @@ future<void> async(const __grouped_execution_policy<concurrent_execution_policy,
 {
   return std::async(std::launch::async, [=](Args&&... args)
   {
-    sync(exec, std::forward<Args>(args)...);
+    sync(exec, f, std::forward<Args>(args)...);
   },
   std::forward<Args>(args)...);
 }
@@ -841,7 +882,7 @@ future<void> async(const __grouped_execution_policy<parallel_execution_policy,Ex
   typedef execution_group_traits<ExecutionGroup> traits;
   typedef typename traits::size_type size_type;
 
-  auto rng = traits::range(exec.params);
+  auto rng = traits::range(exec.params());
   auto group_size = rng.end() - rng.begin();
 
   const size_t min_num_agents_per_launch = 1000;
@@ -856,7 +897,8 @@ future<void> async(const __grouped_execution_policy<parallel_execution_policy,Ex
     auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
     auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);
 
-    std::async(std::seq.make<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, exec.params), [=](__subgroup<ExecutionGroup> &subgroup, Args&&... args)
+    // XXX should just call sync(seq) here
+    std::async(std::seq.make<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, exec.params()), [=](__subgroup<ExecutionGroup> &subgroup, Args&&... args)
     {
       f(subgroup.group(), args...);
     },
@@ -870,95 +912,11 @@ future<void> async(const __grouped_execution_policy<parallel_execution_policy,Ex
 template<class Function, class... Args>
 std::future<void> async(const parallel_execution_policy &exec, Function f, Args&&... args)
 {
-//  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
-//
-//  auto params = parallel_group::param_type{rng.first,rng.last};
-//  typedef __grouped_execution_policy<parallel_execution_policy,parallel_group> policy_type;
-//  return std::async(policy_type{params}, f, std::forward<Args>(args)...);
-
-  // XXX implement this in terms of async(__grouped_execution_policy<parallel_execution_policy,parallel_group>)
-
   __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
 
-  execution_group_traits<parallel_group>::param_type params{rng.begin(),rng.end()};
-
-  const size_t min_num_agents_per_launch = 1000;
-  size_t num_launches = (rng.size() + min_num_agents_per_launch - 1) / min_num_agents_per_launch;
-  const size_t subscription = std::max(1u, __log2(std::min(1u,std::thread::hardware_concurrency())));
-
-  num_launches = std::min<size_t>(subscription * std::thread::hardware_concurrency(), num_launches);
-  const size_t num_agents_per_launch = (rng.size() + num_launches - 1) / num_launches;
-
-  // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
-  // XXX eliminate this outer async, just join on all the futures
-  return std::async(std::launch::async, [=](Args&&... args)
-  {
-    std::vector<std::future<void>> futures(num_launches);
-
-    // launch asyncs
-    // XXX need to collect exceptions
-    // XXX could use async(con(seq)) for this, but we'd want to avoid creating a barrier
-    //     as well as the expense of manipulating std::this_group
-    for(size_t launch_idx = 0; launch_idx < num_launches; ++launch_idx)
-    {
-      __integer_range launch_rng{launch_idx * num_agents_per_launch, std::min(rng.end(), (launch_idx + 1) * num_agents_per_launch)};
-
-      try
-      {
-        // XXX gcc 4.8 has trouble capturing parameter packs, so forward args through async
-        futures[launch_idx] = std::async(std::launch::async, [=](Args&&... args)
-        {
-          typedef execution_group_traits<parallel_group> traits;
-          typedef typename traits::child_type agent_type;
-
-          // XXX generalize the type of groups created inside async(seq) and use that feature
-          //     to implement this loop
-          // XXX this_group's size() is wrong when we create it like this
-          //     use the __subgroup feature from the prototype header
-          parallel_group this_group(rng.begin(), rng.end());
-          agent& this_agent = this_group.child();
-
-          __scoped_group scope(this_group);
-
-          for(auto agent_idx = traits::indices_begin(this_group);
-              agent_idx < traits::indices_end(this_group);
-              ++agent_idx)
-          {
-            // move assign the current agent
-            this_agent = std::move(agent(agent_idx));
-
-            f(this_group, args...);
-          }
-        },
-        std::forward<Args>(args)...
-        );
-      }
-      catch(std::system_error &e)
-      {
-        std::terminate();
-      }
-    }
-
-    // join and collect exceptions
-    exception_list exceptions;
-    for(auto &f : futures)
-    {
-      try
-      {
-        f.get();
-      }
-      catch(...)
-      {
-        __add_current_exception(exceptions);
-      }
-    }
-
-    if(exceptions.size() > 0)
-    {
-      throw exceptions;
-    }
-  },
-  std::forward<Args>(args)...);
+  auto params = parallel_group::param_type{rng.begin(),rng.end()};
+  typedef __grouped_execution_policy<parallel_execution_policy,parallel_group> policy_type;
+  return std::async(policy_type(params), f, std::forward<Args>(args)...);
 }
 
 
