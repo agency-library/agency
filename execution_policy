@@ -845,17 +845,6 @@ void sync(const __grouped_execution_policy<concurrent_execution_policy,Execution
 }
 
 
-template<class ExecutionGroup, class Function, class... Args>
-future<void> async(const __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
-{
-  return std::async(std::launch::async, [=](Args&&... args)
-  {
-    sync(exec, f, std::forward<Args>(args)...);
-  },
-  std::forward<Args>(args)...);
-}
-
-
 template<class Function, class... Args>
 void sync(const concurrent_execution_policy &exec, Function f, Args&&... args)
 {
@@ -870,6 +859,17 @@ void sync(const concurrent_execution_policy &exec, Function f, Args&&... args)
   policy_type grouped_policy(group_params);
   
   std::sync(grouped_policy, f, std::forward<Args>(args)...);
+}
+
+
+template<class ExecutionGroup, class Function, class... Args>
+future<void> async(const __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
+{
+  return std::async(std::launch::async, [=](Args&&... args)
+  {
+    std::sync(exec, f, std::forward<Args>(args)...);
+  },
+  std::forward<Args>(args)...);
 }
 
 
@@ -923,7 +923,6 @@ future<void> async(const __grouped_execution_policy<parallel_execution_policy,Ex
 }
 
 
-
 template<class Function, class... Args>
 std::future<void> async(const parallel_execution_policy &exec, Function f, Args&&... args)
 {
@@ -932,6 +931,13 @@ std::future<void> async(const parallel_execution_policy &exec, Function f, Args&
   auto params = parallel_group::param_type{rng.begin(),rng.end()};
   typedef __grouped_execution_policy<parallel_execution_policy,parallel_group> policy_type;
   return std::async(policy_type(params), f, std::forward<Args>(args)...);
+}
+
+
+template<class Function, class... Args>
+void sync(const parallel_execution_policy &exec, Function f, Args&&... args)
+{
+  return std::async(exec, f, std::forward<Args>(args)...).wait();
 }
 
 
