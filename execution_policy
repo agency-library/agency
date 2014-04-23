@@ -800,23 +800,28 @@ future<void> async(const __grouped_execution_policy<concurrent_execution_policy,
 
 
 template<class Function, class... Args>
+void sync(const concurrent_execution_policy &exec, Function f, Args&&... args)
+{
+  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
+  
+  // create a barrier
+  std::barrier barrier(rng.end() - rng.begin());
+  
+  auto group_params = concurrent_group::param_type(rng.begin(),rng.end(),barrier);
+  typedef __grouped_execution_policy<concurrent_execution_policy,concurrent_group> policy_type;
+  
+  policy_type grouped_policy(group_params);
+  
+  sync(grouped_policy, f, std::forward<Args>(args)...);
+}
+
+
+template<class Function, class... Args>
 std::future<void> async(const concurrent_execution_policy &exec, Function f, Args&&... args)
 {
   return std::async(std::launch::async, [=](Args&&... args)
   {
-    // XXX should just call sync(exec, f, args...) here
-
-    __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
-
-    // create a barrier
-    std::barrier barrier(rng.end() - rng.begin());
-
-    auto group_params = concurrent_group::param_type(rng.begin(),rng.end(),barrier);
-    typedef __grouped_execution_policy<concurrent_execution_policy,concurrent_group> policy_type;
-
-    policy_type grouped_policy(group_params);
-
-    sync(grouped_policy, f, std::forward<Args>(args)...);
+    sync(exec, f, std::forward<Args>(args)...);
   },
   std::forward<Args>(args)...);
 }
