@@ -149,9 +149,22 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
   public:
     typedef typename super_t::size_type size_type;
 
-    // XXX optional<barrier&> or something needs to be added to this
-    //class param_type { ... }
-    using param_type = typename super_t::param_type;
+    class param_type : public super_t::param_type
+    {
+      public:
+        param_type(size_type begin, size_type end, std::reference_wrapper<std::barrier> barrier)
+          : super_t::param_type(begin,end),
+            barrier_(barrier)
+        {}
+
+        std::reference_wrapper<std::barrier> barrier() const
+        {
+          return barrier_;
+        }
+
+      private:
+        std::reference_wrapper<std::barrier> barrier_;
+    };
 
     template<class OtherGroup>
     struct rebind
@@ -161,17 +174,17 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
 
     void wait()
     {
-      barrier_.get().count_down_and_wait();
+      barrier_.count_down_and_wait();
     }
 
 //  private:
-    basic_concurrent_group(size_type begin, size_type end, std::barrier &barrier, ExecutionGroup &&chld = ExecutionGroup())
+    basic_concurrent_group(size_type begin, size_type end, std::reference_wrapper<std::barrier> barrier, ExecutionGroup &&chld = ExecutionGroup())
       : super_t(begin, end, std::move(chld)),
         barrier_(barrier)
     {}
 
-    basic_concurrent_group(const param_type &params, std::barrier &barrier, ExecutionGroup &&chld = ExecutionGroup())
-      : basic_concurrent_group(params.begin(),params.end(),barrier,std::move(chld))
+    basic_concurrent_group(const param_type &params, ExecutionGroup &&chld = ExecutionGroup())
+      : basic_concurrent_group(params.begin(),params.end(),params.barrier(),std::move(chld))
     {}
 
     // move constructor which can perform reindexing at the same 
@@ -193,7 +206,7 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
     // friend other types of basic_concurrent_group so we can copy their barrier in the move constructor above
     template<class OtherGroup> friend class basic_concurrent_group;
 
-    std::reference_wrapper<std::barrier> barrier_;
+    std::barrier &barrier_;
 };
 
 
@@ -509,9 +522,22 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 
 
 template<class ExecutionPolicy, class ExecutionGroup>
-struct __grouped_execution_policy
+class __grouped_execution_policy
 {
-  typename execution_group_traits<ExecutionGroup>::param_type params;
+  public:
+    typedef typename execution_group_traits<ExecutionGroup>::param_type param_type;
+
+    __grouped_execution_policy(const param_type &params)
+      : params_(params)
+    {}
+
+    const param_type &params() const
+    {
+      return params_;
+    }
+
+  private:
+    param_type params_;
 };
     
 
@@ -626,7 +652,7 @@ future<void> async(const __grouped_execution_policy<sequential_execution_policy,
     {
       typedef execution_group_traits<ExecutionGroup> traits;
 
-      ExecutionGroup this_group = traits::make(exec.params);
+      ExecutionGroup this_group = traits::make(exec.params());
 
       typedef typename traits::child_type agent_type;
       agent_type& this_agent = this_group.child();
@@ -634,7 +660,7 @@ future<void> async(const __grouped_execution_policy<sequential_execution_policy,
       __scoped_group scope(this_group);
 
       // execute agents sequentially
-      auto rng = traits::range(exec.params);
+      auto rng = traits::range(exec.params());
       for(auto agent_idx = rng.begin();
           agent_idx < rng.end();
           ++agent_idx)
@@ -731,39 +757,43 @@ class __subgroup
 
 
 template<class ExecutionGroup, class Function, class... Args>
+void sync(const __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
+{
+  typedef execution_group_traits<ExecutionGroup> traits;
+  
+  auto rng = traits::range(exec.params());
+  
+  std::vector<std::future<void>> futures(rng.end() - rng.begin());
+  
+  // launch agents
+  // XXX could we use the __subgroup idiom here?
+  for(auto agent_idx = rng.begin();
+      agent_idx < rng.end();
+      ++agent_idx)
+  {
+    // XXX could call std::async(seq) here with a subgroup if async(seq)'s launch policy was generalized
+    futures[agent_idx] = std::async(std::launch::async, [=](Args&&... args)
+    {
+      typedef typename traits::child_type agent_type;
+      ExecutionGroup this_group = traits::make(exec.params(), agent_type(agent_idx));
+  
+      __scoped_group scope(this_group);
+  
+      f(this_group, args...);
+    },
+    std::forward<Args>(args)...);
+  }
+  
+  __flatten_and_throw_exceptions(futures.begin(), futures.end());
+}
+
+
+template<class ExecutionGroup, class Function, class... Args>
 future<void> async(const __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
 {
-  // capture execution policy parameters by value
   return std::async(std::launch::async, [=](Args&&... args)
   {
-    typedef execution_group_traits<ExecutionGroup> traits;
-
-    auto rng = traits::range(exec.params);
-
-    std::vector<std::future<void>> futures(rng.end() - rng.begin());
-    std::barrier barrier(futures.size());
-
-    // launch agents
-    // XXX could we use the __subgroup idiom here?
-    for(auto agent_idx = rng.begin();
-        agent_idx < rng.end();
-        ++agent_idx)
-    {
-      // XXX could call std::async(seq) here with a subgroup if async(seq)'s launch policy was generalized
-      futures[agent_idx] = std::async(std::launch::async, [=](std::reference_wrapper<std::barrier> barrier, Args&&... args)
-      {
-        typedef typename traits::child_type agent_type;
-        ExecutionGroup this_group = traits::make(exec.params, barrier, agent_type(agent_idx));
-
-        __scoped_group scope(this_group);
-
-        f(this_group, args...);
-      },
-      std::ref(barrier),
-      std::forward<Args>(args)...);
-    }
-
-    __flatten_and_throw_exceptions(futures.begin(), futures.end());
+    sync(exec, std::forward<Args>(args)...);
   },
   std::forward<Args>(args)...);
 }
@@ -772,12 +802,23 @@ future<void> async(const __grouped_execution_policy<concurrent_execution_policy,
 template<class Function, class... Args>
 std::future<void> async(const concurrent_execution_policy &exec, Function f, Args&&... args)
 {
-  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
+  return std::async(std::launch::async, [=](Args&&... args)
+  {
+    // XXX should just call sync(exec, f, args...) here
 
-  auto params = concurrent_group::param_type{rng.begin(),rng.end()};
-  typedef __grouped_execution_policy<concurrent_execution_policy,concurrent_group> policy_type;
+    __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
 
-  return async(policy_type{params}, f, std::forward<Args>(args)...);
+    // create a barrier
+    std::barrier barrier(rng.end() - rng.begin());
+
+    auto group_params = concurrent_group::param_type(rng.begin(),rng.end(),barrier);
+    typedef __grouped_execution_policy<concurrent_execution_policy,concurrent_group> policy_type;
+
+    policy_type grouped_policy(group_params);
+
+    sync(grouped_policy, f, std::forward<Args>(args)...);
+  },
+  std::forward<Args>(args)...);
 }
 
 
