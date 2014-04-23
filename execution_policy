@@ -5,7 +5,6 @@
 #include <functional>
 #include <type_traits>
 #include <exception_list>
-#include "make_from_tuple.hpp"
 
 // For our purposes, an ExecutionGroup is a type with the following member types:
 //
