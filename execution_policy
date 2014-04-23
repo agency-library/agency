@@ -659,44 +659,60 @@ const concurrent_execution_policy con{0};
 
 
 template<class ExecutionGroup, class Function, class... Args>
+void sync(const __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
+{
+  exception_list exceptions;
+
+  try
+  {
+    typedef execution_group_traits<ExecutionGroup> traits;
+
+    ExecutionGroup this_group = traits::make(exec.params());
+
+    typedef typename traits::child_type agent_type;
+    agent_type& this_agent = this_group.child();
+
+    __scoped_group scope(this_group);
+
+    // execute agents sequentially
+    auto rng = traits::range(exec.params());
+    for(auto agent_idx = rng.begin();
+        agent_idx < rng.end();
+        ++agent_idx)
+    {
+      // move assign the current agent
+      this_agent = std::move(agent_type(agent_idx));
+
+      f(this_group, args...);
+    }
+  } // end try
+  catch(...)
+  {
+    __add_current_exception(exceptions);
+    throw exceptions;
+  } // end catch
+}
+
+
+template<class ExecutionGroup, class Function, class... Args>
 future<void> async(const __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
 {
   // XXX could generalize the launch policy to allow concurrent_execution_policy to make use of this
   return std::async(std::launch::deferred, [=](Args&&... args)
   {
-    exception_list exceptions;
+    std::sync(exec, f, std::forward<Args>(args)...);
+  });
+}
 
-    try
-    {
-      typedef execution_group_traits<ExecutionGroup> traits;
 
-      ExecutionGroup this_group = traits::make(exec.params());
+template<class Function, class... Args>
+void sync(const sequential_execution_policy &exec, Function f, Args&&... args)
+{
+  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
 
-      typedef typename traits::child_type agent_type;
-      agent_type& this_agent = this_group.child();
-
-      __scoped_group scope(this_group);
-
-      // execute agents sequentially
-      auto rng = traits::range(exec.params());
-      for(auto agent_idx = rng.begin();
-          agent_idx < rng.end();
-          ++agent_idx)
-      {
-        // move assign the current agent
-        this_agent = std::move(agent_type(agent_idx));
-
-        f(this_group, args...);
-      }
-    } // end try
-    catch(...)
-    {
-      __add_current_exception(exceptions);
-      throw exceptions;
-    } // end catch
-  }, // end lambda
-  std::forward<Args>(args)...
-  );
+  auto params = sequential_group::param_type{rng.begin(),rng.end()};
+  typedef __grouped_execution_policy<sequential_execution_policy,sequential_group> policy_type;
+  return std::sync(policy_type{params}, f, std::forward<Args>(args)...);
 }
 
 
@@ -707,7 +723,7 @@ std::future<void> async(const sequential_execution_policy &exec, Function f, Arg
 
   auto params = sequential_group::param_type{rng.begin(),rng.end()};
   typedef __grouped_execution_policy<sequential_execution_policy,sequential_group> policy_type;
-  return async(policy_type{params}, f, std::forward<Args>(args)...);
+  return std::async(policy_type{params}, f, std::forward<Args>(args)...);
 }
 
 
@@ -853,7 +869,7 @@ void sync(const concurrent_execution_policy &exec, Function f, Args&&... args)
   
   policy_type grouped_policy(group_params);
   
-  sync(grouped_policy, f, std::forward<Args>(args)...);
+  std::sync(grouped_policy, f, std::forward<Args>(args)...);
 }
 
 
@@ -862,7 +878,7 @@ std::future<void> async(const concurrent_execution_policy &exec, Function f, Arg
 {
   return std::async(std::launch::async, [=](Args&&... args)
   {
-    sync(exec, f, std::forward<Args>(args)...);
+    std::sync(exec, f, std::forward<Args>(args)...);
   },
   std::forward<Args>(args)...);
 }
@@ -897,12 +913,11 @@ future<void> async(const __grouped_execution_policy<parallel_execution_policy,Ex
     auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
     auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);
 
-    // XXX should just call sync(seq) here
-    std::async(std::seq.make<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, exec.params()), [=](__subgroup<ExecutionGroup> &subgroup, Args&&... args)
+    std::sync(std::seq.make<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, exec.params()), [=](__subgroup<ExecutionGroup> &subgroup, Args&&... args)
     {
       f(subgroup.group(), args...);
     },
-    std::forward<Args>(args)...).wait();
+    std::forward<Args>(args)...);
   },
   std::forward<Args>(args)...);
 }
