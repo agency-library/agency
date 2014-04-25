@@ -6,21 +6,6 @@
 #include <type_traits>
 #include <exception_list>
 
-// For our purposes, an ExecutionGroup is a type with the following member types:
-//
-// size_type
-//
-// And the following member functions:
-//
-// size_type size() const;
-// size_type index() const;
-//
-// A ConcurrentGroup is an ExecutionGroup with the following member function:
-//
-// void wait();
-//
-// An ExecutionAgent is a ParallelGroup whose member function size() always returns 1.
-
 
 namespace std
 {
@@ -84,8 +69,6 @@ struct __lazy_conditional<false,T,F>
 };
 
 
-// XXX perhaps all ExecutionGroups should friend their associated traits class
-// XXX that would be a simple way to handle access
 template<class ExecutionGroup>
 class execution_group_traits
 {
@@ -122,6 +105,12 @@ class execution_group_traits
     static group_type make(const param_type &params, Indices... indices)
     {
       return group_type(params, indices...);
+    }
+
+    template<class OtherChild>
+    static rebind_execution_group<OtherChild> make_linked(const group_type &g, OtherChild&& child_group)
+    {
+      return rebind_execution_group<OtherChild>(g, std::move(child_group));
     }
 
     // XXX rethink whether we need both reindex and something which links two groups, possibly with new indices
@@ -226,12 +215,20 @@ class execution_group
     ExecutionGroup &child() { return child_; }
     const ExecutionGroup &child() const { return child_; }
 
-//  private:
+  private:
+    template<class> friend class execution_group_traits;
+
     size_type index_;
     size_type indices_begin_;
     size_type indices_end_;
     child_type child_;
 
+    void reindex(size_type index)
+    {
+      index_ = index;
+    }
+
+  protected:
     typedef execution_group_traits<child_type> child_traits;
 
     template<class... Indices>
@@ -242,21 +239,17 @@ class execution_group
         child_(child_traits::make(params.child_params(), indices...))
     {}
 
-    // moves the resources associated with other except for other's child
-    // this sequential_group's child is created by moving the second argument
-    // only the implementation may do this
+    template<class,class> friend class execution_group;
+
+    // copies the resources associated with other except for other's child
+    // this group's child is created by moving the second argument
     template<class OtherGroup>
-    execution_group(execution_group<ExecutionPolicy, OtherGroup> &&other, child_type &&chld)
+    execution_group(const execution_group<ExecutionPolicy, OtherGroup> &other, child_type &&chld)
       : index_(other.index_),
         indices_begin_(other.indices_begin_),
         indices_end_(other.indices_end_),
         child_(std::move(chld))
     {}
-
-    void reindex(size_type index)
-    {
-      index_ = index;
-    }
 };
 
 
@@ -329,23 +322,25 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
       barrier_.count_down_and_wait();
     }
 
-//  private:
+  private:
+    template<class> friend class execution_group_traits;
+
     template<class... Indices>
     basic_concurrent_group(const param_type &params, size_type index, Indices... indices)
       : super_t(params, index, indices...),
         barrier_(params.barrier())
     {}
 
-    // moves the resources associated with other except for other's child
-    // this sequential_group's child is created by moving the second argument
-    // only the implementation may do this
+    template<class> friend class basic_concurrent_group;
+
+    // copies the resources associated with other except for other's child
+    // this groups's child is created by moving the second argument
     template<class OtherGroup>
-    basic_concurrent_group(basic_concurrent_group<OtherGroup> &&other, ExecutionGroup &&chld)
-      : super_t(std::move(other), std::move(chld)),
+    basic_concurrent_group(const basic_concurrent_group<OtherGroup>& other, ExecutionGroup&& chld)
+      : super_t(other, std::move(chld)),
         barrier_(other.barrier_)
     {}
 
-  private:
     // friend other types of basic_concurrent_group so we can copy their barrier in the move constructor above
     template<class OtherGroup> friend class basic_concurrent_group;
 
@@ -1024,32 +1019,23 @@ struct __async_outer_functor
     Index inner_idx;
 
     template<class InnerGroup, class... Args>
-    void operator()(InnerGroup &inner_group, Args&&... args) const
+    void operator()(InnerGroup& inner_group, Args&&... args) const
     {
       // create an execution descriptor for f by:
       // * reindexing the inner_group
       // * moving the inner groups and outer groups into a new linked_group
 
-      // XXX are these moves correct?
-      // XXX maybe rebind_execution_group should also be able to rebind the index as well?
-
+      // reindex the inner group
       execution_group_traits<InnerGroup>::reindex(inner_group, inner_idx);
 
-      // rebind the type of the OuterGroup such that InnerGroup is its child, and link the two
-      // XXX we shouldn't move the outer group, because every instance of this functor shares the same one
-      typename execution_group_traits<OuterGroup>::template rebind_execution_group<InnerGroup> linked_group(std::move(outer_group), std::move(inner_group));
+      // link the two groups
+      // XXX maybe make_linked should also be able to rebind the index as well?
+      auto linked_group = execution_group_traits<OuterGroup>::make_linked(outer_group, std::move(inner_group));
 
-      // save old group
-      // XXX use __scoped_group
-      execution_view old_group = std::this_group();
-
-      __set_this_group(linked_group);
+      __scoped_group scope(linked_group);
 
       // call f
       f(linked_group, args...);
-
-      // restore old group
-      __set_this_group(std::move(old_group));
     }
   };
 
@@ -1057,7 +1043,7 @@ struct __async_outer_functor
   Function f;
 
   template<class OuterGroup, class... Args>
-  void operator()(OuterGroup &outer_group, Args&&... args) const
+  void operator()(OuterGroup& outer_group, Args&&... args) const
   {
 //    // XXX we shouldn't do this n times...
 //    // it's the inner_exec's job to create plurality
