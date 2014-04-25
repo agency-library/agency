@@ -29,18 +29,135 @@ namespace std
 class agent
 {
   public:
+    struct param_type {};
     typedef size_t size_type;
 
     size_type size() const { return 1; }
     size_type index() const { return index_; }
 
 //  private:
-    agent(size_type idx = 0)
-      : index_(idx)
+    agent(const param_type &, size_type index)
+      : index_(index)
     {}
 
     size_type index_;
 };
+
+
+template<class ExecutionGroup, class OtherChild>
+struct __rebind_execution_group
+{
+  typedef typename ExecutionGroup::template rebind<OtherChild>::other type;
+};
+
+
+template<template<class, class, class...> class ExecutionGroup, class ExecutionPolicy, class OriginalChild, class... T, class OtherChild>
+struct __rebind_execution_group<ExecutionGroup<ExecutionPolicy,OriginalChild, T...>, OtherChild>
+{
+  typedef ExecutionGroup<ExecutionPolicy, OtherChild, T...> type;
+};
+
+
+template<typename T>
+  struct __has_child_type
+{
+  typedef char yes_type;
+  typedef int  no_type;
+  template<typename S> static yes_type test(typename S::child_type *);
+  template<typename S> static no_type  test(...);
+  static bool const value = sizeof(test<T>(0)) == sizeof(yes_type);
+  typedef std::integral_constant<bool, value> type;
+};
+
+
+template<typename T>
+struct __child_type
+{
+  typedef typename T::child_type type;
+};
+
+
+template<typename T>
+struct __identity
+{
+  typedef T type;
+};
+
+
+template<bool b, typename T, typename F>
+struct __lazy_conditional;
+
+
+template<typename T, typename F>
+struct __lazy_conditional<true,T,F>
+{
+  typedef typename T::type type;
+};
+
+
+template<typename T, typename F>
+struct __lazy_conditional<false,T,F>
+{
+  typedef typename F::type type;
+};
+
+
+// XXX perhaps all ExecutionGroups should friend their associated traits class
+// XXX that would be a simple way to handle access
+template<class ExecutionGroup>
+class execution_group_traits
+{
+  public:
+    typedef ExecutionGroup                                 group_type;
+    typedef typename ExecutionGroup::param_type            param_type;
+    typedef typename ExecutionGroup::size_type             size_type;
+
+    typedef typename __lazy_conditional<
+      __has_child_type<group_type>::value,
+      __child_type<group_type>,
+      __identity<void>
+    >::type                                                child_type;
+    
+    template<class OtherChild>
+    using rebind_execution_group = typename __rebind_execution_group<group_type, OtherChild>::type;
+
+    // XXX eliminate this
+    static size_type indices_begin(group_type &g)
+    {
+      return g.indices_begin();
+    }
+
+    // XXX eliminate this
+    static size_type indices_end(group_type &g)
+    {
+      return g.indices_end();
+    }
+
+    // XXX assert that sizeof...(Indices) shall be depth whatever
+    template<class... Indices>
+    static group_type make(const param_type &params, Indices... indices)
+    {
+      return group_type(params, indices...);
+    }
+
+    class range_type
+    {
+      public:
+        range_type(size_type b, size_type e) : begin_(b), end_(e) {}
+        size_type begin() const { return begin_; }
+        size_type end() const { return end_; }
+
+      private:
+        size_type begin_, end_;
+    };
+
+    static range_type range(const param_type &params)
+    {
+      return range_type{params.begin(), params.end()};
+    }
+};
+
+
 
 
 // XXX eliminate ExecutionPolicy parameter; it is never used
@@ -48,19 +165,21 @@ template<class ExecutionPolicy, class ExecutionGroup>
 class execution_group
 {
   public:
-    typedef size_t          size_type;
-    typedef ExecutionPolicy execution_policy_type;
     typedef ExecutionGroup  child_type;
+    typedef typename execution_group_traits<child_type>::size_type size_type;
+    typedef ExecutionPolicy execution_policy_type;
 
     class param_type
     {
       public:
+        typedef typename execution_group_traits<child_type>::param_type child_param_type;
+
         param_type(const param_type& other)
           : param_type(other.begin(), other.end())
         {}
 
-        param_type(size_type b, size_type e)
-          : begin_(b), end_(e)
+        param_type(size_type b, size_type e, const child_param_type &child_params = child_param_type())
+          : begin_(b), end_(e), child_params_(child_params)
         {}
 
         size_type begin() const
@@ -73,8 +192,14 @@ class execution_group
           return end_;
         }
 
+        const child_param_type& child_params() const
+        {
+          return child_params_;
+        }
+
       private:
         size_type begin_, end_;
+        child_param_type child_params_; 
     };
 
     size_type indices_begin() const { return indices_begin_; }
@@ -90,6 +215,17 @@ class execution_group
     size_type indices_end_;
     child_type child_;
 
+    typedef execution_group_traits<child_type> child_traits;
+
+    template<class... Indices>
+    execution_group(const param_type &params, size_type index, Indices... indices)
+      : index_(index),
+        indices_begin_(params.begin()),
+        indices_end_(params.end()),
+        child_(child_traits::make(params.child_params(), indices...))
+    {}
+
+    // XXX eliminate me
     execution_group(size_type begin, size_type end, child_type &&chld = child_type())
       : index_(0),
         indices_begin_(begin),
@@ -97,6 +233,7 @@ class execution_group
         child_(std::move(chld))
     {}
 
+    // XXX eliminate me
     execution_group(const param_type &params, child_type &&chld = child_type())
       : execution_group(params.begin(),
                         params.end(),
@@ -155,9 +292,12 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
     class param_type : public super_t::param_type
     {
       public:
-        param_type(size_type begin, size_type end, std::reference_wrapper<std::barrier> barrier)
+        typedef typename execution_group_traits<ExecutionGroup>::param_type child_param_type;
+
+        param_type(size_type begin, size_type end, std::reference_wrapper<std::barrier> barrier, const child_param_type& child_params = child_param_type())
           : super_t::param_type(begin,end),
-            barrier_(barrier)
+            barrier_(barrier),
+            child_params_(child_params)
         {}
 
         param_type(const param_type &other)
@@ -169,8 +309,14 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
           return barrier_;
         }
 
+        const child_param_type& child_params() const
+        {
+          return child_params_;
+        }
+
       private:
         std::reference_wrapper<std::barrier> barrier_;
+        child_param_type child_params_;
     };
 
     template<class OtherGroup>
@@ -185,11 +331,19 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
     }
 
 //  private:
+    template<class... Indices>
+    basic_concurrent_group(const param_type &params, size_type index, Indices... indices)
+      : super_t(params, index, indices...),
+        barrier_(params.barrier())
+    {}
+
+    // XXX eliminate this
     basic_concurrent_group(size_type begin, size_type end, std::reference_wrapper<std::barrier> barrier, ExecutionGroup &&chld = ExecutionGroup())
       : super_t(begin, end, std::move(chld)),
         barrier_(barrier)
     {}
 
+    // XXX eliminate this
     basic_concurrent_group(const param_type &params, ExecutionGroup &&chld = ExecutionGroup())
       : basic_concurrent_group(params.begin(),params.end(),params.barrier(),std::move(chld))
     {}
@@ -218,70 +372,6 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
 
 
 typedef basic_concurrent_group<agent> concurrent_group;
-
-
-template<class ExecutionGroup, class OtherChild>
-struct __rebind_execution_group
-{
-  typedef typename ExecutionGroup::template rebind<OtherChild>::other type;
-};
-
-
-template<template<class, class, class...> class ExecutionGroup, class ExecutionPolicy, class OriginalChild, class... T, class OtherChild>
-struct __rebind_execution_group<ExecutionGroup<ExecutionPolicy,OriginalChild, T...>, OtherChild>
-{
-  typedef ExecutionGroup<ExecutionPolicy, OtherChild, T...> type;
-};
-
-
-// XXX perhaps all ExecutionGroups should friend their associated traits class
-// XXX that would be a simple way to handle access
-template<class ExecutionGroup>
-class execution_group_traits
-{
-  public:
-    typedef ExecutionGroup                                 group_type;
-    typedef typename ExecutionGroup::param_type            param_type;
-    typedef typename ExecutionGroup::child_type            child_type;
-    typedef typename ExecutionGroup::size_type             size_type;
-    
-    template<class OtherChild>
-    using rebind_execution_group = typename __rebind_execution_group<group_type, OtherChild>::type;
-
-    // XXX eliminate this
-    static size_type indices_begin(group_type &g)
-    {
-      return g.indices_begin();
-    }
-
-    // XXX eliminate this
-    static size_type indices_end(group_type &g)
-    {
-      return g.indices_end();
-    }
-
-    template<class... Args>
-    static group_type make(const param_type &params, Args&&... args)
-    {
-      return group_type(params, std::forward<Args>(args)...);
-    }
-
-    class range_type
-    {
-      public:
-        range_type(size_type b, size_type e) : begin_(b), end_(e) {}
-        size_type begin() const { return begin_; }
-        size_type end() const { return end_; }
-
-      private:
-        size_type begin_, end_;
-    };
-
-    static range_type range(const param_type &params)
-    {
-      return range_type{params.begin(), params.end()};
-    }
-};
 
 
 template<class T>
@@ -666,10 +756,10 @@ void sync(const __grouped_execution_policy<sequential_execution_policy,Execution
   {
     typedef execution_group_traits<ExecutionGroup> traits;
 
-    ExecutionGroup this_group = traits::make(exec.params());
+    ExecutionGroup this_group = traits::make(exec.params(), 0, 0);
 
-    typedef typename traits::child_type agent_type;
-    agent_type& this_agent = this_group.child();
+    auto& this_agent = this_group.child();
+    typedef decltype(this_agent) agent_type;
 
     __scoped_group scope(this_group);
 
@@ -764,10 +854,11 @@ class __subgroup
         parent_param_type parent_params_;
     };
 
-    __subgroup(const param_type &params)
+    template<class... Indices>
+    __subgroup(const param_type &params, Indices... indices)
       : indices_begin_(params.begin()),
         indices_end_(params.end()),
-        group_(parent_traits::make(params.parent_params()))
+        group_(parent_traits::make(params.parent_params(), indices...))
     {}
 
     size_type indices_begin() const
@@ -831,7 +922,7 @@ void sync(const __grouped_execution_policy<concurrent_execution_policy,Execution
     futures[agent_idx] = std::async(std::launch::async, [=](Args&&... args)
     {
       typedef typename traits::child_type agent_type;
-      ExecutionGroup this_group = traits::make(exec.params(), agent_type(agent_idx));
+      ExecutionGroup this_group = traits::make(exec.params(), 0, agent_idx);
   
       __scoped_group scope(this_group);
   
@@ -965,6 +1056,7 @@ struct __async_outer_functor
       typename execution_group_traits<OuterGroup>::template rebind_execution_group<InnerGroup> linked_group(std::move(outer_group), std::move(reindexed_inner_group));
 
       // save old group
+      // XXX use __scoped_group
       execution_view old_group = std::this_group();
 
       __set_this_group(linked_group);
