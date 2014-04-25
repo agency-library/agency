@@ -223,21 +223,6 @@ class execution_group
         child_(child_traits::make(params.child_params(), indices...))
     {}
 
-    // XXX eliminate me
-    execution_group(size_type begin, size_type end, child_type &&chld = child_type())
-      : index_(0),
-        indices_begin_(begin),
-        indices_end_(end),
-        child_(std::move(chld))
-    {}
-
-    // XXX eliminate me
-    execution_group(const param_type &params, child_type &&chld = child_type())
-      : execution_group(params.begin(),
-                        params.end(),
-                        std::move(chld))
-    {}
-
     // move constructor which can perform reindexing at the same 
     execution_group(size_type idx, execution_group &&other)
       : index_(idx),
@@ -333,17 +318,6 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
     basic_concurrent_group(const param_type &params, size_type index, Indices... indices)
       : super_t(params, index, indices...),
         barrier_(params.barrier())
-    {}
-
-    // XXX eliminate this
-    basic_concurrent_group(size_type begin, size_type end, std::reference_wrapper<std::barrier> barrier, ExecutionGroup &&chld = ExecutionGroup())
-      : super_t(begin, end, std::move(chld)),
-        barrier_(barrier)
-    {}
-
-    // XXX eliminate this
-    basic_concurrent_group(const param_type &params, ExecutionGroup &&chld = ExecutionGroup())
-      : basic_concurrent_group(params.begin(),params.end(),params.barrier(),std::move(chld))
     {}
 
     // move constructor which can perform reindexing at the same 
