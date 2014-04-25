@@ -116,10 +116,20 @@ class execution_group_traits
     }
 
     // XXX assert that sizeof...(Indices) shall be depth whatever
+    // XXX it might be better for Indices to be a tuple rather than a parameter pack
+    //     sometimes it's not possible to construct a parameter pack
     template<class... Indices>
     static group_type make(const param_type &params, Indices... indices)
     {
       return group_type(params, indices...);
+    }
+
+    // XXX rethink whether we need both reindex and something which links two groups, possibly with new indices
+    // XXX shouldn't we reindex the entire tree at the same time?
+    // XXX shouldn't we recieve a parameter pack like make()
+    static void reindex(group_type& g, size_type new_index)
+    {
+      g.reindex(new_index);
     }
 
     class range_type
@@ -149,10 +159,19 @@ class agent
     size_type size() const { return 1; }
     size_type index() const { return index_; }
 
-//  private:
+    agent(agent&& other) = default;
+
+  private:
+    friend class execution_group_traits<agent>;
+
     agent(const param_type &, size_type index)
       : index_(index)
     {}
+
+    void reindex(size_type index)
+    {
+      index_ = index;
+    }
 
     size_type index_;
 };
@@ -223,14 +242,6 @@ class execution_group
         child_(child_traits::make(params.child_params(), indices...))
     {}
 
-    // move constructor which can perform reindexing at the same 
-    execution_group(size_type idx, execution_group &&other)
-      : index_(idx),
-        indices_begin_(other.indices_begin_),
-        indices_end_(other.indices_end_),
-        child_(std::move(other.child_))
-    {}
-
     // moves the resources associated with other except for other's child
     // this sequential_group's child is created by moving the second argument
     // only the implementation may do this
@@ -241,6 +252,11 @@ class execution_group
         indices_end_(other.indices_end_),
         child_(std::move(chld))
     {}
+
+    void reindex(size_type index)
+    {
+      index_ = index;
+    }
 };
 
 
@@ -318,12 +334,6 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
     basic_concurrent_group(const param_type &params, size_type index, Indices... indices)
       : super_t(params, index, indices...),
         barrier_(params.barrier())
-    {}
-
-    // move constructor which can perform reindexing at the same 
-    basic_concurrent_group(size_type idx, basic_concurrent_group &&other)
-      : super_t(idx, std::move(other)),
-        barrier_(other.barrier_)
     {}
 
     // moves the resources associated with other except for other's child
@@ -730,8 +740,8 @@ void sync(const __grouped_execution_policy<sequential_execution_policy,Execution
 
     ExecutionGroup this_group = traits::make(exec.params(), 0, 0);
 
-    auto& this_agent = this_group.child();
-    typedef decltype(this_agent) agent_type;
+    typedef typename traits::child_type agent_type;
+    agent_type& this_agent = this_group.child();
 
     __scoped_group scope(this_group);
 
@@ -741,8 +751,8 @@ void sync(const __grouped_execution_policy<sequential_execution_policy,Execution
         agent_idx < rng.end();
         ++agent_idx)
     {
-      // move assign the current agent
-      this_agent = std::move(agent_type(agent_idx));
+      // reindex the current agent
+      execution_group_traits<agent_type>::reindex(this_agent, agent_idx);
 
       f(this_group, args...);
     }
@@ -1022,10 +1032,12 @@ struct __async_outer_functor
 
       // XXX are these moves correct?
       // XXX maybe rebind_execution_group should also be able to rebind the index as well?
-      InnerGroup reindexed_inner_group(inner_idx, std::move(inner_group));
+
+      execution_group_traits<InnerGroup>::reindex(inner_group, inner_idx);
 
       // rebind the type of the OuterGroup such that InnerGroup is its child, and link the two
-      typename execution_group_traits<OuterGroup>::template rebind_execution_group<InnerGroup> linked_group(std::move(outer_group), std::move(reindexed_inner_group));
+      // XXX we shouldn't move the outer group, because every instance of this functor shares the same one
+      typename execution_group_traits<OuterGroup>::template rebind_execution_group<InnerGroup> linked_group(std::move(outer_group), std::move(inner_group));
 
       // save old group
       // XXX use __scoped_group
