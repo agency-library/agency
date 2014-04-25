@@ -86,21 +86,10 @@ class execution_group_traits
     template<class OtherChild>
     using rebind_execution_group = typename __rebind_execution_group<group_type, OtherChild>::type;
 
-    // XXX eliminate this
-    static size_type indices_begin(group_type &g)
-    {
-      return g.indices_begin();
-    }
-
-    // XXX eliminate this
-    static size_type indices_end(group_type &g)
-    {
-      return g.indices_end();
-    }
-
     // XXX assert that sizeof...(Indices) shall be depth whatever
     // XXX it might be better for Indices to be a tuple rather than a parameter pack
     //     sometimes it's not possible to construct a parameter pack
+    // XXX it may be impractical to create a parameter pack of 100s of indices
     template<class... Indices>
     static group_type make(const param_type &params, Indices... indices)
     {
@@ -145,7 +134,10 @@ class agent
     struct param_type {};
     typedef size_t size_type;
 
+    // XXX is size() necessary?
+    //     I don't think we ever use it
     size_type size() const { return 1; }
+
     size_type index() const { return index_; }
 
     agent(agent&& other) = default;
