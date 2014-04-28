@@ -5,6 +5,7 @@
 #include <functional>
 #include <type_traits>
 #include <exception_list>
+#include "tuple_tail.hpp"
 
 
 namespace std
@@ -86,25 +87,21 @@ class execution_group_traits
     template<class OtherChild>
     using rebind_execution_group = typename __rebind_execution_group<group_type, OtherChild>::type;
 
-    // XXX assert that sizeof...(Indices) shall be depth whatever
-    // XXX it might be better for Indices to be a tuple rather than a parameter pack
-    //     sometimes it's not possible to construct a parameter pack
-    // XXX it may be impractical to create a parameter pack of 100s of indices
-    template<class... Indices>
-    static group_type make(const param_type &params, Indices... indices)
+    template<class ParamTuple, class IndexTuple>
+    static group_type make(const ParamTuple& params, const IndexTuple& indices)
     {
-      return group_type(params, indices...);
+      return group_type(params, indices);
     }
 
     template<class OtherChild>
-    static rebind_execution_group<OtherChild> make_linked(const group_type &g, OtherChild&& child_group)
+    static rebind_execution_group<OtherChild> rebind(const group_type& g, OtherChild&& child)
     {
-      return rebind_execution_group<OtherChild>(g, std::move(child_group));
+      return rebind_execution_group<OtherChild>(g.param(), g.index(), std::move(child));
     }
 
     // XXX rethink whether we need both reindex and something which links two groups, possibly with new indices
     // XXX shouldn't we reindex the entire tree at the same time?
-    // XXX shouldn't we recieve a parameter pack like make()
+    // XXX shouldn't we recieve a tuple like make()?
     static void reindex(group_type& g, size_type new_index)
     {
       g.reindex(new_index);
@@ -142,11 +139,16 @@ class agent
 
     agent(agent&& other) = default;
 
+    param_type param() const
+    {
+      return param_type();
+    }
+
   private:
     friend class execution_group_traits<agent>;
 
-    agent(const param_type &, size_type index)
-      : index_(index)
+    agent(const std::tuple<param_type>&, const std::tuple<size_type>& index)
+      : index_(std::get<0>(index))
     {}
 
     void reindex(size_type index)
@@ -170,14 +172,12 @@ class execution_group
     class param_type
     {
       public:
-        typedef typename execution_group_traits<child_type>::param_type child_param_type;
-
         param_type(const param_type& other)
           : param_type(other.begin(), other.end())
         {}
 
-        param_type(size_type b, size_type e, const child_param_type &child_params = child_param_type())
-          : begin_(b), end_(e), child_params_(child_params)
+        param_type(size_type b, size_type e)
+          : begin_(b), end_(e)
         {}
 
         size_type begin() const
@@ -190,15 +190,14 @@ class execution_group
           return end_;
         }
 
-        const child_param_type& child_params() const
-        {
-          return child_params_;
-        }
-
       private:
         size_type begin_, end_;
-        child_param_type child_params_; 
     };
+
+    param_type param() const
+    {
+      return param_type(indices_begin(), indices_end());
+    }
 
     size_type indices_begin() const { return indices_begin_; }
     size_type indices_end() const { return indices_end_; }
@@ -223,24 +222,19 @@ class execution_group
   protected:
     typedef execution_group_traits<child_type> child_traits;
 
-    template<class... Indices>
-    execution_group(const param_type &params, size_type index, Indices... indices)
+    template<class Param>
+    execution_group(const Param& params, size_type index, child_type&& chld)
       : index_(index),
         indices_begin_(params.begin()),
         indices_end_(params.end()),
-        child_(child_traits::make(params.child_params(), indices...))
+        child_(std::move(chld))
     {}
 
-    template<class,class> friend class execution_group;
-
-    // copies the resources associated with other except for other's child
-    // this group's child is created by moving the second argument
-    template<class OtherGroup>
-    execution_group(const execution_group<ExecutionPolicy, OtherGroup> &other, child_type &&chld)
-      : index_(other.index_),
-        indices_begin_(other.indices_begin_),
-        indices_end_(other.indices_end_),
-        child_(std::move(chld))
+    template<class ParamTuple, class IndexTuple>
+    execution_group(const ParamTuple& params, const IndexTuple& indices)
+      : execution_group(std::get<0>(params),
+                        std::get<0>(indices),
+                        child_traits::make(tuple_tail(params), tuple_tail(indices)))
     {}
 };
 
@@ -276,12 +270,9 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
     class param_type : public super_t::param_type
     {
       public:
-        typedef typename execution_group_traits<ExecutionGroup>::param_type child_param_type;
-
-        param_type(size_type begin, size_type end, std::reference_wrapper<std::barrier> barrier, const child_param_type& child_params = child_param_type())
+        param_type(size_type begin, size_type end, std::reference_wrapper<std::barrier> barrier)
           : super_t::param_type(begin,end),
-            barrier_(barrier),
-            child_params_(child_params)
+            barrier_(barrier)
         {}
 
         param_type(const param_type &other)
@@ -293,15 +284,14 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
           return barrier_;
         }
 
-        const child_param_type& child_params() const
-        {
-          return child_params_;
-        }
-
       private:
         std::reference_wrapper<std::barrier> barrier_;
-        child_param_type child_params_;
     };
+
+    param_type param() const
+    {
+      return param_type(super_t::indices_begin(), super_t::indices_end(), barrier_);
+    }
 
     template<class OtherGroup>
     struct rebind
@@ -317,24 +307,17 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
   private:
     template<class> friend class execution_group_traits;
 
-    template<class... Indices>
-    basic_concurrent_group(const param_type &params, size_type index, Indices... indices)
-      : super_t(params, index, indices...),
+    template<class ParamTuple, class IndexTuple>
+    basic_concurrent_group(const ParamTuple& params, const IndexTuple& indices)
+      : super_t(params, indices),
+        barrier_(std::get<0>(params).barrier())
+    {}
+
+    template<class Param>
+    basic_concurrent_group(const Param& params, size_type index, ExecutionGroup&& chld)
+      : super_t(params, index, std::move(chld)),
         barrier_(params.barrier())
     {}
-
-    template<class> friend class basic_concurrent_group;
-
-    // copies the resources associated with other except for other's child
-    // this groups's child is created by moving the second argument
-    template<class OtherGroup>
-    basic_concurrent_group(const basic_concurrent_group<OtherGroup>& other, ExecutionGroup&& chld)
-      : super_t(other, std::move(chld)),
-        barrier_(other.barrier_)
-    {}
-
-    // friend other types of basic_concurrent_group so we can copy their barrier in the move constructor above
-    template<class OtherGroup> friend class basic_concurrent_group;
 
     std::barrier &barrier_;
 };
@@ -607,6 +590,8 @@ class __grouped_execution_policy
     }
 
   private:
+    // XXX this needs to be a tuple of (param_type, agent::param_type)
+    // XXX or simply execution_group_traits<ExecutionGroup>::param_tuple_type or whatever
     param_type params_;
 };
     
@@ -725,9 +710,12 @@ void sync(const __grouped_execution_policy<sequential_execution_policy,Execution
   {
     typedef execution_group_traits<ExecutionGroup> traits;
 
-    ExecutionGroup this_group = traits::make(exec.params(), 0, 0);
+    typedef typename traits::child_type        agent_type;
+    typedef execution_group_traits<agent_type> agent_traits;
+    typedef typename agent_traits::param_type  agent_param_type;
 
-    typedef typename traits::child_type agent_type;
+    ExecutionGroup this_group = traits::make(std::make_tuple(exec.params(), agent_param_type()), std::make_tuple(0, 0));
+
     agent_type& this_agent = this_group.child();
 
     __scoped_group scope(this_group);
@@ -823,12 +811,17 @@ class __subgroup
         parent_param_type parent_params_;
     };
 
-    template<class... Indices>
-    __subgroup(const param_type &params, Indices... indices)
-      : indices_begin_(params.begin()),
-        indices_end_(params.end()),
-        group_(parent_traits::make(params.parent_params(), indices...))
+    template<class ParamTuple, class IndexTuple>
+    __subgroup(const ParamTuple& params, const IndexTuple& indices)
+      : indices_begin_(std::get<0>(params).begin()),
+        indices_end_(std::get<0>(params).end()),
+        group_(parent_traits::make(std::tuple_cat(std::make_tuple(std::get<0>(params).parent_params()), tuple_tail(params)), indices))
     {}
+
+    param_type param() const
+    {
+      return param_type(indices_begin(), indices_end(), group().param());
+    }
 
     size_type indices_begin() const
     {
@@ -890,8 +883,13 @@ void sync(const __grouped_execution_policy<concurrent_execution_policy,Execution
     // XXX could call std::async(seq) here with a subgroup if async(seq)'s launch policy was generalized
     futures[agent_idx] = std::async(std::launch::async, [=](Args&&... args)
     {
-      typedef typename traits::child_type agent_type;
-      ExecutionGroup this_group = traits::make(exec.params(), 0, agent_idx);
+      // XXX this is really ugly
+      // XXX just get the tuple of parameters out of exec
+      typedef typename traits::child_type        agent_type;
+      typedef execution_group_traits<agent_type> agent_traits;
+      typedef typename agent_traits::param_type  agent_param_type;
+
+      ExecutionGroup this_group = traits::make(std::make_tuple(exec.params(), agent_param_type()), std::make_tuple(0, agent_idx));
   
       __scoped_group scope(this_group);
   
@@ -1021,8 +1019,15 @@ struct __async_outer_functor
       execution_group_traits<InnerGroup>::reindex(inner_group, inner_idx);
 
       // link the two groups
-      // XXX maybe make_linked should also be able to rebind the index as well?
-      auto linked_group = execution_group_traits<OuterGroup>::make_linked(outer_group, std::move(inner_group));
+      auto linked_group = execution_group_traits<OuterGroup>::rebind(outer_group, std::move(inner_group));
+
+      // link the two groups
+      // XXX maybe rebind should also be able to rebind the index as well?
+      //auto linked_group = execution_group_traits<linked_group_type>::make(outer_group.param(), outer_group.index(), std::move(inner_group));
+
+      //// link the two groups
+      //// XXX maybe make_linked should also be able to rebind the index as well?
+      //auto linked_group = execution_group_traits<OuterGroup>::make_linked(outer_group, std::move(inner_group));
 
       __scoped_group scope(linked_group);
 
