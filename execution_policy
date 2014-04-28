@@ -596,10 +596,10 @@ class __grouped_execution_policy
 };
     
 
-class sequential_execution_policy
+class sequential_execution_policy : public __grouped_execution_policy<sequential_execution_policy,sequential_group>
 {
   public:
-    inline sequential_execution_policy(size_t n) : rng{0,n} {}
+    inline sequential_execution_policy(size_t n) : __grouped_execution_policy(param_type(0,n)) {}
 
     template<class ExecutionPolicy>
     __nested_execution_policy<sequential_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
@@ -628,9 +628,6 @@ class sequential_execution_policy
       param_type params(std::forward<Args>(args)...);
       return __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>(params);
     }
-
-//  private:
-    __integer_range rng;
 };
 
 
@@ -748,28 +745,6 @@ future<void> async(const __grouped_execution_policy<sequential_execution_policy,
   {
     std::sync(exec, f, std::forward<Args>(args)...);
   });
-}
-
-
-template<class Function, class... Args>
-void sync(const sequential_execution_policy &exec, Function f, Args&&... args)
-{
-  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
-
-  auto params = sequential_group::param_type{rng.begin(),rng.end()};
-  typedef __grouped_execution_policy<sequential_execution_policy,sequential_group> policy_type;
-  return std::sync(policy_type{params}, f, std::forward<Args>(args)...);
-}
-
-
-template<class Function, class... Args>
-std::future<void> async(const sequential_execution_policy &exec, Function f, Args&&... args)
-{
-  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
-
-  auto params = sequential_group::param_type{rng.begin(),rng.end()};
-  typedef __grouped_execution_policy<sequential_execution_policy,sequential_group> policy_type;
-  return std::async(policy_type{params}, f, std::forward<Args>(args)...);
 }
 
 
