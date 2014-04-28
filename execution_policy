@@ -94,7 +94,7 @@ class execution_group_traits
     }
 
     template<class OtherChild>
-    static rebind_execution_group<OtherChild> rebind(const group_type& g, OtherChild&& child)
+    static rebind_execution_group<OtherChild> rebind_child(const group_type& g, OtherChild&& child)
     {
       return rebind_execution_group<OtherChild>(g.param(), g.index(), std::move(child));
     }
@@ -1018,21 +1018,13 @@ struct __async_outer_functor
       // reindex the inner group
       execution_group_traits<InnerGroup>::reindex(inner_group, inner_idx);
 
-      // link the two groups
-      auto linked_group = execution_group_traits<OuterGroup>::rebind(outer_group, std::move(inner_group));
+      // create a new group by rebinding the outer group's child
+      auto rebound_group = execution_group_traits<OuterGroup>::rebind_child(outer_group, std::move(inner_group));
 
-      // link the two groups
-      // XXX maybe rebind should also be able to rebind the index as well?
-      //auto linked_group = execution_group_traits<linked_group_type>::make(outer_group.param(), outer_group.index(), std::move(inner_group));
-
-      //// link the two groups
-      //// XXX maybe make_linked should also be able to rebind the index as well?
-      //auto linked_group = execution_group_traits<OuterGroup>::make_linked(outer_group, std::move(inner_group));
-
-      __scoped_group scope(linked_group);
+      __scoped_group scope(rebound_group);
 
       // call f
-      f(linked_group, args...);
+      f(rebound_group, args...);
     }
   };
 
@@ -1042,20 +1034,6 @@ struct __async_outer_functor
   template<class OuterGroup, class... Args>
   void operator()(OuterGroup& outer_group, Args&&... args) const
   {
-//    // XXX we shouldn't do this n times...
-//    // it's the inner_exec's job to create plurality
-//    std::vector<std::future<void>> futures(exec_args.inner_exec.n);
-//
-//    for(size_t i = 0; i < exec_args.inner_exec.n; ++i)
-//    {
-//      futures[i] = async(exec_args.inner_exec, inner_functor<OuterGroup,size_t>{outer_group, f, i}, args...);
-//    }
-//
-//    // wait for all asyncs
-//    for(auto &f : futures)
-//    {
-//      f.wait();
-//    }
     typedef typename execution_group_traits<OuterGroup>::size_type size_type;
 
     async(exec_args.inner_exec, inner_functor<OuterGroup,size_type>{outer_group, f, outer_group.child().index()}, args...).wait();
@@ -1066,38 +1044,8 @@ struct __async_outer_functor
 template<class OuterPolicy, class InnerPolicy, class Function, class... Args>
 std::future<void> async(const __nested_execution_policy<OuterPolicy,InnerPolicy> &exec_args, Function f, Args&&... args)
 {
+  // XXX use __async_outer_functor because gcc 4.8 has trouble with lambdas + parameter packs
   return async(exec_args.outer_exec, __async_outer_functor<OuterPolicy,InnerPolicy,Function>{exec_args,f}, args...);
-
-//  XXX no auto-type for lambda arguments until c++14, and gcc 4.8 has trouble with lambdas + parameter packs
-//
-//  // invoke an n-sized group to implement the outermost group
-//  return async(exec_args.outer_exec(exec_args.n), [&](auto &outer_group)
-//  {
-//    // XXX this vector would use the allocator in outer_group, if one exists
-//    std::vector<std::future<void>> futures(exec_args.inner.n);
-//
-//    for(size_t i = 0; i < exec_args.inner.n; ++i)
-//    {
-//      // create an invocation for the inner_group
-//      futures[i] = async(exec_args.inner_exec, [&](auto &inner_group)
-//      {
-//        // create an execution descriptor for f by linking the outer & inner groups
-//        // XXX are these moves correct?
-//        // XXX should use rebind_execution_group to rebind outer_group<OuterPolicy, inner_group>
-//        //     that way, f will receive the type of group it expects
-//        execution_group<OuterPolicy,decltype(inner_group)> linked_group(std::move(outer_group), std::move(inner_group));
-//
-//        // call f
-//        f(linked_group, args...);
-//      }
-//    } // end for
-//
-//    // wait for all asyncs
-//    for(auto &f : futures)
-//    {
-//      f.wait();
-//    }
-//  });
 }
 
 
