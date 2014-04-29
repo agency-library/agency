@@ -596,6 +596,7 @@ class __grouped_execution_policy
 };
     
 
+// XXX collapse all of this such that __grouped_execution_policy contains everything
 class sequential_execution_policy : public __grouped_execution_policy<sequential_execution_policy,sequential_group>
 {
   public:
@@ -631,10 +632,10 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
 };
 
 
-class parallel_execution_policy
+class parallel_execution_policy : public __grouped_execution_policy<parallel_execution_policy,parallel_group>
 {
   public:
-    inline parallel_execution_policy(size_t n) : rng{0,n} {}
+    inline parallel_execution_policy(size_t n) : __grouped_execution_policy(param_type(0,n)) {}
 
     template<class ExecutionPolicy>
     __nested_execution_policy<parallel_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
@@ -646,11 +647,6 @@ class parallel_execution_policy
     {
       return parallel_execution_policy(n);
     }
-
-//  private:
-    inline parallel_execution_policy(__integer_range rng_) : rng(rng) {}
-
-    __integer_range rng;
 };
 
 
@@ -952,24 +948,6 @@ future<void> async(const __grouped_execution_policy<parallel_execution_policy,Ex
     std::forward<Args>(args)...);
   },
   std::forward<Args>(args)...);
-}
-
-
-template<class Function, class... Args>
-std::future<void> async(const parallel_execution_policy &exec, Function f, Args&&... args)
-{
-  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
-
-  auto params = parallel_group::param_type{rng.begin(),rng.end()};
-  typedef __grouped_execution_policy<parallel_execution_policy,parallel_group> policy_type;
-  return std::async(policy_type(params), f, std::forward<Args>(args)...);
-}
-
-
-template<class Function, class... Args>
-void sync(const parallel_execution_policy &exec, Function f, Args&&... args)
-{
-  return std::async(exec, f, std::forward<Args>(args)...).wait();
 }
 
 
