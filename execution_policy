@@ -601,8 +601,6 @@ class __grouped_execution_policy
     typedef typename execution_group_traits<group_type>::param_type group_param_type;
     typedef typename execution_group_traits<agent_type>::param_type agent_param_type;
 
-    typedef std::tuple<group_param_type, agent_param_type>          param_tuple_type;
-
     __grouped_execution_policy(const __grouped_execution_policy& other)
       : params_(other.params_)
     {}
@@ -611,13 +609,13 @@ class __grouped_execution_policy
       : params_(group_params, agent_params)
     {}
 
-    const param_tuple_type &params() const
+    const std::tuple<group_param_type,agent_param_type> &params() const
     {
       return params_;
     }
 
   private:
-    param_tuple_type params_;
+    std::tuple<group_param_type, agent_param_type> params_;
 };
     
 
