@@ -809,13 +809,12 @@ class __subgroup
     {}
 
     // tease __subgroup's params out of the ParamTuple's first element
-    // and create a new parameter tuple containing only parameters to pass to the parent group
-    // forward everything along to the other constructor
+    // and forward everything along to the other constructor
     template<class ParamTuple, class IndexTuple>
     __subgroup(const ParamTuple& params, const IndexTuple& indices)
       : __subgroup(std::get<0>(params).begin(),
                    std::get<0>(params).end(),
-                   std::tuple_cat(std::make_tuple(std::get<0>(params).parent_params()), tuple_tail(params)),
+                   params,
                    indices)
     {}
 
