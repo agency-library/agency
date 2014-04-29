@@ -73,6 +73,19 @@ struct __lazy_conditional<false,T,F>
 template<class ExecutionGroup>
 class execution_group_traits
 {
+  private:
+    template<class T>
+    static constexpr size_t depth_impl(T, std::false_type has_child)
+    {
+      return 0;
+    }
+
+    template<class T>
+    static constexpr size_t depth_impl(T, std::true_type has_child)
+    {
+      return 1 + execution_group_traits<child_type>::depth;
+    }
+
   public:
     typedef ExecutionGroup                                 group_type;
     typedef typename ExecutionGroup::param_type            param_type;
@@ -87,7 +100,7 @@ class execution_group_traits
     // XXX consider renaming to nesting_depth or grouping_depth
     //     to emphasize that agents have depth 0
     // XXX alternatively, make it illegal to use execution_group_traits on non-groups
-    constexpr static size_t depth = std::is_same<child_type,void>::value ? 0 : 1 + execution_group_traits<child_type>::depth;
+    constexpr static size_t depth = depth_impl(0, typename __has_child_type<group_type>::type());
     
     template<class OtherChild>
     using rebind_execution_group = typename __rebind_execution_group<group_type, OtherChild>::type;
@@ -581,6 +594,8 @@ template<class ExecutionPolicy, class FlatExecutionGroup>
 class __grouped_execution_policy
 {
   public:
+    static_assert(execution_group_traits<FlatExecutionGroup>::depth == 1, "__grouped_execution_policy's execution group must be flat.");
+
     typedef FlatExecutionGroup                                      group_type;
     typedef typename execution_group_traits<group_type>::child_type agent_type;
 
