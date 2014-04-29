@@ -83,6 +83,11 @@ class execution_group_traits
       __child_type<group_type>,
       __identity<void>
     >::type                                                child_type;
+
+    // XXX consider renaming to nesting_depth or grouping_depth
+    //     to emphasize that agents have depth 0
+    // XXX alternatively, make it illegal to use execution_group_traits on non-groups
+    constexpr static size_t depth = std::is_same<child_type,void>::value ? 0 : 1 + execution_group_traits<child_type>::depth;
     
     template<class OtherChild>
     using rebind_execution_group = typename __rebind_execution_group<group_type, OtherChild>::type;
@@ -299,6 +304,7 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
       typedef basic_concurrent_group<OtherGroup> other;
     };
 
+    // XXX consider making this function const
     void wait()
     {
       barrier_.count_down_and_wait();
@@ -570,29 +576,35 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 }
 
 
+// XXX this should assert that ExecutionGroup's grouping depth = 1
+// XXX rename ExecutionGroup to FlatExecutionGroup to emphasize this assertion
 template<class ExecutionPolicy, class ExecutionGroup>
 class __grouped_execution_policy
 {
   public:
-    typedef typename execution_group_traits<ExecutionGroup>::param_type param_type;
+    typedef ExecutionGroup                                          group_type;
+    typedef typename execution_group_traits<group_type>::child_type agent_type;
+
+    typedef typename execution_group_traits<group_type>::param_type group_param_type;
+    typedef typename execution_group_traits<agent_type>::param_type agent_param_type;
+
+    typedef std::tuple<group_param_type, agent_param_type>          param_tuple_type;
 
     __grouped_execution_policy(const __grouped_execution_policy& other)
       : params_(other.params_)
     {}
 
-    __grouped_execution_policy(const param_type &params)
-      : params_(params)
+    __grouped_execution_policy(const group_param_type& group_params, const agent_param_type& agent_params = agent_param_type())
+      : params_(group_params, agent_params)
     {}
 
-    const param_type &params() const
+    const param_tuple_type &params() const
     {
       return params_;
     }
 
   private:
-    // XXX this needs to be a tuple of (param_type, agent::param_type)
-    // XXX or simply execution_group_traits<ExecutionGroup>::param_tuple_type or whatever
-    param_type params_;
+    param_tuple_type params_;
 };
     
 
@@ -600,7 +612,7 @@ class __grouped_execution_policy
 class sequential_execution_policy : public __grouped_execution_policy<sequential_execution_policy,sequential_group>
 {
   public:
-    inline sequential_execution_policy(size_t n) : __grouped_execution_policy(param_type(0,n)) {}
+    inline sequential_execution_policy(size_t n) : __grouped_execution_policy(sequential_group::param_type(0,n)) {}
 
     template<class ExecutionPolicy>
     __nested_execution_policy<sequential_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
@@ -625,9 +637,9 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
     template<class ExecutionGroup, class... Args>
     __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> make(Args&&... args) const
     {
-      typedef typename __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>::param_type param_type;
-      param_type params(std::forward<Args>(args)...);
-      return __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>(params);
+      typedef typename __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>::group_param_type group_param_type;
+      group_param_type group_params(std::forward<Args>(args)...);
+      return __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>(group_params);
     }
 };
 
@@ -635,7 +647,7 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
 class parallel_execution_policy : public __grouped_execution_policy<parallel_execution_policy,parallel_group>
 {
   public:
-    inline parallel_execution_policy(size_t n) : __grouped_execution_policy(param_type(0,n)) {}
+    inline parallel_execution_policy(size_t n) : __grouped_execution_policy(parallel_group::param_type(0,n)) {}
 
     template<class ExecutionPolicy>
     __nested_execution_policy<parallel_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
@@ -669,9 +681,9 @@ class concurrent_execution_policy
     template<class ExecutionGroup>
     __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> make(size_t n) const
     {
-      typedef typename __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>::param_type param_type;
-      param_type params(0,n);
-      return __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>(params);
+      typedef typename __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>::group_param_type group_param_type;
+      group_param_type group_params(0,n);
+      return __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>(group_params);
     }
 
 
@@ -702,19 +714,15 @@ void sync(const __grouped_execution_policy<sequential_execution_policy,Execution
   try
   {
     typedef execution_group_traits<ExecutionGroup> traits;
+    typedef typename traits::child_type            agent_type;
 
-    typedef typename traits::child_type        agent_type;
-    typedef execution_group_traits<agent_type> agent_traits;
-    typedef typename agent_traits::param_type  agent_param_type;
-
-    ExecutionGroup this_group = traits::make(std::make_tuple(exec.params(), agent_param_type()), std::make_tuple(0, 0));
-
+    ExecutionGroup this_group = traits::make(exec.params(), std::make_tuple(0, 0));
     agent_type& this_agent = this_group.child();
 
     __scoped_group scope(this_group);
 
     // execute agents sequentially
-    auto rng = traits::range(exec.params());
+    auto rng = traits::range(std::get<0>(exec.params()));
     for(auto agent_idx = rng.begin();
         agent_idx < rng.end();
         ++agent_idx)
@@ -783,10 +791,21 @@ class __subgroup
     };
 
     template<class ParamTuple, class IndexTuple>
+    __subgroup(size_type begin, size_type end, const ParamTuple& parent_params, const IndexTuple& indices)
+      : indices_begin_(begin),
+        indices_end_(end),
+        group_(parent_traits::make(parent_params, indices))
+    {}
+
+    // tease __subgroup's params out of the ParamTuple's first element
+    // and create a new parameter tuple containing only parameters to pass to the parent group
+    // forward everything along to the other constructor
+    template<class ParamTuple, class IndexTuple>
     __subgroup(const ParamTuple& params, const IndexTuple& indices)
-      : indices_begin_(std::get<0>(params).begin()),
-        indices_end_(std::get<0>(params).end()),
-        group_(parent_traits::make(std::tuple_cat(std::make_tuple(std::get<0>(params).parent_params()), tuple_tail(params)), indices))
+      : __subgroup(std::get<0>(params).begin(),
+                   std::get<0>(params).end(),
+                   std::tuple_cat(std::make_tuple(std::get<0>(params).parent_params()), tuple_tail(params)),
+                   indices)
     {}
 
     param_type param() const
@@ -841,7 +860,7 @@ void sync(const __grouped_execution_policy<concurrent_execution_policy,Execution
 {
   typedef execution_group_traits<ExecutionGroup> traits;
   
-  auto rng = traits::range(exec.params());
+  auto rng = traits::range(std::get<0>(exec.params()));
   
   std::vector<std::future<void>> futures(rng.end() - rng.begin());
   
@@ -854,13 +873,7 @@ void sync(const __grouped_execution_policy<concurrent_execution_policy,Execution
     // XXX could call std::async(seq) here with a subgroup if async(seq)'s launch policy was generalized
     futures[agent_idx] = std::async(std::launch::async, [=](Args&&... args)
     {
-      // XXX this is really ugly
-      // XXX just get the tuple of parameters out of exec
-      typedef typename traits::child_type        agent_type;
-      typedef execution_group_traits<agent_type> agent_traits;
-      typedef typename agent_traits::param_type  agent_param_type;
-
-      ExecutionGroup this_group = traits::make(std::make_tuple(exec.params(), agent_param_type()), std::make_tuple(0, agent_idx));
+      ExecutionGroup this_group = traits::make(exec.params(), std::make_tuple(0, agent_idx));
   
       __scoped_group scope(this_group);
   
@@ -926,7 +939,9 @@ future<void> async(const __grouped_execution_policy<parallel_execution_policy,Ex
   typedef execution_group_traits<ExecutionGroup> traits;
   typedef typename traits::size_type size_type;
 
-  auto rng = traits::range(exec.params());
+  auto group_params = std::get<0>(exec.params());
+
+  auto rng = traits::range(group_params);
   auto group_size = rng.end() - rng.begin();
 
   const size_t min_num_agents_per_launch = 1000;
@@ -941,7 +956,7 @@ future<void> async(const __grouped_execution_policy<parallel_execution_policy,Ex
     auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
     auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);
 
-    std::sync(std::seq.make<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, exec.params()), [=](__subgroup<ExecutionGroup> &subgroup, Args&&... args)
+    std::sync(std::seq.make<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, group_params), [=](__subgroup<ExecutionGroup> &subgroup, Args&&... args)
     {
       f(subgroup.group(), args...);
     },
@@ -964,10 +979,6 @@ struct __async_outer_functor
     template<class InnerGroup, class... Args>
     void operator()(InnerGroup& inner_group, Args&&... args) const
     {
-      // create an execution descriptor for f by:
-      // * reindexing the inner_group
-      // * moving the inner groups and outer groups into a new linked_group
-
       // reindex the inner group
       execution_group_traits<InnerGroup>::reindex(inner_group, inner_idx);
 
