@@ -589,7 +589,6 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 }
 
 
-// XXX this should assert that ExecutionGroup's grouping depth = 1
 template<class ExecutionPolicy, class FlatExecutionGroup>
 class __grouped_execution_policy
 {
