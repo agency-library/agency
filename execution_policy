@@ -577,12 +577,11 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 
 
 // XXX this should assert that ExecutionGroup's grouping depth = 1
-// XXX rename ExecutionGroup to FlatExecutionGroup to emphasize this assertion
-template<class ExecutionPolicy, class ExecutionGroup>
+template<class ExecutionPolicy, class FlatExecutionGroup>
 class __grouped_execution_policy
 {
   public:
-    typedef ExecutionGroup                                          group_type;
+    typedef FlatExecutionGroup                                      group_type;
     typedef typename execution_group_traits<group_type>::child_type agent_type;
 
     typedef typename execution_group_traits<group_type>::param_type group_param_type;
@@ -620,12 +619,12 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
       return __make_nested(operator()(n), exec);
     }
 
-    template<class ExecutionGroup>
-    __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> make(size_t n) const
+    template<class FlatExecutionGroup>
+    __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup> make(size_t n) const
     {
-      typedef typename __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>::param_type param_type;
+      typedef typename __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup>::param_type param_type;
       param_type params(0,n);
-      return __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>(params);
+      return __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup>(params);
     }
 
     // XXX should return __grouped_execution_policy
@@ -634,12 +633,12 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
       return sequential_execution_policy(n);
     }
 
-    template<class ExecutionGroup, class... Args>
-    __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> make(Args&&... args) const
+    template<class FlatExecutionGroup, class... Args>
+    __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup> make(Args&&... args) const
     {
-      typedef typename __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>::group_param_type group_param_type;
+      typedef typename __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup>::group_param_type group_param_type;
       group_param_type group_params(std::forward<Args>(args)...);
-      return __grouped_execution_policy<sequential_execution_policy,ExecutionGroup>(group_params);
+      return __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup>(group_params);
     }
 };
 
@@ -678,19 +677,19 @@ class concurrent_execution_policy
       return concurrent_execution_policy(n);
     }
 
-    template<class ExecutionGroup>
-    __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> make(size_t n) const
+    template<class FlatExecutionGroup>
+    __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup> make(size_t n) const
     {
-      typedef typename __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>::group_param_type group_param_type;
+      typedef typename __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>::group_param_type group_param_type;
       group_param_type group_params(0,n);
-      return __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>(group_params);
+      return __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>(group_params);
     }
 
 
-    template<class ExecutionGroup, class... Args>
-    __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> make(Args&&... args) const
+    template<class FlatExecutionGroup, class... Args>
+    __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup> make(Args&&... args) const
     {
-      return __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup>(std::forward<Args>(args)...);
+      return __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>(std::forward<Args>(args)...);
     }
 
 //  private:
@@ -706,17 +705,17 @@ const parallel_execution_policy   par{0};
 const concurrent_execution_policy con{0};
 
 
-template<class ExecutionGroup, class Function, class... Args>
-void sync(const __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
+template<class FlatExecutionGroup, class Function, class... Args>
+void sync(const __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
 {
   exception_list exceptions;
 
   try
   {
-    typedef execution_group_traits<ExecutionGroup> traits;
-    typedef typename traits::child_type            agent_type;
+    typedef execution_group_traits<FlatExecutionGroup> traits;
+    typedef typename traits::child_type                agent_type;
 
-    ExecutionGroup this_group = traits::make(exec.params(), std::make_tuple(0, 0));
+    auto this_group = traits::make(exec.params(), std::make_tuple(0, 0));
     agent_type& this_agent = this_group.child();
 
     __scoped_group scope(this_group);
@@ -741,8 +740,8 @@ void sync(const __grouped_execution_policy<sequential_execution_policy,Execution
 }
 
 
-template<class ExecutionGroup, class Function, class... Args>
-future<void> async(const __grouped_execution_policy<sequential_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
+template<class FlatExecutionGroup, class Function, class... Args>
+future<void> async(const __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
 {
   // XXX could generalize the launch policy to allow concurrent_execution_policy to make use of this
   return std::async(std::launch::deferred, [=](Args&&... args)
@@ -855,10 +854,10 @@ class __subgroup
 };
 
 
-template<class ExecutionGroup, class Function, class... Args>
-void sync(const __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
+template<class FlatExecutionGroup, class Function, class... Args>
+void sync(const __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
 {
-  typedef execution_group_traits<ExecutionGroup> traits;
+  typedef execution_group_traits<FlatExecutionGroup> traits;
   
   auto rng = traits::range(std::get<0>(exec.params()));
   
@@ -873,7 +872,7 @@ void sync(const __grouped_execution_policy<concurrent_execution_policy,Execution
     // XXX could call std::async(seq) here with a subgroup if async(seq)'s launch policy was generalized
     futures[agent_idx] = std::async(std::launch::async, [=](Args&&... args)
     {
-      ExecutionGroup this_group = traits::make(exec.params(), std::make_tuple(0, agent_idx));
+      auto this_group = traits::make(exec.params(), std::make_tuple(0, agent_idx));
   
       __scoped_group scope(this_group);
   
@@ -903,8 +902,8 @@ void sync(const concurrent_execution_policy &exec, Function f, Args&&... args)
 }
 
 
-template<class ExecutionGroup, class Function, class... Args>
-future<void> async(const __grouped_execution_policy<concurrent_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
+template<class FlatExecutionGroup, class Function, class... Args>
+future<void> async(const __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
 {
   return std::async(std::launch::async, [=](Args&&... args)
   {
@@ -933,30 +932,30 @@ inline unsigned int __log2(unsigned int x)
 }
 
 
-template<class ExecutionGroup, class Function, class... Args>
-future<void> async(const __grouped_execution_policy<parallel_execution_policy,ExecutionGroup> &exec, Function f, Args&&... args)
+template<class FlatExecutionGroup, class Function, class... Args>
+future<void> async(const __grouped_execution_policy<parallel_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
 {
-  typedef execution_group_traits<ExecutionGroup> traits;
-  typedef typename traits::size_type size_type;
+  typedef execution_group_traits<FlatExecutionGroup> traits;
+  typedef typename traits::size_type                 size_type;
 
   auto group_params = std::get<0>(exec.params());
 
   auto rng = traits::range(group_params);
   auto group_size = rng.end() - rng.begin();
 
-  const size_t min_num_agents_per_launch = 1000;
-  size_t num_concurrent_agents = (group_size + min_num_agents_per_launch - 1) / min_num_agents_per_launch;
-  const size_t subscription = std::max(1u, __log2(std::min(1u,std::thread::hardware_concurrency())));
+  const size_type min_num_agents_per_launch = 1000;
+  size_type num_concurrent_agents = (group_size + min_num_agents_per_launch - 1) / min_num_agents_per_launch;
+  const size_type subscription = std::max(1u, __log2(std::min(1u,std::thread::hardware_concurrency())));
 
   num_concurrent_agents = std::min<size_t>(subscription * std::thread::hardware_concurrency(), num_concurrent_agents);
-  const size_t num_seq_agents_per_concurrent = (group_size + num_concurrent_agents - 1) / num_concurrent_agents;
+  const size_type num_seq_agents_per_concurrent = (group_size + num_concurrent_agents - 1) / num_concurrent_agents;
 
   return std::async(std::con.make<parallel_group>(num_concurrent_agents), [=](parallel_group &g, Args&&... args)
   {
     auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
     auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);
 
-    std::sync(std::seq.make<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, group_params), [=](__subgroup<ExecutionGroup> &subgroup, Args&&... args)
+    std::sync(std::seq.make<__subgroup<FlatExecutionGroup>>(subgroup_begin, subgroup_end, group_params), [=](__subgroup<FlatExecutionGroup> &subgroup, Args&&... args)
     {
       f(subgroup.group(), args...);
     },
