@@ -583,12 +583,24 @@ class __integer_range
 };
 
 
+template<class T> struct is_execution_policy : std::false_type {};
+
+
 template<class OuterPolicy, class InnerPolicy>
 struct __nested_execution_policy
 {
   OuterPolicy outer_exec;
   InnerPolicy inner_exec;
 };
+
+
+template<class T1, class T2>
+struct is_execution_policy<__nested_execution_policy<T1,T2>>
+  : std::integral_constant<
+      bool,
+      is_execution_policy<T1>::value && is_execution_policy<T2>::value
+    >
+{};
 
 
 template<class OuterPolicy, class InnerPolicy>
@@ -626,6 +638,12 @@ class __grouped_execution_policy
   private:
     std::tuple<group_param_type, agent_param_type> params_;
 };
+
+
+template<class ExecutionPolicy, class FlatExecutionGroup>
+struct is_execution_policy<__grouped_execution_policy<ExecutionPolicy,FlatExecutionGroup>>
+  : is_execution_policy<ExecutionPolicy>
+{};
     
 
 // XXX collapse all of this such that __grouped_execution_policy contains everything
@@ -659,6 +677,9 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
 };
 
 
+template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
+
+
 class parallel_execution_policy : public __grouped_execution_policy<parallel_execution_policy,parallel_group>
 {
   public:
@@ -675,6 +696,9 @@ class parallel_execution_policy : public __grouped_execution_policy<parallel_exe
       return parallel_execution_policy(n);
     }
 };
+
+
+template<> struct is_execution_policy<parallel_execution_policy> : std::true_type {};
 
 
 class concurrent_execution_policy
@@ -711,6 +735,9 @@ class concurrent_execution_policy
 //  private:
     __integer_range rng;
 };
+
+
+template<> struct is_execution_policy<concurrent_execution_policy> : std::true_type {};
 
 
 //constexpr sequential_execution_policy seq{0};
