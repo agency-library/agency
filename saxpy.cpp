@@ -9,13 +9,11 @@ int main()
   std::vector<float> x(n, 1), y(n, 2), z(n);
   float a = 13.;
 
-  auto f = std::async(std::par(n), [&](std::parallel_group &g)
+  std::sync(std::par(n), [&](std::parallel_group &g)
   {
     int i = g.child().index();
     z[i] = a * x[i] + y[i];
   });
-
-  f.wait();
 
   float expected  = a * 1. + 2.;
   assert(std::all_of(z.begin(), z.end(), [=](float x){ return expected == x; }));
