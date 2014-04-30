@@ -198,6 +198,10 @@ class execution_group
           : begin_(b), end_(e)
         {}
 
+        param_type(size_type n)
+          : begin_(0), end_(n)
+        {}
+
         size_type begin() const
         {
           return begin_;
@@ -291,6 +295,10 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
         param_type(size_type begin, size_type end, std::reference_wrapper<std::barrier> barrier)
           : super_t::param_type(begin,end),
             barrier_(barrier)
+        {}
+
+        param_type(size_type n, std::reference_wrapper<std::barrier> barrier)
+          : param_type(0, n, barrier)
         {}
 
         param_type(const param_type &other)
@@ -624,7 +632,7 @@ class __grouped_execution_policy
 class sequential_execution_policy : public __grouped_execution_policy<sequential_execution_policy,sequential_group>
 {
   public:
-    inline sequential_execution_policy(size_t n) : __grouped_execution_policy(sequential_group::param_type(0,n)) {}
+    inline sequential_execution_policy(size_t n) : __grouped_execution_policy(sequential_group::param_type(n)) {}
 
     template<class ExecutionPolicy>
     __nested_execution_policy<sequential_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
@@ -659,7 +667,7 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
 class parallel_execution_policy : public __grouped_execution_policy<parallel_execution_policy,parallel_group>
 {
   public:
-    inline parallel_execution_policy(size_t n) : __grouped_execution_policy(parallel_group::param_type(0,n)) {}
+    inline parallel_execution_policy(size_t n) : __grouped_execution_policy(parallel_group::param_type(n)) {}
 
     template<class ExecutionPolicy>
     __nested_execution_policy<parallel_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
@@ -694,7 +702,7 @@ class concurrent_execution_policy
     __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup> make(size_t n) const
     {
       typedef typename __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>::group_param_type group_param_type;
-      group_param_type group_params(0,n);
+      group_param_type group_params(n);
       return __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>(group_params);
     }
 
