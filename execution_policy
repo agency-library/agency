@@ -635,23 +635,18 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
     inline sequential_execution_policy(size_t n) : __grouped_execution_policy(sequential_group::param_type(n)) {}
 
     template<class ExecutionPolicy>
-    __nested_execution_policy<sequential_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
+    __nested_execution_policy<
+      __grouped_execution_policy<sequential_execution_policy,sequential_group>,
+      ExecutionPolicy
+    > operator()(size_t n, ExecutionPolicy &&exec) const
     {
       return __make_nested(operator()(n), exec);
     }
 
-    template<class FlatExecutionGroup>
-    __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup> make(size_t n) const
+    // XXX eliminate this in favor of variadic operator()
+    inline __grouped_execution_policy<sequential_execution_policy,sequential_group> operator()(size_t n) const
     {
-      typedef typename __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup>::param_type param_type;
-      param_type params(0,n);
-      return __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup>(params);
-    }
-
-    // XXX should return __grouped_execution_policy
-    inline sequential_execution_policy operator()(size_t n) const
-    {
-      return sequential_execution_policy(n);
+      return make<sequential_group>(n);
     }
 
     template<class FlatExecutionGroup, class... Args>
