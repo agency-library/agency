@@ -493,6 +493,7 @@ class execution_view
 //const ExecutionGroup &get(const execution_group &g);
 
 
+// XXX this should return a value created on demand
 inline execution_view &this_group()
 {
   // XXX this should be initialized to a sequential_group with a single agent executing in this_thread
