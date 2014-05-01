@@ -583,6 +583,7 @@ class __integer_range
 };
 
 
+// XXX add is_execution_policy_v
 template<class T> struct is_execution_policy : std::false_type {};
 
 
@@ -662,6 +663,33 @@ class sequential_execution_policy;
 
 
 template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
+
+
+template<class... Types>
+struct __last_type_impl
+{
+  typedef typename std::tuple_element<sizeof...(Types) - 1, std::tuple<Types...>>::type type;
+};
+
+
+template<>
+struct __last_type_impl<>
+{
+  typedef void type;
+};
+
+
+template<class... Types>
+using __last_type = typename __last_type_impl<Types...>::type;
+
+
+template<class Result, class... Args>
+struct __disable_if_nested_call
+  : std::enable_if<
+      !is_execution_policy<__last_type<Args...>>::value,
+      Result
+    >
+{};
     
 
 // XXX collapse all of this such that __grouped_execution_policy contains everything
@@ -670,6 +698,7 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
   public:
     inline sequential_execution_policy(size_t n) : __grouped_execution_policy(sequential_group::param_type(n)) {}
 
+    // this is the nested form of operator()
     template<class ExecutionPolicy>
     __nested_execution_policy<
       __grouped_execution_policy<sequential_execution_policy,sequential_group>,
@@ -679,10 +708,16 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
       return __make_nested(operator()(n), exec);
     }
 
-    // XXX eliminate this in favor of variadic operator()
-    inline __grouped_execution_policy<sequential_execution_policy,sequential_group> operator()(size_t n) const
+    // only enable this operator() if the last type in Args... is not an execution policy
+    // this is the flat form of operator()
+    template<class Arg1, class... Args>
+    typename __disable_if_nested_call<
+      __grouped_execution_policy<sequential_execution_policy,sequential_group>,
+      Args...
+    >::type
+    operator()(Arg1&& arg1, Args&&... args) const
     {
-      return make<sequential_group>(n);
+      return __grouped_execution_policy::make<sequential_group>(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
 };
 
