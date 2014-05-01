@@ -684,6 +684,15 @@ using __last_type = typename __last_type_impl<Types...>::type;
 
 
 template<class Result, class... Args>
+struct __enable_if_nested_call
+  : std::enable_if<
+      is_execution_policy<__last_type<Args...>>::value,
+      Result
+    >
+{};
+
+
+template<class Result, class... Args>
 struct __disable_if_nested_call
   : std::enable_if<
       !is_execution_policy<__last_type<Args...>>::value,
@@ -708,12 +717,12 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
       return __make_nested(operator()(n), exec);
     }
 
-    // only enable this operator() if the last type in Args... is not an execution policy
+    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
     template<class Arg1, class... Args>
     typename __disable_if_nested_call<
       __grouped_execution_policy<sequential_execution_policy,sequential_group>,
-      Args...
+      Arg1, Args...
     >::type
     operator()(Arg1&& arg1, Args&&... args) const
     {
