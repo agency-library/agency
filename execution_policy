@@ -1007,6 +1007,13 @@ future<void> async(const __grouped_execution_policy<parallel_execution_policy,Fl
 }
 
 
+template<class FlatExecutionGroup, class Function, class... Args>
+void sync(const __grouped_execution_policy<parallel_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
+{
+  return std::async(exec, std::forward<Function>(f), std::forward<Args>(args)...).wait();
+}
+
+
 template<class OuterPolicy, class InnerPolicy, class Function>
 struct __async_outer_functor
 {
