@@ -610,12 +610,21 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 }
 
 
-// XXX assert is_execution_policy<ExecutionPolicy>
+template<class,class> class __grouped_execution_policy;
+
+
+template<class ExecutionPolicy, class FlatExecutionGroup>
+struct is_execution_policy<__grouped_execution_policy<ExecutionPolicy,FlatExecutionGroup>>
+  : is_execution_policy<ExecutionPolicy>
+{};
+
+
 template<class ExecutionPolicy, class FlatExecutionGroup>
 class __grouped_execution_policy
 {
   public:
-    static_assert(execution_group_traits<FlatExecutionGroup>::depth == 1, "__grouped_execution_policy's execution group must be flat.");
+    static_assert(is_execution_policy<ExecutionPolicy>::value == true, "__grouped_execution_policy's ExecutionPolicy parameter must be an execution policy type.");
+    static_assert(execution_group_traits<FlatExecutionGroup>::depth == 1, "__grouped_execution_policy's execution group must be flat (have depth == 1).");
 
     typedef FlatExecutionGroup                                      group_type;
     typedef typename execution_group_traits<group_type>::child_type agent_type;
@@ -649,10 +658,10 @@ class __grouped_execution_policy
 };
 
 
-template<class ExecutionPolicy, class FlatExecutionGroup>
-struct is_execution_policy<__grouped_execution_policy<ExecutionPolicy,FlatExecutionGroup>>
-  : is_execution_policy<ExecutionPolicy>
-{};
+class sequential_execution_policy;
+
+
+template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
     
 
 // XXX collapse all of this such that __grouped_execution_policy contains everything
@@ -678,7 +687,10 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
 };
 
 
-template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
+class parallel_execution_policy;
+
+
+template<> struct is_execution_policy<parallel_execution_policy> : std::true_type {};
 
 
 class parallel_execution_policy : public __grouped_execution_policy<parallel_execution_policy,parallel_group>
@@ -699,7 +711,10 @@ class parallel_execution_policy : public __grouped_execution_policy<parallel_exe
 };
 
 
-template<> struct is_execution_policy<parallel_execution_policy> : std::true_type {};
+class concurrent_execution_policy;
+
+
+template<> struct is_execution_policy<concurrent_execution_policy> : std::true_type {};
 
 
 class concurrent_execution_policy
@@ -736,9 +751,6 @@ class concurrent_execution_policy
 //  private:
     __integer_range rng;
 };
-
-
-template<> struct is_execution_policy<concurrent_execution_policy> : std::true_type {};
 
 
 //constexpr sequential_execution_policy seq{0};
