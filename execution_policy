@@ -610,6 +610,7 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 }
 
 
+// XXX assert is_execution_policy<ExecutionPolicy>
 template<class ExecutionPolicy, class FlatExecutionGroup>
 class __grouped_execution_policy
 {
@@ -633,6 +634,14 @@ class __grouped_execution_policy
     const std::tuple<group_param_type,agent_param_type> &params() const
     {
       return params_;
+    }
+
+    template<class OtherFlatExecutionGroup, class... Args>
+    __grouped_execution_policy<ExecutionPolicy,OtherFlatExecutionGroup> make(Args&&... args) const
+    {
+      typedef typename __grouped_execution_policy<ExecutionPolicy,OtherFlatExecutionGroup>::group_param_type group_param_type;
+      group_param_type group_params(std::forward<Args>(args)...);
+      return __grouped_execution_policy<ExecutionPolicy,OtherFlatExecutionGroup>(group_params);
     }
 
   private:
@@ -665,14 +674,6 @@ class sequential_execution_policy : public __grouped_execution_policy<sequential
     inline __grouped_execution_policy<sequential_execution_policy,sequential_group> operator()(size_t n) const
     {
       return make<sequential_group>(n);
-    }
-
-    template<class FlatExecutionGroup, class... Args>
-    __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup> make(Args&&... args) const
-    {
-      typedef typename __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup>::group_param_type group_param_type;
-      group_param_type group_params(std::forward<Args>(args)...);
-      return __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup>(group_params);
     }
 };
 
