@@ -788,15 +788,6 @@ class concurrent_execution_policy
       return concurrent_execution_policy(n);
     }
 
-    template<class FlatExecutionGroup>
-    __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup> make(size_t n) const
-    {
-      typedef typename __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>::group_param_type group_param_type;
-      group_param_type group_params(n);
-      return __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>(group_params);
-    }
-
-
     template<class FlatExecutionGroup, class... Args>
     __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup> make(Args&&... args) const
     {
