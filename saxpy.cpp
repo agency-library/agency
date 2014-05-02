@@ -9,7 +9,7 @@ int main()
   std::vector<float> x(n, 1), y(n, 2), z(n);
   float a = 13.;
 
-  std::sync(std::par(n), [&](std::parallel_group &g)
+  std::sync(std::par(n), [&](std::parallel_group<> &g)
   {
     int i = g.child().index();
     z[i] = a * x[i] + y[i];

@@ -3,7 +3,7 @@
 
 int main()
 {
-  std::async(std::con(10), [](std::concurrent_group &g)
+  std::async(std::con(10), [](std::concurrent_group<> &g)
   {
     std::cout << "agent " << g.child().index() << " arriving at barrier" << std::endl;
 

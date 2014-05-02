@@ -264,24 +264,22 @@ class execution_group
 class sequential_execution_policy;
 
 
-template<class ExecutionGroup>
-using basic_sequential_group = execution_group<std::sequential_execution_policy, ExecutionGroup>;
-typedef basic_sequential_group<agent> sequential_group;
+template<class ExecutionGroup = std::agent>
+using sequential_group = execution_group<std::sequential_execution_policy, ExecutionGroup>;
 
 
 class parallel_execution_policy;
 
 
-template<class ExecutionGroup>
-using basic_parallel_group = execution_group<std::parallel_execution_policy, ExecutionGroup>;
-typedef basic_parallel_group<agent> parallel_group;
+template<class ExecutionGroup = std::agent>
+using parallel_group = execution_group<std::parallel_execution_policy, ExecutionGroup>;
 
 
 class concurrent_execution_policy;
 
 
-template<class ExecutionGroup>
-class basic_concurrent_group : public execution_group<std::concurrent_execution_policy, ExecutionGroup>
+template<class ExecutionGroup = std::agent>
+class concurrent_group : public execution_group<std::concurrent_execution_policy, ExecutionGroup>
 {
   private:
     typedef execution_group<std::concurrent_execution_policy, ExecutionGroup> super_t;
@@ -322,7 +320,7 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
     template<class OtherGroup>
     struct rebind
     {
-      typedef basic_concurrent_group<OtherGroup> other;
+      typedef concurrent_group<OtherGroup> other;
     };
 
     // XXX consider making this function const
@@ -335,22 +333,19 @@ class basic_concurrent_group : public execution_group<std::concurrent_execution_
     template<class> friend class execution_group_traits;
 
     template<class ParamTuple, class IndexTuple>
-    basic_concurrent_group(const ParamTuple& params, const IndexTuple& indices)
+    concurrent_group(const ParamTuple& params, const IndexTuple& indices)
       : super_t(params, indices),
         barrier_(std::get<0>(params).barrier())
     {}
 
     template<class Param>
-    basic_concurrent_group(const Param& params, size_type index, ExecutionGroup&& chld)
+    concurrent_group(const Param& params, size_type index, ExecutionGroup&& chld)
       : super_t(params, index, std::move(chld)),
         barrier_(params.barrier())
     {}
 
     std::barrier &barrier_;
 };
-
-
-typedef basic_concurrent_group<agent> concurrent_group;
 
 
 template<class T>
@@ -730,10 +725,10 @@ class sequential_execution_policy;
 template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
     
 
-class sequential_execution_policy : public __grouped_execution_policy<sequential_execution_policy,sequential_group>
+class sequential_execution_policy : public __grouped_execution_policy<sequential_execution_policy,sequential_group<>>
 {
   public:
-    inline sequential_execution_policy(size_t n) : __grouped_execution_policy(sequential_group::param_type(n)) {}
+    inline sequential_execution_policy(size_t n) : __grouped_execution_policy(sequential_group<>::param_type(n)) {}
 };
 
 
@@ -743,10 +738,10 @@ class parallel_execution_policy;
 template<> struct is_execution_policy<parallel_execution_policy> : std::true_type {};
 
 
-class parallel_execution_policy : public __grouped_execution_policy<parallel_execution_policy,parallel_group>
+class parallel_execution_policy : public __grouped_execution_policy<parallel_execution_policy,parallel_group<>>
 {
   public:
-    inline parallel_execution_policy(size_t n) : __grouped_execution_policy(parallel_group::param_type(n)) {}
+    inline parallel_execution_policy(size_t n) : __grouped_execution_policy(parallel_group<>::param_type(n)) {}
 };
 
 
@@ -989,8 +984,8 @@ void sync(const concurrent_execution_policy &exec, Function f, Args&&... args)
   // create a barrier
   std::barrier barrier(rng.end() - rng.begin());
   
-  auto group_params = concurrent_group::param_type(rng.begin(),rng.end(),barrier);
-  typedef __grouped_execution_policy<concurrent_execution_policy,concurrent_group> policy_type;
+  auto group_params = concurrent_group<>::param_type(rng.begin(),rng.end(),barrier);
+  typedef __grouped_execution_policy<concurrent_execution_policy,concurrent_group<>> policy_type;
   
   policy_type grouped_policy(group_params);
   
@@ -1046,7 +1041,7 @@ future<void> __async(const __grouped_execution_policy<parallel_execution_policy,
   num_concurrent_agents = std::min<size_t>(subscription * std::thread::hardware_concurrency(), num_concurrent_agents);
   const size_type num_seq_agents_per_concurrent = (group_size + num_concurrent_agents - 1) / num_concurrent_agents;
 
-  return std::async(std::con.make<parallel_group>(num_concurrent_agents), [=](parallel_group &g, Args&&... args)
+  return std::async(std::con.make<parallel_group<>>(num_concurrent_agents), [=](parallel_group<> &g, Args&&... args)
   {
     auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
     auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);

@@ -8,7 +8,7 @@ int main()
   using std::par;
   using std::con;
 
-//  auto f = std::async(seq(2, seq(1)), [&](std::basic_sequential_group<std::sequential_group> &g)
+//  auto f = std::async(seq(2, seq(1)), [&](std::sequential_group<std::sequential_group<>> &g)
 //  {
 //    int i = g.child().index();
 //    int j = g.child().child().index();
@@ -18,7 +18,7 @@ int main()
 //
 //  f.wait();
 
-//  auto f = std::async(seq(1, seq(2)), [&](std::basic_sequential_group<std::sequential_group> &g)
+//  auto f = std::async(seq(1, seq(2)), [&](std::sequential_group<std::sequential_group<>> &g)
 //  {
 //    int i = g.child().index();
 //    int j = g.child().child().index();
@@ -28,7 +28,7 @@ int main()
 //
 //  f.wait();
 
-//  auto f = std::async(seq(2), [&](std::sequential_group &g)
+//  auto f = std::async(seq(2), [&](std::sequential_group<> &g)
 //  {
 //    int i = g.child().index();
 //
@@ -37,7 +37,7 @@ int main()
 //
 //  f.wait();
 
-  auto f = std::async(seq(3, seq(1, seq(4))), [&](std::basic_sequential_group<std::basic_sequential_group<std::sequential_group>> &g)
+  auto f = std::async(seq(3, seq(1, seq(4))), [&](std::sequential_group<std::sequential_group<std::sequential_group<>>> &g)
   {
     int i = g.child().index();
     int j = g.child().child().index();
