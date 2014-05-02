@@ -702,6 +702,23 @@ class __grouped_execution_policy
       return __grouped_execution_policy<ExecutionPolicy,OtherFlatExecutionGroup>(group_params);
     }
 
+    // this is the nested form of operator()
+    template<class OtherExecutionPolicy>
+    __nested_execution_policy<__grouped_execution_policy, OtherExecutionPolicy>
+      operator()(size_t n, OtherExecutionPolicy &&exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
+    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
+    // this is the flat form of operator()
+    template<class Arg1, class... Args>
+    typename __disable_if_nested_call<__grouped_execution_policy, Arg1, Args...>::type
+      operator()(Arg1&& arg1, Args&&... args) const
+    {
+      return make<FlatExecutionGroup>(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+    }
+
   private:
     std::tuple<group_param_type, agent_param_type> params_;
 };
@@ -713,33 +730,10 @@ class sequential_execution_policy;
 template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
     
 
-// XXX collapse all of this such that __grouped_execution_policy contains everything
 class sequential_execution_policy : public __grouped_execution_policy<sequential_execution_policy,sequential_group>
 {
   public:
     inline sequential_execution_policy(size_t n) : __grouped_execution_policy(sequential_group::param_type(n)) {}
-
-    // this is the nested form of operator()
-    template<class ExecutionPolicy>
-    __nested_execution_policy<
-      __grouped_execution_policy<sequential_execution_policy,sequential_group>,
-      ExecutionPolicy
-    > operator()(size_t n, ExecutionPolicy &&exec) const
-    {
-      return __make_nested(operator()(n), exec);
-    }
-
-    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
-    // this is the flat form of operator()
-    template<class Arg1, class... Args>
-    typename __disable_if_nested_call<
-      __grouped_execution_policy<sequential_execution_policy,sequential_group>,
-      Arg1, Args...
-    >::type
-    operator()(Arg1&& arg1, Args&&... args) const
-    {
-      return __grouped_execution_policy::make<sequential_group>(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
-    }
 };
 
 
@@ -753,28 +747,6 @@ class parallel_execution_policy : public __grouped_execution_policy<parallel_exe
 {
   public:
     inline parallel_execution_policy(size_t n) : __grouped_execution_policy(parallel_group::param_type(n)) {}
-
-    // this is the nested form of operator()
-    template<class ExecutionPolicy>
-    __nested_execution_policy<
-      __grouped_execution_policy<parallel_execution_policy,parallel_group>,
-      ExecutionPolicy
-    > operator()(size_t n, ExecutionPolicy &&exec) const
-    {
-      return __make_nested(operator()(n), exec);
-    }
-
-    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
-    // this is the flat form of operator()
-    template<class Arg1, class... Args>
-    typename __disable_if_nested_call<
-      __grouped_execution_policy<parallel_execution_policy,parallel_group>,
-      Arg1, Args...
-    >::type
-    operator()(Arg1&& arg1, Args&&... args) const
-    {
-      return __grouped_execution_policy::make<parallel_group>(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
-    }
 };
 
 
@@ -1130,7 +1102,7 @@ struct __async_outer_functor
   {
     typedef typename execution_group_traits<OuterGroup>::size_type size_type;
 
-    async(exec_args.inner_exec, inner_functor<OuterGroup,size_type>{outer_group, f, outer_group.child().index()}, args...).wait();
+    std::async(exec_args.inner_exec, inner_functor<OuterGroup,size_type>{outer_group, f, outer_group.child().index()}, args...).wait();
   }
 };
 
