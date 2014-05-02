@@ -611,6 +611,24 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 }
 
 
+template<class T, class Result = void>
+struct __enable_if_execution_policy
+  : std::enable_if<
+      is_execution_policy<T>::value,
+      Result
+    >
+{};
+
+
+template<class T, class Result = void>
+struct __disable_if_execution_policy
+  : std::enable_if<
+      !is_execution_policy<T>::value,
+      Result
+    >
+{};
+
+
 template<class... Types>
 struct __last_type_impl
 {
@@ -631,19 +649,13 @@ using __last_type = typename __last_type_impl<Types...>::type;
 
 template<class Result, class... Args>
 struct __enable_if_nested_call
-  : std::enable_if<
-      is_execution_policy<__last_type<Args...>>::value,
-      Result
-    >
+  : __enable_if_execution_policy<__last_type<Args...>, Result>
 {};
 
 
 template<class Result, class... Args>
 struct __disable_if_nested_call
-  : std::enable_if<
-      !is_execution_policy<__last_type<Args...>>::value,
-      Result
-    >
+  : __disable_if_execution_policy<__last_type<Args...>, Result>
 {};
 
 
@@ -959,8 +971,8 @@ class __subgroup
 
 // declare ExecutionPolicy-based async for the functions below
 template<class ExecutionPolicy, class Function, class... Args>
-typename std::enable_if<
-  is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value,
+typename __enable_if_execution_policy<
+  typename std::decay<ExecutionPolicy>::type,
   std::future<void>
 >::type
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
@@ -1132,8 +1144,8 @@ std::future<void> __async(const __nested_execution_policy<OuterPolicy,InnerPolic
 
 
 template<class ExecutionPolicy, class Function, class... Args>
-typename std::enable_if<
-  is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value,
+typename __enable_if_execution_policy<
+  typename std::decay<ExecutionPolicy>::type,
   std::future<void>
 >::type
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
