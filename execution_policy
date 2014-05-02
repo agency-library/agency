@@ -800,7 +800,9 @@ class concurrent_execution_policy
     template<class FlatExecutionGroup, class... Args>
     __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup> make(Args&&... args) const
     {
-      return __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>(std::forward<Args>(args)...);
+      typedef typename __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>::group_param_type group_param_type;
+      group_param_type group_params(std::forward<Args>(args)...);
+      return __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>(group_params);
     }
 
 //  private:
