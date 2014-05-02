@@ -611,6 +611,42 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 }
 
 
+template<class... Types>
+struct __last_type_impl
+{
+  typedef typename std::tuple_element<sizeof...(Types) - 1, std::tuple<Types...>>::type type;
+};
+
+
+template<>
+struct __last_type_impl<>
+{
+  typedef void type;
+};
+
+
+template<class... Types>
+using __last_type = typename __last_type_impl<Types...>::type;
+
+
+template<class Result, class... Args>
+struct __enable_if_nested_call
+  : std::enable_if<
+      is_execution_policy<__last_type<Args...>>::value,
+      Result
+    >
+{};
+
+
+template<class Result, class... Args>
+struct __disable_if_nested_call
+  : std::enable_if<
+      !is_execution_policy<__last_type<Args...>>::value,
+      Result
+    >
+{};
+
+
 template<class,class> class __grouped_execution_policy;
 
 
@@ -663,42 +699,6 @@ class sequential_execution_policy;
 
 
 template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
-
-
-template<class... Types>
-struct __last_type_impl
-{
-  typedef typename std::tuple_element<sizeof...(Types) - 1, std::tuple<Types...>>::type type;
-};
-
-
-template<>
-struct __last_type_impl<>
-{
-  typedef void type;
-};
-
-
-template<class... Types>
-using __last_type = typename __last_type_impl<Types...>::type;
-
-
-template<class Result, class... Args>
-struct __enable_if_nested_call
-  : std::enable_if<
-      is_execution_policy<__last_type<Args...>>::value,
-      Result
-    >
-{};
-
-
-template<class Result, class... Args>
-struct __disable_if_nested_call
-  : std::enable_if<
-      !is_execution_policy<__last_type<Args...>>::value,
-      Result
-    >
-{};
     
 
 // XXX collapse all of this such that __grouped_execution_policy contains everything
