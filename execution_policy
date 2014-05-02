@@ -960,7 +960,7 @@ class __subgroup
 // declare ExecutionPolicy-based async for the functions below
 template<class ExecutionPolicy, class Function, class... Args>
 typename std::enable_if<
-  is_execution_policy<ExecutionPolicy>::value,
+  is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value,
   std::future<void>
 >::type
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
@@ -1133,7 +1133,7 @@ std::future<void> __async(const __nested_execution_policy<OuterPolicy,InnerPolic
 
 template<class ExecutionPolicy, class Function, class... Args>
 typename std::enable_if<
-  is_execution_policy<ExecutionPolicy>::value,
+  is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value,
   std::future<void>
 >::type
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
