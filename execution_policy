@@ -1,3 +1,5 @@
+#pragma once
+
 #include <future>
 #include <utility>
 #include <vector>
@@ -582,6 +584,7 @@ class __integer_range
 template<class T> struct is_execution_policy : std::false_type {};
 
 
+// XXX consider merging this functionality into __grouped_execution_policy
 template<class OuterPolicy, class InnerPolicy>
 struct __nested_execution_policy
 {
