@@ -1,0 +1,16 @@
+#include_next <type_traits>
+
+namespace std
+{
+
+
+template<class T>
+using decay_t = typename decay<T>::type;
+
+
+template<class T>
+using result_of_t = typename result_of<T>::type;
+
+
+}
+

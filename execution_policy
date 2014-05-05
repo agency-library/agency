@@ -392,7 +392,7 @@ class execution_view
 
     template<typename ExecutionGroup>
     execution_view(ExecutionGroup& g,
-                   typename std::enable_if<__has_child<ExecutionGroup>::value>::type* = 0)
+                   typename enable_if<__has_child<ExecutionGroup>::value>::type* = 0)
       : index_(g.index()),
         size_(g.size()),
         self_(&g),
@@ -401,7 +401,7 @@ class execution_view
 
     template<typename ExecutionGroup>
     execution_view(ExecutionGroup& g,
-                   typename std::enable_if<!__has_child<ExecutionGroup>::value>::type* = 0)
+                   typename enable_if<!__has_child<ExecutionGroup>::value>::type* = 0)
       : index_(g.index()),
         size_(g.size()),
         self_(&g),
@@ -420,10 +420,7 @@ class execution_view
     }
 
     template<typename ExecutionGroup>
-    typename std::enable_if<
-      __has_child<ExecutionGroup>::value,
-      execution_view &
-    >::type
+    typename enable_if<__has_child<ExecutionGroup>::value, execution_view &>::type
       operator=(ExecutionGroup& g)
     {
       index_ = g.index();
@@ -433,10 +430,7 @@ class execution_view
     }
 
     template<typename ExecutionGroup>
-    typename std::enable_if<
-      !__has_child<ExecutionGroup>::value,
-      execution_view &
-    >::type
+    typename enable_if<!__has_child<ExecutionGroup>::value,execution_view &>::type
       operator=(ExecutionGroup& g)
     {
       index_ = g.index();
@@ -611,19 +605,13 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 
 template<class T, class Result = void>
 struct __enable_if_execution_policy
-  : std::enable_if<
-      is_execution_policy<T>::value,
-      Result
-    >
+  : enable_if<is_execution_policy<T>::value,Result>
 {};
 
 
 template<class T, class Result = void>
 struct __disable_if_execution_policy
-  : std::enable_if<
-      !is_execution_policy<T>::value,
-      Result
-    >
+  : enable_if<!is_execution_policy<T>::value,Result>
 {};
 
 
@@ -941,10 +929,7 @@ class __subgroup
 
 // declare ExecutionPolicy-based async for the functions below
 template<class ExecutionPolicy, class Function, class... Args>
-typename __enable_if_execution_policy<
-  typename std::decay<ExecutionPolicy>::type,
-  std::future<void>
->::type
+typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,std::future<void>>::type
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
 
 
@@ -1114,10 +1099,7 @@ std::future<void> __async(const __nested_execution_policy<OuterPolicy,InnerPolic
 
 
 template<class ExecutionPolicy, class Function, class... Args>
-typename __enable_if_execution_policy<
-  typename std::decay<ExecutionPolicy>::type,
-  std::future<void>
->::type
+typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::type
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
   return __async(std::forward<ExecutionPolicy>(exec), std::forward<Function>(f), std::forward<Args>(args)...);
