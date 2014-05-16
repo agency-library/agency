@@ -1,0 +1,92 @@
+#pragma once
+
+#include_next <tuple>
+#include <type_traits>
+#include <integer_sequence>
+
+namespace std
+{
+
+
+//template<int i, typename T, typename... Types>
+//struct __index_of_impl;
+//
+//
+//// no match, keep going
+//template<int i, typename T, typename U, typename... Types>
+//struct __index_of_impl<i,T,U,Types...>
+//  : __index_of_impl<i+1,T,Types...>
+//{};
+//
+//
+//// found a match
+//template<int i, typename T, typename... Types>
+//struct __index_of_impl<i,T,T,Types...>
+//{
+//  static const int value = i;
+//};
+//
+//
+//// no match
+//template<int i, typename T>
+//struct __index_of_impl<i,T>
+//{
+//  static const int value = i;
+//};
+//
+//
+//template<typename T, typename... Types>
+//using __index_of = __index_of_impl<0,Types...>;
+//
+//
+//template<class T0, class... Types>
+//  typename enable_if<
+//    __index_of<T0,Types...>::value < sizeof...(Types),
+//    T0&
+//  >::type
+//    get(std::tuple<T0, Types...>& t)
+//{
+//  return std::get<__index_of<T0,Types...>::value>(t);
+//}
+//
+//
+//template<class T0, class... Types>
+//  typename enable_if<
+//    __index_of<T0,Types...>::value < sizeof...(Types),
+//    const T0&
+//  >::type
+//    get(const std::tuple<T0, Types...>& t)
+//{
+//  return std::get<__index_of<T0,Types...>::value>(t);
+//}
+//
+//
+//template<class T0, class... Types>
+//  typename enable_if<
+//    __index_of<T0,Types...>::value < sizeof...(Types),
+//    T0&&
+//  >::type
+//    get(std::tuple<T0, Types...>&& t)
+//{
+//  return std::get<__index_of<T0,Types...>::value>(t);
+//}
+
+
+template<class F, class Tuple, size_t... I>
+constexpr auto __apply_impl(F&& f, Tuple&& t, index_sequence<I...>) ->
+  decltype(std::forward<F>(f)(std::get<I>(std::forward<Tuple>(t))...) )
+{
+  return std::forward<F>(f)(std::get<I>(std::forward<Tuple>(t))...);
+}
+
+
+template<class F, class Tuple>
+constexpr auto apply(F&& f, Tuple&& t) ->
+  decltype(__apply_impl(std::forward<F>(f), std::forward<Tuple>(t), std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{}))
+{
+  return __apply_impl(std::forward<F>(f), std::forward<Tuple>(t), std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{});
+}
+
+
+}
+
