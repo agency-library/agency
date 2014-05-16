@@ -93,7 +93,7 @@ std::future<typename std::result_of<Function(Args...)>::type>
       throw std::system_error(errno, std::system_category(), "std::async(): error after sched_setaffinity()");
     } // end if
 
-    return f();
+    return f(std::forward<Args>(args)...);
   },
   std::forward<Args>(args)...
   );
