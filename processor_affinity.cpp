@@ -15,6 +15,17 @@ int main()
     std::cout << "thread " << std::this_thread::get_id() << " on CPU " << std::this_cpu << std::endl;
   }).wait();
 
+  std::async(std::this_processor, []
+  {
+    std::cout << "thread " << std::this_thread::get_id() << " on processor " << std::this_processor << " of type " << std::this_processor.type().name() << std::endl;
+  }).wait();
+
+  std::async(std::this_processor, [](int x)
+  {
+    std::cout << "processor " << std::this_processor << " received " << x << std::endl;
+  },
+  13).wait();
+
   return 0;
 }
 

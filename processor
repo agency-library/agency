@@ -2,7 +2,10 @@
 
 #include <sched.h>
 #include <future>
+#include <typeinfo>
+#include <tuple>
 #include "variant.hpp"
+#include "closure.hpp"
 
 namespace std
 {
@@ -28,7 +31,7 @@ class cpu_id
       return handle_;
     }
 
-    friend inline bool operator==(cpu_id lhs, cpu_id rhs)
+    friend inline bool operator==(cpu_id lhs, const cpu_id& rhs)
     {
       return lhs.handle_ == rhs.handle_;
     }
@@ -78,7 +81,8 @@ template<class Function, class... Args>
 std::future<typename std::result_of<Function(Args...)>::type>
   async(cpu_id proc, Function&& f, Args&&... args)
 {
-  return std::async(std::launch::async, [=](Function&& f, Args&&... args)
+  // XXX figure out how to forward f & args correctly through std::async
+  return std::async(std::launch::async, [=](Args&&... args)
   {
     cpu_set_t set;
     CPU_ZERO(&set);
@@ -89,10 +93,8 @@ std::future<typename std::result_of<Function(Args...)>::type>
       throw std::system_error(errno, std::system_category(), "std::async(): error after sched_setaffinity()");
     } // end if
 
-    // call f
-    f(std::forward<Args>(args)...);
+    return f();
   },
-  std::forward<Function>(f),
   std::forward<Args>(args)...
   );
 }
@@ -161,7 +163,19 @@ class processor_id
       return os << id.index_;
     }
 
+    const type_info& type() const
+    {
+      return index_.type();
+    }
+
   private:
+    template<class Function, class... Args>
+    friend std::future<typename std::result_of<Function(Args...)>::type>
+      async(processor_id proc, Function&& f, Args&&... args);
+
+    template<class Function>
+    friend struct __async_processor_visitor;
+
     struct unknown_id
     {
       inline bool operator==(const unknown_id&) const
@@ -188,6 +202,67 @@ class processor_id
 //     the alternative would be some sort of this_processor_t which acts like a processor_id
 //constexpr thread_local processor_id this_processor(this_cpu);
 thread_local processor_id this_processor(this_cpu);
+
+
+template<class Function>
+struct __async_processor_visitor
+{
+  Function f;
+
+  typedef typename std::result_of<Function()>::type result_type;
+
+  __async_processor_visitor(Function f)
+    : f(f)
+  {}
+
+  std::future<result_type> operator()(const processor_id::unknown_id&)
+  {
+    throw std::runtime_error("std::async: unknown processor");
+  }
+
+  template<class ProcessorID>
+  std::future<result_type> operator()(const ProcessorID& proc)
+  {
+    return std::async(proc, f);
+  }
+};
+
+
+template<class Function, class... Args>
+auto __make_async_processor_visitor(Function&& f, Args&&... args) ->
+  __async_processor_visitor<closure<Function,Args...>>
+{
+  auto closure = make_closure(std::forward<Function>(f), std::forward<Args>(args)...);
+
+  return __async_processor_visitor<decltype(closure)>(closure);
+}
+
+
+template<class Function, class... Args>
+std::future<typename std::result_of<Function(Args...)>::type>
+  async(processor_id proc, Function&& f, Args&&... args)
+{
+  using result_type = typename std::result_of<Function(Args...)>::type;
+
+  auto visitor = __make_async_processor_visitor(std::forward<Function>(f), std::forward<Args>(args)...);
+
+  return apply_visitor(visitor, proc.index_);
+}
+
+
+// XXX should this exist?
+template<class Function, class... Args>
+typename std::result_of<Function(Args...)>::type
+  sync(processor_id proc, Function&& f, Args&&... args)
+{
+  // execute immediately if possible
+  if(proc == this_processor)
+  {
+    return f(std::forward<Args>(args)...);
+  }
+
+  return async(proc, std::forward<Function>(f), std::forward<Args>(args)...).get();
+}
 
 
 }
