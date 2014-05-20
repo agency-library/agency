@@ -718,8 +718,13 @@ template<> struct is_execution_policy<sequential_execution_policy> : std::true_t
 
 class sequential_execution_policy : public __grouped_execution_policy<sequential_execution_policy,sequential_group<>>
 {
+  private:
+    using super_t = __grouped_execution_policy<sequential_execution_policy,sequential_group<>>;
+
   public:
-    inline sequential_execution_policy(size_t n) : __grouped_execution_policy(sequential_group<>::param_type(n)) {}
+    inline sequential_execution_policy(const super_t& other) : super_t(other) {} 
+    inline sequential_execution_policy(size_t indices_begin, size_t indices_end) : __grouped_execution_policy(sequential_group<>::param_type(indices_begin, indices_end)) {}
+    inline sequential_execution_policy(size_t n) : sequential_execution_policy(0,n) {}
 };
 
 
@@ -731,8 +736,13 @@ template<> struct is_execution_policy<parallel_execution_policy> : std::true_typ
 
 class parallel_execution_policy : public __grouped_execution_policy<parallel_execution_policy,parallel_group<>>
 {
+  private:
+    using super_t = __grouped_execution_policy<parallel_execution_policy,parallel_group<>>;
+
   public:
-    inline parallel_execution_policy(size_t n) : __grouped_execution_policy(parallel_group<>::param_type(n)) {}
+    inline parallel_execution_policy(const super_t& other) : super_t(other) {} 
+    inline parallel_execution_policy(size_t indices_begin, size_t indices_end) : __grouped_execution_policy(parallel_group<>::param_type(indices_begin, indices_end)) {}
+    inline parallel_execution_policy(size_t n) : parallel_execution_policy(0,n) {}
 };
 
 
