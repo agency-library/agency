@@ -225,10 +225,6 @@ class __basic_execution_policy
         launcher_(other.launcher_)
     {} 
 
-    inline __basic_execution_policy(size_t indices_begin, size_t indices_end)
-      : params_(group_param_type(indices_begin, indices_end), agent_param_type())
-    {}
-
     inline __basic_execution_policy(const group_param_type& group_params)
       : params_(group_params, agent_param_type())
     {}
@@ -273,7 +269,7 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_g
     using super_t = __basic_execution_policy<sequential_group<>>;
 
   public:
-    sequential_execution_policy(size_t indices_begin, size_t indices_end) : super_t(indices_begin, indices_end) {}
+    sequential_execution_policy(size_t indices_begin, size_t indices_end) : super_t(group_param_type(indices_begin, indices_end)) {}
 
     sequential_execution_policy(size_t n) : sequential_execution_policy(0, n) {}
 
@@ -479,7 +475,7 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_group
     using super_t = __basic_execution_policy<parallel_group<>>;
 
   public:
-    parallel_execution_policy(size_t n) : super_t(0, n) {}
+    parallel_execution_policy(size_t n) : super_t(group_param_type(0, n)) {}
 
     parallel_execution_policy() : parallel_execution_policy(1) {}
 
