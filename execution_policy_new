@@ -186,16 +186,10 @@ class __basic_execution_policy
       return __basic_execution_policy<OtherFlatExecutionGroup,Asyncable>(group_params, asyncable());
     }
 
-    // XXX this can be eliminated I think
-    __basic_execution_policy<FlatExecutionGroup,Asyncable> on(const Asyncable& asyncable) const
+    template<class OtherAsyncable>
+    __basic_execution_policy<FlatExecutionGroup,OtherAsyncable> on(const OtherAsyncable& asyncable) const
     {
-      return __basic_execution_policy<FlatExecutionGroup,Asyncable>(std::get<0>(params()), asyncable);
-    }
-
-    template<class ProcessorID>
-    __basic_execution_policy<FlatExecutionGroup,ProcessorID> on(const ProcessorID& proc) const
-    {
-      return __basic_execution_policy<FlatExecutionGroup,ProcessorID>(std::get<0>(params()), proc);
+      return __basic_execution_policy<FlatExecutionGroup,OtherAsyncable>(std::get<0>(params()), asyncable);
     }
 
   protected:
