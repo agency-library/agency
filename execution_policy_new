@@ -168,6 +168,16 @@ class __basic_execution_policy
       return asyncable_;
     }
 
+    template<class... Args>
+    __basic_execution_policy<FlatExecutionGroup, Asyncable> regroup(Args&&... args) const
+    {
+      auto group_params = group_param_type(std::forward<Args>(args)...);
+      return __basic_execution_policy<FlatExecutionGroup,Asyncable>(group_params, asyncable());
+    }
+
+    // XXX figure out what it means to take an existing execution policy and rebind the type of its group
+    //     maybe the execution category of OtherExecutionGroup should be weaker than FlatExecutionGroup?
+    //     maybe this function shouldn't even exist
     template<class OtherFlatExecutionGroup, class... Args>
     __basic_execution_policy<OtherFlatExecutionGroup,Asyncable> regroup(Args&&... args) const
     {
@@ -285,14 +295,9 @@ void __sync(std::concurrent_execution_tag,
   auto group_params = std::get<0>(exec.params());
   if(__is_null(group_params.barrier()))
   {
+    // create a new policy which has a reference to  barrier
     std::barrier bar(group_params.end() - group_params.begin());
-
-    // create a new policy which has a reference to the barrier
-    using group_param_type = typename __basic_execution_policy<concurrent_group<>,Asyncable>::group_param_type;
-
-    // XXX need something similar to .on() which rebinds the group parameters?
-    // XXX .regroup()?
-    __basic_execution_policy<concurrent_group<>,Asyncable> exec2(group_param_type(group_params.begin(), group_params.end(), bar), exec.asyncable());
+    auto exec2 = exec.regroup(group_params.begin(), group_params.end(), bar);
 
     return __sync2(concurrent_execution_tag(), exec2, f, std::forward<Args>(args)...);
   }
