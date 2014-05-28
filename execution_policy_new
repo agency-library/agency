@@ -245,6 +245,21 @@ void __sync(std::sequential_execution_tag,
 
 
 template<class ExecutionGroup, class Asyncable, class Function, class... Args>
+std::future<void> __async(std::sequential_execution_tag,
+                          const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
+                          Function&& f,
+                          Args&&... args)
+{
+  return async(exec.asyncable(), [=](Args&&... args)
+  {
+    std::sync(exec, f, std::forward<Args>(args)...);
+  },
+  std::forward<Args>(args)...
+  );
+}
+
+
+template<class ExecutionGroup, class Asyncable, class Function, class... Args>
 void __sync2(std::concurrent_execution_tag,
              const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
              Function f,
@@ -309,6 +324,20 @@ void __sync(std::concurrent_execution_tag,
 
 
 template<class ExecutionGroup, class Asyncable, class Function, class... Args>
+std::future<void> __async(std::concurrent_execution_tag,
+                          const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
+                          Function f,
+                          Args&&... args)
+{
+  return async(exec.asyncable(), [=](Args&&... args)
+  {
+    std::sync(exec, f, std::forward<Args>(args)...);
+  },
+  std::forward<Args>(args)...);
+}
+
+
+template<class ExecutionGroup, class Asyncable, class Function, class... Args>
 void __sync(std::parallel_execution_tag,
             const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
             Function f,
@@ -316,7 +345,7 @@ void __sync(std::parallel_execution_tag,
 {
   return std::async(exec, std::forward<Function>(f), std::forward<Args>(args)...).wait();
 }
-    
+
 
 class sequential_execution_policy : public __basic_execution_policy<sequential_group<>, std::launch>
 {
@@ -344,20 +373,6 @@ template<> struct is_execution_policy<sequential_execution_policy> : std::true_t
 
 
 const sequential_execution_policy seq{1};
-
-
-template<class Asyncable, class Function, class... Args>
-std::future<void> __async(const __basic_execution_policy<sequential_group<>,Asyncable>& exec,
-                          Function&& f,
-                          Args&&... args)
-{
-  return async(exec.asyncable(), [=](Args&&... args)
-  {
-    std::sync(exec, f, std::forward<Args>(args)...);
-  },
-  std::forward<Args>(args)...
-  );
-}
 
 
 template<typename T>
@@ -410,49 +425,6 @@ template<> struct is_execution_policy<concurrent_execution_policy> : std::true_t
 
 
 const concurrent_execution_policy con;
-
-
-
-
-template<class Asyncable, class Function, class... Args>
-std::future<void> __async(const __basic_execution_policy<concurrent_group<>,Asyncable>& exec,
-                          Function f,
-                          Args&&... args)
-{
-  return async(exec.asyncable(), [=](Args&&... args)
-  {
-    std::sync(exec, f, std::forward<Args>(args)...);
-  },
-  std::forward<Args>(args)...);
-}
-
-
-class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, std::launch>
-{
-  private:
-    using super_t = __basic_execution_policy<parallel_group<>, std::launch>;
-
-  public:
-    parallel_execution_policy(size_t n)
-      : super_t(group_param_type(0, n), std::launch::async)
-    {}
-
-    parallel_execution_policy() : parallel_execution_policy(1) {}
-
-    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
-    // this is the flat form of operator()
-    template<class Arg1, class... Args>
-    parallel_execution_policy operator()(Arg1&& arg1, Args&&... args) const
-    {
-      return parallel_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
-    }
-};
-
-
-template<> struct is_execution_policy<parallel_execution_policy> : std::true_type {};
-
-
-const parallel_execution_policy par;
 
 
 // XXX __subgroup doesn't really make sense
@@ -569,13 +541,14 @@ inline unsigned int __log2(unsigned int x)
 }
 
 
-template<class Asyncable, class Function, class... Args>
-future<void> __async(const __basic_execution_policy<parallel_group<>,Asyncable>& exec,
+template<class ExecutionGroup, class Asyncable, class Function, class... Args>
+future<void> __async(std::parallel_execution_tag,
+                     const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
                      Function f,
                      Args&&... args)
 {
-  typedef execution_group_traits<parallel_group<>> traits;
-  typedef typename traits::size_type               size_type;
+  typedef execution_group_traits<ExecutionGroup> traits;
+  typedef typename traits::size_type             size_type;
 
   auto group_params = std::get<0>(exec.params());
 
@@ -589,12 +562,13 @@ future<void> __async(const __basic_execution_policy<parallel_group<>,Asyncable>&
   num_concurrent_agents = std::min<size_t>(subscription * std::thread::hardware_concurrency(), num_concurrent_agents);
   const size_type num_seq_agents_per_concurrent = (group_size + num_concurrent_agents - 1) / num_concurrent_agents;
 
+  // XXX we could avoid creating a concurrent_group (and its barrier) here if we wanted to
   return std::async(std::con(num_concurrent_agents).on(exec.asyncable()), [=](concurrent_group<> &g, Args&&... args)
   {
     auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
     auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);
 
-    std::sync(std::seq.regroup<__subgroup<parallel_group<>>>(subgroup_begin, subgroup_end, group_params), [=](__subgroup<parallel_group<>> &subgroup, Args&&... args)
+    std::sync(std::seq.regroup<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, group_params), [=](__subgroup<ExecutionGroup> &subgroup, Args&&... args)
     {
       f(subgroup.group(), args...);
     },
@@ -602,6 +576,34 @@ future<void> __async(const __basic_execution_policy<parallel_group<>,Asyncable>&
   },
   std::forward<Args>(args)...);
 }
+
+
+class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, std::launch>
+{
+  private:
+    using super_t = __basic_execution_policy<parallel_group<>, std::launch>;
+
+  public:
+    parallel_execution_policy(size_t n)
+      : super_t(group_param_type(0, n), std::launch::async)
+    {}
+
+    parallel_execution_policy() : parallel_execution_policy(1) {}
+
+    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
+    // this is the flat form of operator()
+    template<class Arg1, class... Args>
+    parallel_execution_policy operator()(Arg1&& arg1, Args&&... args) const
+    {
+      return parallel_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+    }
+};
+
+
+template<> struct is_execution_policy<parallel_execution_policy> : std::true_type {};
+
+
+const parallel_execution_policy par;
 
 
 template<class ExecutionPolicy, class Function, class... Args>
@@ -618,7 +620,9 @@ template<class ExecutionPolicy, class Function, class... Args>
 typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::type
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
-  return __async(std::forward<ExecutionPolicy>(exec), std::forward<Function>(f), std::forward<Args>(args)...);
+  using group_type = typename decay_t<ExecutionPolicy>::execution_group_type;
+  using execution_category = typename execution_group_traits<group_type>::execution_category;
+  return __async(execution_category(), std::forward<ExecutionPolicy>(exec), std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 
