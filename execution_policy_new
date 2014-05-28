@@ -299,7 +299,7 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_g
 
   public:
     sequential_execution_policy(size_t indices_begin, size_t indices_end)
-      : super_t(group_param_type(indices_begin, indices_end), async_launcher())
+      : super_t(group_param_type(indices_begin, indices_end), async_launcher(std::launch::deferred))
     {}
 
     sequential_execution_policy(size_t n) : sequential_execution_policy(0, n) {}
@@ -361,18 +361,6 @@ void sync(const __basic_execution_policy<sequential_group<>,Asyncable>& exec,
 }
 
 
-template<class Function, class... Args>
-std::future<void> __async(const std::sequential_execution_policy& exec, Function&& f, Args&&... args)
-{
-  return std::async(std::launch::deferred, [=](Args&&... args)
-  {
-    std::sync(exec, f, std::forward<Args>(args)...);
-  },
-  std::forward<Args>(args)...
-  );
-}
-
-
 template<class Asyncable, class Function, class... Args>
 std::future<void> __async(const __basic_execution_policy<sequential_group<>,Asyncable>& exec,
                           Function&& f,
@@ -408,7 +396,7 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_g
 
   public:
     inline concurrent_execution_policy(size_t indices_begin, size_t indices_end, std::reference_wrapper<std::barrier> barrier)
-      : super_t(group_param_type(indices_begin, indices_end, barrier), async_launcher())
+      : super_t(group_param_type(indices_begin, indices_end, barrier), async_launcher(std::launch::async))
     {}
 
     inline concurrent_execution_policy(size_t indices_begin, size_t indices_end)
@@ -522,7 +510,7 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_group
 
   public:
     parallel_execution_policy(size_t n)
-      : super_t(group_param_type(0, n), async_launcher())
+      : super_t(group_param_type(0, n), async_launcher(std::launch::async))
     {}
 
     parallel_execution_policy() : parallel_execution_policy(1) {}
