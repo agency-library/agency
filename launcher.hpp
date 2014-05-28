@@ -20,27 +20,15 @@ class async_launcher
     }
 };
 
-template<class ProcessorID = std::processor_id>
-class processor_launcher
+template<class Function, class... Args>
+std::future<void> async(const async_launcher& launcher, Function&& f, Args&&... args)
 {
-  public:
-    processor_launcher(ProcessorID proc)
-      : proc_(proc)
-    {}
+  return launcher.async(std::forward<Function>(f), std::forward<Args>(args)...);
+}
 
-    template<class Function, class... Args>
-    std::future<void> async(Function&& f, Args&&... args) const
-    {
-      return std::async(proc_, std::forward<Function>(f), std::forward<Args>(args)...);
-    }
-
-    template<class Function, class... Args>
-    void sync(Function&& f, Args&&... args) const
-    {
-      std::sync(proc_, std::forward<Function>(f), std::forward<Args>(args)...);
-    }
-
-  private:
-    ProcessorID proc_;
-};
+template<class Function, class... Args>
+void sync(const async_launcher& launcher, Function&& f, Args&&... args)
+{
+  return launcher.sync(std::forward<Function>(f), std::forward<Args>(args)...);
+}
 
