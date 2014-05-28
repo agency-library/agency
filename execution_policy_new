@@ -259,9 +259,9 @@ class __basic_execution_policy
     }
 
     template<class ProcessorID>
-    __basic_execution_policy<FlatExecutionGroup,processor_launcher<ProcessorID>> on(const ProcessorID& proc) const
+    __basic_execution_policy<FlatExecutionGroup,ProcessorID> on(const ProcessorID& proc) const
     {
-      return __basic_execution_policy<FlatExecutionGroup,processor_launcher<ProcessorID>>(std::get<0>(params()), proc);
+      return __basic_execution_policy<FlatExecutionGroup,ProcessorID>(std::get<0>(params()), proc);
     }
 
   protected:
@@ -331,7 +331,7 @@ void sync(const __basic_execution_policy<sequential_group<>,Asyncable>& exec,
           Function&& f,
           Args&&... args)
 {
-  exec.asyncable().sync([=](Args&&... args)
+  sync(exec.asyncable(), [=](Args&&... args)
   {
     std::exception_list exceptions;
   
@@ -378,7 +378,7 @@ std::future<void> __async(const __basic_execution_policy<sequential_group<>,Asyn
                           Function&& f,
                           Args&&... args)
 {
-  return exec.asyncable().async([=](Args&&... args)
+  return async(exec.asyncable(), [=](Args&&... args)
   {
     std::sync(exec, f, std::forward<Args>(args)...);
   },
@@ -462,7 +462,7 @@ void __sync(const __basic_execution_policy<concurrent_group<>,Asyncable>& exec,
       agent_idx < rng.end();
       ++agent_idx)
   {
-    futures[agent_idx] = exec.asyncable().async([=](Args&&... args)
+    futures[agent_idx] = async(exec.asyncable(), [=](Args&&... args)
     {
       auto this_group = traits::make(exec.params(), std::make_tuple(0, agent_idx));
   
@@ -507,7 +507,7 @@ std::future<void> __async(const __basic_execution_policy<concurrent_group<>,Asyn
                           Function f,
                           Args&&... args)
 {
-  return exec.asyncable().async([=](Args&&... args)
+  return async(exec.asyncable(), [=](Args&&... args)
   {
     std::sync(exec, f, std::forward<Args>(args)...);
   },
