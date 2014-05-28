@@ -222,10 +222,7 @@ void sync(const __grouped_execution_policy<ExecutionPolicy,FlatExecutionGroup>& 
 }
 
 
-// XXX probably want to finesse what a Launcher is
-// on() should take a ProcessorID or an executor or something
-// XXX call it Asyncable
-template<class FlatExecutionGroup, class TaskLauncher = async_launcher>
+template<class FlatExecutionGroup, class Asyncable = async_launcher>
 class __basic_execution_policy
 {
   public:
@@ -238,12 +235,12 @@ class __basic_execution_policy
 
     inline __basic_execution_policy(const __basic_execution_policy& other)
       : params_(other.params_),
-        launcher_(other.launcher_)
+        asyncable_(other.asyncable_)
     {} 
 
-    inline __basic_execution_policy(const group_param_type& group_params, const TaskLauncher& launcher = TaskLauncher())
+    inline __basic_execution_policy(const group_param_type& group_params, const Asyncable& asyncable)
       : params_(group_params, agent_param_type()),
-        launcher_(launcher)
+        asyncable_(asyncable)
     {}
 
     const std::pair<group_param_type, agent_param_type>& params() const
@@ -251,14 +248,14 @@ class __basic_execution_policy
       return params_;
     }
 
-    const TaskLauncher& launcher() const
+    const Asyncable& asyncable() const
     {
-      return launcher_;
+      return asyncable_;
     }
 
-    __basic_execution_policy<FlatExecutionGroup,TaskLauncher> on(const TaskLauncher& launcher) const
+    __basic_execution_policy<FlatExecutionGroup,Asyncable> on(const Asyncable& asyncable) const
     {
-      return __basic_execution_policy<FlatExecutionGroup,TaskLauncher>(std::get<0>(params()), launcher);
+      return __basic_execution_policy<FlatExecutionGroup,Asyncable>(std::get<0>(params()), asyncable);
     }
 
     template<class ProcessorID>
@@ -269,12 +266,12 @@ class __basic_execution_policy
 
   protected:
     std::pair<group_param_type, agent_param_type> params_;
-    TaskLauncher launcher_;
+    Asyncable asyncable_;
 };
 
 
-template<class FlatExecutionGroup, class TaskLauncher>
-struct is_execution_policy<__basic_execution_policy<FlatExecutionGroup,TaskLauncher>> : std::true_type {};
+template<class FlatExecutionGroup, class Asyncable>
+struct is_execution_policy<__basic_execution_policy<FlatExecutionGroup,Asyncable>> : std::true_type {};
 
 
 template<class ExecutionPolicy, class FlatExecutionGroup, class... Args>
@@ -295,13 +292,15 @@ __grouped_execution_policy<ExecutionPolicy,FlatExecutionGroup> __grouped(Args&&.
 }
     
 
-class sequential_execution_policy : public __basic_execution_policy<sequential_group<>>
+class sequential_execution_policy : public __basic_execution_policy<sequential_group<>, async_launcher>
 {
   private:
     using super_t = __basic_execution_policy<sequential_group<>>;
 
   public:
-    sequential_execution_policy(size_t indices_begin, size_t indices_end) : super_t(group_param_type(indices_begin, indices_end)) {}
+    sequential_execution_policy(size_t indices_begin, size_t indices_end)
+      : super_t(group_param_type(indices_begin, indices_end), async_launcher())
+    {}
 
     sequential_execution_policy(size_t n) : sequential_execution_policy(0, n) {}
 
@@ -327,12 +326,12 @@ template<> struct is_execution_policy<sequential_execution_policy> : std::true_t
 const sequential_execution_policy seq{1};
 
 
-template<class TaskLauncher, class Function, class... Args>
-void sync(const __basic_execution_policy<sequential_group<>,TaskLauncher>& exec,
+template<class Asyncable, class Function, class... Args>
+void sync(const __basic_execution_policy<sequential_group<>,Asyncable>& exec,
           Function&& f,
           Args&&... args)
 {
-  exec.launcher().sync([=](Args&&... args)
+  exec.asyncable().sync([=](Args&&... args)
   {
     std::exception_list exceptions;
   
@@ -374,12 +373,12 @@ std::future<void> __async(const std::sequential_execution_policy& exec, Function
 }
 
 
-template<class TaskLauncher, class Function, class... Args>
-std::future<void> __async(const __basic_execution_policy<sequential_group<>,TaskLauncher>& exec,
+template<class Asyncable, class Function, class... Args>
+std::future<void> __async(const __basic_execution_policy<sequential_group<>,Asyncable>& exec,
                           Function&& f,
                           Args&&... args)
 {
-  return exec.launcher().async([=](Args&&... args)
+  return exec.asyncable().async([=](Args&&... args)
   {
     std::sync(exec, f, std::forward<Args>(args)...);
   },
@@ -402,14 +401,14 @@ bool __is_null(std::reference_wrapper<T> ref)
 }
 
 
-class concurrent_execution_policy : public __basic_execution_policy<concurrent_group<>>
+class concurrent_execution_policy : public __basic_execution_policy<concurrent_group<>, async_launcher>
 {
   private:
     using super_t = __basic_execution_policy<concurrent_group<>>;
 
   public:
     inline concurrent_execution_policy(size_t indices_begin, size_t indices_end, std::reference_wrapper<std::barrier> barrier)
-      : super_t(group_param_type(indices_begin, indices_end, barrier))
+      : super_t(group_param_type(indices_begin, indices_end, barrier), async_launcher())
     {}
 
     inline concurrent_execution_policy(size_t indices_begin, size_t indices_end)
@@ -446,8 +445,8 @@ template<> struct is_execution_policy<concurrent_execution_policy> : std::true_t
 const concurrent_execution_policy con;
 
 
-template<class TaskLauncher, class Function, class... Args>
-void __sync(const __basic_execution_policy<concurrent_group<>,TaskLauncher>& exec,
+template<class Asyncable, class Function, class... Args>
+void __sync(const __basic_execution_policy<concurrent_group<>,Asyncable>& exec,
             Function f,
             Args&&... args)
 {
@@ -463,7 +462,7 @@ void __sync(const __basic_execution_policy<concurrent_group<>,TaskLauncher>& exe
       agent_idx < rng.end();
       ++agent_idx)
   {
-    futures[agent_idx] = exec.launcher().async([=](Args&&... args)
+    futures[agent_idx] = exec.asyncable().async([=](Args&&... args)
     {
       auto this_group = traits::make(exec.params(), std::make_tuple(0, agent_idx));
   
@@ -476,8 +475,8 @@ void __sync(const __basic_execution_policy<concurrent_group<>,TaskLauncher>& exe
 }
 
 
-template<class TaskLauncher, class Function, class... Args>
-void sync(const __basic_execution_policy<concurrent_group<>,TaskLauncher>& exec,
+template<class Asyncable, class Function, class... Args>
+void sync(const __basic_execution_policy<concurrent_group<>,Asyncable>& exec,
           Function f,
           Args&&... args)
 {
@@ -488,10 +487,11 @@ void sync(const __basic_execution_policy<concurrent_group<>,TaskLauncher>& exec,
     std::barrier bar(group_params.end() - group_params.begin());
 
     // create a new policy which has a reference to the barrier
-    using group_param_type = typename __basic_execution_policy<concurrent_group<>,TaskLauncher>::group_param_type;
+    using group_param_type = typename __basic_execution_policy<concurrent_group<>,Asyncable>::group_param_type;
 
     // XXX need something similar to .on() which rebinds the group parameters?
-    __basic_execution_policy<concurrent_group<>,TaskLauncher> exec2(group_param_type(group_params.begin(), group_params.end(), bar), exec.launcher());
+    // XXX .regroup()?
+    __basic_execution_policy<concurrent_group<>,Asyncable> exec2(group_param_type(group_params.begin(), group_params.end(), bar), exec.asyncable());
 
     return __sync(exec2, f, std::forward<Args>(args)...);
   }
@@ -502,12 +502,12 @@ void sync(const __basic_execution_policy<concurrent_group<>,TaskLauncher>& exec,
 }
 
 
-template<class TaskLauncher, class Function, class... Args>
-std::future<void> __async(const __basic_execution_policy<concurrent_group<>,TaskLauncher>& exec,
+template<class Asyncable, class Function, class... Args>
+std::future<void> __async(const __basic_execution_policy<concurrent_group<>,Asyncable>& exec,
                           Function f,
                           Args&&... args)
 {
-  return exec.launcher().async([=](Args&&... args)
+  return exec.asyncable().async([=](Args&&... args)
   {
     std::sync(exec, f, std::forward<Args>(args)...);
   },
@@ -515,13 +515,15 @@ std::future<void> __async(const __basic_execution_policy<concurrent_group<>,Task
 }
 
 
-class parallel_execution_policy : public __basic_execution_policy<parallel_group<>>
+class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, async_launcher>
 {
   private:
     using super_t = __basic_execution_policy<parallel_group<>>;
 
   public:
-    parallel_execution_policy(size_t n) : super_t(group_param_type(0, n)) {}
+    parallel_execution_policy(size_t n)
+      : super_t(group_param_type(0, n), async_launcher())
+    {}
 
     parallel_execution_policy() : parallel_execution_policy(1) {}
 
@@ -658,8 +660,8 @@ inline unsigned int __log2(unsigned int x)
 }
 
 
-template<class TaskLauncher, class Function, class... Args>
-future<void> __async(const __basic_execution_policy<parallel_group<>,TaskLauncher>& exec,
+template<class Asyncable, class Function, class... Args>
+future<void> __async(const __basic_execution_policy<parallel_group<>,Asyncable>& exec,
                      Function f,
                      Args&&... args)
 {
@@ -678,7 +680,7 @@ future<void> __async(const __basic_execution_policy<parallel_group<>,TaskLaunche
   num_concurrent_agents = std::min<size_t>(subscription * std::thread::hardware_concurrency(), num_concurrent_agents);
   const size_type num_seq_agents_per_concurrent = (group_size + num_concurrent_agents - 1) / num_concurrent_agents;
 
-  return std::async(std::con(num_concurrent_agents).on(exec.launcher()), [=](concurrent_group<> &g, Args&&... args)
+  return std::async(std::con(num_concurrent_agents).on(exec.asyncable()), [=](concurrent_group<> &g, Args&&... args)
   {
     auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
     auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);
