@@ -19,7 +19,6 @@
 #include <type_traits>
 #include <execution_group_new>
 #include <exception_list>
-#include "launcher.hpp"
 
 namespace std
 {
@@ -222,7 +221,7 @@ void sync(const __grouped_execution_policy<ExecutionPolicy,FlatExecutionGroup>& 
 }
 
 
-template<class FlatExecutionGroup, class Asyncable = async_launcher>
+template<class FlatExecutionGroup, class Asyncable>
 class __basic_execution_policy
 {
   public:
@@ -292,14 +291,14 @@ __grouped_execution_policy<ExecutionPolicy,FlatExecutionGroup> __grouped(Args&&.
 }
     
 
-class sequential_execution_policy : public __basic_execution_policy<sequential_group<>, async_launcher>
+class sequential_execution_policy : public __basic_execution_policy<sequential_group<>, std::launch>
 {
   private:
-    using super_t = __basic_execution_policy<sequential_group<>>;
+    using super_t = __basic_execution_policy<sequential_group<>, std::launch>;
 
   public:
     sequential_execution_policy(size_t indices_begin, size_t indices_end)
-      : super_t(group_param_type(indices_begin, indices_end), async_launcher(std::launch::deferred))
+      : super_t(group_param_type(indices_begin, indices_end), std::launch::deferred)
     {}
 
     sequential_execution_policy(size_t n) : sequential_execution_policy(0, n) {}
@@ -389,14 +388,14 @@ bool __is_null(std::reference_wrapper<T> ref)
 }
 
 
-class concurrent_execution_policy : public __basic_execution_policy<concurrent_group<>, async_launcher>
+class concurrent_execution_policy : public __basic_execution_policy<concurrent_group<>, std::launch>
 {
   private:
-    using super_t = __basic_execution_policy<concurrent_group<>>;
+    using super_t = __basic_execution_policy<concurrent_group<>, std::launch>;
 
   public:
     inline concurrent_execution_policy(size_t indices_begin, size_t indices_end, std::reference_wrapper<std::barrier> barrier)
-      : super_t(group_param_type(indices_begin, indices_end, barrier), async_launcher(std::launch::async))
+      : super_t(group_param_type(indices_begin, indices_end, barrier), std::launch::async)
     {}
 
     inline concurrent_execution_policy(size_t indices_begin, size_t indices_end)
@@ -503,14 +502,14 @@ std::future<void> __async(const __basic_execution_policy<concurrent_group<>,Asyn
 }
 
 
-class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, async_launcher>
+class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, std::launch>
 {
   private:
-    using super_t = __basic_execution_policy<parallel_group<>>;
+    using super_t = __basic_execution_policy<parallel_group<>, std::launch>;
 
   public:
     parallel_execution_policy(size_t n)
-      : super_t(group_param_type(0, n), async_launcher(std::launch::async))
+      : super_t(group_param_type(0, n), std::launch::async)
     {}
 
     parallel_execution_policy() : parallel_execution_policy(1) {}
