@@ -1,0 +1,19 @@
+#pragma once
+
+#include_next <future>
+#include <type_traits>
+
+namespace std
+{
+
+
+template<class Function, class... Args>
+typename std::result_of<Function(Args...)>::type
+  sync(std::launch, Function&& f, Args&&... args)
+{
+  return std::forward<Function>(f)(std::forward<Args>(args)...);
+}
+
+
+}
+
