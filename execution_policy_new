@@ -1,14 +1,3 @@
-// XXX this design requires both __grouped_execution_policy & __basic_execution_policy
-// because __basic_execution_policy uses the type of its FlatExecutionGroup template parameter
-// to figure out how groups of agents should be executed
-// __grouped_execution_policy defers to its ExecutionPolicy member to execute the lambda in the correct order
-// and then rebinds the group handle to the given type
-// maybe we should merge the functionality of these two somehow?
-// that would probably require introducing special execution tags (e.g, std::sequential, std::concurrent, std::parallel, etc)
-// distinct from execution policies which would be extra cruft to make sense of
-// that might be worth it, if we were to introduce std::basic_execution_policy
-// moreover, the execution tag could be a nested typedef of the group, which would mean it wouldn't have to be a template parameter of basic_execution_policy
-
 #pragma once
 
 #include <future>
