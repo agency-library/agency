@@ -157,6 +157,8 @@ std::future<void> __async(ExecutionCategory, const __nested_execution_policy<Out
 
 
 // XXX we should assert that ExecutionCategory is stronger than the category of FlatExecutionGroup
+// XXX another way to order these parameters would be
+// ExecutionCategory, Asyncable, FlatExecutionGroup = __default_execution_group<ExecutionCategory>
 template<class FlatExecutionGroup,
          class Asyncable,
          class ExecutionCategory = typename execution_group_traits<FlatExecutionGroup>::execution_category>
