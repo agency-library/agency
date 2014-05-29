@@ -156,19 +156,17 @@ std::future<void> __async(ExecutionCategory, const __nested_execution_policy<Out
 }
 
 
-// XXX we may need to add one more template parameter ExecutionCategory which
-//     defaults to whatever FlatExecutionGroup's category is
-// XXX this would tie-in with the .regroup() function
-template<class FlatExecutionGroup, class Asyncable>
+template<class FlatExecutionGroup,
+         class Asyncable,
+         class ExecutionCategory = typename execution_group_traits<FlatExecutionGroup>::execution_category>
 class __basic_execution_policy
 {
   public:
-    typedef FlatExecutionGroup execution_group_type;
+    using execution_group_type = FlatExecutionGroup;
+    using execution_category   = ExecutionCategory;
     using group_traits = std::execution_group_traits<execution_group_type>;
     using group_param_type = typename group_traits::param_type;
     using agent_param_type = agent::param_type;
-
-    using execution_category = typename group_traits::execution_category;
 
     inline __basic_execution_policy(const __basic_execution_policy& other)
       : params_(other.params_),
@@ -191,27 +189,27 @@ class __basic_execution_policy
     }
 
     template<class... Args>
-    __basic_execution_policy<FlatExecutionGroup, Asyncable> regroup(Args&&... args) const
+    __basic_execution_policy regroup(Args&&... args) const
     {
       auto group_params = group_param_type(std::forward<Args>(args)...);
-      return __basic_execution_policy<FlatExecutionGroup,Asyncable>(group_params, asyncable());
+      return __basic_execution_policy(group_params, asyncable());
     }
 
-    // XXX figure out what it means to take an existing execution policy and rebind the type of its group
-    //     maybe the execution category of OtherExecutionGroup should be weaker than FlatExecutionGroup?
-    //     maybe this function shouldn't even exist
+    // XXX regroup() should check that OtherExecutionGroup's execution_category is compatible with 
+    //     ExecutionCategory (somehow)
     template<class OtherFlatExecutionGroup, class... Args>
-    __basic_execution_policy<OtherFlatExecutionGroup,Asyncable> regroup(Args&&... args) const
+    __basic_execution_policy<OtherFlatExecutionGroup,Asyncable,execution_category>
+      regroup(Args&&... args) const
     {
       using param_type = typename std::execution_group_traits<OtherFlatExecutionGroup>::param_type;
       auto group_params = param_type(std::forward<Args>(args)...); 
-      return __basic_execution_policy<OtherFlatExecutionGroup,Asyncable>(group_params, asyncable());
+      return __basic_execution_policy<OtherFlatExecutionGroup,Asyncable,execution_category>(group_params, asyncable());
     }
 
     template<class OtherAsyncable>
-    __basic_execution_policy<FlatExecutionGroup,OtherAsyncable> on(const OtherAsyncable& asyncable) const
+    __basic_execution_policy<FlatExecutionGroup,OtherAsyncable,ExecutionCategory> on(const OtherAsyncable& asyncable) const
     {
-      return __basic_execution_policy<FlatExecutionGroup,OtherAsyncable>(std::get<0>(params()), asyncable);
+      return __basic_execution_policy<FlatExecutionGroup,OtherAsyncable,ExecutionCategory>(std::get<0>(params()), asyncable);
     }
 
   protected:
@@ -220,13 +218,13 @@ class __basic_execution_policy
 };
 
 
-template<class FlatExecutionGroup, class Asyncable>
-struct is_execution_policy<__basic_execution_policy<FlatExecutionGroup,Asyncable>> : std::true_type {};
+template<class FlatExecutionGroup, class Asyncable, class ExecutionCategory>
+struct is_execution_policy<__basic_execution_policy<FlatExecutionGroup,Asyncable,ExecutionCategory>> : std::true_type {};
 
 
-template<class ExecutionGroup, class Asyncable, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
 void __sync(std::sequential_execution_tag,
-            const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
+            const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
             Function&& f,
             Args&&... args)
 {
@@ -260,9 +258,9 @@ void __sync(std::sequential_execution_tag,
 }
 
 
-template<class ExecutionGroup, class Asyncable, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
 std::future<void> __async(std::sequential_execution_tag,
-                          const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
+                          const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
                           Function&& f,
                           Args&&... args)
 {
@@ -275,9 +273,9 @@ std::future<void> __async(std::sequential_execution_tag,
 }
 
 
-template<class ExecutionGroup, class Asyncable, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
 void __sync2(std::concurrent_execution_tag,
-             const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
+             const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
              Function f,
              Args&&... args)
 {
@@ -306,9 +304,9 @@ void __sync2(std::concurrent_execution_tag,
 }
 
 
-template<class ExecutionGroup, class Asyncable, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
 void __sync(std::concurrent_execution_tag,
-            const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
+            const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
             Function f,
             Args&&... args)
 {
@@ -316,9 +314,9 @@ void __sync(std::concurrent_execution_tag,
 }
 
 
-template<class Asyncable, class Function, class... Args>
+template<class Asyncable, class ExecutionCategory, class Function, class... Args>
 void __sync(std::concurrent_execution_tag,
-            const __basic_execution_policy<concurrent_group<>,Asyncable>& exec,
+            const __basic_execution_policy<concurrent_group<>,Asyncable,ExecutionCategory>& exec,
             Function f,
             Args&&... args)
 {
@@ -339,9 +337,9 @@ void __sync(std::concurrent_execution_tag,
 }
 
 
-template<class ExecutionGroup, class Asyncable, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
 std::future<void> __async(std::concurrent_execution_tag,
-                          const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
+                          const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
                           Function f,
                           Args&&... args)
 {
@@ -353,9 +351,9 @@ std::future<void> __async(std::concurrent_execution_tag,
 }
 
 
-template<class ExecutionGroup, class Asyncable, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
 void __sync(std::parallel_execution_tag,
-            const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
+            const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
             Function f,
             Args&&... args)
 {
@@ -461,18 +459,15 @@ template<> struct is_execution_policy<concurrent_execution_policy> : std::true_t
 const concurrent_execution_policy con;
 
 
-// XXX __subgroup doesn't really make sense
-//     its execution category shouldn't be sequential
-//     OTOH its execution category shouldn't be the same as its ExecutionGroup parameter
 template<class ExecutionGroup>
 class __subgroup
 {
   public:
-    typedef sequential_execution_tag               execution_category;
-    typedef execution_group_traits<ExecutionGroup> parent_traits;
-    typedef typename parent_traits::param_type     parent_param_type;
-    typedef typename parent_traits::size_type      size_type;
-    typedef typename parent_traits::child_type     child_type;
+    using parent_traits      = execution_group_traits<ExecutionGroup>;
+    using execution_category = typename parent_traits::execution_category;
+    using parent_param_type  = typename parent_traits::param_type;
+    using size_type          = typename parent_traits::size_type;
+    using child_type         = typename parent_traits::child_type;
 
     class param_type
     {
@@ -575,9 +570,9 @@ inline unsigned int __log2(unsigned int x)
 }
 
 
-template<class ExecutionGroup, class Asyncable, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
 future<void> __async(std::parallel_execution_tag,
-                     const __basic_execution_policy<ExecutionGroup,Asyncable>& exec,
+                     const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
                      Function f,
                      Args&&... args)
 {
