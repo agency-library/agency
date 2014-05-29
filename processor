@@ -200,6 +200,7 @@ class processor_id
 
 // XXX do we really want to burn a thread_local on this?
 //     the alternative would be some sort of this_processor_t which acts like a processor_id
+// XXX consider making this a function to avoid the thread_local
 //constexpr thread_local processor_id this_processor(this_cpu);
 thread_local processor_id this_processor(this_cpu);
 
