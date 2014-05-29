@@ -1,5 +1,17 @@
 #pragma once
 
+// XXX consider implementing the following inheritance relationship:
+// sequential_group -> concurrent_group -> parallel_group -> vector_group
+// that way a lambda which expects a parallel_group could always be executable with async(seq)
+//
+// XXX consider doing away with groups & std::agent
+// XXX and just implement the following inheritance:
+//     sequential_agent -> concurrent_agent -> parallel_agent -> vector_agent
+//     std::agent would be a synonym for one of these
+// if i have a sequential_agent i should be able to execute a parallel task
+// if i have a concurrent_agent i should be able to execute a parallel task or a vector task
+// if i have a parallel_agent i should be able to execute a vector task
+
 #include <future>
 #include <utility>
 #include <vector>
@@ -92,38 +104,6 @@ sync(ExecutionPolicy&& exec, Function&& f, Args&&... args);
 template<class ExecutionPolicy, class Function, class... Args>
 typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::type
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
-
-
-template<class ExecutionGroup, class Function, class Params>
-struct __rebind_group_functor
-{
-  mutable Function f_;
-  Params params_;
-
-  __rebind_group_functor(Function f, const Params& params)
-    : f_(std::move(f)),
-      params_(params)
-  {}
-
-  template<class OtherExecutionGroup, class... Args>
-  typename std::result_of<
-    Function(ExecutionGroup&, Args&&...)
-  >::type
-  operator()(OtherExecutionGroup& g, Args&&... args) const
-  {
-    using traits = std::execution_group_traits<ExecutionGroup>;
-    auto this_group = traits::make(params_, std::make_tuple(g.index(), g.child().index()));
-
-    return f_(this_group, std::forward<Args>(args)...);
-  }
-};
-
-
-template<class ExecutionGroup, class Function, class Params>
-__rebind_group_functor<ExecutionGroup,Function,Params> __make_rebind_group_functor(Function f, const Params& params)
-{
-  return __rebind_group_functor<ExecutionGroup,Function,Params>(f, params);
-}
 
 
 template<class FlatExecutionGroup, class Asyncable>
