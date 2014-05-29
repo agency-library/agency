@@ -5,9 +5,13 @@
 
 int main()
 {
-  std::cout << "Testing std::seq" << std::endl << std::endl;
+  using std::seq;
+  using std::con;
+  using std::par;
 
-  std::async(std::seq(2), [](std::sequential_group<> &g)
+  std::cout << "Testing seq" << std::endl << std::endl;
+
+  async(seq(2), [](std::sequential_group<> &g)
   {
     int i = g.child().index();
 
@@ -19,7 +23,7 @@ int main()
 
   std::cout << "Testing std::con" << std::endl << std::endl;
 
-  std::async(std::con(10), [](std::concurrent_group<> &g)
+  async(con(10), [](std::concurrent_group<> &g)
   {
     std::cout << "agent " << g.child().index() << " arriving at barrier" << std::endl;
 
@@ -33,7 +37,7 @@ int main()
 
   std::cout << "Testing std::par" << std::endl << std::endl;
 
-  std::async(std::par(20), [](std::parallel_group<> &g)
+  async(par(20), [](std::parallel_group<> &g)
   {
     std::cout << "agent " << g.child().index() << " in par group" << std::endl;
   }).wait();
@@ -45,7 +49,7 @@ int main()
 
   auto cpu = std::cpu_id(3);
 
-  std::async(std::seq(10).on(cpu), [](std::sequential_group<> &g)
+  async(seq(10).on(cpu), [](std::sequential_group<> &g)
   {
     std::cout << "agent " << g.child().index() << " on processor " << std::this_processor << std::endl;
   }).wait();
@@ -56,7 +60,7 @@ int main()
   std::cout << "Testing std::con.on()" << std::endl << std::endl;
 
   std::mutex mut;
-  std::async(std::con(10).on(cpu), [&mut](std::concurrent_group<> &g)
+  async(con(10).on(cpu), [&mut](std::concurrent_group<> &g)
   {
     mut.lock();
     std::cout << "agent " << g.child().index() << " on processor " << std::this_processor << " arriving at barrier" << std::endl;
@@ -71,6 +75,33 @@ int main()
 
   std::cout << std::endl;
 
+
+  std::cout << "Testing std::seq(std::seq)" << std::endl << std::endl;
+
+
+  auto singly_nested_f = async(con(2, seq(3)), [&mut](std::concurrent_group<std::sequential_group<>> &g)
+  {
+    mut.lock();
+    std::cout << "Hello world from agent " << g.child().child().index() << " in sequential_group " << g.child().index() << " of concurrent_group " << g.index() << " arriving at barrier" << std::endl;
+    mut.unlock();
+
+    g.wait();
+
+    mut.lock();
+    std::cout << "Hello world from agent " << g.child().child().index() << " in sequential_group " << g.child().index() << " of concurrent_group " << g.index() << " departing from barrier" << std::endl;
+    mut.unlock();
+  });
+
+  singly_nested_f.wait();
+
+  auto doubly_nested_f = async(seq(2, par(2, seq(3))), [&mut](std::sequential_group<std::parallel_group<std::sequential_group<>>> &g)
+  {
+    mut.lock();
+    std::cout << "Hello world from agent " << g.child().child().child().index() << " in sequential_group " << g.child().child().index() << " of parallel_group " << g.child().index() << " of sequential_group " << g.index() << std::endl;
+    mut.unlock();
+  });
+
+  doubly_nested_f.wait();
 
   return 0;
 }

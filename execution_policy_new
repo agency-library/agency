@@ -26,32 +26,11 @@ namespace std
 
 
 // XXX add is_execution_policy_v
+// XXX maybe this should simply check for the existence of the
+//     nested type T::execution_category?
+// XXX the problem is that execution groups as well as execution_group_traits
+//     also define this typedef
 template<class T> struct is_execution_policy : std::false_type {};
-
-
-// XXX consider merging this functionality into __basic_execution_policy
-template<class OuterPolicy, class InnerPolicy>
-struct __nested_execution_policy
-{
-  OuterPolicy outer_exec;
-  InnerPolicy inner_exec;
-};
-
-
-template<class T1, class T2>
-struct is_execution_policy<__nested_execution_policy<T1,T2>>
-  : std::integral_constant<
-      bool,
-      is_execution_policy<T1>::value && is_execution_policy<T2>::value
-    >
-{};
-
-
-template<class OuterPolicy, class InnerPolicy>
-__nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPolicy outer, const InnerPolicy &inner)
-{
-  return __nested_execution_policy<OuterPolicy,InnerPolicy>{outer,inner};
-}
 
 
 template<class T, class Result = void>
@@ -106,6 +85,80 @@ typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::ty
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
 
 
+// XXX fully flesh this out with the nested typedefs
+template<class OuterPolicy, class InnerPolicy>
+struct __nested_execution_policy
+{
+  using execution_category = typename OuterPolicy::execution_category;
+  OuterPolicy outer_exec;
+  InnerPolicy inner_exec;
+};
+
+
+template<class T1, class T2>
+struct is_execution_policy<__nested_execution_policy<T1,T2>>
+  : std::integral_constant<
+      bool,
+      is_execution_policy<T1>::value && is_execution_policy<T2>::value
+    >
+{};
+
+
+template<class OuterPolicy, class InnerPolicy>
+__nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPolicy outer, const InnerPolicy &inner)
+{
+  return __nested_execution_policy<OuterPolicy,InnerPolicy>{outer,inner};
+}
+
+
+template<class OuterPolicy, class InnerPolicy, class Function>
+struct __async_outer_functor
+{
+  template<class OuterGroup, class Index>
+  struct inner_functor
+  {
+    OuterGroup &outer_group;
+    Function f;
+    Index inner_idx;
+
+    template<class InnerGroup, class... Args>
+    void operator()(InnerGroup& inner_group, Args&&... args) const
+    {
+      // reindex the inner group
+      execution_group_traits<InnerGroup>::reindex(inner_group, inner_idx);
+
+      // create a new group by rebinding the outer group's child
+      auto rebound_group = execution_group_traits<OuterGroup>::rebind_child(outer_group, std::move(inner_group));
+
+      // call f
+      f(rebound_group, args...);
+    }
+  };
+
+  __nested_execution_policy<OuterPolicy,InnerPolicy> exec_args;
+  Function f;
+
+  template<class OuterGroup, class... Args>
+  void operator()(OuterGroup& outer_group, Args&&... args) const
+  {
+    typedef typename execution_group_traits<OuterGroup>::size_type size_type;
+
+    std::async(exec_args.inner_exec, inner_functor<OuterGroup,size_type>{outer_group, f, outer_group.child().index()}, args...).wait();
+  }
+};
+
+
+template<class ExecutionCategory, class OuterPolicy, class InnerPolicy, class Function, class... Args>
+std::future<void> __async(ExecutionCategory, const __nested_execution_policy<OuterPolicy,InnerPolicy> &exec_args, Function f, Args&&... args)
+{
+  // XXX use __async_outer_functor because gcc 4.8 has trouble with lambdas + parameter packs
+  return std::async(exec_args.outer_exec, __async_outer_functor<OuterPolicy,InnerPolicy,Function>{exec_args,f}, args...);
+}
+
+
+// XXX we may need to add one more template parameter ExecutionCategory which
+//     defaults to whatever FlatExecutionGroup's category is
+// XXX this would tie-in with the .regroup() function
 template<class FlatExecutionGroup, class Asyncable>
 class __basic_execution_policy
 {
@@ -322,10 +375,19 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_g
 
     sequential_execution_policy(size_t n) : sequential_execution_policy(0, n) {}
 
+    // this is the nested form of operator()
+    template<class OtherExecutionPolicy>
+    __nested_execution_policy<sequential_execution_policy, OtherExecutionPolicy>
+      operator()(size_t n, const OtherExecutionPolicy &exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
     template<class Arg1, class... Args>
-    sequential_execution_policy operator()(Arg1&& arg1, Args&&... args) const
+    typename __disable_if_nested_call<sequential_execution_policy, Arg1, Args...>::type
+      operator()(Arg1&& arg1, Args&&... args) const
     {
       return sequential_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
@@ -374,10 +436,19 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_g
       : concurrent_execution_policy(1)
     {}
 
+    // this is the nested form of operator()
+    template<class OtherExecutionPolicy>
+    __nested_execution_policy<concurrent_execution_policy, OtherExecutionPolicy>
+      operator()(size_t n, const OtherExecutionPolicy &exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
     template<class Arg1, class... Args>
-    concurrent_execution_policy operator()(Arg1&& arg1, Args&&... args) const
+    typename __disable_if_nested_call<concurrent_execution_policy, Arg1, Args...>::type
+      operator()(Arg1&& arg1, Args&&... args) const
     {
       return concurrent_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
@@ -553,10 +624,19 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_group
 
     parallel_execution_policy() : parallel_execution_policy(1) {}
 
+    // this is the nested form of operator()
+    template<class OtherExecutionPolicy>
+    __nested_execution_policy<parallel_execution_policy, OtherExecutionPolicy>
+      operator()(size_t n, const OtherExecutionPolicy &exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
     template<class Arg1, class... Args>
-    parallel_execution_policy operator()(Arg1&& arg1, Args&&... args) const
+    typename __disable_if_nested_call<parallel_execution_policy, Arg1, Args...>::type
+      operator()(Arg1&& arg1, Args&&... args) const
     {
       return parallel_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
@@ -573,8 +653,7 @@ template<class ExecutionPolicy, class Function, class... Args>
 typename __enable_if_execution_policy<decay_t<ExecutionPolicy>>::type
 sync(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
-  using group_type = typename decay_t<ExecutionPolicy>::execution_group_type;
-  using execution_category = typename execution_group_traits<group_type>::execution_category;
+  using execution_category = typename decay_t<ExecutionPolicy>::execution_category;
   return __sync(execution_category(), std::forward<ExecutionPolicy>(exec), std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
@@ -583,8 +662,7 @@ template<class ExecutionPolicy, class Function, class... Args>
 typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::type
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
-  using group_type = typename decay_t<ExecutionPolicy>::execution_group_type;
-  using execution_category = typename execution_group_traits<group_type>::execution_category;
+  using execution_category = typename decay_t<ExecutionPolicy>::execution_category;
   return __async(execution_category(), std::forward<ExecutionPolicy>(exec), std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
