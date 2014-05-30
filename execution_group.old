@@ -68,13 +68,6 @@ struct __lazy_conditional<false,T,F>
 };
 
 
-// XXX consider whether there should be derived-from relationships between these
-struct sequential_execution_tag {};
-struct concurrent_execution_tag {};
-struct parallel_execution_tag {};
-struct vector_execution_tag {};
-
-
 template<class ExecutionGroup>
 class execution_group_traits
 {
@@ -93,7 +86,6 @@ class execution_group_traits
 
   public:
     typedef ExecutionGroup                                 group_type;
-    typedef typename ExecutionGroup::execution_category    execution_category;
     typedef typename ExecutionGroup::param_type            param_type;
     typedef typename ExecutionGroup::size_type             size_type;
 
@@ -152,7 +144,6 @@ class execution_group_traits
 class agent
 {
   public:
-    using execution_category = sequential_execution_tag;
     struct param_type {};
     typedef size_t size_type;
 
@@ -185,11 +176,10 @@ class agent
 };
 
 
-template<class ExecutionCategory, class ExecutionGroup>
+template<class ExecutionGroup>
 class __execution_group_base
 {
   public:
-    using execution_category = ExecutionCategory; 
     typedef ExecutionGroup                                         child_type;
     typedef typename execution_group_traits<child_type>::size_type size_type;
 
@@ -268,26 +258,26 @@ class __execution_group_base
 
 
 template<class ExecutionGroup = std::agent>
-class sequential_group : public __execution_group_base<sequential_execution_tag, ExecutionGroup>
+class sequential_group : public __execution_group_base<ExecutionGroup>
 {
   public:
-    using __execution_group_base<sequential_execution_tag, ExecutionGroup>::__execution_group_base;
+    using __execution_group_base<ExecutionGroup>::__execution_group_base;
 };
 
 
 template<class ExecutionGroup = std::agent>
-class parallel_group : public __execution_group_base<parallel_execution_tag, ExecutionGroup>
+class parallel_group : public __execution_group_base<ExecutionGroup>
 {
   public:
-    using __execution_group_base<parallel_execution_tag, ExecutionGroup>::__execution_group_base;
+    using __execution_group_base<ExecutionGroup>::__execution_group_base;
 };
 
 
 template<class ExecutionGroup = std::agent>
-class concurrent_group : public __execution_group_base<concurrent_execution_tag, ExecutionGroup>
+class concurrent_group : public __execution_group_base<ExecutionGroup>
 {
   private:
-    typedef __execution_group_base<concurrent_execution_tag, ExecutionGroup> super_t;
+    typedef __execution_group_base<ExecutionGroup> super_t;
 
   public:
     typedef typename super_t::size_type size_type;
@@ -374,6 +364,169 @@ struct __has_child :
     __has_child_impl<T>::value
   >
 {};
+
+
+// XXX we shouldn't recursively create child_
+// XXX instead a new execution_view should be created on demand inside the child() function
+// XXX using a type erasure idiom
+class execution_view
+{
+  public:
+    typedef size_t size_type;
+
+    inline execution_view(const execution_view &g)
+      : index_(g.index_),
+        size_(g.size_),
+        self_(g.self_),
+        child_(g.child_ ? new execution_view(g.child()) : nullptr)
+    {}
+
+    inline execution_view(execution_view &&g) = default;
+
+    template<typename ExecutionGroup>
+    execution_view(ExecutionGroup& g,
+                   typename enable_if<__has_child<ExecutionGroup>::value>::type* = 0)
+      : index_(g.index()),
+        size_(g.size()),
+        self_(&g),
+        child_(new execution_view(g.child()))
+    {}
+
+    template<typename ExecutionGroup>
+    execution_view(ExecutionGroup& g,
+                   typename enable_if<!__has_child<ExecutionGroup>::value>::type* = 0)
+      : index_(g.index()),
+        size_(g.size()),
+        self_(&g),
+        child_()
+    {}
+
+    inline execution_view &operator=(execution_view &&g) = default;
+
+    inline execution_view &operator=(const execution_view &g)
+    {
+      index_ = g.index_;
+      size_ = g.size_;
+      self_ = g.self_;
+      child_ = g.child_ ? std::unique_ptr<execution_view>(new execution_view(g.child())) : nullptr;
+      return *this;
+    }
+
+    template<typename ExecutionGroup>
+    typename enable_if<__has_child<ExecutionGroup>::value, execution_view &>::type
+      operator=(ExecutionGroup& g)
+    {
+      index_ = g.index();
+      size_ = g.size();
+      self_ = g.self_;
+      *child_ = g.child();
+    }
+
+    template<typename ExecutionGroup>
+    typename enable_if<!__has_child<ExecutionGroup>::value,execution_view &>::type
+      operator=(ExecutionGroup& g)
+    {
+      index_ = g.index();
+      size_ = g.size();
+      self_ = g.self_;
+      child_ = nullptr;
+    }
+
+    inline size_type size() const
+    {
+      return size_;
+    }
+
+    // XXX could rename this to rank() to distinguish betwen 1D rank and ND index
+    inline size_type index() const
+    {
+      return index_;
+    }
+
+    // XXX i don't like the name child
+    inline execution_view child()
+    {
+      return child_ ? *child_ : *this;
+    }
+
+    // XXX i don't like the name child
+    const execution_view child() const
+    {
+      return child_ ? *child_ : *this;
+    }
+
+  private:
+    // allow empty execution_view for this_group() below
+    inline execution_view(std::nullptr_t)
+      : index_(0),
+        size_(0),
+        self_(nullptr),
+        child_(nullptr)
+    {}
+
+    friend execution_view &this_group();
+
+    size_type index_;
+    size_type size_;
+    void *self_;
+    std::unique_ptr<execution_view> child_;
+};
+
+
+// XXX implement these later
+//// cast execution_group to a particular type of ExecutionGroup
+//// throws if typeof() doesn't match
+//template<typename ExecutionGroup>
+//ExecutionGroup &get(execution_group &g);
+//
+//
+//// cast execution_group to a particular type of ExecutionGroup
+//template<typename ExecutionGroup>
+//const ExecutionGroup &get(const execution_group &g);
+
+
+// XXX this should return a value created on demand
+inline execution_view &this_group()
+{
+  // XXX this should be initialized to a sequential_group with a single agent executing in this_thread
+  static thread_local execution_view current{nullptr};
+  return current;
+}
+
+
+inline execution_view __set_this_group(const execution_view &g)
+{
+  execution_view old_group = this_group();
+  this_group() = g;
+  return old_group;
+}
+
+
+inline execution_view __set_this_group(execution_view &&g)
+{
+  execution_view old_group = this_group();
+  this_group() = std::move(g);
+  return old_group;
+}
+
+
+class __scoped_group
+{
+  public:
+    template<class ExecutionGroup>
+    __scoped_group(ExecutionGroup &this_group)
+       : old_group_(__set_this_group(this_group))
+    {}
+
+    inline ~__scoped_group()
+    {
+      // restore old group
+      __set_this_group(std::move(old_group_));
+    }
+
+  private:
+    execution_view old_group_;
+};
 
 
 }

@@ -58,13 +58,6 @@ int main()
     mut.lock();
     std::cout << "Hello world from agent " << g.child().child().child().index() << " in sequential_group " << g.child().child().index() << " of parallel_group " << g.child().index() << " of sequential_group " << g.index() << std::endl;
     mut.unlock();
-
-    // query the runtime for the group
-    using std::this_group;
-
-    mut.lock();
-    std::cout << "Hello world from agent " << this_group().child().child().child().index() << " in sequential_group " << this_group().child().child().index() << " of parallel_group " << this_group().child().index() << " of sequential_group " << this_group().index() << std::endl;
-    mut.unlock();
   });
 
   doubly_nested_f.wait();

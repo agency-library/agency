@@ -1,5 +1,17 @@
 #pragma once
 
+// XXX consider implementing the following inheritance relationship:
+// sequential_group -> concurrent_group -> parallel_group -> vector_group
+// that way a lambda which expects a parallel_group could always be executable with async(seq)
+//
+// XXX consider doing away with groups & std::agent
+// XXX and just implement the following inheritance:
+//     sequential_agent -> concurrent_agent -> parallel_agent -> vector_agent
+//     std::agent would be a synonym for one of these
+// if i have a sequential_agent i should be able to execute a parallel task
+// if i have a concurrent_agent i should be able to execute a parallel task or a vector task
+// if i have a parallel_agent i should be able to execute a vector task
+
 #include <future>
 #include <utility>
 #include <vector>
@@ -9,38 +21,16 @@
 #include <execution_group>
 #include <exception_list>
 
-
 namespace std
 {
 
 
 // XXX add is_execution_policy_v
+// XXX maybe this should simply check for the existence of the
+//     nested type T::execution_category?
+// XXX the problem is that execution groups as well as execution_group_traits
+//     also define this typedef
 template<class T> struct is_execution_policy : std::false_type {};
-
-
-// XXX consider merging this functionality into __grouped_execution_policy
-template<class OuterPolicy, class InnerPolicy>
-struct __nested_execution_policy
-{
-  OuterPolicy outer_exec;
-  InnerPolicy inner_exec;
-};
-
-
-template<class T1, class T2>
-struct is_execution_policy<__nested_execution_policy<T1,T2>>
-  : std::integral_constant<
-      bool,
-      is_execution_policy<T1>::value && is_execution_policy<T2>::value
-    >
-{};
-
-
-template<class OuterPolicy, class InnerPolicy>
-__nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPolicy outer, const InnerPolicy &inner)
-{
-  return __nested_execution_policy<OuterPolicy,InnerPolicy>{outer,inner};
-}
 
 
 template<class T, class Result = void>
@@ -85,53 +75,311 @@ struct __disable_if_nested_call
 {};
 
 
-template<class,class> class __grouped_execution_policy;
+template<class ExecutionPolicy, class Function, class... Args>
+typename __enable_if_execution_policy<decay_t<ExecutionPolicy>>::type
+sync(ExecutionPolicy&& exec, Function&& f, Args&&... args);
 
 
-template<class ExecutionPolicy, class FlatExecutionGroup>
-struct is_execution_policy<__grouped_execution_policy<ExecutionPolicy,FlatExecutionGroup>>
-  : is_execution_policy<ExecutionPolicy>
+template<class ExecutionPolicy, class Function, class... Args>
+typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::type
+async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
+
+
+// XXX fully flesh this out with the nested typedefs
+template<class OuterPolicy, class InnerPolicy>
+struct __nested_execution_policy
+{
+  using execution_category = typename OuterPolicy::execution_category;
+  OuterPolicy outer_exec;
+  InnerPolicy inner_exec;
+};
+
+
+template<class T1, class T2>
+struct is_execution_policy<__nested_execution_policy<T1,T2>>
+  : std::integral_constant<
+      bool,
+      is_execution_policy<T1>::value && is_execution_policy<T2>::value
+    >
 {};
 
 
-template<class ExecutionPolicy, class FlatExecutionGroup>
-class __grouped_execution_policy
+template<class OuterPolicy, class InnerPolicy>
+__nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPolicy outer, const InnerPolicy &inner)
+{
+  return __nested_execution_policy<OuterPolicy,InnerPolicy>{outer,inner};
+}
+
+
+template<class OuterPolicy, class InnerPolicy, class Function>
+struct __async_outer_functor
+{
+  template<class OuterGroup, class Index>
+  struct inner_functor
+  {
+    OuterGroup &outer_group;
+    Function f;
+    Index inner_idx;
+
+    template<class InnerGroup, class... Args>
+    void operator()(InnerGroup& inner_group, Args&&... args) const
+    {
+      // reindex the inner group
+      execution_group_traits<InnerGroup>::reindex(inner_group, inner_idx);
+
+      // create a new group by rebinding the outer group's child
+      auto rebound_group = execution_group_traits<OuterGroup>::rebind_child(outer_group, std::move(inner_group));
+
+      // call f
+      f(rebound_group, args...);
+    }
+  };
+
+  __nested_execution_policy<OuterPolicy,InnerPolicy> exec_args;
+  Function f;
+
+  template<class OuterGroup, class... Args>
+  void operator()(OuterGroup& outer_group, Args&&... args) const
+  {
+    typedef typename execution_group_traits<OuterGroup>::size_type size_type;
+
+    std::async(exec_args.inner_exec, inner_functor<OuterGroup,size_type>{outer_group, f, outer_group.child().index()}, args...).wait();
+  }
+};
+
+
+template<class ExecutionCategory, class OuterPolicy, class InnerPolicy, class Function, class... Args>
+std::future<void> __async(ExecutionCategory, const __nested_execution_policy<OuterPolicy,InnerPolicy> &exec_args, Function f, Args&&... args)
+{
+  // XXX use __async_outer_functor because gcc 4.8 has trouble with lambdas + parameter packs
+  return std::async(exec_args.outer_exec, __async_outer_functor<OuterPolicy,InnerPolicy,Function>{exec_args,f}, args...);
+}
+
+
+// XXX we should assert that ExecutionCategory is stronger than the category of FlatExecutionGroup
+// XXX another way to order these parameters would be
+// ExecutionCategory, Asyncable, FlatExecutionGroup = __default_execution_group<ExecutionCategory>
+template<class FlatExecutionGroup,
+         class Asyncable,
+         class ExecutionCategory = typename execution_group_traits<FlatExecutionGroup>::execution_category>
+class __basic_execution_policy
 {
   public:
-    static_assert(is_execution_policy<ExecutionPolicy>::value == true, "__grouped_execution_policy's ExecutionPolicy parameter must be an execution policy type.");
-    static_assert(execution_group_traits<FlatExecutionGroup>::depth == 1, "__grouped_execution_policy's execution group must be flat (have depth == 1).");
+    using execution_group_type = FlatExecutionGroup;
+    using execution_category   = ExecutionCategory;
+    using group_traits = std::execution_group_traits<execution_group_type>;
+    using group_param_type = typename group_traits::param_type;
+    using agent_param_type = agent::param_type;
 
-    typedef FlatExecutionGroup                                      group_type;
-    typedef typename execution_group_traits<group_type>::child_type agent_type;
+    inline __basic_execution_policy(const __basic_execution_policy& other)
+      : params_(other.params_),
+        asyncable_(other.asyncable_)
+    {} 
 
-    typedef typename execution_group_traits<group_type>::param_type group_param_type;
-    typedef typename execution_group_traits<agent_type>::param_type agent_param_type;
-
-    __grouped_execution_policy(const __grouped_execution_policy& other)
-      : params_(other.params_)
+    inline __basic_execution_policy(const group_param_type& group_params, const Asyncable& asyncable)
+      : params_(group_params, agent_param_type()),
+        asyncable_(asyncable)
     {}
 
-    __grouped_execution_policy(const group_param_type& group_params, const agent_param_type& agent_params = agent_param_type())
-      : params_(group_params, agent_params)
-    {}
-
-    const std::tuple<group_param_type,agent_param_type> &params() const
+    const std::pair<group_param_type, agent_param_type>& params() const
     {
       return params_;
     }
 
-    template<class OtherFlatExecutionGroup, class... Args>
-    __grouped_execution_policy<ExecutionPolicy,OtherFlatExecutionGroup> make(Args&&... args) const
+    const Asyncable& asyncable() const
     {
-      typedef typename __grouped_execution_policy<ExecutionPolicy,OtherFlatExecutionGroup>::group_param_type group_param_type;
-      group_param_type group_params(std::forward<Args>(args)...);
-      return __grouped_execution_policy<ExecutionPolicy,OtherFlatExecutionGroup>(group_params);
+      return asyncable_;
     }
+
+    template<class... Args>
+    __basic_execution_policy regroup(Args&&... args) const
+    {
+      auto group_params = group_param_type(std::forward<Args>(args)...);
+      return __basic_execution_policy(group_params, asyncable());
+    }
+
+    // XXX regroup() should check that OtherExecutionGroup's execution_category is compatible with 
+    //     ExecutionCategory (somehow)
+    template<class OtherFlatExecutionGroup, class... Args>
+    __basic_execution_policy<OtherFlatExecutionGroup,Asyncable,execution_category>
+      regroup(Args&&... args) const
+    {
+      using param_type = typename std::execution_group_traits<OtherFlatExecutionGroup>::param_type;
+      auto group_params = param_type(std::forward<Args>(args)...); 
+      return __basic_execution_policy<OtherFlatExecutionGroup,Asyncable,execution_category>(group_params, asyncable());
+    }
+
+    template<class OtherAsyncable>
+    __basic_execution_policy<FlatExecutionGroup,OtherAsyncable,ExecutionCategory> on(const OtherAsyncable& asyncable) const
+    {
+      return __basic_execution_policy<FlatExecutionGroup,OtherAsyncable,ExecutionCategory>(std::get<0>(params()), asyncable);
+    }
+
+  protected:
+    std::pair<group_param_type, agent_param_type> params_;
+    Asyncable asyncable_;
+};
+
+
+template<class FlatExecutionGroup, class Asyncable, class ExecutionCategory>
+struct is_execution_policy<__basic_execution_policy<FlatExecutionGroup,Asyncable,ExecutionCategory>> : std::true_type {};
+
+
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+void __sync(std::sequential_execution_tag,
+            const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+            Function&& f,
+            Args&&... args)
+{
+  sync(exec.asyncable(), [=](Args&&... args)
+  {
+    std::exception_list exceptions;
+  
+    try
+    {
+      using traits = std::execution_group_traits<ExecutionGroup>;
+  
+      // execute agents sequentially
+      auto rng = traits::range(std::get<0>(exec.params()));
+      for(auto agent_idx = rng.begin();
+          agent_idx < rng.end();
+          ++agent_idx)
+      {
+        auto this_group = traits::make(exec.params(), std::make_tuple(0, agent_idx));
+  
+        f(this_group, args...);
+      }
+    } // end try
+    catch(...)
+    {
+      std::__add_current_exception(exceptions);
+      throw exceptions;
+    } // end catch
+  },
+  std::forward<Args>(args)...
+  );
+}
+
+
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+std::future<void> __async(std::sequential_execution_tag,
+                          const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+                          Function&& f,
+                          Args&&... args)
+{
+  return async(exec.asyncable(), [=](Args&&... args)
+  {
+    std::sync(exec, f, std::forward<Args>(args)...);
+  },
+  std::forward<Args>(args)...
+  );
+}
+
+
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+void __sync2(std::concurrent_execution_tag,
+             const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+             Function f,
+             Args&&... args)
+{
+  using traits = execution_group_traits<ExecutionGroup>;
+  
+  auto rng = traits::range(std::get<0>(exec.params()));
+  
+  std::vector<std::future<void>> futures(rng.end() - rng.begin());
+  
+  // launch agents
+  // XXX could we use the __subgroup idiom here?
+  for(auto agent_idx = rng.begin();
+      agent_idx < rng.end();
+      ++agent_idx)
+  {
+    futures[agent_idx] = async(exec.asyncable(), [=](Args&&... args)
+    {
+      auto this_group = traits::make(exec.params(), std::make_tuple(0, agent_idx));
+  
+      f(this_group, args...);
+    },
+    std::forward<Args>(args)...);
+  }
+  
+  __flatten_and_throw_exceptions(futures.begin(), futures.end());
+}
+
+
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+void __sync(std::concurrent_execution_tag,
+            const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+            Function f,
+            Args&&... args)
+{
+  __sync2(std::concurrent_execution_tag(), exec, f, std::forward<Args>(args)...);
+}
+
+
+template<class Asyncable, class ExecutionCategory, class Function, class... Args>
+void __sync(std::concurrent_execution_tag,
+            const __basic_execution_policy<concurrent_group<>,Asyncable,ExecutionCategory>& exec,
+            Function f,
+            Args&&... args)
+{
+  // do we need to create a barrier for this sync?
+  auto group_params = std::get<0>(exec.params());
+  if(__is_null(group_params.barrier()))
+  {
+    // create a new policy which has a reference to  barrier
+    std::barrier bar(group_params.end() - group_params.begin());
+    auto exec2 = exec.regroup(group_params.begin(), group_params.end(), bar);
+
+    return __sync2(concurrent_execution_tag(), exec2, f, std::forward<Args>(args)...);
+  }
+  else
+  {
+    return __sync2(concurrent_execution_tag(), exec, f, std::forward<Args>(args)...);
+  }
+}
+
+
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+std::future<void> __async(std::concurrent_execution_tag,
+                          const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+                          Function f,
+                          Args&&... args)
+{
+  return async(exec.asyncable(), [=](Args&&... args)
+  {
+    std::sync(exec, f, std::forward<Args>(args)...);
+  },
+  std::forward<Args>(args)...);
+}
+
+
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+void __sync(std::parallel_execution_tag,
+            const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+            Function f,
+            Args&&... args)
+{
+  return std::async(exec, std::forward<Function>(f), std::forward<Args>(args)...).wait();
+}
+
+
+class sequential_execution_policy : public __basic_execution_policy<sequential_group<>, std::launch>
+{
+  private:
+    using super_t = __basic_execution_policy<sequential_group<>, std::launch>;
+
+  public:
+    sequential_execution_policy(size_t indices_begin, size_t indices_end)
+      : super_t(group_param_type(indices_begin, indices_end), std::launch::deferred)
+    {}
+
+    sequential_execution_policy(size_t n) : sequential_execution_policy(0, n) {}
 
     // this is the nested form of operator()
     template<class OtherExecutionPolicy>
-    __nested_execution_policy<__grouped_execution_policy, OtherExecutionPolicy>
-      operator()(size_t n, OtherExecutionPolicy &&exec) const
+    __nested_execution_policy<sequential_execution_policy, OtherExecutionPolicy>
+      operator()(size_t n, const OtherExecutionPolicy &exec) const
     {
       return __make_nested(operator()(n), exec);
     }
@@ -139,188 +387,90 @@ class __grouped_execution_policy
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
     template<class Arg1, class... Args>
-    typename __disable_if_nested_call<__grouped_execution_policy, Arg1, Args...>::type
+    typename __disable_if_nested_call<sequential_execution_policy, Arg1, Args...>::type
       operator()(Arg1&& arg1, Args&&... args) const
     {
-      return make<FlatExecutionGroup>(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+      return sequential_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
-
-  private:
-    std::tuple<group_param_type, agent_param_type> params_;
 };
-
-
-class sequential_execution_policy;
 
 
 template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
-    
 
-class sequential_execution_policy : public __grouped_execution_policy<sequential_execution_policy,sequential_group<>>
+
+const sequential_execution_policy seq{1};
+
+
+template<typename T>
+std::reference_wrapper<T> __nullref()
+{
+  return std::reference_wrapper<T>(*reinterpret_cast<T*>(0));
+}
+
+
+template<typename T>
+bool __is_null(std::reference_wrapper<T> ref)
+{
+  return &ref.get() == 0;
+}
+
+
+class concurrent_execution_policy : public __basic_execution_policy<concurrent_group<>, std::launch>
 {
   private:
-    using super_t = __grouped_execution_policy<sequential_execution_policy,sequential_group<>>;
+    using super_t = __basic_execution_policy<concurrent_group<>, std::launch>;
 
   public:
-    inline sequential_execution_policy(const super_t& other) : super_t(other) {} 
-    inline sequential_execution_policy(size_t indices_begin, size_t indices_end) : __grouped_execution_policy(sequential_group<>::param_type(indices_begin, indices_end)) {}
-    inline sequential_execution_policy(size_t n) : sequential_execution_policy(0,n) {}
+    inline concurrent_execution_policy(size_t indices_begin, size_t indices_end, std::reference_wrapper<std::barrier> barrier)
+      : super_t(group_param_type(indices_begin, indices_end, barrier), std::launch::async)
+    {}
+
+    inline concurrent_execution_policy(size_t indices_begin, size_t indices_end)
+      : concurrent_execution_policy(indices_begin, indices_end, __nullref<std::barrier>())
+    {}
+
+    inline concurrent_execution_policy(size_t n)
+      : concurrent_execution_policy(0, n)
+    {}
+
+    inline concurrent_execution_policy()
+      : concurrent_execution_policy(1)
+    {}
+
+    // this is the nested form of operator()
+    template<class OtherExecutionPolicy>
+    __nested_execution_policy<concurrent_execution_policy, OtherExecutionPolicy>
+      operator()(size_t n, const OtherExecutionPolicy &exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
+    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
+    // this is the flat form of operator()
+    template<class Arg1, class... Args>
+    typename __disable_if_nested_call<concurrent_execution_policy, Arg1, Args...>::type
+      operator()(Arg1&& arg1, Args&&... args) const
+    {
+      return concurrent_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+    }
 };
-
-
-class parallel_execution_policy;
-
-
-template<> struct is_execution_policy<parallel_execution_policy> : std::true_type {};
-
-
-class parallel_execution_policy : public __grouped_execution_policy<parallel_execution_policy,parallel_group<>>
-{
-  private:
-    using super_t = __grouped_execution_policy<parallel_execution_policy,parallel_group<>>;
-
-  public:
-    inline parallel_execution_policy(const super_t& other) : super_t(other) {} 
-    inline parallel_execution_policy(size_t indices_begin, size_t indices_end) : __grouped_execution_policy(parallel_group<>::param_type(indices_begin, indices_end)) {}
-    inline parallel_execution_policy(size_t n) : parallel_execution_policy(0,n) {}
-};
-
-
-class concurrent_execution_policy;
 
 
 template<> struct is_execution_policy<concurrent_execution_policy> : std::true_type {};
 
 
-class __integer_range
-{
-  public:
-    __integer_range(size_t b, size_t e)
-      : begin_(b), end_(e)
-    {}
-
-    inline size_t size() const
-    {
-      return end() - begin();
-    }
-
-    inline size_t begin() const
-    {
-      return begin_;
-    }
-
-    inline size_t end() const
-    {
-      return end_;
-    }
-
-    inline bool contains(size_t x) const
-    {
-      return begin() <= x && x < end();
-    }
-
-    inline friend std::ostream &operator<<(std::ostream &os, const __integer_range &rng)
-    {
-      os << "[" << rng.begin() << ", " << rng.end() << ")";
-      return os;
-    }
-
-  private:
-    size_t begin_, end_;
-};
-
-
-class concurrent_execution_policy
-{
-  public:
-    inline concurrent_execution_policy(size_t n) : rng{0,n} {}
-
-    template<class ExecutionPolicy>
-    __nested_execution_policy<concurrent_execution_policy, ExecutionPolicy> operator()(size_t n, ExecutionPolicy &&exec) const
-    {
-      return __make_nested(operator()(n), exec);
-    }
-
-    inline concurrent_execution_policy operator()(size_t n) const
-    {
-      return concurrent_execution_policy(n);
-    }
-
-    template<class FlatExecutionGroup, class... Args>
-    __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup> make(Args&&... args) const
-    {
-      typedef typename __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>::group_param_type group_param_type;
-      group_param_type group_params(std::forward<Args>(args)...);
-      return __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup>(group_params);
-    }
-
-//  private:
-    __integer_range rng;
-};
-
-
-//constexpr sequential_execution_policy seq{0};
-//constexpr parallel_execution_policy   par{0};
-//constexpr concurrent_execution_policy con{0};
-const sequential_execution_policy seq{0};
-const parallel_execution_policy   par{0};
-const concurrent_execution_policy con{0};
-
-
-template<class FlatExecutionGroup, class Function, class... Args>
-void sync(const __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
-{
-  exception_list exceptions;
-
-  try
-  {
-    typedef execution_group_traits<FlatExecutionGroup> traits;
-    typedef typename traits::child_type                agent_type;
-
-    auto this_group = traits::make(exec.params(), std::make_tuple(0, 0));
-    agent_type& this_agent = this_group.child();
-
-    __scoped_group scope(this_group);
-
-    // execute agents sequentially
-    auto rng = traits::range(std::get<0>(exec.params()));
-    for(auto agent_idx = rng.begin();
-        agent_idx < rng.end();
-        ++agent_idx)
-    {
-      // reindex the current agent
-      execution_group_traits<agent_type>::reindex(this_agent, agent_idx);
-
-      f(this_group, args...);
-    }
-  } // end try
-  catch(...)
-  {
-    __add_current_exception(exceptions);
-    throw exceptions;
-  } // end catch
-}
-
-
-template<class FlatExecutionGroup, class Function, class... Args>
-future<void> __async(const __grouped_execution_policy<sequential_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
-{
-  // XXX could generalize the launch policy to allow concurrent_execution_policy to make use of this
-  return std::async(std::launch::deferred, [=](Args&&... args)
-  {
-    std::sync(exec, f, std::forward<Args>(args)...);
-  });
-}
+const concurrent_execution_policy con;
 
 
 template<class ExecutionGroup>
 class __subgroup
 {
   public:
-    typedef execution_group_traits<ExecutionGroup> parent_traits;
-    typedef typename parent_traits::param_type     parent_param_type;
-    typedef typename parent_traits::size_type      size_type;
-    typedef typename parent_traits::child_type     child_type;
+    using parent_traits      = execution_group_traits<ExecutionGroup>;
+    using execution_category = typename parent_traits::execution_category;
+    using parent_param_type  = typename parent_traits::param_type;
+    using size_type          = typename parent_traits::size_type;
+    using child_type         = typename parent_traits::child_type;
 
     class param_type
     {
@@ -415,82 +565,6 @@ class __subgroup
 };
 
 
-// declare ExecutionPolicy-based async for the functions below
-template<class ExecutionPolicy, class Function, class... Args>
-typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,std::future<void>>::type
-async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
-
-
-template<class FlatExecutionGroup, class Function, class... Args>
-void sync(const __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
-{
-  typedef execution_group_traits<FlatExecutionGroup> traits;
-  
-  auto rng = traits::range(std::get<0>(exec.params()));
-  
-  std::vector<std::future<void>> futures(rng.end() - rng.begin());
-  
-  // launch agents
-  // XXX could we use the __subgroup idiom here?
-  for(auto agent_idx = rng.begin();
-      agent_idx < rng.end();
-      ++agent_idx)
-  {
-    // XXX could call std::async(seq) here with a subgroup if async(seq)'s launch policy was generalized
-    futures[agent_idx] = std::async(std::launch::async, [=](Args&&... args)
-    {
-      auto this_group = traits::make(exec.params(), std::make_tuple(0, agent_idx));
-  
-      __scoped_group scope(this_group);
-  
-      f(this_group, args...);
-    },
-    std::forward<Args>(args)...);
-  }
-  
-  __flatten_and_throw_exceptions(futures.begin(), futures.end());
-}
-
-
-template<class Function, class... Args>
-void sync(const concurrent_execution_policy &exec, Function f, Args&&... args)
-{
-  __integer_range rng = exec.rng.size() > 0 ? exec.rng : __integer_range{0,1};
-  
-  // create a barrier
-  std::barrier barrier(rng.end() - rng.begin());
-  
-  auto group_params = concurrent_group<>::param_type(rng.begin(),rng.end(),barrier);
-  typedef __grouped_execution_policy<concurrent_execution_policy,concurrent_group<>> policy_type;
-  
-  policy_type grouped_policy(group_params);
-  
-  std::sync(grouped_policy, f, std::forward<Args>(args)...);
-}
-
-
-template<class FlatExecutionGroup, class Function, class... Args>
-future<void> __async(const __grouped_execution_policy<concurrent_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
-{
-  return std::async(std::launch::async, [=](Args&&... args)
-  {
-    std::sync(exec, f, std::forward<Args>(args)...);
-  },
-  std::forward<Args>(args)...);
-}
-
-
-template<class Function, class... Args>
-std::future<void> __async(const concurrent_execution_policy &exec, Function f, Args&&... args)
-{
-  return std::async(std::launch::async, [=](Args&&... args)
-  {
-    std::sync(exec, f, std::forward<Args>(args)...);
-  },
-  std::forward<Args>(args)...);
-}
-
-
 inline unsigned int __log2(unsigned int x)
 {
   unsigned int result = 0;
@@ -499,11 +573,14 @@ inline unsigned int __log2(unsigned int x)
 }
 
 
-template<class FlatExecutionGroup, class Function, class... Args>
-future<void> __async(const __grouped_execution_policy<parallel_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+future<void> __async(std::parallel_execution_tag,
+                     const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+                     Function f,
+                     Args&&... args)
 {
-  typedef execution_group_traits<FlatExecutionGroup> traits;
-  typedef typename traits::size_type                 size_type;
+  typedef execution_group_traits<ExecutionGroup> traits;
+  typedef typename traits::size_type             size_type;
 
   auto group_params = std::get<0>(exec.params());
 
@@ -517,12 +594,13 @@ future<void> __async(const __grouped_execution_policy<parallel_execution_policy,
   num_concurrent_agents = std::min<size_t>(subscription * std::thread::hardware_concurrency(), num_concurrent_agents);
   const size_type num_seq_agents_per_concurrent = (group_size + num_concurrent_agents - 1) / num_concurrent_agents;
 
-  return std::async(std::con.make<parallel_group<>>(num_concurrent_agents), [=](parallel_group<> &g, Args&&... args)
+  // XXX we could avoid creating a concurrent_group (and its barrier) here if we wanted to
+  return std::async(std::con(num_concurrent_agents).on(exec.asyncable()), [=](concurrent_group<> &g, Args&&... args)
   {
     auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
     auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);
 
-    std::sync(std::seq.make<__subgroup<FlatExecutionGroup>>(subgroup_begin, subgroup_end, group_params), [=](__subgroup<FlatExecutionGroup> &subgroup, Args&&... args)
+    std::sync(std::seq.regroup<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, group_params), [=](__subgroup<ExecutionGroup> &subgroup, Args&&... args)
     {
       f(subgroup.group(), args...);
     },
@@ -532,57 +610,49 @@ future<void> __async(const __grouped_execution_policy<parallel_execution_policy,
 }
 
 
-template<class FlatExecutionGroup, class Function, class... Args>
-void sync(const __grouped_execution_policy<parallel_execution_policy,FlatExecutionGroup> &exec, Function f, Args&&... args)
+class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, std::launch>
 {
-  return std::async(exec, std::forward<Function>(f), std::forward<Args>(args)...).wait();
-}
+  private:
+    using super_t = __basic_execution_policy<parallel_group<>, std::launch>;
 
+  public:
+    parallel_execution_policy(size_t n)
+      : super_t(group_param_type(0, n), std::launch::async)
+    {}
 
-template<class OuterPolicy, class InnerPolicy, class Function>
-struct __async_outer_functor
-{
-  template<class OuterGroup, class Index>
-  struct inner_functor
-  {
-    OuterGroup &outer_group;
-    Function f;
-    Index inner_idx;
+    parallel_execution_policy() : parallel_execution_policy(1) {}
 
-    template<class InnerGroup, class... Args>
-    void operator()(InnerGroup& inner_group, Args&&... args) const
+    // this is the nested form of operator()
+    template<class OtherExecutionPolicy>
+    __nested_execution_policy<parallel_execution_policy, OtherExecutionPolicy>
+      operator()(size_t n, const OtherExecutionPolicy &exec) const
     {
-      // reindex the inner group
-      execution_group_traits<InnerGroup>::reindex(inner_group, inner_idx);
-
-      // create a new group by rebinding the outer group's child
-      auto rebound_group = execution_group_traits<OuterGroup>::rebind_child(outer_group, std::move(inner_group));
-
-      __scoped_group scope(rebound_group);
-
-      // call f
-      f(rebound_group, args...);
+      return __make_nested(operator()(n), exec);
     }
-  };
 
-  __nested_execution_policy<OuterPolicy,InnerPolicy> exec_args;
-  Function f;
-
-  template<class OuterGroup, class... Args>
-  void operator()(OuterGroup& outer_group, Args&&... args) const
-  {
-    typedef typename execution_group_traits<OuterGroup>::size_type size_type;
-
-    std::async(exec_args.inner_exec, inner_functor<OuterGroup,size_type>{outer_group, f, outer_group.child().index()}, args...).wait();
-  }
+    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
+    // this is the flat form of operator()
+    template<class Arg1, class... Args>
+    typename __disable_if_nested_call<parallel_execution_policy, Arg1, Args...>::type
+      operator()(Arg1&& arg1, Args&&... args) const
+    {
+      return parallel_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+    }
 };
 
 
-template<class OuterPolicy, class InnerPolicy, class Function, class... Args>
-std::future<void> __async(const __nested_execution_policy<OuterPolicy,InnerPolicy> &exec_args, Function f, Args&&... args)
+template<> struct is_execution_policy<parallel_execution_policy> : std::true_type {};
+
+
+const parallel_execution_policy par;
+
+
+template<class ExecutionPolicy, class Function, class... Args>
+typename __enable_if_execution_policy<decay_t<ExecutionPolicy>>::type
+sync(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
-  // XXX use __async_outer_functor because gcc 4.8 has trouble with lambdas + parameter packs
-  return std::async(exec_args.outer_exec, __async_outer_functor<OuterPolicy,InnerPolicy,Function>{exec_args,f}, args...);
+  using execution_category = typename decay_t<ExecutionPolicy>::execution_category;
+  return __sync(execution_category(), std::forward<ExecutionPolicy>(exec), std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 
@@ -590,7 +660,8 @@ template<class ExecutionPolicy, class Function, class... Args>
 typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::type
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
-  return __async(std::forward<ExecutionPolicy>(exec), std::forward<Function>(f), std::forward<Args>(args)...);
+  using execution_category = typename decay_t<ExecutionPolicy>::execution_category;
+  return __async(execution_category(), std::forward<ExecutionPolicy>(exec), std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 

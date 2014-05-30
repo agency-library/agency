@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <numeric>
 #include <cassert>
+#include <iostream>
 
 
 template<class Iterator, class T, class BinaryFunction>
@@ -51,6 +52,8 @@ int main()
   std::generate(data.begin(), data.end(), [](){ return std::rand() % 20; });
 
   assert(reduce(data.begin(), data.end(), 0, std::plus<int>()) == accumulate(data.begin(), data.end(), 0, std::plus<int>()));
+
+  std::cout << "OK" << std::endl;
 
   return 0;
 }
