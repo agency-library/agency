@@ -78,20 +78,16 @@ struct __domain_type
 
 
 template<bool b, typename T, typename F>
-struct __lazy_conditional;
-
-
-template<typename T, typename F>
-struct __lazy_conditional<true,T,F>
+struct __lazy_conditional
 {
-  typedef typename T::type type;
+  using type = typename T::type;
 };
 
 
 template<typename T, typename F>
 struct __lazy_conditional<false,T,F>
 {
-  typedef typename F::type type;
+  using type = typename F::type;
 };
 
 
