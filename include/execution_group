@@ -95,10 +95,9 @@ class execution_group_traits
   public:
     using group_type = ExecutionGroup;
 
-    using execution_category = typename ExecutionGroup::execution_category;
+    using execution_category = typename group_type::execution_category;
     
-    // XXX this should be the type of declval<group_type>.param()
-    typedef typename ExecutionGroup::param_type          param_type;
+    using param_type = typename group_type::param_type;
 
     // XXX this should be the type of declval<group_type>.domain()
     typedef typename ExecutionGroup::domain_type         domain_type;
