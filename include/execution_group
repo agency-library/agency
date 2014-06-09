@@ -184,8 +184,6 @@ class agent
     using execution_category = sequential_execution_tag;
     struct param_type {};
 
-    // XXX what should an agent's domain be?
-    typedef void      domain_type;
     typedef size_t    size_type;
     typedef size_type index_type;
 
