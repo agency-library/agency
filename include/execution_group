@@ -384,28 +384,5 @@ class concurrent_group : public __execution_group_base<concurrent_execution_tag,
 };
 
 
-template<class T>
-struct __has_child_impl
-{
-  typedef char yes_type;
-  struct no_type {char x[2];};
-
-  template<class U> static yes_type test(decltype(&U::child));
-  template<class U> static no_type  test(...);
-
-  public:
-    const static bool value = sizeof(test<T>(0)) == sizeof(yes_type);
-};
-
-
-template<class T>
-struct __has_child :
-  std::integral_constant<
-    bool,
-    __has_child_impl<T>::value
-  >
-{};
-
-
 }
 
