@@ -51,6 +51,32 @@ struct __identity
 };
 
 
+template<typename>
+struct __sfinae
+{
+  using type = void;
+};
+
+
+template<typename T, typename = void>
+struct __has_domain : std::false_type {};
+
+
+template<typename T>
+struct __has_domain<
+  T,
+  typename __sfinae<decltype(std::declval<T>().domain())>::type
+> : std::true_type
+{};
+
+
+template<typename T>
+struct __domain_type
+{
+  using type = typename T::domain_type;
+};
+
+
 template<bool b, typename T, typename F>
 struct __lazy_conditional;
 
@@ -99,8 +125,11 @@ class execution_group_traits
     
     using param_type = typename group_type::param_type;
 
-    // XXX this should be the type of declval<group_type>.domain()
-    typedef typename ExecutionGroup::domain_type         domain_type;
+    using domain_type = typename __lazy_conditional<
+      __has_domain<group_type>::value,
+      __domain_type<group_type>,
+      __identity<void>
+    >::type;
 
     // XXX this should be the type of declval<group_type>.index()
     typedef typename ExecutionGroup::index_type          index_type;
