@@ -359,8 +359,7 @@ class concurrent_group : public __execution_group_base<concurrent_execution_tag,
       typedef concurrent_group<OtherGroup> other;
     };
 
-    // XXX consider making this function const
-    void wait()
+    void wait() const
     {
       barrier_.count_down_and_wait();
     }
