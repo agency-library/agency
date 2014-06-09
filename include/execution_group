@@ -133,8 +133,7 @@ class execution_group_traits
 
     using index_type = decltype(std::declval<group_type>().index());
 
-    // XXX this should be the type of declval<group_type>.size()
-    typedef typename ExecutionGroup::size_type           size_type;
+    using size_type = decltype(std::declval<group_type>().size());
 
     typedef typename __lazy_conditional<
       __has_child_type<group_type>::value,
