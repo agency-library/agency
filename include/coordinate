@@ -1,0 +1,650 @@
+#pragma once
+
+#include <array>
+#include <initializer_list>
+#include <type_traits>
+#include <__small_vector_facade>
+#include <array>
+
+namespace std
+{
+
+
+// T is any type with operators +, +=, -, -=, *, *=,  /, /=, <
+template<class T, size_t Rank>
+class point : public __small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T, Rank>
+{
+  using super_t = __small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T, Rank>;
+
+  public:
+    using super_t::super_t;
+};
+
+
+template<class T1, size_t Rank, class T2>
+struct common_type<point<T1,Rank>,point<T2,Rank>>
+{
+  using type = point<typename common_type<T1,T2>::type, Rank>;
+};
+
+
+// scalar multiply
+// XXX fix return type -- it should be point<common_type,Rank>
+template<class T1, class T2, size_t Rank>
+typename enable_if<
+  (is_arithmetic<T1>::value && __has_operator_multiplies<T1,T2>::value),
+  point<T2,Rank>
+>::type
+  operator*(T1 val, const point<T2,Rank>& p)
+{
+  using result_type = point<common_type_t<T1,T2>, Rank>;
+
+  return result_type(val) * p;
+}
+
+
+template<size_t I, class Tuple>
+struct tuple_element;
+
+
+template<size_t I, class T, size_t Rank>
+struct tuple_element<I,point<T,Rank>>
+{
+  static_assert(I < Rank, "I must be less than Rank.");
+  using type = T;
+};
+
+
+using int1  = point<int,1>;
+using int2  = point<int,2>;
+using int3  = point<int,3>;
+using int4  = point<int,4>;
+using int5  = point<int,5>;
+using int6  = point<int,6>;
+using int7  = point<int,7>;
+using int8  = point<int,8>;
+using int9  = point<int,9>;
+using int10 = point<int,10>;
+
+
+using size1  = point<size_t,1>;
+using size2  = point<size_t,2>;
+using size3  = point<size_t,3>;
+using size4  = point<size_t,4>;
+using size5  = point<size_t,5>;
+using size6  = point<size_t,6>;
+using size7  = point<size_t,7>;
+using size8  = point<size_t,8>;
+using size9  = point<size_t,9>;
+using size10 = point<size_t,10>;
+
+
+using float1  = point<float,1>;
+using float2  = point<float,2>;
+using float3  = point<float,3>;
+using float4  = point<float,4>;
+using float5  = point<float,5>;
+using float6  = point<float,6>;
+using float7  = point<float,7>;
+using float8  = point<float,8>;
+using float9  = point<float,9>;
+using float10 = point<float,10>;
+
+
+using double1  = point<double,1>;
+using double2  = point<double,2>;
+using double3  = point<double,3>;
+using double4  = point<double,4>;
+using double5  = point<double,5>;
+using double6  = point<double,6>;
+using double7  = point<double,7>;
+using double8  = point<double,8>;
+using double9  = point<double,9>;
+using double10 = point<double,10>;
+
+
+// T is any type with operators +, +=, -, -=, *, *=,  /, /=, <
+template<class T>
+class __axis_aligned_box
+  : public __small_vector_adaptor<__axis_aligned_box<T>,std::array<T,2>,T,2>
+{
+  using super_t = __small_vector_adaptor<__axis_aligned_box<T>,std::array<T,2>,T,2>;
+
+  public:
+    using point_type = T;
+
+    using super_t::super_t;
+
+    const point_type& min() const
+    {
+      return (*this)[0];
+    }
+
+    const point_type& max() const
+    {
+      return (*this)[1];
+    }
+
+    void min(const point_type& p)
+    {
+      (*this)[0] = p;
+    }
+
+    void max(const point_type& p)
+    {
+      (*this)[1] = p;
+    }
+
+    point_type extent() const
+    {
+      return max() - min();
+    }
+
+    bool empty() const
+    {
+      return min() == max();
+    }
+
+    bool contains(const point_type& x) const
+    {
+      return contains(x, is_arithmetic<T>());
+    }
+
+  private:
+    // T is point-like case
+    bool contains(const point_type& x, std::false_type) const
+    {
+      bool result = true;
+
+      for(size_t dim = 0; dim != super_t::rank; ++dim)
+      {
+        result = result && min()[dim] <= x[dim];
+        result = result && x[dim] < max()[dim];
+      }
+
+      return result;
+    }
+
+    // T is scalar case
+    bool contains(const point_type& x, std::true_type) const
+    {
+      return min() <= x && x < max();
+    }
+};
+
+
+template<class T1, class T2>
+struct common_type<__axis_aligned_box<T1>,__axis_aligned_box<T2>>
+{
+  using type = __axis_aligned_box<common_type_t<T1,T2>>;
+};
+
+
+template<class Arithmetic, class = typename enable_if<is_arithmetic<Arithmetic>::value>::type>
+Arithmetic __product(Arithmetic n)
+{
+  return n;
+}
+
+
+template<class Range>
+typename Range::value_type __product(const Range& rng, typename Range::value_type init = typename Range::value_type{1})
+{
+  for(auto x : rng)
+  {
+    init *= x;
+  }
+
+  return init;
+}
+
+
+template<typename T, typename Enable = void>
+struct __rank
+{
+  constexpr static size_t value = T::rank;
+};
+
+
+template<typename T>
+struct __rank<T, typename enable_if<is_arithmetic<T>::value>::type>
+{
+  constexpr static size_t value = 1;
+};
+
+
+template<class T> class __grid_iterator;
+
+
+// this class is a lattice, the points of which take on values which are unit-spaced
+// could call this class unit_grid instead, or just lattice, or just grid
+// but a more general grid type might have arbitrary spacing
+// T is any orderable (has strict weak <) type with
+// operators +, +=, -, -=, *, *=,  /, /= such that the rhs's type is regular_grid<T>::index_type
+template<class T>
+class regular_grid
+{
+  public:
+    // XXX should rely on std::rank
+    constexpr static size_t rank = __rank<T>::value;
+    using size_type              = size_t;
+
+    // check if T is scalar or point-like
+    // if T is scalar, index_type is just size_t
+    // else, index_type is a point with size_t coordinates
+    using index_type = typename std::conditional<
+      is_arithmetic<T>::value,
+      size_t,
+      point<size_t,rank>
+    >::type;
+
+    using value_type             = T;
+    using reference              = value_type;
+    using const_reference        = reference;
+    using const_iterator         = __grid_iterator<T>;
+    using iterator               = const_iterator;
+
+    // XXX should create a grid empty of points
+    regular_grid() = default;
+
+    // copy from
+    regular_grid(const regular_grid&) = default;
+
+    // creates a new regular_grid with min as the first lattice point
+    // through max exclusive
+    // XXX should probably make this (min, extent) instead
+    //     otherwise we'd have to require that min[i] <= max[i]
+    regular_grid(const value_type& min, const value_type& max)
+      : box_(min, max)
+    {}
+
+    template<class... Size,
+             typename = typename enable_if<
+               __all_of<
+                 is_convertible<Size,size_t>::value...
+               >::value &&
+               sizeof...(Size) == rank
+             >::type 
+            >
+    regular_grid(const Size&... dimensions)
+      : regular_grid(index_type{static_cast<size_t>(dimensions)...})
+    {}
+
+    regular_grid(const index_type& dimensions)
+      : regular_grid(index_type{}, dimensions)
+    {}
+
+    // returns the value of the smallest lattice point
+    value_type min() const
+    {
+      return box_.min();
+    }
+
+    // returns the value of the one-past-the-last lattice point
+    value_type max() const
+    {
+      return box_.max();
+    }
+
+    // returns the number of lattice points along each of this regular_grid's dimensions
+    index_type extent() const
+    {
+      return box_.extent();
+    }
+
+    // returns whether or not p is the value of a lattice point
+    bool contains(const value_type& p) const
+    {
+      return box_.contains(p);
+    }
+
+    // returns the number of lattice points
+    size_type size() const
+    {
+      return __product(extent());
+    }
+
+    bool empty() const
+    {
+      return min() == max();
+    }
+
+    // returns the value of the (i,j,k,...)th lattice point
+    const_reference operator[](const index_type& idx) const
+    {
+      return min() + idx;
+    }
+
+    // returns the value of the ith lattice point in lexicographic order
+    template<class Size,
+             typename std::enable_if<
+               (rank > 1) &&
+               std::is_convertible<Size,size_type>::value
+             >::type
+            >
+    const_reference operator[](Size idx) const
+    {
+      return begin()[idx];
+    }
+
+    // reshape does not move the origin
+    void reshape(const index_type& dimensions)
+    {
+      box_.max(box_.min() + dimensions);
+    }
+
+    // reshape does not move the origin
+    template<class... Size,
+             typename = typename enable_if<
+               __all_of<
+                 is_convertible<Size,size_t>::value...
+               >::value &&
+               sizeof...(Size) == rank
+             >::type 
+            >
+    void reshape(const Size&... dimensions)
+    {
+      reshape(index_type{static_cast<size_t>(dimensions)...});
+    }
+
+    const_iterator begin() const
+    {
+      return __grid_iterator<value_type>(*this);
+    }
+
+    const_iterator end() const
+    {
+      return __grid_iterator<value_type>(*this, __grid_iterator<value_type>::past_the_end(*this));
+    }
+
+  private:
+    __axis_aligned_box<value_type> box_;
+};
+
+
+template<class T>
+class __grid_iterator
+  : public std::iterator<
+      std::random_access_iterator_tag,
+      T,
+      std::ptrdiff_t,
+      void, // XXX implement this
+      T
+    >
+{
+  private:
+    using super_t = std::iterator<
+      std::random_access_iterator_tag,
+      T,
+      std::ptrdiff_t,
+      void,
+      T
+    >;
+
+    static constexpr size_t rank = regular_grid<T>::rank;
+
+  public:
+    using typename super_t::value_type;
+    using typename super_t::reference;
+    using typename super_t::difference_type;
+
+    explicit __grid_iterator(const regular_grid<T>& grid)
+      : grid_(grid),
+        current_(grid_.min())
+    {}
+
+    explicit __grid_iterator(const regular_grid<T>& grid, T current)
+      : grid_(grid),
+        current_(current)
+    {}
+
+    reference operator*() const
+    {
+      return current_;
+    }
+
+    __grid_iterator& operator++()
+    {
+      return increment(std::is_arithmetic<T>());
+    }
+
+    __grid_iterator operator++(int)
+    {
+      __grid_iterator result = *this;
+      ++(*this);
+      return result;
+    }
+
+    __grid_iterator& operator--()
+    {
+      return decrement(std::is_arithmetic<T>());
+    }
+
+    __grid_iterator operator--(int)
+    {
+      __grid_iterator result = *this;
+      --(*this);
+      return result;
+    }
+
+    __grid_iterator operator+(difference_type n) const
+    {
+      __grid_iterator result{*this};
+      return result += n;
+    }
+
+    __grid_iterator& operator+=(difference_type n)
+    {
+      return advance(std::is_arithmetic<T>());
+    }
+
+    __grid_iterator& operator-=(difference_type n)
+    {
+      return *this += -n;
+    }
+
+    __grid_iterator operator-(difference_type n) const
+    {
+      __grid_iterator result{*this};
+      return result -= n;
+    }
+
+    difference_type operator-(const __grid_iterator& rhs) const
+    {
+      return linearize() - rhs.linearize();
+    }
+
+    bool operator==(const __grid_iterator& rhs) const
+    {
+      return current_ == rhs.current_;
+    }
+
+    bool operator!=(const __grid_iterator& rhs) const
+    {
+      return !(*this == rhs);
+    }
+
+    bool operator<(const __grid_iterator& rhs) const
+    {
+      return current_ < rhs.current_;
+    }
+
+    bool operator<=(const __grid_iterator& rhs) const
+    {
+      return !(rhs < *this);
+    }
+
+    bool operator>(const __grid_iterator& rhs) const
+    {
+      return rhs < *this;
+    }
+
+    bool operator>=(const __grid_iterator &rhs) const
+    {
+      return !(rhs > *this);
+    }
+
+    static T past_the_end(const regular_grid<T>& grid)
+    {
+      return past_the_end(grid, std::is_arithmetic<T>());
+    }
+
+  private:
+    // point-like case
+    __grid_iterator& increment(std::false_type)
+    {
+      T min = grid_.min();
+      T max = grid_.max();
+
+      for(int i = rank; i-- > 0;)
+      {
+        ++current_[i];
+
+        if(min[i] <= current_[i] && current_[i] < max[i])
+        {
+          return *this;
+        }
+        else if(i > 0)
+        {
+          // don't roll the final dimension over to the origin
+          current_[i] = min[i];
+        }
+      }
+
+      return *this;
+    }
+
+    // scalar case
+    __grid_iterator& increment(std::true_type)
+    {
+      ++current_;
+      return *this;
+    }
+
+    // point-like case
+    __grid_iterator& decrement(std::false_type)
+    {
+      T min = grid_.min();
+      T max = grid_.max();
+
+      for(int i = rank; i-- > 0;)
+      {
+        --current_[i];
+
+        if(min[i] <= current_[i])
+        {
+          return *this;
+        }
+        else
+        {
+          current_[i] = max[i] - 1;
+        }
+      }
+
+      return *this;
+    }
+
+    // scalar case
+    __grid_iterator& decrement(std::true_type)
+    {
+      --current_;
+      return *this;
+    }
+
+    // point-like case
+    __grid_iterator& advance(difference_type n, std::false_type)
+    {
+      difference_type idx = linearize() + n;
+
+      auto s = stride();
+
+      for(size_t i = 0; i < rank; ++i)
+      {
+        current_[i] = grid_.min()[i] + idx / stride[i];
+        idx %= stride[i];
+      }
+
+      return *this;
+    }
+
+    // scalar case
+    __grid_iterator& advance(difference_type n, std::true_type)
+    {
+      current_ += n;
+      return *this;
+    }
+
+    point<difference_type,rank> stride() const
+    {
+      point<difference_type,rank> result;
+      result[rank - 1] = 1;
+
+      for(int i = rank - 1; i-- > 0;)
+      {
+        // accumulate the stride of the lower dimension
+        result[i] = result[i+1] * grid_.extent()[i];
+      }
+
+      return result;
+    }
+
+    difference_type linearize() const
+    {
+      return linearize(std::is_arithmetic<T>());
+    }
+
+    // point-like case
+    difference_type linearize(std::false_type) const
+    {
+      if(is_past_the_end())
+      {
+        return grid_.size();
+      }
+
+      // subtract grid min from current to get
+      // 0-based indices along each axis
+      T idx = current_ - grid_.min();
+
+      difference_type multiplier = 1;
+      difference_type result = 0;
+
+      for(int i = rank; i-- > 0; )
+      {
+        result += multiplier * idx[i];
+        multiplier *= grid_.extent()[i];
+      }
+
+      return result;
+    }
+
+    // scalar case
+    difference_type linearize(std::true_type) const
+    {
+      return current_;
+    }
+
+    // point-like case
+    static T past_the_end(const regular_grid<T>& grid, std::false_type)
+    {
+      T result = grid.min();
+      result[0] = grid.max()[0];
+      return result;
+    }
+
+    // scalar case
+    static T past_the_end(const regular_grid<T>& grid, std::true_type)
+    {
+      return grid.max();
+    }
+
+    bool is_past_the_end() const
+    {
+      return !(current_[0] < grid_.max()[0]);
+    }
+
+    regular_grid<T> grid_;
+    T current_;
+};
+
+}
+

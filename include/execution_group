@@ -4,6 +4,7 @@
 #include <barrier>
 #include <functional>
 #include <iostream>
+#include <coordinate>
 #include "tuple_tail.hpp"
 
 namespace std
@@ -92,16 +93,26 @@ class execution_group_traits
     }
 
   public:
-    typedef ExecutionGroup                                 group_type;
-    typedef typename ExecutionGroup::execution_category    execution_category;
-    typedef typename ExecutionGroup::param_type            param_type;
-    typedef typename ExecutionGroup::size_type             size_type;
+    typedef ExecutionGroup                               group_type;
+    typedef typename ExecutionGroup::execution_category  execution_category;
+    
+    // XXX this should be the type of declval<group_type>.param()
+    typedef typename ExecutionGroup::param_type          param_type;
+
+    // XXX this should be the type of declval<group_type>.domain()
+    typedef typename ExecutionGroup::domain_type         domain_type;
+
+    // XXX this should be the type of declval<group_type>.index()
+    typedef typename ExecutionGroup::index_type          index_type;
+
+    // XXX this should be the type of declval<group_type>.size()
+    typedef typename ExecutionGroup::size_type           size_type;
 
     typedef typename __lazy_conditional<
       __has_child_type<group_type>::value,
       __child_type<group_type>,
       __identity<void>
-    >::type                                                child_type;
+    >::type                                              child_type;
 
     // XXX consider renaming to nesting_depth or grouping_depth
     //     to emphasize that agents have depth 0
@@ -126,25 +137,14 @@ class execution_group_traits
     // XXX rethink whether we need both reindex and something which links two groups, possibly with new indices
     // XXX shouldn't we reindex the entire tree at the same time?
     // XXX shouldn't we recieve a tuple like make()?
-    static void reindex(group_type& g, size_type new_index)
+    static void reindex(group_type& g, index_type new_index)
     {
       g.reindex(new_index);
     }
 
-    class range_type
+    static domain_type domain(const param_type& params)
     {
-      public:
-        range_type(size_type b, size_type e) : begin_(b), end_(e) {}
-        size_type begin() const { return begin_; }
-        size_type end() const { return end_; }
-
-      private:
-        size_type begin_, end_;
-    };
-
-    static range_type range(const param_type &params)
-    {
-      return range_type{params.begin(), params.end()};
+      return params.domain();
     }
 };
 
@@ -154,7 +154,11 @@ class agent
   public:
     using execution_category = sequential_execution_tag;
     struct param_type {};
-    typedef size_t size_type;
+
+    // XXX what should an agent's domain be?
+    typedef void      domain_type;
+    typedef size_t    size_type;
+    typedef size_type index_type;
 
     // XXX is size() necessary?
     //     I don't think we ever use it
@@ -176,12 +180,12 @@ class agent
       : index_(std::get<0>(index))
     {}
 
-    void reindex(size_type index)
+    void reindex(index_type index)
     {
       index_ = index;
     }
 
-    size_type index_;
+    index_type index_;
 };
 
 
@@ -190,59 +194,60 @@ class __execution_group_base
 {
   public:
     using execution_category = ExecutionCategory; 
-    typedef ExecutionGroup                                         child_type;
-    typedef typename execution_group_traits<child_type>::size_type size_type;
+    typedef ExecutionGroup                                                        child_type;
+    typedef regular_grid<typename execution_group_traits<child_type>::index_type> domain_type;
+    typedef typename domain_type::size_type                                       size_type;
+
+    // XXX need to generalize __execution_group_base for higher dimensions
+    typedef size_type                                                             index_type;
 
     class param_type
     {
       public:
         param_type(const param_type& other)
-          : param_type(other.begin(), other.end())
+          : domain_(other.domain_)
         {}
 
-        param_type(size_type b, size_type e)
-          : begin_(b), end_(e)
+        param_type(const domain_type& d)
+          : domain_(d)
+        {}
+
+        param_type(index_type min, index_type max)
+          : param_type(domain_type(min,max))
         {}
 
         param_type(size_type n)
-          : begin_(0), end_(n)
+          : param_type(size_type{0}, n)
         {}
 
-        size_type begin() const
+        const domain_type& domain() const
         {
-          return begin_;
-        }
-
-        size_type end() const
-        {
-          return end_;
+          return domain_;
         }
 
       private:
-        size_type begin_, end_;
+        domain_type domain_;
     };
 
     param_type param() const
     {
-      return param_type(indices_begin(), indices_end());
+      return param_type(domain());
     }
 
-    size_type indices_begin() const { return indices_begin_; }
-    size_type indices_end() const { return indices_end_; }
-    size_type size() const { return indices_end() - indices_begin(); }
-    size_type index() const { return index_; }
+    const domain_type& domain() const { return domain_; }
+    size_type size() const { return domain().size(); }
+    index_type index() const { return index_; }
     ExecutionGroup &child() { return child_; }
     const ExecutionGroup &child() const { return child_; }
 
   private:
     template<class> friend class execution_group_traits;
 
-    size_type index_;
-    size_type indices_begin_;
-    size_type indices_end_;
-    child_type child_;
+    index_type  index_;
+    domain_type domain_;
+    child_type  child_;
 
-    void reindex(size_type index)
+    void reindex(index_type index)
     {
       index_ = index;
     }
@@ -253,8 +258,7 @@ class __execution_group_base
     template<class Param>
     __execution_group_base(const Param& params, size_type index, child_type&& chld)
       : index_(index),
-        indices_begin_(params.begin()),
-        indices_end_(params.end()),
+        domain_(params.domain()),
         child_(std::move(chld))
     {}
 
@@ -290,22 +294,28 @@ class concurrent_group : public __execution_group_base<concurrent_execution_tag,
     typedef __execution_group_base<concurrent_execution_tag, ExecutionGroup> super_t;
 
   public:
-    typedef typename super_t::size_type size_type;
+    typedef typename super_t::domain_type domain_type;
+    typedef typename super_t::index_type  index_type;
+    typedef typename super_t::size_type   size_type;
 
     class param_type : public super_t::param_type
     {
       public:
-        param_type(size_type begin, size_type end, std::reference_wrapper<std::barrier> barrier)
-          : super_t::param_type(begin,end),
+        param_type(const param_type &other)
+          : param_type(other.domain(), other.barrier())
+        {}
+
+        param_type(const domain_type& domain, std::reference_wrapper<std::barrier> barrier)
+          : super_t::param_type(domain),
             barrier_(barrier)
         {}
 
-        param_type(size_type n, std::reference_wrapper<std::barrier> barrier)
-          : param_type(0, n, barrier)
+        param_type(index_type min, index_type max, std::reference_wrapper<std::barrier> barrier)
+          : param_type(domain_type(min,max), barrier)
         {}
 
-        param_type(const param_type &other)
-          : param_type(other.begin(), other.end(), other.barrier())
+        param_type(size_type n, std::reference_wrapper<std::barrier> barrier)
+          : param_type(size_type{0}, n, barrier)
         {}
 
         std::reference_wrapper<std::barrier> barrier() const
@@ -319,7 +329,7 @@ class concurrent_group : public __execution_group_base<concurrent_execution_tag,
 
     param_type param() const
     {
-      return param_type(super_t::indices_begin(), super_t::indices_end(), barrier_);
+      return param_type(super_t::domain(), barrier_);
     }
 
     template<class OtherGroup>
@@ -344,7 +354,7 @@ class concurrent_group : public __execution_group_base<concurrent_execution_tag,
     {}
 
     template<class Param>
-    concurrent_group(const Param& params, size_type index, ExecutionGroup&& chld)
+    concurrent_group(const Param& params, index_type index, ExecutionGroup&& chld)
       : super_t(params, index, std::move(chld)),
         barrier_(params.barrier())
     {}

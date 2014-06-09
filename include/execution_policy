@@ -141,9 +141,9 @@ struct __async_outer_functor
   template<class OuterGroup, class... Args>
   void operator()(OuterGroup& outer_group, Args&&... args) const
   {
-    typedef typename execution_group_traits<OuterGroup>::size_type size_type;
+    typedef typename execution_group_traits<OuterGroup>::index_type index_type;
 
-    std::async(exec_args.inner_exec, inner_functor<OuterGroup,size_type>{outer_group, f, outer_group.child().index()}, args...).wait();
+    std::async(exec_args.inner_exec, inner_functor<OuterGroup,index_type>{outer_group, f, outer_group.child().index()}, args...).wait();
   }
 };
 
@@ -167,9 +167,9 @@ class __basic_execution_policy
   public:
     using execution_group_type = FlatExecutionGroup;
     using execution_category   = ExecutionCategory;
-    using group_traits = std::execution_group_traits<execution_group_type>;
-    using group_param_type = typename group_traits::param_type;
-    using agent_param_type = agent::param_type;
+    using group_traits         = std::execution_group_traits<execution_group_type>;
+    using group_param_type     = typename group_traits::param_type;
+    using agent_param_type     = agent::param_type;
 
     inline __basic_execution_policy(const __basic_execution_policy& other)
       : params_(other.params_),
@@ -240,10 +240,8 @@ void __sync(std::sequential_execution_tag,
       using traits = std::execution_group_traits<ExecutionGroup>;
   
       // execute agents sequentially
-      auto rng = traits::range(std::get<0>(exec.params()));
-      for(auto agent_idx = rng.begin();
-          agent_idx < rng.end();
-          ++agent_idx)
+      auto domain = traits::domain(std::get<0>(exec.params()));
+      for(auto agent_idx : domain)
       {
         auto this_group = traits::make(exec.params(), std::make_tuple(0, agent_idx));
   
@@ -284,15 +282,12 @@ void __sync2(std::concurrent_execution_tag,
 {
   using traits = execution_group_traits<ExecutionGroup>;
   
-  auto rng = traits::range(std::get<0>(exec.params()));
+  auto domain = traits::domain(std::get<0>(exec.params()));
   
-  std::vector<std::future<void>> futures(rng.end() - rng.begin());
+  std::vector<std::future<void>> futures(domain.size());
   
   // launch agents
-  // XXX could we use the __subgroup idiom here?
-  for(auto agent_idx = rng.begin();
-      agent_idx < rng.end();
-      ++agent_idx)
+  for(auto agent_idx : domain)
   {
     futures[agent_idx] = async(exec.asyncable(), [=](Args&&... args)
     {
@@ -328,8 +323,8 @@ void __sync(std::concurrent_execution_tag,
   if(__is_null(group_params.barrier()))
   {
     // create a new policy which has a reference to  barrier
-    std::barrier bar(group_params.end() - group_params.begin());
-    auto exec2 = exec.regroup(group_params.begin(), group_params.end(), bar);
+    std::barrier bar(group_params.domain().size());
+    auto exec2 = exec.regroup(group_params.domain(), bar);
 
     return __sync2(concurrent_execution_tag(), exec2, f, std::forward<Args>(args)...);
   }
@@ -469,26 +464,26 @@ class __subgroup
     using parent_traits      = execution_group_traits<ExecutionGroup>;
     using execution_category = typename parent_traits::execution_category;
     using parent_param_type  = typename parent_traits::param_type;
+    using domain_type        = typename parent_traits::domain_type;
+    using index_type         = typename parent_traits::index_type;
     using size_type          = typename parent_traits::size_type;
     using child_type         = typename parent_traits::child_type;
 
     class param_type
     {
       public:
-        param_type(size_type begin, size_type end, const parent_param_type &parent_params)
-          : begin_(begin),
-            end_(end),
+        param_type(const domain_type& subdomain, const parent_param_type& parent_params)
+          : subdomain_(subdomain),
             parent_params_(parent_params)
         {}
 
-        size_type begin() const
-        {
-          return begin_;
-        }
+        param_type(index_type min, index_type max, const parent_param_type& parent_params)
+          : param_type(domain_type{min,max}, parent_params)
+        {}
 
-        size_type end() const
+        const domain_type& domain() const
         {
-          return end_;
+          return subdomain_;
         }
 
         const parent_param_type &parent_params() const
@@ -497,14 +492,13 @@ class __subgroup
         }
 
       private:
-        size_type begin_, end_;
+        domain_type subdomain_;
         parent_param_type parent_params_;
     };
 
     template<class ParamTuple, class IndexTuple>
-    __subgroup(size_type begin, size_type end, const ParamTuple& parent_params, const IndexTuple& indices)
-      : indices_begin_(begin),
-        indices_end_(end),
+    __subgroup(const domain_type& subdomain, const ParamTuple& parent_params, const IndexTuple& indices)
+      : subdomain_(subdomain),
         group_(parent_traits::make(parent_params, indices))
     {}
 
@@ -512,30 +506,24 @@ class __subgroup
     // and forward everything along to the other constructor
     template<class ParamTuple, class IndexTuple>
     __subgroup(const ParamTuple& params, const IndexTuple& indices)
-      : __subgroup(std::get<0>(params).begin(),
-                   std::get<0>(params).end(),
+      : __subgroup(std::get<0>(params).domain(),
                    params,
                    indices)
     {}
 
     param_type param() const
     {
-      return param_type(indices_begin(), indices_end(), group().param());
+      return param_type(domain(), group().param());
     }
 
-    size_type indices_begin() const
+    const domain_type& domain() const
     {
-      return indices_begin_;
-    }
-
-    size_type indices_end() const
-    {
-      return indices_end_;
+      return subdomain_;
     }
 
     size_type size() const
     {
-      return indices_end() - indices_begin();
+      return subdomain_.size();
     }
 
     ExecutionGroup &group()
@@ -548,7 +536,7 @@ class __subgroup
       return group_;
     }
 
-    size_type index() const
+    index_type index() const
     {
       return group().index();
     }
@@ -559,8 +547,7 @@ class __subgroup
     }
 
   private:
-    size_type indices_begin_;
-    size_type indices_end_;
+    domain_type subdomain_;
     ExecutionGroup group_;
 };
 
@@ -584,8 +571,8 @@ future<void> __async(std::parallel_execution_tag,
 
   auto group_params = std::get<0>(exec.params());
 
-  auto rng = traits::range(group_params);
-  auto group_size = rng.end() - rng.begin();
+  auto domain = traits::domain(group_params);
+  auto group_size = domain.size();
 
   const size_type min_num_agents_per_launch = 1000;
   size_type num_concurrent_agents = (group_size + min_num_agents_per_launch - 1) / min_num_agents_per_launch;
