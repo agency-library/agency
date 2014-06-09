@@ -93,8 +93,9 @@ class execution_group_traits
     }
 
   public:
-    typedef ExecutionGroup                               group_type;
-    typedef typename ExecutionGroup::execution_category  execution_category;
+    using group_type = ExecutionGroup;
+
+    using execution_category = typename ExecutionGroup::execution_category;
     
     // XXX this should be the type of declval<group_type>.param()
     typedef typename ExecutionGroup::param_type          param_type;
