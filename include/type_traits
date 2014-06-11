@@ -1,3 +1,4 @@
+#pragma once
 #include_next <type_traits>
 
 namespace std
