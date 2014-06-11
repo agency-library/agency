@@ -146,7 +146,7 @@ class execution_group_traits
     using rebind_execution_group = typename __rebind_execution_group<group_type, OtherChild>::type;
 
     template<class ParamTuple, class IndexTuple>
-    static group_type make(const ParamTuple& params, const IndexTuple& indices)
+    static group_type make_group(const ParamTuple& params, const IndexTuple& indices)
     {
       return group_type(params, indices);
     }
@@ -159,7 +159,7 @@ class execution_group_traits
 
     // XXX rethink whether we need both reindex and something which links two groups, possibly with new indices
     // XXX shouldn't we reindex the entire tree at the same time?
-    // XXX shouldn't we recieve a tuple like make()?
+    // XXX shouldn't we recieve a tuple of indices like make_group()?
     static void reindex(group_type& g, index_type new_index)
     {
       g.reindex(new_index);
@@ -287,7 +287,7 @@ class __execution_group_base
     __execution_group_base(const ParamTuple& params, const IndexTuple& indices)
       : __execution_group_base(std::get<0>(params),
                                std::get<0>(indices),
-                               child_traits::make(tuple_tail(params), tuple_tail(indices)))
+                               child_traits::make_group(tuple_tail(params), tuple_tail(indices)))
     {}
 };
 

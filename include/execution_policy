@@ -243,7 +243,7 @@ void __sync(std::sequential_execution_tag,
       auto domain = traits::domain(std::get<0>(exec.params()));
       for(auto agent_idx : domain)
       {
-        auto this_group = traits::make(exec.params(), std::make_tuple(0, agent_idx));
+        auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
   
         f(this_group, args...);
       }
@@ -291,7 +291,7 @@ void __sync2(std::concurrent_execution_tag,
   {
     futures[agent_idx] = async(exec.asyncable(), [=](Args&&... args)
     {
-      auto this_group = traits::make(exec.params(), std::make_tuple(0, agent_idx));
+      auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
   
       f(this_group, args...);
     },
@@ -499,7 +499,7 @@ class __subgroup
     template<class ParamTuple, class IndexTuple>
     __subgroup(const domain_type& subdomain, const ParamTuple& parent_params, const IndexTuple& indices)
       : subdomain_(subdomain),
-        group_(parent_traits::make(parent_params, indices))
+        group_(parent_traits::make_group(parent_params, indices))
     {}
 
     // tease __subgroup's params out of the ParamTuple's first element
