@@ -295,7 +295,10 @@ class __execution_group_base
 template<class ExecutionGroup = std::agent>
 class sequential_group : public __execution_group_base<sequential_execution_tag, ExecutionGroup>
 {
-  public:
+  private:
+    template<class> friend class execution_group_traits;
+
+  protected:
     using __execution_group_base<sequential_execution_tag, ExecutionGroup>::__execution_group_base;
 };
 
@@ -303,7 +306,10 @@ class sequential_group : public __execution_group_base<sequential_execution_tag,
 template<class ExecutionGroup = std::agent>
 class parallel_group : public __execution_group_base<parallel_execution_tag, ExecutionGroup>
 {
-  public:
+  private:
+    template<class> friend class execution_group_traits;
+
+  protected:
     using __execution_group_base<parallel_execution_tag, ExecutionGroup>::__execution_group_base;
 };
 
