@@ -15,5 +15,22 @@ typename std::result_of<Function(Args...)>::type
 }
 
 
+template<class T>
+future<decay_t<T>> make_ready_future(T&& value)
+{
+  promise<decay_t<T>> p;
+  p.set_value(std::forward<T>(value));
+  return p.get_future();
+}
+
+
+inline future<void> make_ready_future()
+{
+  promise<void> p;
+  p.set_value();
+  return p.get_future();
+}
+
+
 }
 
