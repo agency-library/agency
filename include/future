@@ -2,6 +2,7 @@
 
 #include_next <future>
 #include <type_traits>
+#include <exception_list>
 
 namespace std
 {
@@ -28,6 +29,27 @@ inline future<void> make_ready_future()
 {
   promise<void> p;
   p.set_value();
+  return p.get_future();
+}
+
+
+// XXX when_all is supposed to return a future<vector>
+template<typename ForwardIterator>
+future<void> when_all(ForwardIterator first, ForwardIterator last)
+{
+  exception_list exceptions = __flatten_into_exception_list(first, last);
+
+  promise<void> p;
+
+  if(exceptions.size() > 0)
+  {
+    p.set_exception(make_exception_ptr(exceptions));
+  }
+  else
+  {
+    p.set_value();
+  }
+
   return p.get_future();
 }
 
