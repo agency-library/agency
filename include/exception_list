@@ -47,7 +47,7 @@ inline void __move_exceptions(exception_list &to, exception_list &from)
 
 
 template<class FutureIterator>
-inline void __flatten_and_throw_exceptions(FutureIterator first, FutureIterator last)
+exception_list __flatten_into_exception_list(FutureIterator first, FutureIterator last)
 {
   exception_list exceptions;
 
@@ -66,6 +66,15 @@ inline void __flatten_and_throw_exceptions(FutureIterator first, FutureIterator 
       __add_current_exception(exceptions);
     }
   }
+  
+  return exceptions;
+}
+
+
+template<class FutureIterator>
+void __flatten_and_throw_exceptions(FutureIterator first, FutureIterator last)
+{
+  exception_list exceptions = __flatten_into_exception_list(first, last);
 
   if(exceptions.size() > 0)
   {
