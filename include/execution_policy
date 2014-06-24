@@ -255,10 +255,18 @@ std::future<void> __async(std::sequential_execution_tag,
                           const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
                           Function f)
 {
-  // XXX this should just use the same lambda used above
   return exec.executor().bulk_async(1, [=](size_t)
   {
-    std::sync(exec, f);
+    using traits = std::execution_group_traits<ExecutionGroup>;
+    
+    // execute agents sequentially
+    auto domain = traits::domain(std::get<0>(exec.params()));
+    for(auto agent_idx : domain)
+    {
+      auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
+    
+      f(this_group);
+    }
   });
 }
 
