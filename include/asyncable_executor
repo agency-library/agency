@@ -30,32 +30,25 @@ class asyncable_executor
     }
 
     template<class Function>
-    void bulk_sync(size_t n, Function f)
+    std::future<void> bulk_async(size_t n, Function f)
     {
       std::vector<std::future<void>> futures(n);
 
       for(size_t i = 0; i < n; ++i)
       {
-        // XXX I doubt this is how args should be forwarded in
-        //     we need to make a copy or something
-        //     an easy way to do this might be to create a closure
         futures[i] = async(asyncable(), [=]
         {
           f(i);
         });
       }
 
-      __flatten_and_throw_exceptions(futures.begin(), futures.end());
+      return when_all(futures.begin(), futures.end());
     }
 
     template<class Function>
-    std::future<void> bulk_async(size_t n, Function f)
+    void bulk_sync(size_t n, Function f)
     {
-      asyncable_executor *self = this;
-      return async(asyncable(), [=]
-      {
-        self->bulk_sync(n, f);
-      });
+      return bulk_async(n, f).get();
     }
 
   private:
