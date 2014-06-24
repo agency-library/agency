@@ -20,6 +20,7 @@
 #include <type_traits>
 #include <execution_group>
 #include <exception_list>
+#include <functional>
 
 namespace std
 {
@@ -148,11 +149,11 @@ struct __async_outer_functor
 };
 
 
-template<class ExecutionCategory, class OuterPolicy, class InnerPolicy, class Function, class... Args>
-std::future<void> __async(ExecutionCategory, const __nested_execution_policy<OuterPolicy,InnerPolicy> &exec_args, Function f, Args&&... args)
+template<class ExecutionCategory, class OuterPolicy, class InnerPolicy, class Function>
+std::future<void> __async(ExecutionCategory, const __nested_execution_policy<OuterPolicy,InnerPolicy> &exec_args, Function f)
 {
   // XXX use __async_outer_functor because gcc 4.8 has trouble with lambdas + parameter packs
-  return std::async(exec_args.outer_exec, __async_outer_functor<OuterPolicy,InnerPolicy,Function>{exec_args,f}, args...);
+  return std::async(exec_args.outer_exec, __async_outer_functor<OuterPolicy,InnerPolicy,Function>{exec_args,f});
 }
 
 
@@ -225,13 +226,12 @@ template<class FlatExecutionGroup, class Asyncable, class ExecutionCategory>
 struct is_execution_policy<__basic_execution_policy<FlatExecutionGroup,Asyncable,ExecutionCategory>> : std::true_type {};
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
 void __sync(std::sequential_execution_tag,
             const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
-            Function&& f,
-            Args&&... args)
+            Function f)
 {
-  sync(exec.asyncable(), [=](Args&&... args)
+  sync(exec.asyncable(), [=]
   {
     std::exception_list exceptions;
   
@@ -245,7 +245,7 @@ void __sync(std::sequential_execution_tag,
       {
         auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
   
-        f(this_group, args...);
+        f(this_group);
       }
     } // end try
     catch(...)
@@ -253,32 +253,26 @@ void __sync(std::sequential_execution_tag,
       std::__add_current_exception(exceptions);
       throw exceptions;
     } // end catch
-  },
-  std::forward<Args>(args)...
-  );
+  });
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
 std::future<void> __async(std::sequential_execution_tag,
                           const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
-                          Function&& f,
-                          Args&&... args)
+                          Function f)
 {
-  return async(exec.asyncable(), [=](Args&&... args)
+  return async(exec.asyncable(), [=]
   {
-    std::sync(exec, f, std::forward<Args>(args)...);
-  },
-  std::forward<Args>(args)...
-  );
+    std::sync(exec, f);
+  });
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
 void __sync2(std::concurrent_execution_tag,
              const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
-             Function f,
-             Args&&... args)
+             Function f)
 {
   using traits = execution_group_traits<ExecutionGroup>;
   
@@ -289,34 +283,31 @@ void __sync2(std::concurrent_execution_tag,
   // launch agents
   for(auto agent_idx : domain)
   {
-    futures[agent_idx] = async(exec.asyncable(), [=](Args&&... args)
+    futures[agent_idx] = async(exec.asyncable(), [=]
     {
       auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
   
-      f(this_group, args...);
-    },
-    std::forward<Args>(args)...);
+      f(this_group);
+    });
   }
   
   __flatten_and_throw_exceptions(futures.begin(), futures.end());
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
 void __sync(std::concurrent_execution_tag,
             const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
-            Function f,
-            Args&&... args)
+            Function f)
 {
-  __sync2(std::concurrent_execution_tag(), exec, f, std::forward<Args>(args)...);
+  __sync2(std::concurrent_execution_tag(), exec, f);
 }
 
 
-template<class Asyncable, class ExecutionCategory, class Function, class... Args>
+template<class Asyncable, class ExecutionCategory, class Function>
 void __sync(std::concurrent_execution_tag,
             const __basic_execution_policy<concurrent_group<>,Asyncable,ExecutionCategory>& exec,
-            Function f,
-            Args&&... args)
+            Function f)
 {
   // do we need to create a barrier for this sync?
   auto group_params = std::get<0>(exec.params());
@@ -326,36 +317,33 @@ void __sync(std::concurrent_execution_tag,
     std::barrier bar(group_params.domain().size());
     auto exec2 = exec.regroup(group_params.domain(), bar);
 
-    return __sync2(concurrent_execution_tag(), exec2, f, std::forward<Args>(args)...);
+    return __sync2(concurrent_execution_tag(), exec2, f);
   }
   else
   {
-    return __sync2(concurrent_execution_tag(), exec, f, std::forward<Args>(args)...);
+    return __sync2(concurrent_execution_tag(), exec, f);
   }
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
 std::future<void> __async(std::concurrent_execution_tag,
                           const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
-                          Function f,
-                          Args&&... args)
+                          Function f)
 {
-  return async(exec.asyncable(), [=](Args&&... args)
+  return async(exec.asyncable(), [=]
   {
-    std::sync(exec, f, std::forward<Args>(args)...);
-  },
-  std::forward<Args>(args)...);
+    std::sync(exec, f);
+  });
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
 void __sync(std::parallel_execution_tag,
             const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
-            Function f,
-            Args&&... args)
+            Function f)
 {
-  return std::async(exec, std::forward<Function>(f), std::forward<Args>(args)...).wait();
+  return std::async(exec, f).wait();
 }
 
 
@@ -560,11 +548,10 @@ inline unsigned int __log2(unsigned int x)
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function, class... Args>
+template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
 future<void> __async(std::parallel_execution_tag,
                      const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
-                     Function f,
-                     Args&&... args)
+                     Function f)
 {
   typedef execution_group_traits<ExecutionGroup> traits;
   typedef typename traits::size_type             size_type;
@@ -582,18 +569,16 @@ future<void> __async(std::parallel_execution_tag,
   const size_type num_seq_agents_per_concurrent = (group_size + num_concurrent_agents - 1) / num_concurrent_agents;
 
   // XXX we could avoid creating a concurrent_group (and its barrier) here if we wanted to
-  return std::async(std::con(num_concurrent_agents).on(exec.asyncable()), [=](concurrent_group<> &g, Args&&... args)
+  return std::async(std::con(num_concurrent_agents).on(exec.asyncable()), [=](concurrent_group<> &g)
   {
     auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
     auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);
 
-    std::sync(std::seq.regroup<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, group_params), [=](__subgroup<ExecutionGroup> &subgroup, Args&&... args)
+    std::sync(std::seq.regroup<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, group_params), [=](__subgroup<ExecutionGroup> &subgroup)
     {
-      f(subgroup.group(), args...);
-    },
-    std::forward<Args>(args)...);
-  },
-  std::forward<Args>(args)...);
+      f(subgroup.group());
+    });
+  });
 }
 
 
@@ -639,7 +624,7 @@ typename __enable_if_execution_policy<decay_t<ExecutionPolicy>>::type
 sync(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
   using execution_category = typename decay_t<ExecutionPolicy>::execution_category;
-  return __sync(execution_category(), std::forward<ExecutionPolicy>(exec), std::forward<Function>(f), std::forward<Args>(args)...);
+  return __sync(execution_category(), std::forward<ExecutionPolicy>(exec), std::bind(f, std::placeholders::_1, args...));
 }
 
 
@@ -648,7 +633,7 @@ typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::ty
 async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
   using execution_category = typename decay_t<ExecutionPolicy>::execution_category;
-  return __async(execution_category(), std::forward<ExecutionPolicy>(exec), std::forward<Function>(f), std::forward<Args>(args)...);
+  return __async(execution_category(), std::forward<ExecutionPolicy>(exec), std::bind(f, std::placeholders::_1, args...));
 }
 
 
