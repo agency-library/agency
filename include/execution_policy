@@ -21,6 +21,7 @@
 #include <execution_group>
 #include <exception_list>
 #include <functional>
+#include <asyncable_executor>
 
 namespace std
 {
@@ -161,7 +162,7 @@ std::future<void> __async(ExecutionCategory, const __nested_execution_policy<Out
 // XXX another way to order these parameters would be
 // ExecutionCategory, Asyncable, FlatExecutionGroup = __default_execution_group<ExecutionCategory>
 template<class FlatExecutionGroup,
-         class Asyncable,
+         class BulkExecutor,
          class ExecutionCategory = typename execution_group_traits<FlatExecutionGroup>::execution_category>
 class __basic_execution_policy
 {
@@ -174,12 +175,12 @@ class __basic_execution_policy
 
     inline __basic_execution_policy(const __basic_execution_policy& other)
       : params_(other.params_),
-        asyncable_(other.asyncable_)
+        executor_(other.executor_)
     {} 
 
-    inline __basic_execution_policy(const group_param_type& group_params, const Asyncable& asyncable)
+    inline __basic_execution_policy(const group_param_type& group_params, const BulkExecutor& executor)
       : params_(group_params, agent_param_type()),
-        asyncable_(asyncable)
+        executor_(executor)
     {}
 
     const std::pair<group_param_type, agent_param_type>& params() const
@@ -187,126 +188,112 @@ class __basic_execution_policy
       return params_;
     }
 
-    const Asyncable& asyncable() const
+    // XXX should this function be const?
+    // XXX probably should have a const and non-const function member
+    BulkExecutor& executor() const
     {
-      return asyncable_;
+      return executor_;
     }
 
     template<class... Args>
     __basic_execution_policy regroup(Args&&... args) const
     {
       auto group_params = group_param_type(std::forward<Args>(args)...);
-      return __basic_execution_policy(group_params, asyncable());
+      return __basic_execution_policy(group_params, executor());
     }
 
     // XXX regroup() should check that OtherExecutionGroup's execution_category is compatible with 
     //     ExecutionCategory (somehow)
     template<class OtherFlatExecutionGroup, class... Args>
-    __basic_execution_policy<OtherFlatExecutionGroup,Asyncable,execution_category>
+    __basic_execution_policy<OtherFlatExecutionGroup,BulkExecutor,execution_category>
       regroup(Args&&... args) const
     {
       using param_type = typename std::execution_group_traits<OtherFlatExecutionGroup>::param_type;
       auto group_params = param_type(std::forward<Args>(args)...); 
-      return __basic_execution_policy<OtherFlatExecutionGroup,Asyncable,execution_category>(group_params, asyncable());
+      return __basic_execution_policy<OtherFlatExecutionGroup,BulkExecutor,execution_category>(group_params, executor());
     }
 
-    template<class OtherAsyncable>
-    __basic_execution_policy<FlatExecutionGroup,OtherAsyncable,ExecutionCategory> on(const OtherAsyncable& asyncable) const
+    template<class OtherBulkExecutor>
+    __basic_execution_policy<FlatExecutionGroup,OtherBulkExecutor,ExecutionCategory> on(const OtherBulkExecutor& executor) const
     {
-      return __basic_execution_policy<FlatExecutionGroup,OtherAsyncable,ExecutionCategory>(std::get<0>(params()), asyncable);
+      return __basic_execution_policy<FlatExecutionGroup,OtherBulkExecutor,ExecutionCategory>(std::get<0>(params()), executor);
     }
 
   protected:
     std::pair<group_param_type, agent_param_type> params_;
-    Asyncable asyncable_;
+    mutable BulkExecutor executor_;
 };
 
 
-template<class FlatExecutionGroup, class Asyncable, class ExecutionCategory>
-struct is_execution_policy<__basic_execution_policy<FlatExecutionGroup,Asyncable,ExecutionCategory>> : std::true_type {};
+template<class FlatExecutionGroup, class BulkExecutor, class ExecutionCategory>
+struct is_execution_policy<__basic_execution_policy<FlatExecutionGroup,BulkExecutor,ExecutionCategory>> : std::true_type {};
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
+template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
 void __sync(std::sequential_execution_tag,
-            const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+            const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
             Function f)
 {
-  sync(exec.asyncable(), [=]
+  exec.executor().bulk_sync(1, [=](size_t)
   {
-    std::exception_list exceptions;
-  
-    try
+    using traits = std::execution_group_traits<ExecutionGroup>;
+    
+    // execute agents sequentially
+    auto domain = traits::domain(std::get<0>(exec.params()));
+    for(auto agent_idx : domain)
     {
-      using traits = std::execution_group_traits<ExecutionGroup>;
-  
-      // execute agents sequentially
-      auto domain = traits::domain(std::get<0>(exec.params()));
-      for(auto agent_idx : domain)
-      {
-        auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
-  
-        f(this_group);
-      }
-    } // end try
-    catch(...)
-    {
-      std::__add_current_exception(exceptions);
-      throw exceptions;
-    } // end catch
+      auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
+    
+      f(this_group);
+    }
   });
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
+template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
 std::future<void> __async(std::sequential_execution_tag,
-                          const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+                          const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
                           Function f)
 {
-  return async(exec.asyncable(), [=]
+  // XXX this should just use the same lambda used above
+  return exec.executor().bulk_async(1, [=](size_t)
   {
     std::sync(exec, f);
   });
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
+template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
 void __sync2(std::concurrent_execution_tag,
-             const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+             const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
              Function f)
 {
   using traits = execution_group_traits<ExecutionGroup>;
   
   auto domain = traits::domain(std::get<0>(exec.params()));
   
-  std::vector<std::future<void>> futures(domain.size());
-  
   // launch agents
-  for(auto agent_idx : domain)
+  exec.executor().bulk_sync(domain.size(), [=](size_t agent_idx)
   {
-    futures[agent_idx] = async(exec.asyncable(), [=]
-    {
-      auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
+    auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
   
-      f(this_group);
-    });
-  }
-  
-  __flatten_and_throw_exceptions(futures.begin(), futures.end());
+    f(this_group);
+  });
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
+template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
 void __sync(std::concurrent_execution_tag,
-            const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+            const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
             Function f)
 {
   __sync2(std::concurrent_execution_tag(), exec, f);
 }
 
 
-template<class Asyncable, class ExecutionCategory, class Function>
+template<class BulkExecutor, class ExecutionCategory, class Function>
 void __sync(std::concurrent_execution_tag,
-            const __basic_execution_policy<concurrent_group<>,Asyncable,ExecutionCategory>& exec,
+            const __basic_execution_policy<concurrent_group<>,BulkExecutor,ExecutionCategory>& exec,
             Function f)
 {
   // do we need to create a barrier for this sync?
@@ -326,31 +313,33 @@ void __sync(std::concurrent_execution_tag,
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
+template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
 std::future<void> __async(std::concurrent_execution_tag,
-                          const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+                          const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
                           Function f)
 {
-  return async(exec.asyncable(), [=]
+  // XXX just call bulk_async directly
+  // XXX we'll need to check about creating a barrier here
+  return async(exec.executor().asyncable(), [=]
   {
     std::sync(exec, f);
   });
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
+template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
 void __sync(std::parallel_execution_tag,
-            const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+            const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
             Function f)
 {
   return std::async(exec, f).wait();
 }
 
 
-class sequential_execution_policy : public __basic_execution_policy<sequential_group<>, std::launch>
+class sequential_execution_policy : public __basic_execution_policy<sequential_group<>, asyncable_executor<std::launch>>
 {
   private:
-    using super_t = __basic_execution_policy<sequential_group<>, std::launch>;
+    using super_t = __basic_execution_policy<sequential_group<>, asyncable_executor<std::launch>>;
 
   public:
     sequential_execution_policy(size_t indices_begin, size_t indices_end)
@@ -398,10 +387,10 @@ bool __is_null(std::reference_wrapper<T> ref)
 }
 
 
-class concurrent_execution_policy : public __basic_execution_policy<concurrent_group<>, std::launch>
+class concurrent_execution_policy : public __basic_execution_policy<concurrent_group<>, asyncable_executor<std::launch>>
 {
   private:
-    using super_t = __basic_execution_policy<concurrent_group<>, std::launch>;
+    using super_t = __basic_execution_policy<concurrent_group<>, asyncable_executor<std::launch>>;
 
   public:
     inline concurrent_execution_policy(size_t indices_begin, size_t indices_end, std::reference_wrapper<std::barrier> barrier)
@@ -548,9 +537,9 @@ inline unsigned int __log2(unsigned int x)
 }
 
 
-template<class ExecutionGroup, class Asyncable, class ExecutionCategory, class Function>
+template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
 future<void> __async(std::parallel_execution_tag,
-                     const __basic_execution_policy<ExecutionGroup,Asyncable,ExecutionCategory>& exec,
+                     const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
                      Function f)
 {
   typedef execution_group_traits<ExecutionGroup> traits;
@@ -569,7 +558,8 @@ future<void> __async(std::parallel_execution_tag,
   const size_type num_seq_agents_per_concurrent = (group_size + num_concurrent_agents - 1) / num_concurrent_agents;
 
   // XXX we could avoid creating a concurrent_group (and its barrier) here if we wanted to
-  return std::async(std::con(num_concurrent_agents).on(exec.asyncable()), [=](concurrent_group<> &g)
+  // XXX we should just do a bulk_async here instead of relying on std::con
+  return std::async(std::con(num_concurrent_agents).on(exec.executor()), [=](concurrent_group<> &g)
   {
     auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
     auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);
@@ -582,10 +572,10 @@ future<void> __async(std::parallel_execution_tag,
 }
 
 
-class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, std::launch>
+class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, asyncable_executor<std::launch>>
 {
   private:
-    using super_t = __basic_execution_policy<parallel_group<>, std::launch>;
+    using super_t = __basic_execution_policy<parallel_group<>, asyncable_executor<std::launch>>;
 
   public:
     parallel_execution_policy(size_t n)

@@ -1,0 +1,68 @@
+#pragma once
+
+// XXX this executor is just for porting in this branch
+// XXX we should get rid of it ASAP
+
+#include <exception_list>
+#include <vector>
+#include <future>
+
+namespace std
+{
+
+
+template<class Asyncable>
+class asyncable_executor
+{
+  public:
+    asyncable_executor(const Asyncable& asyncable)
+      : asyncable_(asyncable)
+    {}
+
+    const Asyncable& asyncable() const
+    {
+      return asyncable_;
+    }
+
+    Asyncable& asyncable()
+    {
+      return asyncable_;
+    }
+
+    template<class Function>
+    void bulk_sync(size_t n, Function f)
+    {
+      std::vector<std::future<void>> futures(n);
+
+      for(size_t i = 0; i < n; ++i)
+      {
+        // XXX I doubt this is how args should be forwarded in
+        //     we need to make a copy or something
+        //     an easy way to do this might be to create a closure
+        futures[i] = async(asyncable(), [=]
+        {
+          f(i);
+        });
+      }
+
+      __flatten_and_throw_exceptions(futures.begin(), futures.end());
+    }
+
+    template<class Function>
+    std::future<void> bulk_async(size_t n, Function f)
+    {
+      asyncable_executor *self = this;
+      return async(asyncable(), [=]
+      {
+        self->bulk_sync(n, f);
+      });
+    }
+
+  private:
+    Asyncable asyncable_;
+};
+
+
+}
+
+
