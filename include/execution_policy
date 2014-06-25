@@ -235,7 +235,7 @@ void __sync(std::sequential_execution_tag,
             const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
             Function f)
 {
-  exec.executor().bulk_sync(1, [=](size_t)
+  bulk_sync(exec.executor(), 1, [=](size_t)
   {
     using traits = std::execution_group_traits<ExecutionGroup>;
     
@@ -256,7 +256,7 @@ std::future<void> __async(std::sequential_execution_tag,
                           const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
                           Function f)
 {
-  return exec.executor().bulk_async(1, [=](size_t)
+  return bulk_async(exec.executor(), 1, [=](size_t)
   {
     using traits = std::execution_group_traits<ExecutionGroup>;
     
@@ -282,7 +282,7 @@ std::future<void> __async2(std::concurrent_execution_tag,
   auto domain = traits::domain(std::get<0>(exec.params()));
   
   // launch agents
-  return exec.executor().bulk_async(domain.size(), [=](size_t agent_idx)
+  return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
     auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
   

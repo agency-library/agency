@@ -29,31 +29,33 @@ class asyncable_executor
       return asyncable_;
     }
 
-    template<class Function>
-    std::future<void> bulk_async(size_t n, Function f)
-    {
-      std::vector<std::future<void>> futures(n);
-
-      for(size_t i = 0; i < n; ++i)
-      {
-        futures[i] = async(asyncable(), [=]
-        {
-          f(i);
-        });
-      }
-
-      return when_all(futures.begin(), futures.end());
-    }
-
-    template<class Function>
-    void bulk_sync(size_t n, Function f)
-    {
-      return bulk_async(n, f).get();
-    }
-
   private:
     Asyncable asyncable_;
 };
+
+
+template<class Asyncable, class Function>
+std::future<void> bulk_async(asyncable_executor<Asyncable>& ex, size_t n, Function f)
+{
+  std::vector<std::future<void>> futures(n);
+  
+  for(size_t i = 0; i < n; ++i)
+  {
+    futures[i] = async(ex.asyncable(), [=]
+    {
+      f(i);
+    });
+  }
+  
+  return when_all(futures.begin(), futures.end());
+}
+
+
+template<class Asyncable, class Function>
+void bulk_sync(asyncable_executor<Asyncable>& ex, size_t n, Function f)
+{
+  return std::bulk_async(ex, n, f).get();
+}
 
 
 }
