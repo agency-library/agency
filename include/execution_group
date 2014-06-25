@@ -152,9 +152,9 @@ class execution_group_traits
     }
 
     template<class OtherChild>
-    static rebind_execution_group<OtherChild> rebind_child(const group_type& g, OtherChild&& child)
+    static rebind_execution_group<OtherChild> rebind_child(group_type&& g, OtherChild&& child)
     {
-      return rebind_execution_group<OtherChild>(g.param(), g.index(), std::move(child));
+      return rebind_execution_group<OtherChild>(std::move(g), std::move(child));
     }
 
     // XXX rethink whether we need both reindex and something which links two groups, possibly with new indices
@@ -264,8 +264,8 @@ class __execution_group_base
   private:
     template<class> friend class execution_group_traits;
 
-    index_type  index_;
     domain_type domain_;
+    index_type  index_;
     child_type  child_;
 
     void reindex(index_type index)
@@ -276,11 +276,20 @@ class __execution_group_base
   protected:
     typedef execution_group_traits<child_type> child_traits;
 
+    // XXX three constructors is too many
     template<class Param>
-    __execution_group_base(const Param& params, size_type index, child_type&& chld)
-      : index_(index),
-        domain_(params.domain()),
+    __execution_group_base(const Param &params, index_type index, child_type&& chld)
+      : domain_(params.domain()),
+        index_(index),
         child_(std::move(chld))
+    {}
+
+    // the following two constructors are used by execution_group_traits
+
+    // XXX OtherConcurrentGroup must be a descendant of __execution_group_base<ExecutionCategory,OtherGroup>
+    template<class OtherExecutionGroup>
+    __execution_group_base(OtherExecutionGroup&& group, child_type&& chld)
+      : __execution_group_base(group.param(), group.index(), std::move(chld))
     {}
 
     template<class ParamTuple, class IndexTuple>
@@ -317,75 +326,36 @@ class parallel_group : public __execution_group_base<parallel_execution_tag, Exe
 template<class ExecutionGroup = std::agent>
 class concurrent_group : public __execution_group_base<concurrent_execution_tag, ExecutionGroup>
 {
-  private:
-    typedef __execution_group_base<concurrent_execution_tag, ExecutionGroup> super_t;
-
   public:
-    typedef typename super_t::domain_type domain_type;
-    typedef typename super_t::index_type  index_type;
-    typedef typename super_t::size_type   size_type;
-
-    class param_type : public super_t::param_type
-    {
-      public:
-        param_type(const param_type &other)
-          : param_type(other.domain(), other.barrier())
-        {}
-
-        param_type(const domain_type& domain, std::reference_wrapper<std::barrier> barrier)
-          : super_t::param_type(domain),
-            barrier_(barrier)
-        {}
-
-        param_type(index_type min, index_type max, std::reference_wrapper<std::barrier> barrier)
-          : param_type(domain_type(min,max), barrier)
-        {}
-
-        param_type(size_type n, std::reference_wrapper<std::barrier> barrier)
-          : param_type(size_type{0}, n, barrier)
-        {}
-
-        std::reference_wrapper<std::barrier> barrier() const
-        {
-          return barrier_;
-        }
-
-      private:
-        std::reference_wrapper<std::barrier> barrier_;
-    };
-
-    param_type param() const
-    {
-      return param_type(super_t::domain(), barrier_);
-    }
-
-    template<class OtherGroup>
-    struct rebind
-    {
-      typedef concurrent_group<OtherGroup> other;
-    };
-
     void wait() const
     {
-      barrier_.count_down_and_wait();
+      barrier_->count_down_and_wait();
     }
 
   private:
+    using super_t = __execution_group_base<concurrent_execution_tag,ExecutionGroup>;
+
     template<class> friend class execution_group_traits;
 
-    template<class ParamTuple, class IndexTuple>
-    concurrent_group(const ParamTuple& params, const IndexTuple& indices)
-      : super_t(params, indices),
-        barrier_(std::get<0>(params).barrier())
+    friend void __set_barrier(concurrent_group &self, std::barrier *bar)
+    {
+      self.barrier_ = bar;
+    }
+
+    // XXX might be best to make this a shared_ptr
+    std::barrier *barrier_;
+
+    template<class OtherExecutionGroup> friend class concurrent_group;
+
+    // XXX OtherConcurrentGroup must be a descendant of an instance of concurrent_group<U>
+    template<class OtherConcurrentGroup>
+    concurrent_group(OtherConcurrentGroup&& group, typename concurrent_group::child_type&& chld)
+      : super_t(std::move(group), std::move(chld)),
+        barrier_(group.barrier_)
     {}
 
-    template<class Param>
-    concurrent_group(const Param& params, index_type index, ExecutionGroup&& chld)
-      : super_t(params, index, std::move(chld)),
-        barrier_(params.barrier())
-    {}
-
-    std::barrier &barrier_;
+  protected:
+    using __execution_group_base<concurrent_execution_tag, ExecutionGroup>::__execution_group_base;
 };
 
 

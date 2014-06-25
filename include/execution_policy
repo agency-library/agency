@@ -22,6 +22,7 @@
 #include <exception_list>
 #include <functional>
 #include <asyncable_executor>
+#include <memory>
 
 namespace std
 {
@@ -130,7 +131,7 @@ struct __async_outer_functor
       execution_group_traits<InnerGroup>::reindex(inner_group, inner_idx);
 
       // create a new group by rebinding the outer group's child
-      auto rebound_group = execution_group_traits<OuterGroup>::rebind_child(outer_group, std::move(inner_group));
+      auto rebound_group = execution_group_traits<OuterGroup>::rebind_child(std::move(outer_group), std::move(inner_group));
 
       // call f
       f(rebound_group, args...);
@@ -272,16 +273,16 @@ std::future<void> __async(std::sequential_execution_tag,
 
 
 template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
-void __sync2(std::concurrent_execution_tag,
-             const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
-             Function f)
+std::future<void> __async2(std::concurrent_execution_tag,
+                           const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
+                           Function f)
 {
   using traits = execution_group_traits<ExecutionGroup>;
   
   auto domain = traits::domain(std::get<0>(exec.params()));
   
   // launch agents
-  exec.executor().bulk_sync(domain.size(), [=](size_t agent_idx)
+  return exec.executor().bulk_async(domain.size(), [=](size_t agent_idx)
   {
     auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
   
@@ -291,11 +292,30 @@ void __sync2(std::concurrent_execution_tag,
 
 
 template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
-void __sync(std::concurrent_execution_tag,
-            const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
-            Function f)
+std::future<void> __async(std::concurrent_execution_tag,
+                          const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
+                          Function f)
 {
-  __sync2(std::concurrent_execution_tag(), exec, f);
+  return __async2(concurrent_execution_tag(), exec, f);
+}
+
+
+template<class ChildGroup, class BulkExecutor, class ExecutionCategory, class Function>
+std::future<void> __async(std::concurrent_execution_tag,
+                          const __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,ExecutionCategory>& exec,
+                          Function f)
+{
+  auto group_params = std::get<0>(exec.params());
+
+  // XXX shared_ptr might be too expensive for this
+  std::shared_ptr<std::barrier> bar = std::make_shared<std::barrier>(group_params.domain().size());
+
+  return __async2(concurrent_execution_tag(), exec, [=](concurrent_group<ChildGroup> &g)
+  {
+    __set_barrier(g, bar.get());
+  
+    f(g);
+  });
 }
 
 
@@ -304,74 +324,7 @@ void __sync(std::concurrent_execution_tag,
             const __basic_execution_policy<concurrent_group<>,BulkExecutor,ExecutionCategory>& exec,
             Function f)
 {
-  // do we need to create a barrier for this sync?
-  auto group_params = std::get<0>(exec.params());
-  if(__is_null(group_params.barrier()))
-  {
-    // create a new policy which has a reference to  barrier
-    std::barrier bar(group_params.domain().size());
-    auto exec2 = exec.regroup(group_params.domain(), bar);
-
-    return __sync2(concurrent_execution_tag(), exec2, f);
-  }
-  else
-  {
-    return __sync2(concurrent_execution_tag(), exec, f);
-  }
-}
-
-
-template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
-std::future<void> __async(std::concurrent_execution_tag,
-                          const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
-                          Function f)
-{
-  // XXX just call bulk_async directly
-  // XXX we'll need to check about creating a barrier here
-  // XXX the way we create a barrier is completely screwed up
-  // XXX basically we'll need to new a barrier here, and then have a single agent delete it at the
-  //     end of the task
-  // XXX if we insist that the group is convergent after f is invoked, then we can elect a thread to destroy
-  //     the barrier
-  // XXX we can do that by inserting a wait() after f with some
-  // XXX we should eliminate the option to allow the user to provide his own barrier
-  //     * there's no way to check preconditions such as making sure the number of participants is correct
-  //     * the way we make a null reference_wrapper is hacky
-  //     * the way shared objects are constructed is ill-defined
-  return std::async(std::launch::async, [=]
-  {
-    std::sync(exec, f);
-  });
-
-  //// XXX code should work more like this once we remove the option of a user-provided barrier:
-  //using traits = execution_group_traits<ExecutionGroup>;
-  //
-  //auto domain = traits::domain(std::get<0>(exec.params()));
-
-  //// XXX this should be put in a std::unique_ptr or something
-  //std::barrier *bar = new std::barrier(domain.size());
-  //
-  //// launch agents
-  //return exec.executor().bulk_async(domain.size(), [=](size_t agent_idx)
-  //{
-  //  auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
-
-  //  __set_barrier(this_group, std::ref(*bar));
-  //
-  //  // XXX this invocation should happen in a try so we can catch and drop out of the
-  //  //     barrier
-  //  //     if the first agent throws, it will be tricky to delete the barrier
-  //  //     we could wrap the barrier in an RAII object (group_shared_ptr or something)
-  //  //     the object would be reference counted
-  //  f(this_group);
-
-  //  this_group.wait();
-
-  //  if(agent_idx == 0)
-  //  {
-  //    delete bar;
-  //  }
-  //});
+  return std::async(exec, f).wait();
 }
 
 
@@ -421,41 +374,17 @@ template<> struct is_execution_policy<sequential_execution_policy> : std::true_t
 const sequential_execution_policy seq{1};
 
 
-template<typename T>
-std::reference_wrapper<T> __nullref()
-{
-  return std::reference_wrapper<T>(*reinterpret_cast<T*>(0));
-}
-
-
-template<typename T>
-bool __is_null(std::reference_wrapper<T> ref)
-{
-  return &ref.get() == 0;
-}
-
-
 class concurrent_execution_policy : public __basic_execution_policy<concurrent_group<>, asyncable_executor<std::launch>>
 {
   private:
     using super_t = __basic_execution_policy<concurrent_group<>, asyncable_executor<std::launch>>;
 
   public:
-    inline concurrent_execution_policy(size_t indices_begin, size_t indices_end, std::reference_wrapper<std::barrier> barrier)
-      : super_t(group_param_type(indices_begin, indices_end, barrier), std::launch::async)
+    concurrent_execution_policy(size_t indices_begin, size_t indices_end)
+      : super_t(group_param_type(indices_begin, indices_end), std::launch::async)
     {}
 
-    inline concurrent_execution_policy(size_t indices_begin, size_t indices_end)
-      : concurrent_execution_policy(indices_begin, indices_end, __nullref<std::barrier>())
-    {}
-
-    inline concurrent_execution_policy(size_t n)
-      : concurrent_execution_policy(0, n)
-    {}
-
-    inline concurrent_execution_policy()
-      : concurrent_execution_policy(1)
-    {}
+    concurrent_execution_policy(size_t n) : concurrent_execution_policy(0, n) {}
 
     // this is the nested form of operator()
     template<class OtherExecutionPolicy>
@@ -479,7 +408,7 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_g
 template<> struct is_execution_policy<concurrent_execution_policy> : std::true_type {};
 
 
-const concurrent_execution_policy con;
+const concurrent_execution_policy con{1};
 
 
 template<class ExecutionGroup>
