@@ -342,6 +342,36 @@ std::future<void> __async(std::concurrent_execution_tag,
   {
     std::sync(exec, f);
   });
+
+  //// XXX code should work more like this once we remove the option of a user-provided barrier:
+  //using traits = execution_group_traits<ExecutionGroup>;
+  //
+  //auto domain = traits::domain(std::get<0>(exec.params()));
+
+  //// XXX this should be put in a std::unique_ptr or something
+  //std::barrier *bar = new std::barrier(domain.size());
+  //
+  //// launch agents
+  //return exec.executor().bulk_async(domain.size(), [=](size_t agent_idx)
+  //{
+  //  auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
+
+  //  __set_barrier(this_group, std::ref(*bar));
+  //
+  //  // XXX this invocation should happen in a try so we can catch and drop out of the
+  //  //     barrier
+  //  //     if the first agent throws, it will be tricky to delete the barrier
+  //  //     we could wrap the barrier in an RAII object (group_shared_ptr or something)
+  //  //     the object would be reference counted
+  //  f(this_group);
+
+  //  this_group.wait();
+
+  //  if(agent_idx == 0)
+  //  {
+  //    delete bar;
+  //  }
+  //});
 }
 
 
