@@ -328,7 +328,17 @@ std::future<void> __async(std::concurrent_execution_tag,
 {
   // XXX just call bulk_async directly
   // XXX we'll need to check about creating a barrier here
-  return async(exec.executor().asyncable(), [=]
+  // XXX the way we create a barrier is completely screwed up
+  // XXX basically we'll need to new a barrier here, and then have a single agent delete it at the
+  //     end of the task
+  // XXX if we insist that the group is convergent after f is invoked, then we can elect a thread to destroy
+  //     the barrier
+  // XXX we can do that by inserting a wait() after f with some
+  // XXX we should eliminate the option to allow the user to provide his own barrier
+  //     * there's no way to check preconditions such as making sure the number of participants is correct
+  //     * the way we make a null reference_wrapper is hacky
+  //     * the way shared objects are constructed is ill-defined
+  return std::async(std::launch::async, [=]
   {
     std::sync(exec, f);
   });
