@@ -6,6 +6,7 @@
 #include <exception_list>
 #include <vector>
 #include <future>
+#include <functional>
 
 namespace std
 {
@@ -34,16 +35,18 @@ class asyncable_executor
 };
 
 
-template<class Asyncable, class Function>
-std::future<void> bulk_async(asyncable_executor<Asyncable>& ex, size_t n, Function f)
+template<class Asyncable, class Function, class... Args>
+std::future<void> bulk_async(asyncable_executor<Asyncable>& ex, size_t n, Function&& f, Args&&... args)
 {
+  auto g = std::bind(f, std::placeholders::_1, args...);
+
   std::vector<std::future<void>> futures(n);
   
   for(size_t i = 0; i < n; ++i)
   {
     futures[i] = async(ex.asyncable(), [=]
     {
-      f(i);
+      g(i);
     });
   }
   
@@ -51,13 +54,12 @@ std::future<void> bulk_async(asyncable_executor<Asyncable>& ex, size_t n, Functi
 }
 
 
-template<class Asyncable, class Function>
-void bulk_sync(asyncable_executor<Asyncable>& ex, size_t n, Function f)
+template<class Asyncable, class Function, class... Args>
+void bulk_sync(asyncable_executor<Asyncable>& ex, size_t n, Function&& f, Args&&... args)
 {
-  return std::bulk_async(ex, n, f).get();
+  return std::bulk_async(ex, n, std::forward<Function>(f), std::forward<Args>(args)...).get();
 }
 
 
 }
-
 
