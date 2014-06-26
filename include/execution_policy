@@ -21,7 +21,6 @@
 #include <execution_group>
 #include <exception_list>
 #include <functional>
-#include <asyncable_executor>
 #include <sequential_executor>
 #include <concurrent_executor>
 #include <memory>
@@ -545,14 +544,14 @@ future<void> __async(std::parallel_execution_tag,
 }
 
 
-class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, asyncable_executor<std::launch>>
+class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, concurrent_executor>
 {
   private:
-    using super_t = __basic_execution_policy<parallel_group<>, asyncable_executor<std::launch>>;
+    using super_t = __basic_execution_policy<parallel_group<>, concurrent_executor>;
 
   public:
     parallel_execution_policy(size_t n)
-      : super_t(group_param_type(0, n), std::launch::async)
+      : super_t(group_param_type(0, n))
     {}
 
     parallel_execution_policy() : parallel_execution_policy(1) {}
