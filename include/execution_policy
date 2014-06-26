@@ -23,6 +23,7 @@
 #include <functional>
 #include <sequential_executor>
 #include <concurrent_executor>
+#include <parallel_executor>
 #include <memory>
 
 namespace std
@@ -276,7 +277,6 @@ std::future<void> __async2(std::concurrent_execution_tag,
   
   auto domain = traits::domain(std::get<0>(exec.params()));
   
-  // launch agents
   return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
     auto this_group = traits::make_group(exec.params(), std::make_tuple(0, domain.min() + agent_idx));
@@ -314,6 +314,7 @@ std::future<void> __async(std::concurrent_execution_tag,
 }
 
 
+// XXX should lower directly to bulk_async on executor
 template<class BulkExecutor, class ExecutionCategory, class Function>
 void __sync(std::concurrent_execution_tag,
             const __basic_execution_policy<concurrent_group<>,BulkExecutor,ExecutionCategory>& exec,
@@ -323,6 +324,25 @@ void __sync(std::concurrent_execution_tag,
 }
 
 
+template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
+future<void> __async(std::parallel_execution_tag,
+                     const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
+                     Function f)
+{
+  using traits = std::execution_group_traits<ExecutionGroup>;
+  auto params = exec.params();
+  auto domain = traits::domain(std::get<0>(params));
+
+  return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
+  {
+    auto this_group = traits::make_group(exec.params(), std::make_tuple(0, domain.min() + agent_idx));
+    
+    f(this_group);
+  });
+}
+
+
+// XXX should lower directly to bulk_sync on executor
 template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
 void __sync(std::parallel_execution_tag,
             const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
@@ -406,148 +426,10 @@ template<> struct is_execution_policy<concurrent_execution_policy> : std::true_t
 const concurrent_execution_policy con{1};
 
 
-template<class ExecutionGroup>
-class __subgroup
-{
-  public:
-    using parent_traits      = execution_group_traits<ExecutionGroup>;
-    using execution_category = typename parent_traits::execution_category;
-    using parent_param_type  = typename parent_traits::param_type;
-    using domain_type        = typename parent_traits::domain_type;
-    using index_type         = typename parent_traits::index_type;
-    using size_type          = typename parent_traits::size_type;
-    using child_type         = typename parent_traits::child_type;
-
-    class param_type
-    {
-      public:
-        param_type(const domain_type& subdomain, const parent_param_type& parent_params)
-          : subdomain_(subdomain),
-            parent_params_(parent_params)
-        {}
-
-        param_type(index_type min, index_type max, const parent_param_type& parent_params)
-          : param_type(domain_type{min,max}, parent_params)
-        {}
-
-        const domain_type& domain() const
-        {
-          return subdomain_;
-        }
-
-        const parent_param_type &parent_params() const
-        {
-          return parent_params_;
-        }
-
-      private:
-        domain_type subdomain_;
-        parent_param_type parent_params_;
-    };
-
-    template<class ParamTuple, class IndexTuple>
-    __subgroup(const domain_type& subdomain, const ParamTuple& parent_params, const IndexTuple& indices)
-      : subdomain_(subdomain),
-        group_(parent_traits::make_group(parent_params, indices))
-    {}
-
-    // tease __subgroup's params out of the ParamTuple's first element
-    // and forward everything along to the other constructor
-    template<class ParamTuple, class IndexTuple>
-    __subgroup(const ParamTuple& params, const IndexTuple& indices)
-      : __subgroup(std::get<0>(params).domain(),
-                   params,
-                   indices)
-    {}
-
-    param_type param() const
-    {
-      return param_type(domain(), group().param());
-    }
-
-    const domain_type& domain() const
-    {
-      return subdomain_;
-    }
-
-    size_type size() const
-    {
-      return subdomain_.size();
-    }
-
-    ExecutionGroup &group()
-    {
-      return group_;
-    }
-
-    const ExecutionGroup &group() const
-    {
-      return group_;
-    }
-
-    index_type index() const
-    {
-      return group().index();
-    }
-
-    child_type &child()
-    {
-      return group().child();
-    }
-
-  private:
-    domain_type subdomain_;
-    ExecutionGroup group_;
-};
-
-
-inline unsigned int __log2(unsigned int x)
-{
-  unsigned int result = 0;
-  while(x >>= 1) ++result;
-  return result;
-}
-
-
-template<class ExecutionGroup, class BulkExecutor, class ExecutionCategory, class Function>
-future<void> __async(std::parallel_execution_tag,
-                     const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
-                     Function f)
-{
-  typedef execution_group_traits<ExecutionGroup> traits;
-  typedef typename traits::size_type             size_type;
-
-  auto group_params = std::get<0>(exec.params());
-
-  auto domain = traits::domain(group_params);
-  auto group_size = domain.size();
-
-  const size_type min_num_agents_per_launch = 1000;
-  size_type num_concurrent_agents = (group_size + min_num_agents_per_launch - 1) / min_num_agents_per_launch;
-  const size_type subscription = std::max(1u, __log2(std::min(1u,std::thread::hardware_concurrency())));
-
-  num_concurrent_agents = std::min<size_t>(subscription * std::thread::hardware_concurrency(), num_concurrent_agents);
-  const size_type num_seq_agents_per_concurrent = (group_size + num_concurrent_agents - 1) / num_concurrent_agents;
-
-  // XXX we could avoid creating a concurrent_group (and its barrier) here if we wanted to
-  // XXX we should just do a bulk_async here instead of relying on std::con
-  return std::async(std::con(num_concurrent_agents).on(exec.executor()), [=](concurrent_group<> &g)
-  {
-    auto subgroup_begin = g.child().index() * num_seq_agents_per_concurrent;
-    auto subgroup_end   = std::min(group_size, subgroup_begin + num_seq_agents_per_concurrent);
-
-    std::sync(std::seq.regroup<__subgroup<ExecutionGroup>>(subgroup_begin, subgroup_end, group_params), [=](__subgroup<ExecutionGroup> &subgroup)
-    {
-      f(subgroup.group());
-    });
-  });
-}
-
-
-class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, concurrent_executor>
+class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, parallel_executor>
 {
   private:
-    using super_t = __basic_execution_policy<parallel_group<>, concurrent_executor>;
+    using super_t = __basic_execution_policy<parallel_group<>, parallel_executor>;
 
   public:
     parallel_execution_policy(size_t n)
