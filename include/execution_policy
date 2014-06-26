@@ -23,6 +23,7 @@
 #include <functional>
 #include <asyncable_executor>
 #include <sequential_executor>
+#include <concurrent_executor>
 #include <memory>
 
 namespace std
@@ -279,7 +280,7 @@ std::future<void> __async2(std::concurrent_execution_tag,
   // launch agents
   return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
+    auto this_group = traits::make_group(exec.params(), std::make_tuple(0, domain.min() + agent_idx));
   
     f(this_group);
   });
@@ -369,14 +370,14 @@ template<> struct is_execution_policy<sequential_execution_policy> : std::true_t
 const sequential_execution_policy seq{1};
 
 
-class concurrent_execution_policy : public __basic_execution_policy<concurrent_group<>, asyncable_executor<std::launch>>
+class concurrent_execution_policy : public __basic_execution_policy<concurrent_group<>, concurrent_executor>
 {
   private:
-    using super_t = __basic_execution_policy<concurrent_group<>, asyncable_executor<std::launch>>;
+    using super_t = __basic_execution_policy<concurrent_group<>, concurrent_executor>;
 
   public:
     concurrent_execution_policy(size_t indices_begin, size_t indices_end)
-      : super_t(group_param_type(indices_begin, indices_end), std::launch::async)
+      : super_t(group_param_type(indices_begin, indices_end))
     {}
 
     concurrent_execution_policy(size_t n) : concurrent_execution_policy(0, n) {}
@@ -522,8 +523,7 @@ future<void> __async(std::parallel_execution_tag,
   auto domain = traits::domain(group_params);
   auto group_size = domain.size();
 
-//  const size_type min_num_agents_per_launch = 1000;
-  const size_type min_num_agents_per_launch = 4;
+  const size_type min_num_agents_per_launch = 1000;
   size_type num_concurrent_agents = (group_size + min_num_agents_per_launch - 1) / min_num_agents_per_launch;
   const size_type subscription = std::max(1u, __log2(std::min(1u,std::thread::hardware_concurrency())));
 
