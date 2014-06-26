@@ -4,8 +4,8 @@
 #include <future>
 #include <typeinfo>
 #include <tuple>
+#include <functional>
 #include "variant.hpp"
-#include "closure.hpp"
 
 namespace std
 {
@@ -231,9 +231,9 @@ struct __async_processor_visitor
 
 template<class Function, class... Args>
 auto __make_async_processor_visitor(Function&& f, Args&&... args) ->
-  __async_processor_visitor<closure<Function,Args...>>
+  __async_processor_visitor<decltype(std::bind(f, args...))>
 {
-  auto closure = make_closure(std::forward<Function>(f), std::forward<Args>(args)...);
+  auto closure = std::bind(f, args...);
 
   return __async_processor_visitor<decltype(closure)>(closure);
 }
