@@ -100,6 +100,25 @@ std::future<typename std::result_of<Function(Args...)>::type>
 }
 
 
+template<class Function, class... Args>
+std::future<void> bulk_async(cpu_id proc, size_t n, Function&& f, Args&&... args)
+{
+  auto g = std::bind(f, std::placeholders::_1, args...);
+
+  std::vector<std::future<void>> futures(n);
+  
+  for(size_t i = 0; i < n; ++i)
+  {
+    futures[i] = async(proc, [=]
+    {
+      g(i);
+    });
+  }
+  
+  return when_all(futures.begin(), futures.end());
+}
+
+
 // XXX should this exist?
 template<class Function, class... Args>
 typename std::result_of<Function(Args...)>::type
@@ -112,6 +131,13 @@ typename std::result_of<Function(Args...)>::type
   }
 
   return async(proc, std::forward<Function>(f), std::forward<Args>(args)...).get();
+}
+
+
+template<class Function, class... Args>
+void bulk_sync(cpu_id proc, size_t n, Function&& f, Args&&... args)
+{
+  return std::bulk_async(proc, n, std::forward<Function>(f), std::forward<Args>(args)...).get();
 }
 
 
