@@ -191,12 +191,7 @@ class __basic_execution_policy
       return params_;
     }
 
-    const BulkExecutor& executor() const
-    {
-      return executor_;
-    }
-
-    BulkExecutor& executor()
+    BulkExecutor& executor() const
     {
       return executor_;
     }
@@ -227,7 +222,11 @@ class __basic_execution_policy
 
   protected:
     std::pair<group_param_type, agent_param_type> params_;
-    BulkExecutor executor_;
+
+    // executor_ needs to be mutable, because:
+    // * the global execution policy objects are constexpr
+    // * executor.bulk_add() is a non-const member function
+    mutable BulkExecutor executor_;
 };
 
 
@@ -240,7 +239,7 @@ struct is_execution_policy<__basic_execution_policy<FlatExecutionGroup,BulkExecu
 // XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
 template<class ExecutionCategory1, class ExecutionGroup, class BulkExecutor, class ExecutionCategory2, class Function>
 void __sync(ExecutionCategory1,
-            __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory2>& exec,
+            const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory2>& exec,
             Function f)
 {
   using traits = std::execution_group_traits<ExecutionGroup>;
@@ -261,7 +260,7 @@ void __sync(ExecutionCategory1,
 // XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
 template<class ExecutionCategory1, class ExecutionGroup, class BulkExecutor, class ExecutionCategory2, class Function>
 std::future<void> __async(ExecutionCategory1,
-                          __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory2>& exec,
+                          const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory2>& exec,
                           Function f)
 {
   using traits = std::execution_group_traits<ExecutionGroup>;
@@ -279,7 +278,7 @@ std::future<void> __async(ExecutionCategory1,
 
 template<class ChildGroup, class BulkExecutor, class Function>
 std::future<void> __async(std::concurrent_execution_tag,
-                          __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
+                          const __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
                           Function f)
 {
   auto group_params = std::get<0>(exec.params());
@@ -299,7 +298,7 @@ std::future<void> __async(std::concurrent_execution_tag,
 
 template<class ChildGroup, class BulkExecutor, class Function>
 void __sync(std::concurrent_execution_tag,
-            __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
+            const __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
             Function f)
 {
   // call std::async(...).wait() so we're sure that we get our barrier constructed
@@ -424,7 +423,7 @@ sync(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
   // XXX the execution_category we dispatch on should be the category of the policy's executor
   using execution_category = typename decay_t<ExecutionPolicy>::execution_category;
-  return __sync(execution_category(), std::forward<ExecutionPolicy>(exec), std::bind(f, std::placeholders::_1, args...));
+  return __sync(execution_category(), exec, std::bind(f, std::placeholders::_1, args...));
 }
 
 
@@ -434,7 +433,7 @@ async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
   // XXX the execution_category we dispatch on should be the category of the policy's executor
   using execution_category = typename decay_t<ExecutionPolicy>::execution_category;
-  return __async(execution_category(), std::forward<ExecutionPolicy>(exec), std::bind(f, std::placeholders::_1, args...));
+  return __async(execution_category(), exec, std::bind(f, std::placeholders::_1, args...));
 }
 
 
