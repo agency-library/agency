@@ -14,12 +14,10 @@
 
 #include <future>
 #include <utility>
-#include <vector>
 #include <barrier>
 #include <functional>
 #include <type_traits>
 #include <execution_group>
-#include <exception_list>
 #include <functional>
 #include <sequential_executor>
 #include <concurrent_executor>
