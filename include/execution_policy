@@ -179,7 +179,7 @@ class __basic_execution_policy
         executor_(other.executor_)
     {} 
 
-    inline __basic_execution_policy(const group_param_type& group_params, const BulkExecutor& executor)
+    inline __basic_execution_policy(const group_param_type& group_params, const BulkExecutor& executor = BulkExecutor())
       : params_(group_params, agent_param_type()),
         executor_(executor)
     {}
