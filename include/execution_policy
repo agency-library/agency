@@ -22,6 +22,7 @@
 #include <exception_list>
 #include <functional>
 #include <asyncable_executor>
+#include <sequential_executor>
 #include <memory>
 
 namespace std
@@ -235,18 +236,15 @@ void __sync(std::sequential_execution_tag,
             const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
             Function f)
 {
-  bulk_sync(exec.executor(), 1, [=](size_t)
+  using traits = std::execution_group_traits<ExecutionGroup>;
+  auto params = exec.params();
+  auto domain = traits::domain(std::get<0>(params));
+
+  bulk_sync(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    using traits = std::execution_group_traits<ExecutionGroup>;
+    auto this_group = traits::make_group(exec.params(), std::make_tuple(0, domain.min() + agent_idx));
     
-    // execute agents sequentially
-    auto domain = traits::domain(std::get<0>(exec.params()));
-    for(auto agent_idx : domain)
-    {
-      auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
-    
-      f(this_group);
-    }
+    f(this_group);
   });
 }
 
@@ -256,18 +254,15 @@ std::future<void> __async(std::sequential_execution_tag,
                           const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory>& exec,
                           Function f)
 {
-  return bulk_async(exec.executor(), 1, [=](size_t)
+  using traits = std::execution_group_traits<ExecutionGroup>;
+  auto params = exec.params();
+  auto domain = traits::domain(std::get<0>(params));
+
+  return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    using traits = std::execution_group_traits<ExecutionGroup>;
+    auto this_group = traits::make_group(exec.params(), std::make_tuple(0, domain.min() + agent_idx));
     
-    // execute agents sequentially
-    auto domain = traits::domain(std::get<0>(exec.params()));
-    for(auto agent_idx : domain)
-    {
-      auto this_group = traits::make_group(exec.params(), std::make_tuple(0, agent_idx));
-    
-      f(this_group);
-    }
+    f(this_group);
   });
 }
 
@@ -337,14 +332,14 @@ void __sync(std::parallel_execution_tag,
 }
 
 
-class sequential_execution_policy : public __basic_execution_policy<sequential_group<>, asyncable_executor<std::launch>>
+class sequential_execution_policy : public __basic_execution_policy<sequential_group<>, sequential_executor>
 {
   private:
-    using super_t = __basic_execution_policy<sequential_group<>, asyncable_executor<std::launch>>;
+    using super_t = __basic_execution_policy<sequential_group<>, sequential_executor>;
 
   public:
     sequential_execution_policy(size_t indices_begin, size_t indices_end)
-      : super_t(group_param_type(indices_begin, indices_end), std::launch::deferred)
+      : super_t(group_param_type(indices_begin, indices_end))
     {}
 
     sequential_execution_policy(size_t n) : sequential_execution_policy(0, n) {}
@@ -527,7 +522,8 @@ future<void> __async(std::parallel_execution_tag,
   auto domain = traits::domain(group_params);
   auto group_size = domain.size();
 
-  const size_type min_num_agents_per_launch = 1000;
+//  const size_type min_num_agents_per_launch = 1000;
+  const size_type min_num_agents_per_launch = 4;
   size_type num_concurrent_agents = (group_size + min_num_agents_per_launch - 1) / min_num_agents_per_launch;
   const size_type subscription = std::max(1u, __log2(std::min(1u,std::thread::hardware_concurrency())));
 
