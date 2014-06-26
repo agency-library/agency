@@ -249,7 +249,7 @@ void __sync(ExecutionCategory1,
 
   bulk_sync(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto this_group = traits::make_group(exec.params(), std::make_tuple(0, domain.min() + agent_idx));
+    auto this_group = traits::make_group(exec.params(), std::make_tuple(0, domain[agent_idx]));
     
     f(this_group);
   });
@@ -270,7 +270,7 @@ std::future<void> __async(ExecutionCategory1,
 
   return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto this_group = traits::make_group(params, std::make_tuple(0, domain.min() + agent_idx));
+    auto this_group = traits::make_group(params, std::make_tuple(0, domain[agent_idx]));
     
     f(this_group);
   });
