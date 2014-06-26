@@ -1,0 +1,49 @@
+#pragma once
+
+#include <future>
+#include <execution_group> // for execution categories
+
+namespace std
+{
+
+
+class sequential_executor
+{
+  public:
+    using execution_category = std::sequential_execution_tag;
+
+    // XXX we could potentially parameterize this
+    using index_type = size_t;
+
+    template<class Function>
+    void bulk_add(size_t n, Function f)
+    {
+      for(index_type i = 0; i < n; ++i)
+      {
+        f(i);
+      }
+    }
+};
+
+
+template<class Function, class... Args>
+void bulk_sync(sequential_executor& ex, size_t n, Function&& f, Args&&... args)
+{
+  ex.bulk_add(n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...));
+}
+
+
+template<class Function, class... Args>
+std::future<void> bulk_async(sequential_executor& ex, size_t n, Function&& f, Args&&... args)
+{
+  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::function<Args>(args)...);
+
+  return std::async(std::launch::deferred, [=,&ex]()
+  {
+    bulk_sync(ex, n, g);
+  });
+}
+
+
+}
+
