@@ -171,6 +171,7 @@ class __basic_execution_policy
 {
   public:
     using execution_group_type = FlatExecutionGroup;
+    using executor_type        = BulkExecutor;
     using execution_category   = ExecutionCategory;
     using group_traits         = std::execution_group_traits<execution_group_type>;
     using group_param_type     = typename group_traits::param_type;
@@ -181,7 +182,7 @@ class __basic_execution_policy
         executor_(other.executor_)
     {} 
 
-    inline __basic_execution_policy(const group_param_type& group_params, const BulkExecutor& executor = BulkExecutor())
+    inline __basic_execution_policy(const group_param_type& group_params, const executor_type& executor = executor_type())
       : params_(group_params, agent_param_type()),
         executor_(executor)
     {}
@@ -191,7 +192,7 @@ class __basic_execution_policy
       return params_;
     }
 
-    BulkExecutor& executor() const
+    executor_type& executor() const
     {
       return executor_;
     }
@@ -206,12 +207,12 @@ class __basic_execution_policy
     // XXX regroup() should check that OtherExecutionGroup's execution_category is compatible with 
     //     ExecutionCategory (somehow)
     template<class OtherFlatExecutionGroup, class... Args>
-    __basic_execution_policy<OtherFlatExecutionGroup,BulkExecutor,execution_category>
+    __basic_execution_policy<OtherFlatExecutionGroup,executor_type,execution_category>
       regroup(Args&&... args) const
     {
       using param_type = typename std::execution_group_traits<OtherFlatExecutionGroup>::param_type;
       auto group_params = param_type(std::forward<Args>(args)...); 
-      return __basic_execution_policy<OtherFlatExecutionGroup,BulkExecutor,execution_category>(group_params, executor());
+      return __basic_execution_policy<OtherFlatExecutionGroup,executor_type,execution_category>(group_params, executor());
     }
 
     template<class OtherBulkExecutor>
@@ -226,7 +227,7 @@ class __basic_execution_policy
     // executor_ needs to be mutable, because:
     // * the global execution policy objects are constexpr
     // * executor.bulk_add() is a non-const member function
-    mutable BulkExecutor executor_;
+    mutable executor_type executor_;
 };
 
 
