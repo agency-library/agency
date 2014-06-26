@@ -191,9 +191,12 @@ class __basic_execution_policy
       return params_;
     }
 
-    // XXX should this function be const?
-    // XXX probably should have a const and non-const function member
-    BulkExecutor& executor() const
+    const BulkExecutor& executor() const
+    {
+      return executor_;
+    }
+
+    BulkExecutor& executor()
     {
       return executor_;
     }
@@ -224,9 +227,7 @@ class __basic_execution_policy
 
   protected:
     std::pair<group_param_type, agent_param_type> params_;
-
-    // XXX executor_ should not be mutable
-    mutable BulkExecutor executor_;
+    BulkExecutor executor_;
 };
 
 
@@ -234,13 +235,12 @@ template<class FlatExecutionGroup, class BulkExecutor, class ExecutionCategory>
 struct is_execution_policy<__basic_execution_policy<FlatExecutionGroup,BulkExecutor,ExecutionCategory>> : std::true_type {};
 
 
-// XXX exec should not be const
-// XXX ExecutionCategory1 corresponds to the category of the executor
+// ExecutionCategory1 corresponds to the category of the executor
 // XXX ExecutionCategory2 corresponds to the category of the policy
 // XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
 template<class ExecutionCategory1, class ExecutionGroup, class BulkExecutor, class ExecutionCategory2, class Function>
 void __sync(ExecutionCategory1,
-            const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory2>& exec,
+            __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory2>& exec,
             Function f)
 {
   using traits = std::execution_group_traits<ExecutionGroup>;
@@ -256,13 +256,12 @@ void __sync(ExecutionCategory1,
 }
 
 
-// XXX exec should not be const
-// XXX ExecutionCategory1 corresponds to the category of the executor
+// ExecutionCategory1 corresponds to the category of the executor
 // XXX ExecutionCategory2 corresponds to the category of the policy
 // XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
 template<class ExecutionCategory1, class ExecutionGroup, class BulkExecutor, class ExecutionCategory2, class Function>
 std::future<void> __async(ExecutionCategory1,
-                          const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory2>& exec,
+                          __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory2>& exec,
                           Function f)
 {
   using traits = std::execution_group_traits<ExecutionGroup>;
@@ -278,10 +277,9 @@ std::future<void> __async(ExecutionCategory1,
 }
 
 
-// XXX exec should not be const
 template<class ChildGroup, class BulkExecutor, class Function>
 std::future<void> __async(std::concurrent_execution_tag,
-                          const __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
+                          __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
                           Function f)
 {
   auto group_params = std::get<0>(exec.params());
@@ -299,10 +297,9 @@ std::future<void> __async(std::concurrent_execution_tag,
 }
 
 
-// XXX exec should not be const
 template<class ChildGroup, class BulkExecutor, class Function>
 void __sync(std::concurrent_execution_tag,
-            const __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
+            __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
             Function f)
 {
   // call std::async(...).wait() so we're sure that we get our barrier constructed
