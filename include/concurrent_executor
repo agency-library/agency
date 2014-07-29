@@ -66,9 +66,9 @@ std::future<void> bulk_async(concurrent_executor& ex, size_t n, Function&& f, Ar
 
 
 template<class Function, class... Args>
-void bulk_sync(concurrent_executor& ex, size_t n, Function&& f, Args&&... args)
+void bulk_invoke(concurrent_executor& ex, size_t n, Function&& f, Args&&... args)
 {
-  std::bulk_async(ex, n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...)).wait();
+  std::bulk_invoke(ex, n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...)).wait();
 }
 
 

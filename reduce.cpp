@@ -31,7 +31,7 @@ T reduce(Iterator first, Iterator last, T init, BinaryFunction binary_op)
   auto num_partitions = (n + partition_size - 1) / partition_size;
   std::vector<T> partial_sums(num_partitions);
 
-  std::sync(std::par(num_partitions), [=,&partial_sums](std::parallel_group<>& g)
+  std::bulk_invoke(std::par(num_partitions), [=,&partial_sums](std::parallel_group<>& g)
   {
     auto i = g.child().index();
 

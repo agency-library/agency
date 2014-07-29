@@ -27,7 +27,7 @@ class sequential_executor
 
 
 template<class Function, class... Args>
-void bulk_sync(sequential_executor& ex, size_t n, Function&& f, Args&&... args)
+void bulk_invoke(sequential_executor& ex, size_t n, Function&& f, Args&&... args)
 {
   ex.bulk_add(n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...));
 }
@@ -40,7 +40,7 @@ std::future<void> bulk_async(sequential_executor& ex, size_t n, Function&& f, Ar
 
   return std::async(std::launch::deferred, [=,&ex]()
   {
-    bulk_sync(ex, n, g);
+    std::bulk_invoke(ex, n, g);
   });
 }
 

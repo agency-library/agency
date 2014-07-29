@@ -94,12 +94,12 @@ std::future<void> bulk_async(parallel_executor& ex, size_t n, Function&& f, Args
 
   auto partitioning = ex.partition(n);
 
-  return bulk_async(ex.con(), partitioning.first, [=,&ex](size_t outer_idx)
+  return std::bulk_async(ex.con(), partitioning.first, [=,&ex](size_t outer_idx)
   {
     auto subgroup_begin = outer_idx * partitioning.second;
     auto subgroup_end   = std::min(n, subgroup_begin + partitioning.second);
 
-    bulk_sync(ex.seq(), subgroup_end - subgroup_begin, [=](size_t inner_idx)
+    std::bulk_invoke(ex.seq(), subgroup_end - subgroup_begin, [=](size_t inner_idx)
     {
       auto index = subgroup_begin + inner_idx;
 
@@ -110,7 +110,7 @@ std::future<void> bulk_async(parallel_executor& ex, size_t n, Function&& f, Args
 
 
 template<class Function, class... Args>
-void bulk_sync(parallel_executor& ex, size_t n, Function&& f, Args&&... args)
+void bulk_invoke(parallel_executor& ex, size_t n, Function&& f, Args&&... args)
 {
   std::bulk_async(ex, n, std::forward<Function>(f), std::forward<Args>(args)...).wait();
 }
