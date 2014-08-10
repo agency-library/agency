@@ -220,6 +220,7 @@ class __execution_group_base
     typedef typename domain_type::size_type                                       size_type;
 
     // XXX need to generalize __execution_group_base for higher dimensions
+    // XXX shouldn't this be the index_type of domain_type?
     typedef size_type                                                             index_type;
 
     class param_type

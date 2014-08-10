@@ -92,6 +92,7 @@ bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
 template<class OuterPolicy, class InnerPolicy>
 struct __nested_execution_policy
 {
+  // XXX shouldn't the execution_category be nested_execution_tag<outer,inner>?
   using execution_category = typename OuterPolicy::execution_category;
   OuterPolicy outer_exec;
   InnerPolicy inner_exec;
