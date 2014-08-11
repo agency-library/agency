@@ -98,6 +98,14 @@ struct parallel_execution_tag {};
 struct vector_execution_tag {};
 
 
+template<class ExecutionCategory1, class ExecutionCategory2>
+struct nested_execution_tag
+{
+  using outer_execution_category = ExecutionCategory1;
+  using inner_execution_category = ExecutionCategory2;
+};
+
+
 template<class ExecutionGroup>
 class execution_group_traits
 {
