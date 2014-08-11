@@ -560,8 +560,8 @@ class __grid_iterator
 
       for(size_t i = 0; i < rank; ++i)
       {
-        current_[i] = grid_.min()[i] + idx / stride[i];
-        idx %= stride[i];
+        current_[i] = grid_.min()[i] + idx / s[i];
+        idx %= s[i];
       }
 
       return *this;
