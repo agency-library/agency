@@ -22,6 +22,7 @@
 #include <sequential_executor>
 #include <concurrent_executor>
 #include <parallel_executor>
+#include <vector_executor>
 #include <memory>
 
 namespace std
@@ -416,6 +417,43 @@ template<> struct is_execution_policy<parallel_execution_policy> : std::true_typ
 
 
 const parallel_execution_policy par;
+
+
+class vector_execution_policy : public __basic_execution_policy<vector_group<>, vector_executor>
+{
+  private:
+    using super_t = __basic_execution_policy<vector_group<>, vector_executor>;
+
+  public:
+    vector_execution_policy(size_t n)
+      : super_t(group_param_type(0, n))
+    {}
+
+    vector_execution_policy() : vector_execution_policy(1) {}
+
+    // this is the nested form of operator()
+    template<class OtherExecutionPolicy>
+    __nested_execution_policy<vector_execution_policy, OtherExecutionPolicy>
+      operator()(size_t n, const OtherExecutionPolicy &exec) const
+    {
+      return __make_nested(operator()(n), exec);
+    }
+
+    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
+    // this is the flat form of operator()
+    template<class Arg1, class... Args>
+    typename __disable_if_nested_call<vector_execution_policy, Arg1, Args...>::type
+      operator()(Arg1&& arg1, Args&&... args) const
+    {
+      return vector_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+    }
+};
+
+
+template<> struct is_execution_policy<vector_execution_policy> : std::true_type {};
+
+
+const vector_execution_policy vec;
 
 
 template<class ExecutionPolicy, class Function, class... Args>

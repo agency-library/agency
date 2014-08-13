@@ -319,6 +319,17 @@ class parallel_group : public __execution_group_base<parallel_execution_tag, Exe
 
 
 template<class ExecutionGroup = std::agent>
+class vector_group : public __execution_group_base<vector_execution_tag, ExecutionGroup>
+{
+  private:
+    template<class> friend class execution_group_traits;
+
+  protected:
+    using __execution_group_base<vector_execution_tag, ExecutionGroup>::__execution_group_base;
+};
+
+
+template<class ExecutionGroup = std::agent>
 class concurrent_group : public __execution_group_base<concurrent_execution_tag, ExecutionGroup>
 {
   public:

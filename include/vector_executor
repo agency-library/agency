@@ -1,0 +1,52 @@
+#pragma once
+
+#include <future>
+#include <execution_categories>
+#include <functional>
+
+namespace std
+{
+
+
+class vector_executor
+{
+  public:
+    using execution_category = std::vector_execution_tag;
+
+    using index_type = size_t;
+
+    using shape_type = size_t;
+
+    template<class Function>
+    void bulk_add(shape_type n, Function f)
+    {
+#pragma GCC ivdep
+      for(index_type i = 0; i < n; ++i)
+      {
+        f(i);
+      }
+    }
+};
+
+
+template<class Function, class... Args>
+void bulk_invoke(vector_executor& ex, typename vector_executor::shape_type n, Function&& f, Args&&... args)
+{
+  ex.bulk_add(n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...));
+}
+
+
+template<class Function, class... Args>
+std::future<void> bulk_async(vector_executor& ex, typename vector_executor::shape_type n, Function&& f, Args&&... args)
+{
+  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::function<Args>(args)...);
+
+  return std::async(std::launch::deferred, [=,&ex]()
+  {
+    std::bulk_invoke(ex, n, g);
+  });
+}
+
+
+}
+
