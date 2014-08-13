@@ -4,10 +4,7 @@
 #include <vector>
 #include <memory>
 #include <future>
-
-// XXX for execution categories
-// XXX should move the tags somewhere else maybe so this file doesn't need to depend on groups
-#include <execution_group>
+#include <execution_categories>
 #include <algorithm>
 
 namespace std

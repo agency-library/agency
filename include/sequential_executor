@@ -1,7 +1,7 @@
 #pragma once
 
 #include <future>
-#include <execution_group> // for execution categories
+#include <execution_categories>
 
 namespace std
 {
