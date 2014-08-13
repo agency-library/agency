@@ -5,6 +5,7 @@
 #include <functional>
 #include <iostream>
 #include <coordinate>
+#include <execution_categories>
 #include "tuple_tail.hpp"
 
 namespace std
@@ -88,21 +89,6 @@ template<typename T, typename F>
 struct __lazy_conditional<false,T,F>
 {
   using type = typename F::type;
-};
-
-
-// XXX consider whether there should be derived-from relationships between these
-struct sequential_execution_tag {};
-struct concurrent_execution_tag {};
-struct parallel_execution_tag {};
-struct vector_execution_tag {};
-
-
-template<class ExecutionCategory1, class ExecutionCategory2>
-struct nested_execution_tag
-{
-  using outer_execution_category = ExecutionCategory1;
-  using inner_execution_category = ExecutionCategory2;
 };
 
 
