@@ -1,0 +1,117 @@
+#pragma once
+
+#include <execution_categories>
+#include <utility>
+#include <future>
+
+namespace std
+{
+
+
+template<class Executor1, class Executor2>
+class nested_executor
+{
+  public:
+    using outer_executor_type = Executor1;
+    using inner_executor_type = Executor2;
+
+    using execution_category = 
+      nested_execution_tag<
+        typename outer_executor_type::execution_category,
+        typename inner_executor_type::execution_category
+      >;
+
+    using shape_type = std::pair<
+      typename outer_executor_type::shape_type,
+      typename inner_executor_type::shape_type
+    >;
+
+    using index_type = std::pair<
+      typename Executor1::index_type,
+      typename Executor2::index_type
+    >;
+
+    nested_executor() = default;
+
+    nested_executor(const outer_executor_type& outer_ex,
+                    const inner_executor_type& inner_ex)
+      : outer_ex_(outer_ex),
+        inner_ex_(inner_ex)
+    {}
+
+    template<class Function>
+    void bulk_add(shape_type shape, Function f)
+    {
+      using outer_index_type = typename index_type::first_type;
+      using inner_index_type = typename index_type::second_type;
+
+      outer_executor().bulk_add(shape.first, [=](outer_index_type outer_idx)
+      {
+        inner_executor().bulk_add(shape.second, [=](inner_index_type inner_idx)
+        {
+          f(index_type(outer_idx, inner_idx));
+        });
+      });
+    }
+
+    outer_executor_type& outer_executor()
+    {
+      return outer_ex_;
+    }
+
+    const outer_executor_type& outer_executor() const
+    {
+      return outer_ex_;
+    }
+
+    inner_executor_type& inner_executor()
+    {
+      return inner_ex_;
+    }
+
+    const inner_executor_type& inner_executor() const
+    {
+      return inner_ex_;
+    }
+
+  private:
+    outer_executor_type outer_ex_;
+    inner_executor_type inner_ex_;
+};
+
+
+template<class Executor1, class Executor2, class Function, class... Args>
+std::future<void> bulk_async(nested_executor<Executor1,Executor2>& ex,
+                             typename nested_executor<Executor1,Executor2>::shape_type shape,
+                             Function&& f,
+                             Args&&... args)
+{
+  // XXX we really just want to do two nested bulk_asyncs and join the futures returned by the inner bulk_asyncs
+  // XXX we can't do that because there seems to be no way to collect those futures
+  // XXX maybe bulk_async should return a future<vector<result_type>> when the lambda has a result
+  
+  using outer_index_type = typename Executor1::index_type;
+
+  return bulk_async(ex.outer_executor(), shape.first, [=,&ex](outer_index_type outer_idx)
+  {
+    using inner_index_type = typename Executor2::index_type;
+
+    bulk_invoke(ex.inner_executor(), shape.second, [=](inner_index_type inner_idx)
+    {
+      using index_type = typename nested_executor<Executor1,Executor2>::index_type;
+
+      f(index_type(outer_idx, inner_idx));
+    });
+  });
+}
+
+
+template<class Executor1, class Executor2, class Function, class... Args>
+void bulk_invoke(nested_executor<Executor1,Executor2>& ex, size_t n, Function&& f, Args&&... args)
+{
+  std::bulk_invoke(ex, n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...)).wait();
+}
+
+
+}
+
