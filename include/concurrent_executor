@@ -16,6 +16,8 @@ class concurrent_executor
   public:
     using execution_category = std::sequential_execution_tag;
 
+    using shape_type = size_t;
+
     // XXX we could potentially parameterize this
     using index_type = size_t;
 
