@@ -1,6 +1,6 @@
 #include <iostream>
 #include <execution_policy>
-#include <processor>
+#include "processor.hpp"
 #include <mutex>
 
 int main()
@@ -47,11 +47,11 @@ int main()
 
   std::cout << "Testing std::seq.on()" << std::endl << std::endl;
 
-  auto cpu = std::cpu_id(3);
+  auto cpu = cpu_id(3);
 
   bulk_async(seq(10).on(cpu), [](std::sequential_group<> &g)
   {
-    std::cout << "agent " << g.child().index() << " on processor " << std::this_processor << std::endl;
+    std::cout << "agent " << g.child().index() << " on processor " << this_processor << std::endl;
   }).wait();
 
   std::cout << std::endl;
@@ -63,7 +63,7 @@ int main()
   bulk_async(con(10).on(cpu), [&mut](std::concurrent_group<> &g)
   {
     mut.lock();
-    std::cout << "agent " << g.child().index() << " on processor " << std::this_processor << " arriving at barrier" << std::endl;
+    std::cout << "agent " << g.child().index() << " on processor " << this_processor << " arriving at barrier" << std::endl;
     mut.unlock();
 
     g.wait();

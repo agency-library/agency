@@ -5,10 +5,8 @@
 #include <typeinfo>
 #include <tuple>
 #include <functional>
+#include <iostream>
 #include "variant.hpp"
-
-namespace std
-{
 
 
 class cpu_id
@@ -61,7 +59,7 @@ class cpu_id
       return lhs.handle_ >= rhs.handle_;
     }
 
-    friend ostream& operator<<(ostream &os, const cpu_id& id)
+    friend std::ostream& operator<<(std::ostream &os, const cpu_id& id)
     {
       return os << id.native_handle();
     }
@@ -137,7 +135,7 @@ typename std::result_of<Function(Args...)>::type
 template<class Function, class... Args>
 void bulk_sync(cpu_id proc, size_t n, Function&& f, Args&&... args)
 {
-  return std::bulk_async(proc, n, std::forward<Function>(f), std::forward<Args>(args)...).get();
+  return bulk_async(proc, n, std::forward<Function>(f), std::forward<Args>(args)...).get();
 }
 
 
@@ -184,12 +182,12 @@ class processor_id
       return lhs.index_ >= rhs.index_;
     }
 
-    friend ostream& operator<<(ostream& os, const processor_id& id)
+    friend std::ostream& operator<<(std::ostream& os, const processor_id& id)
     {
       return os << id.index_;
     }
 
-    const type_info& type() const
+    const std::type_info& type() const
     {
       return index_.type();
     }
@@ -214,7 +212,7 @@ class processor_id
         return false;
       }
 
-      friend inline ostream& operator<<(ostream& os, const unknown_id& id)
+      friend inline std::ostream& operator<<(std::ostream& os, const unknown_id& id)
       {
         return os << "<unknown processor>";
       }
@@ -250,7 +248,7 @@ struct __async_processor_visitor
   template<class ProcessorID>
   std::future<result_type> operator()(const ProcessorID& proc)
   {
-    return std::async(proc, f);
+    return async(proc, f);
   }
 };
 
@@ -291,6 +289,4 @@ typename std::result_of<Function(Args...)>::type
   return async(proc, std::forward<Function>(f), std::forward<Args>(args)...).get();
 }
 
-
-}
 
