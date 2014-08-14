@@ -2,6 +2,7 @@
 
 #include <future>
 #include <execution_categories>
+#include <functional>
 
 namespace std
 {
@@ -15,8 +16,10 @@ class sequential_executor
     // XXX we could potentially parameterize this
     using index_type = size_t;
 
+    using shape_type = size_t;
+
     template<class Function>
-    void bulk_add(size_t n, Function f)
+    void bulk_add(shape_type n, Function f)
     {
       for(index_type i = 0; i < n; ++i)
       {
@@ -27,14 +30,14 @@ class sequential_executor
 
 
 template<class Function, class... Args>
-void bulk_invoke(sequential_executor& ex, size_t n, Function&& f, Args&&... args)
+void bulk_invoke(sequential_executor& ex, typename sequential_executor::shape_type n, Function&& f, Args&&... args)
 {
   ex.bulk_add(n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...));
 }
 
 
 template<class Function, class... Args>
-std::future<void> bulk_async(sequential_executor& ex, size_t n, Function&& f, Args&&... args)
+std::future<void> bulk_async(sequential_executor& ex, typename sequential_executor::shape_type n, Function&& f, Args&&... args)
 {
   auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::function<Args>(args)...);
 
