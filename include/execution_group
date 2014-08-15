@@ -266,6 +266,15 @@ class __execution_group_base
     class param_type
     {
       public:
+        // copy from related param_types
+        // this allows us to copy from e.g.
+        // concurrent_group<>::param_type -> concurrent_group<sequential_group<>>::param_type
+        // the types aren't interoperable otherwise
+        template<class OtherParamType>
+        param_type(const OtherParamType& other)
+          : domain_(other.domain())
+        {}
+
         param_type(const param_type& other)
           : domain_(other.domain_)
         {}
