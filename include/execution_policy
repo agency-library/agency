@@ -173,23 +173,31 @@ class __basic_execution_policy
     using execution_group_type = FlatExecutionGroup;
     using executor_type        = BulkExecutor;
     using execution_category   = ExecutionCategory;
+
+  private:
     using group_traits         = std::execution_group_traits<execution_group_type>;
-    using group_param_type     = typename group_traits::param_type;
     using agent_param_type     = agent::param_type;
 
+  public:
+    using param_tuple_type     = typename group_traits::param_tuple_type;
+
     inline __basic_execution_policy(const __basic_execution_policy& other)
-      : params_(other.params_),
+      : param_tuple_(other.param_tuple_),
         executor_(other.executor_)
     {} 
 
-    inline __basic_execution_policy(const group_param_type& group_params, const executor_type& executor = executor_type())
-      : params_(group_params, agent_param_type()),
+    inline __basic_execution_policy(const param_tuple_type& param_tuple, const executor_type& executor = executor_type())
+      : param_tuple_(param_tuple),
         executor_(executor)
     {}
 
-    const std::pair<group_param_type, agent_param_type>& params() const
+    inline __basic_execution_policy(const typename group_traits::param_type& group_params, const executor_type& executor = executor_type())
+      : __basic_execution_policy(param_tuple_type(group_params, agent_param_type()), executor)
+    {}
+
+    const param_tuple_type& param_tuple() const
     {
-      return params_;
+      return param_tuple_;
     }
 
     executor_type& executor() const
@@ -218,11 +226,11 @@ class __basic_execution_policy
     template<class OtherBulkExecutor>
     __basic_execution_policy<FlatExecutionGroup,OtherBulkExecutor,ExecutionCategory> on(const OtherBulkExecutor& executor) const
     {
-      return __basic_execution_policy<FlatExecutionGroup,OtherBulkExecutor,ExecutionCategory>(std::get<0>(params()), executor);
+      return __basic_execution_policy<FlatExecutionGroup,OtherBulkExecutor,ExecutionCategory>(std::get<0>(param_tuple()), executor);
     }
 
   protected:
-    std::pair<group_param_type, agent_param_type> params_;
+    param_tuple_type param_tuple_;
 
     // executor_ needs to be mutable, because:
     // * the global execution policy objects are constexpr
@@ -244,12 +252,12 @@ void __bulk_invoke(ExecutionCategory1,
                    Function f)
 {
   using traits = std::execution_group_traits<ExecutionGroup>;
-  auto params = exec.params();
-  auto domain = traits::domain(std::get<0>(params));
+  auto param_tuple = exec.param_tuple();
+  auto domain = traits::domain(std::get<0>(param_tuple));
 
   bulk_invoke(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto this_group = traits::make_group(exec.params(), std::make_tuple(0, domain[agent_idx]));
+    auto this_group = traits::make_group(param_tuple, std::make_tuple(0, domain[agent_idx]));
     
     f(this_group);
   });
@@ -265,12 +273,12 @@ std::future<void> __bulk_async(ExecutionCategory1,
                                Function f)
 {
   using traits = std::execution_group_traits<ExecutionGroup>;
-  auto params = exec.params();
-  auto domain = traits::domain(std::get<0>(params));
+  auto param_tuple = exec.param_tuple();
+  auto domain = traits::domain(std::get<0>(param_tuple));
 
   return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto this_group = traits::make_group(params, std::make_tuple(0, domain[agent_idx]));
+    auto this_group = traits::make_group(param_tuple, std::make_tuple(0, domain[agent_idx]));
     
     f(this_group);
   });
@@ -282,7 +290,7 @@ std::future<void> __bulk_async(std::concurrent_execution_tag,
                                const __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
                                Function f)
 {
-  auto group_params = std::get<0>(exec.params());
+  auto group_params = std::get<0>(exec.param_tuple());
 
   // XXX shared_ptr might be too expensive for this
   std::shared_ptr<std::barrier> bar = std::make_shared<std::barrier>(group_params.domain().size());
@@ -314,8 +322,14 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_g
     using super_t = __basic_execution_policy<sequential_group<>, sequential_executor>;
 
   public:
+    using typename super_t::execution_group_type;
+
+    sequential_execution_policy(const execution_group_type::param_type& param)
+      : super_t(execution_group_traits<execution_group_type>::param_tuple_type(param, std::agent::param_type()))
+    {}
+
     sequential_execution_policy(size_t indices_begin, size_t indices_end)
-      : super_t(group_param_type(indices_begin, indices_end))
+      : sequential_execution_policy(execution_group_type::param_type(indices_begin, indices_end))
     {}
 
     sequential_execution_policy(size_t n) : sequential_execution_policy(0, n) {}
@@ -351,8 +365,14 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_g
     using super_t = __basic_execution_policy<concurrent_group<>, concurrent_executor>;
 
   public:
+    using typename super_t::execution_group_type;
+
+    concurrent_execution_policy(const execution_group_type::param_type& param)
+      : super_t(execution_group_traits<execution_group_type>::param_tuple_type(param, std::agent::param_type()))
+    {}
+
     concurrent_execution_policy(size_t indices_begin, size_t indices_end)
-      : super_t(group_param_type(indices_begin, indices_end))
+      : concurrent_execution_policy(execution_group_type::param_type(indices_begin, indices_end))
     {}
 
     concurrent_execution_policy(size_t n) : concurrent_execution_policy(0, n) {}
@@ -388,9 +408,17 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_group
     using super_t = __basic_execution_policy<parallel_group<>, parallel_executor>;
 
   public:
-    parallel_execution_policy(size_t n)
-      : super_t(group_param_type(0, n))
+    using typename super_t::execution_group_type;
+
+    parallel_execution_policy(const execution_group_type::param_type& param)
+      : super_t(execution_group_traits<execution_group_type>::param_tuple_type(param, std::agent::param_type()))
     {}
+
+    parallel_execution_policy(size_t indices_begin, size_t indices_end)
+      : parallel_execution_policy(execution_group_type::param_type(indices_begin, indices_end))
+    {}
+
+    parallel_execution_policy(size_t n) : parallel_execution_policy(0, n) {}
 
     parallel_execution_policy() : parallel_execution_policy(1) {}
 
@@ -425,9 +453,17 @@ class vector_execution_policy : public __basic_execution_policy<vector_group<>, 
     using super_t = __basic_execution_policy<vector_group<>, vector_executor>;
 
   public:
-    vector_execution_policy(size_t n)
-      : super_t(group_param_type(0, n))
+    using typename super_t::execution_group_type;
+
+    vector_execution_policy(const execution_group_type::param_type& param)
+      : super_t(execution_group_traits<execution_group_type>::param_tuple_type(param, std::agent::param_type()))
     {}
+
+    vector_execution_policy(size_t indices_begin, size_t indices_end)
+      : vector_execution_policy(execution_group_type::param_type(indices_begin, indices_end))
+    {}
+
+    vector_execution_policy(size_t n) : vector_execution_policy(0, n) {}
 
     vector_execution_policy() : vector_execution_policy(1) {}
 

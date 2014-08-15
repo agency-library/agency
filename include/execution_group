@@ -163,6 +163,52 @@ class execution_group_traits
     {
       return params.domain();
     }
+
+  private:
+    template<typename T>
+    struct child_param_tuple_impl
+    {
+      using child_type = typename execution_group_traits<T>::child_type;
+      using type = typename execution_group_traits<child_type>::param_tuple_type;
+    };
+
+
+    typedef typename __lazy_conditional<
+      __has_child_type<group_type>::value,
+      child_param_tuple_impl<group_type>,
+      __identity<std::tuple<>>
+    >::type child_param_tuple_type;
+
+
+    template<class... Params>
+    static std::tuple<param_type, Params...> param_tuple_impl(const param_type& head_param, const std::tuple<Params...>& tail_params)
+    {
+      return std::tuple_cat(std::make_tuple(head_param), tail_params);
+    }
+
+    template<class T>
+    static child_param_tuple_type child_param_tuple(T, const group_type& g, std::false_type)
+    {
+      return std::tuple<>();
+    }
+
+    template<class T>
+    static child_param_tuple_type child_param_tuple(T, const group_type& g, std::true_type)
+    {
+      return execution_group_traits<child_type>::child_param_tuple(g.child());
+    }
+
+
+  public:
+    // returns a tuple containing each node's param, beginning at the root of the hierarchy
+    // e.g. make_tuple(g.param(), g.child().param(), g.child().child().param(), ...)
+    static auto param_tuple(const group_type& g)
+      -> decltype(param_tuple_impl(g.param(), child_param_tuple(0, g, typename __has_child_type<group_type>::type())))
+    {
+      return param_tuple_impl(g.param(), child_param_tuple(0, g, typename __has_child_type<group_type>::type()));
+    }
+
+    using param_tuple_type = decltype(param_tuple(std::declval<group_type>()));
 };
 
 
@@ -287,6 +333,10 @@ class __execution_group_base
       : __execution_group_base(group.param(), group.index(), std::move(chld))
     {}
 
+    // XXX this ought to be the only constructor we require
+    // XXX eliminate the other two constructors we we've revamped __nested_execution_policy to
+    //     inherit from __basic_execution_policy
+    // XXX find a way to make this not a template
     template<class ParamTuple, class IndexTuple>
     __execution_group_base(const ParamTuple& params, const IndexTuple& indices)
       : __execution_group_base(std::get<0>(params),
