@@ -5,7 +5,7 @@ int main()
 {
   std::bulk_async(std::con(10), [](std::concurrent_agent<> &g)
   {
-    std::cout << "agent " << g.child().index() << " arriving at barrier" << std::endl;
+    std::cout << "agent " << g.index() << " arriving at barrier" << std::endl;
 
     g.wait();
 

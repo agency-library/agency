@@ -92,6 +92,10 @@ struct __lazy_conditional<false,T,F>
 };
 
 
+// XXX eliminate this
+struct rebind_child_tag {};
+
+
 template<class ExecutionAgent>
 class execution_agent_traits
 {
@@ -99,7 +103,7 @@ class execution_agent_traits
     template<class T>
     static constexpr size_t depth_impl(T, std::false_type has_child)
     {
-      return 0;
+      return 1;
     }
 
     template<class T>
@@ -123,7 +127,7 @@ class execution_agent_traits
 
     using index_type = decltype(std::declval<agent_type>().index());
 
-    using size_type = decltype(std::declval<agent_type>().size());
+    using size_type = decltype(std::declval<agent_type>().group_size());
 
     typedef typename __lazy_conditional<
       __has_child_type<agent_type>::value,
@@ -148,15 +152,7 @@ class execution_agent_traits
     template<class OtherChild>
     static rebind<OtherChild> rebind_child(agent_type&& g, OtherChild&& child)
     {
-      return rebind<OtherChild>(std::move(g), std::move(child));
-    }
-
-    // XXX rethink whether we need both reindex and something which links two groups, possibly with new indices
-    // XXX shouldn't we reindex the entire tree at the same time?
-    // XXX shouldn't we recieve a tuple of indices like make_agent()?
-    static void reindex(agent_type& g, index_type new_index)
-    {
-      g.reindex(new_index);
+      return rebind<OtherChild>(rebind_child_tag(), std::move(g), std::move(child));
     }
 
     static domain_type domain(const param_type& params)
@@ -212,68 +208,67 @@ class execution_agent_traits
 };
 
 
-class agent
+template<class ChildAgent>
+class __execution_agent_base_base
 {
   public:
-    using execution_category = sequential_execution_tag;
-    struct param_type {};
+    using child_type = ChildAgent;
 
-    typedef size_t    size_type;
-    typedef size_type index_type;
-
-    // XXX is size() necessary?
-    //     I don't think we ever use it
-    size_type size() const { return 1; }
-
-    size_type index() const { return index_; }
-
-    agent(agent&& other) = default;
-
-    param_type param() const
+    child_type& child()
     {
-      return param_type();
+      return child_;
     }
 
-  private:
-    friend class execution_agent_traits<agent>;
+    const child_type& child() const
+    {
+      return child_;
+    }
 
-    agent(const std::tuple<param_type>&, const std::tuple<size_type>& index)
-      : index_(std::get<0>(index))
+  protected:
+    template<class... Args>
+    __execution_agent_base_base(Args&&... args)
+      : child_(std::forward<Args>(args)...)
     {}
 
-    void reindex(index_type index)
-    {
-      index_ = index;
-    }
+    child_type child_;
+};
 
-    index_type index_;
+
+template<> 
+class __execution_agent_base_base<void>
+{
+  public:
+    template<class... Args>
+    __execution_agent_base_base(Args&&...)
+    {}
 };
 
 
 template<class ExecutionCategory, class ExecutionAgent>
-class __execution_agent_base
+class __execution_agent_base : public __execution_agent_base_base<ExecutionAgent>
 {
+  private:
+    using super_t = __execution_agent_base_base<ExecutionAgent>;
+
   public:
     using execution_category = ExecutionCategory; 
-    typedef ExecutionAgent                                                        child_type;
-    typedef regular_grid<typename execution_agent_traits<child_type>::index_type> domain_type;
-    typedef typename domain_type::size_type                                       size_type;
 
-    // XXX need to generalize __execution_group_base for higher dimensions
-    // XXX shouldn't this be the index_type of domain_type?
-    typedef size_type                                                             index_type;
+    typedef std::size_t                                                           index_type;
+    typedef regular_grid<index_type>                                              domain_type;
+    typedef typename domain_type::size_type                                       size_type;
 
     class param_type
     {
       public:
-        // copy from related param_types
-        // this allows us to copy from e.g.
-        // concurrent_agent<>::param_type -> concurrent_agent<sequential_agent<>>::param_type
-        // the types aren't interoperable otherwise
-        template<class OtherParamType>
-        param_type(const OtherParamType& other)
-          : domain_(other.domain())
-        {}
+        //// XXX get rid of this
+        //// copy from related param_types
+        //// this allows us to copy from e.g.
+        //// concurrent_agent<>::param_type -> concurrent_agent<sequential_agent<>>::param_type
+        //// the types aren't interoperable otherwise
+        //template<class OtherParamType>
+        //param_type(const OtherParamType& other)
+        //  : domain_(other.domain())
+        //{}
 
         param_type(const param_type& other)
           : domain_(other.domain_)
@@ -306,41 +301,47 @@ class __execution_agent_base
     }
 
     const domain_type& domain() const { return domain_; }
-    size_type size() const { return domain().size(); }
+    size_type group_size() const { return domain().size(); }
     index_type index() const { return index_; }
-    child_type &child() { return child_; }
-    const child_type &child() const { return child_; }
 
   private:
     template<class> friend class execution_agent_traits;
 
     domain_type domain_;
     index_type  index_;
-    child_type  child_;
-
-    void reindex(index_type index)
-    {
-      index_ = index;
-    }
 
   protected:
-    typedef execution_agent_traits<child_type> child_traits;
+//    typedef execution_agent_traits<child_type> child_traits;
 
-    // XXX three constructors is too many
-    template<class Param>
-    __execution_agent_base(const Param &params, index_type index, child_type&& chld)
-      : domain_(params.domain()),
-        index_(index),
-        child_(std::move(chld))
-    {}
-
-    // the following two constructors are used by execution_group_traits
+//    // XXX three constructors is too many
+//    template<class Param>
+//    __execution_agent_base(const Param &params, index_type index, child_type&& chld)
+//      : domain_(params.domain()),
+//        index_(index),
+//        child_(std::move(chld))
+//    {}
+//
+//    // the following two constructors are used by execution_group_traits
 
     // XXX OtherExecutionAgent must be a descendant of __execution_agent_base<ExecutionCategory,OtherAgent>
-    template<class OtherExecutionAgent>
-    __execution_agent_base(OtherExecutionAgent&& agent, child_type&& chld)
-      : __execution_agent_base(agent.param(), agent.index(), std::move(chld))
+    // XXX eliminate this
+    template<class OtherExecutionAgent, class Child>
+    __execution_agent_base(rebind_child_tag, OtherExecutionAgent&& agent, Child&& chld)
+      : super_t(std::move(chld)),
+        domain_(agent.domain()),
+        index_(agent.index())
     {}
+
+//    // XXX this ought to be the only constructor we require
+//    // XXX eliminate the other two constructors we we've revamped __nested_execution_policy to
+//    //     inherit from __basic_execution_policy
+//    // XXX find a way to make this not a template
+//    template<class ParamTuple, class IndexTuple>
+//    __execution_agent_base(const ParamTuple& params, const IndexTuple& indices)
+//      : __execution_agent_base(std::get<0>(params),
+//                               std::get<0>(indices),
+//                               child_traits::make_agent(tuple_tail(params), tuple_tail(indices)))
+//    {}
 
     // XXX this ought to be the only constructor we require
     // XXX eliminate the other two constructors we we've revamped __nested_execution_policy to
@@ -348,14 +349,14 @@ class __execution_agent_base
     // XXX find a way to make this not a template
     template<class ParamTuple, class IndexTuple>
     __execution_agent_base(const ParamTuple& params, const IndexTuple& indices)
-      : __execution_agent_base(std::get<0>(params),
-                               std::get<0>(indices),
-                               child_traits::make_agent(tuple_tail(params), tuple_tail(indices)))
+      : super_t(tuple_tail(params), tuple_tail(indices)),
+        domain_(std::get<0>(params).domain()),
+        index_(std::get<0>(indices))
     {}
 };
 
 
-template<class ExecutionAgent = std::agent>
+template<class ExecutionAgent = void>
 class sequential_agent : public __execution_agent_base<sequential_execution_tag, ExecutionAgent>
 {
   private:
@@ -366,7 +367,7 @@ class sequential_agent : public __execution_agent_base<sequential_execution_tag,
 };
 
 
-template<class ExecutionAgent = std::agent>
+template<class ExecutionAgent = void>
 class parallel_agent : public __execution_agent_base<parallel_execution_tag, ExecutionAgent>
 {
   private:
@@ -377,7 +378,7 @@ class parallel_agent : public __execution_agent_base<parallel_execution_tag, Exe
 };
 
 
-template<class ExecutionAgent = std::agent>
+template<class ExecutionAgent = void>
 class vector_agent : public __execution_agent_base<vector_execution_tag, ExecutionAgent>
 {
   private:
@@ -388,7 +389,7 @@ class vector_agent : public __execution_agent_base<vector_execution_tag, Executi
 };
 
 
-template<class ExecutionAgent = std::agent>
+template<class ExecutionAgent = void>
 class concurrent_agent : public __execution_agent_base<concurrent_execution_tag, ExecutionAgent>
 {
   public:
@@ -412,12 +413,12 @@ class concurrent_agent : public __execution_agent_base<concurrent_execution_tag,
 
     template<class OtherExecutionAgent> friend class concurrent_agent;
 
-    // XXX OtherConcurrentAgent must be a descendant of an instance of concurrent_agent<U>
-    template<class OtherConcurrentAgent>
-    concurrent_agent(OtherConcurrentAgent&& agent, typename concurrent_agent::child_type&& chld)
-      : super_t(std::move(agent), std::move(chld)),
-        barrier_(agent.barrier_)
-    {}
+//    // XXX OtherConcurrentAgent must be a descendant of an instance of concurrent_agent<U>
+//    template<class OtherConcurrentAgent>
+//    concurrent_agent(OtherConcurrentAgent&& agent, typename concurrent_agent::child_type&& chld)
+//      : super_t(std::move(agent), std::move(chld)),
+//        barrier_(agent.barrier_)
+//    {}
 
   protected:
     using __execution_agent_base<concurrent_execution_tag, ExecutionAgent>::__execution_agent_base;

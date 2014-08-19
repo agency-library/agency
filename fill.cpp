@@ -10,7 +10,7 @@ int main()
 
   auto f = std::bulk_async(std::par(n), [&](std::parallel_agent<> &g)
   {
-    int i = g.child().index();
+    int i = g.index();
     x[i] = 13;
   });
 

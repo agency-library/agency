@@ -11,7 +11,7 @@ int main()
 
   std::bulk_invoke(std::par(n), [&](std::parallel_agent<> &g)
   {
-    int i = g.child().index();
+    int i = g.index();
     z[i] = a * x[i] + y[i];
   });
 

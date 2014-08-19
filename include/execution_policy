@@ -124,14 +124,10 @@ struct __bulk_async_outer_functor
   {
     OuterAgent &outer_agent;
     Function f;
-    Index inner_idx;
 
     template<class InnerAgent, class... Args>
     void operator()(InnerAgent& inner_agent, Args&&... args) const
     {
-      // reindex the inner agent
-      execution_agent_traits<InnerAgent>::reindex(inner_agent, inner_idx);
-
       // create a new agent by rebinding the outer agent's child
       auto rebound_agent = execution_agent_traits<OuterAgent>::rebind_child(std::move(outer_agent), std::move(inner_agent));
 
@@ -148,7 +144,7 @@ struct __bulk_async_outer_functor
   {
     typedef typename execution_agent_traits<OuterAgent>::index_type index_type;
 
-    std::bulk_async(exec_args.inner_exec, inner_functor<OuterAgent,index_type>{outer_agent, f, outer_agent.child().index()}, args...).wait();
+    std::bulk_async(exec_args.inner_exec, inner_functor<OuterAgent,index_type>{outer_agent, f}, args...).wait();
   }
 };
 
@@ -176,7 +172,6 @@ class __basic_execution_policy
 
   private:
     using agent_traits         = std::execution_agent_traits<execution_agent_type>;
-    using agent_param_type     = agent::param_type;
 
   public:
     using param_tuple_type     = typename agent_traits::param_tuple_type;
@@ -192,7 +187,7 @@ class __basic_execution_policy
     {}
 
     inline __basic_execution_policy(const typename agent_traits::param_type& agent_params, const executor_type& executor = executor_type())
-      : __basic_execution_policy(param_tuple_type(agent_params, agent_param_type()), executor)
+      : __basic_execution_policy(param_tuple_type(agent_params), executor)
     {}
 
     const param_tuple_type& param_tuple() const
@@ -257,7 +252,9 @@ void __bulk_invoke(ExecutionCategory1,
 
   bulk_invoke(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto this_agent = traits::make_agent(param_tuple, std::make_tuple(0, domain[agent_idx]));
+    auto index_tuple = std::make_tuple(domain[agent_idx]);
+
+    auto this_agent = traits::make_agent(param_tuple, index_tuple);
     
     f(this_agent);
   });
@@ -278,7 +275,9 @@ std::future<void> __bulk_async(ExecutionCategory1,
 
   return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto this_agent = traits::make_agent(param_tuple, std::make_tuple(0, domain[agent_idx]));
+    auto index_tuple = std::make_tuple(domain[agent_idx]);
+
+    auto this_agent = traits::make_agent(param_tuple, index_tuple);
     
     f(this_agent);
   });
@@ -325,7 +324,7 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_a
     using typename super_t::execution_agent_type;
 
     sequential_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param, std::agent::param_type()))
+      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param))
     {}
 
     sequential_execution_policy(size_t indices_begin, size_t indices_end)
@@ -368,7 +367,7 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_a
     using typename super_t::execution_agent_type;
 
     concurrent_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param, std::agent::param_type()))
+      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param))
     {}
 
     concurrent_execution_policy(size_t indices_begin, size_t indices_end)
@@ -411,7 +410,7 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_agent
     using typename super_t::execution_agent_type;
 
     parallel_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param, std::agent::param_type()))
+      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param))
     {}
 
     parallel_execution_policy(size_t indices_begin, size_t indices_end)
@@ -456,7 +455,7 @@ class vector_execution_policy : public __basic_execution_policy<vector_agent<>, 
     using typename super_t::execution_agent_type;
 
     vector_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param, std::agent::param_type()))
+      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param))
     {}
 
     vector_execution_policy(size_t indices_begin, size_t indices_end)
