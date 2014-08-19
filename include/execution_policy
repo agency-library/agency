@@ -257,7 +257,7 @@ void __bulk_invoke(ExecutionCategory1,
 
   bulk_invoke(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto this_group = traits::make_group(param_tuple, std::make_tuple(0, domain[agent_idx]));
+    auto this_group = traits::make_agent(param_tuple, std::make_tuple(0, domain[agent_idx]));
     
     f(this_group);
   });
@@ -278,7 +278,7 @@ std::future<void> __bulk_async(ExecutionCategory1,
 
   return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto this_group = traits::make_group(param_tuple, std::make_tuple(0, domain[agent_idx]));
+    auto this_group = traits::make_agent(param_tuple, std::make_tuple(0, domain[agent_idx]));
     
     f(this_group);
   });
