@@ -12,17 +12,17 @@ namespace std
 {
 
 
-template<class ExecutionGroup, class OtherChild>
-struct __rebind_execution_group
+template<class ExecutionAgent, class OtherChild>
+struct __rebind_execution_agent
 {
-  typedef typename ExecutionGroup::template rebind<OtherChild>::other type;
+  typedef typename ExecutionAgent::template rebind<OtherChild>::other type;
 };
 
 
-template<template<class, class...> class ExecutionGroup, class OriginalChild, class... T, class OtherChild>
-struct __rebind_execution_group<ExecutionGroup<OriginalChild, T...>, OtherChild>
+template<template<class, class...> class ExecutionAgent, class OriginalChild, class... T, class OtherChild>
+struct __rebind_execution_agent<ExecutionAgent<OriginalChild, T...>, OtherChild>
 {
-  typedef ExecutionGroup<OtherChild, T...> type;
+  typedef ExecutionAgent<OtherChild, T...> type;
 };
 
 
@@ -137,7 +137,7 @@ class execution_group_traits
     constexpr static size_t depth = depth_impl(0, typename __has_child_type<group_type>::type());
     
     template<class OtherChild>
-    using rebind_execution_group = typename __rebind_execution_group<group_type, OtherChild>::type;
+    using rebind = typename __rebind_execution_agent<group_type, OtherChild>::type;
 
     template<class ParamTuple, class IndexTuple>
     static group_type make_agent(const ParamTuple& params, const IndexTuple& indices)
@@ -146,9 +146,9 @@ class execution_group_traits
     }
 
     template<class OtherChild>
-    static rebind_execution_group<OtherChild> rebind_child(group_type&& g, OtherChild&& child)
+    static rebind<OtherChild> rebind_child(group_type&& g, OtherChild&& child)
     {
-      return rebind_execution_group<OtherChild>(std::move(g), std::move(child));
+      return rebind<OtherChild>(std::move(g), std::move(child));
     }
 
     // XXX rethink whether we need both reindex and something which links two groups, possibly with new indices
