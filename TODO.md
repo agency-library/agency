@@ -12,3 +12,6 @@ Should enable these simplifications:
 maybe all of these types could convert to std::agent, which would forget its children and execution category
 or we could use type erasure to preserve the hierarchy somehow
 
+Miscellaneous:
+  * rename .bulk_add() to .bulk_execute()
+
