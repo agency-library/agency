@@ -92,8 +92,8 @@ struct __lazy_conditional<false,T,F>
 };
 
 
-template<class ExecutionGroup>
-class execution_group_traits
+template<class ExecutionAgent>
+class execution_agent_traits
 {
   private:
     template<class T>
@@ -105,48 +105,48 @@ class execution_group_traits
     template<class T>
     static constexpr size_t depth_impl(T, std::true_type has_child)
     {
-      return 1 + execution_group_traits<child_type>::depth;
+      return 1 + execution_agent_traits<child_type>::depth;
     }
 
   public:
-    using group_type = ExecutionGroup;
+    using agent_type = ExecutionAgent;
 
-    using execution_category = typename group_type::execution_category;
+    using execution_category = typename agent_type::execution_category;
     
-    using param_type = typename group_type::param_type;
+    using param_type = typename agent_type::param_type;
 
     using domain_type = typename __lazy_conditional<
-      __has_domain<group_type>::value,
-      __domain_type<group_type>,
+      __has_domain<agent_type>::value,
+      __domain_type<agent_type>,
       __identity<void>
     >::type;
 
-    using index_type = decltype(std::declval<group_type>().index());
+    using index_type = decltype(std::declval<agent_type>().index());
 
-    using size_type = decltype(std::declval<group_type>().size());
+    using size_type = decltype(std::declval<agent_type>().size());
 
     typedef typename __lazy_conditional<
-      __has_child_type<group_type>::value,
-      __child_type<group_type>,
+      __has_child_type<agent_type>::value,
+      __child_type<agent_type>,
       __identity<void>
     >::type                                              child_type;
 
     // XXX consider renaming to nesting_depth or grouping_depth
     //     to emphasize that agents have depth 0
     // XXX alternatively, make it illegal to use execution_group_traits on non-groups
-    constexpr static size_t depth = depth_impl(0, typename __has_child_type<group_type>::type());
+    constexpr static size_t depth = depth_impl(0, typename __has_child_type<agent_type>::type());
     
     template<class OtherChild>
-    using rebind = typename __rebind_execution_agent<group_type, OtherChild>::type;
+    using rebind = typename __rebind_execution_agent<agent_type, OtherChild>::type;
 
     template<class ParamTuple, class IndexTuple>
-    static group_type make_agent(const ParamTuple& params, const IndexTuple& indices)
+    static agent_type make_agent(const ParamTuple& params, const IndexTuple& indices)
     {
-      return group_type(params, indices);
+      return agent_type(params, indices);
     }
 
     template<class OtherChild>
-    static rebind<OtherChild> rebind_child(group_type&& g, OtherChild&& child)
+    static rebind<OtherChild> rebind_child(agent_type&& g, OtherChild&& child)
     {
       return rebind<OtherChild>(std::move(g), std::move(child));
     }
@@ -154,7 +154,7 @@ class execution_group_traits
     // XXX rethink whether we need both reindex and something which links two groups, possibly with new indices
     // XXX shouldn't we reindex the entire tree at the same time?
     // XXX shouldn't we recieve a tuple of indices like make_agent()?
-    static void reindex(group_type& g, index_type new_index)
+    static void reindex(agent_type& g, index_type new_index)
     {
       g.reindex(new_index);
     }
@@ -168,14 +168,14 @@ class execution_group_traits
     template<typename T>
     struct child_param_tuple_impl
     {
-      using child_type = typename execution_group_traits<T>::child_type;
-      using type = typename execution_group_traits<child_type>::param_tuple_type;
+      using child_type = typename execution_agent_traits<T>::child_type;
+      using type = typename execution_agent_traits<child_type>::param_tuple_type;
     };
 
 
     typedef typename __lazy_conditional<
-      __has_child_type<group_type>::value,
-      child_param_tuple_impl<group_type>,
+      __has_child_type<agent_type>::value,
+      child_param_tuple_impl<agent_type>,
       __identity<std::tuple<>>
     >::type child_param_tuple_type;
 
@@ -187,28 +187,28 @@ class execution_group_traits
     }
 
     template<class T>
-    static child_param_tuple_type child_param_tuple(T, const group_type& g, std::false_type)
+    static child_param_tuple_type child_param_tuple(T, const agent_type& g, std::false_type)
     {
       return std::tuple<>();
     }
 
     template<class T>
-    static child_param_tuple_type child_param_tuple(T, const group_type& g, std::true_type)
+    static child_param_tuple_type child_param_tuple(T, const agent_type& g, std::true_type)
     {
-      return execution_group_traits<child_type>::child_param_tuple(g.child());
+      return execution_agent_traits<child_type>::child_param_tuple(g.child());
     }
 
 
   public:
     // returns a tuple containing each node's param, beginning at the root of the hierarchy
     // e.g. make_tuple(g.param(), g.child().param(), g.child().child().param(), ...)
-    static auto param_tuple(const group_type& g)
-      -> decltype(param_tuple_impl(g.param(), child_param_tuple(0, g, typename __has_child_type<group_type>::type())))
+    static auto param_tuple(const agent_type& g)
+      -> decltype(param_tuple_impl(g.param(), child_param_tuple(0, g, typename __has_child_type<agent_type>::type())))
     {
-      return param_tuple_impl(g.param(), child_param_tuple(0, g, typename __has_child_type<group_type>::type()));
+      return param_tuple_impl(g.param(), child_param_tuple(0, g, typename __has_child_type<agent_type>::type()));
     }
 
-    using param_tuple_type = decltype(param_tuple(std::declval<group_type>()));
+    using param_tuple_type = decltype(param_tuple(std::declval<agent_type>()));
 };
 
 
@@ -235,7 +235,7 @@ class agent
     }
 
   private:
-    friend class execution_group_traits<agent>;
+    friend class execution_agent_traits<agent>;
 
     agent(const std::tuple<param_type>&, const std::tuple<size_type>& index)
       : index_(std::get<0>(index))
@@ -250,13 +250,13 @@ class agent
 };
 
 
-template<class ExecutionCategory, class ExecutionGroup>
-class __execution_group_base
+template<class ExecutionCategory, class ExecutionAgent>
+class __execution_agent_base
 {
   public:
     using execution_category = ExecutionCategory; 
-    typedef ExecutionGroup                                                        child_type;
-    typedef regular_grid<typename execution_group_traits<child_type>::index_type> domain_type;
+    typedef ExecutionAgent                                                        child_type;
+    typedef regular_grid<typename execution_agent_traits<child_type>::index_type> domain_type;
     typedef typename domain_type::size_type                                       size_type;
 
     // XXX need to generalize __execution_group_base for higher dimensions
@@ -308,11 +308,11 @@ class __execution_group_base
     const domain_type& domain() const { return domain_; }
     size_type size() const { return domain().size(); }
     index_type index() const { return index_; }
-    ExecutionGroup &child() { return child_; }
-    const ExecutionGroup &child() const { return child_; }
+    child_type &child() { return child_; }
+    const child_type &child() const { return child_; }
 
   private:
-    template<class> friend class execution_group_traits;
+    template<class> friend class execution_agent_traits;
 
     domain_type domain_;
     index_type  index_;
@@ -324,11 +324,11 @@ class __execution_group_base
     }
 
   protected:
-    typedef execution_group_traits<child_type> child_traits;
+    typedef execution_agent_traits<child_type> child_traits;
 
     // XXX three constructors is too many
     template<class Param>
-    __execution_group_base(const Param &params, index_type index, child_type&& chld)
+    __execution_agent_base(const Param &params, index_type index, child_type&& chld)
       : domain_(params.domain()),
         index_(index),
         child_(std::move(chld))
@@ -336,10 +336,10 @@ class __execution_group_base
 
     // the following two constructors are used by execution_group_traits
 
-    // XXX OtherConcurrentGroup must be a descendant of __execution_group_base<ExecutionCategory,OtherGroup>
-    template<class OtherExecutionGroup>
-    __execution_group_base(OtherExecutionGroup&& group, child_type&& chld)
-      : __execution_group_base(group.param(), group.index(), std::move(chld))
+    // XXX OtherExecutionAgent must be a descendant of __execution_agent_base<ExecutionCategory,OtherAgent>
+    template<class OtherExecutionAgent>
+    __execution_agent_base(OtherExecutionAgent&& agent, child_type&& chld)
+      : __execution_agent_base(agent.param(), agent.index(), std::move(chld))
     {}
 
     // XXX this ought to be the only constructor we require
@@ -347,49 +347,49 @@ class __execution_group_base
     //     inherit from __basic_execution_policy
     // XXX find a way to make this not a template
     template<class ParamTuple, class IndexTuple>
-    __execution_group_base(const ParamTuple& params, const IndexTuple& indices)
-      : __execution_group_base(std::get<0>(params),
+    __execution_agent_base(const ParamTuple& params, const IndexTuple& indices)
+      : __execution_agent_base(std::get<0>(params),
                                std::get<0>(indices),
                                child_traits::make_agent(tuple_tail(params), tuple_tail(indices)))
     {}
 };
 
 
-template<class ExecutionGroup = std::agent>
-class sequential_agent : public __execution_group_base<sequential_execution_tag, ExecutionGroup>
+template<class ExecutionAgent = std::agent>
+class sequential_agent : public __execution_agent_base<sequential_execution_tag, ExecutionAgent>
 {
   private:
-    template<class> friend class execution_group_traits;
+    template<class> friend class execution_agent_traits;
 
   protected:
-    using __execution_group_base<sequential_execution_tag, ExecutionGroup>::__execution_group_base;
+    using __execution_agent_base<sequential_execution_tag, ExecutionAgent>::__execution_agent_base;
 };
 
 
-template<class ExecutionGroup = std::agent>
-class parallel_agent : public __execution_group_base<parallel_execution_tag, ExecutionGroup>
+template<class ExecutionAgent = std::agent>
+class parallel_agent : public __execution_agent_base<parallel_execution_tag, ExecutionAgent>
 {
   private:
-    template<class> friend class execution_group_traits;
+    template<class> friend class execution_agent_traits;
 
   protected:
-    using __execution_group_base<parallel_execution_tag, ExecutionGroup>::__execution_group_base;
+    using __execution_agent_base<parallel_execution_tag, ExecutionAgent>::__execution_agent_base;
 };
 
 
-template<class ExecutionGroup = std::agent>
-class vector_agent : public __execution_group_base<vector_execution_tag, ExecutionGroup>
+template<class ExecutionAgent = std::agent>
+class vector_agent : public __execution_agent_base<vector_execution_tag, ExecutionAgent>
 {
   private:
-    template<class> friend class execution_group_traits;
+    template<class> friend class execution_agent_traits;
 
   protected:
-    using __execution_group_base<vector_execution_tag, ExecutionGroup>::__execution_group_base;
+    using __execution_agent_base<vector_execution_tag, ExecutionAgent>::__execution_agent_base;
 };
 
 
-template<class ExecutionGroup = std::agent>
-class concurrent_agent : public __execution_group_base<concurrent_execution_tag, ExecutionGroup>
+template<class ExecutionAgent = std::agent>
+class concurrent_agent : public __execution_agent_base<concurrent_execution_tag, ExecutionAgent>
 {
   public:
     void wait() const
@@ -398,9 +398,9 @@ class concurrent_agent : public __execution_group_base<concurrent_execution_tag,
     }
 
   private:
-    using super_t = __execution_group_base<concurrent_execution_tag,ExecutionGroup>;
+    using super_t = __execution_agent_base<concurrent_execution_tag,ExecutionAgent>;
 
-    template<class> friend class execution_group_traits;
+    template<class> friend class execution_agent_traits;
 
     friend void __set_barrier(concurrent_agent &self, std::barrier *bar)
     {
@@ -410,17 +410,17 @@ class concurrent_agent : public __execution_group_base<concurrent_execution_tag,
     // XXX might be best to make this a shared_ptr
     std::barrier *barrier_;
 
-    template<class OtherExecutionGroup> friend class concurrent_agent;
+    template<class OtherExecutionAgent> friend class concurrent_agent;
 
-    // XXX OtherConcurrentGroup must be a descendant of an instance of concurrent_agent<U>
-    template<class OtherConcurrentGroup>
-    concurrent_agent(OtherConcurrentGroup&& group, typename concurrent_agent::child_type&& chld)
-      : super_t(std::move(group), std::move(chld)),
-        barrier_(group.barrier_)
+    // XXX OtherConcurrentAgent must be a descendant of an instance of concurrent_agent<U>
+    template<class OtherConcurrentAgent>
+    concurrent_agent(OtherConcurrentAgent&& agent, typename concurrent_agent::child_type&& chld)
+      : super_t(std::move(agent), std::move(chld)),
+        barrier_(agent.barrier_)
     {}
 
   protected:
-    using __execution_group_base<concurrent_execution_tag, ExecutionGroup>::__execution_group_base;
+    using __execution_agent_base<concurrent_execution_tag, ExecutionAgent>::__execution_agent_base;
 };
 
 

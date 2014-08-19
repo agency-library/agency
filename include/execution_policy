@@ -32,7 +32,7 @@ namespace std
 // XXX add is_execution_policy_v
 // XXX maybe this should simply check for the existence of the
 //     nested type T::execution_category?
-// XXX the problem is that execution groups as well as execution_group_traits
+// XXX the problem is that execution agent as well as execution_agent_traits
 //     also define this typedef
 template<class T> struct is_execution_policy : std::false_type {};
 
@@ -119,36 +119,36 @@ __nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPoli
 template<class OuterPolicy, class InnerPolicy, class Function>
 struct __bulk_async_outer_functor
 {
-  template<class OuterGroup, class Index>
+  template<class OuterAgent, class Index>
   struct inner_functor
   {
-    OuterGroup &outer_group;
+    OuterAgent &outer_agent;
     Function f;
     Index inner_idx;
 
-    template<class InnerGroup, class... Args>
-    void operator()(InnerGroup& inner_group, Args&&... args) const
+    template<class InnerAgent, class... Args>
+    void operator()(InnerAgent& inner_agent, Args&&... args) const
     {
-      // reindex the inner group
-      execution_group_traits<InnerGroup>::reindex(inner_group, inner_idx);
+      // reindex the inner agent
+      execution_agent_traits<InnerAgent>::reindex(inner_agent, inner_idx);
 
-      // create a new group by rebinding the outer group's child
-      auto rebound_group = execution_group_traits<OuterGroup>::rebind_child(std::move(outer_group), std::move(inner_group));
+      // create a new agent by rebinding the outer agent's child
+      auto rebound_agent = execution_agent_traits<OuterAgent>::rebind_child(std::move(outer_agent), std::move(inner_agent));
 
       // call f
-      f(rebound_group, args...);
+      f(rebound_agent, args...);
     }
   };
 
   __nested_execution_policy<OuterPolicy,InnerPolicy> exec_args;
   Function f;
 
-  template<class OuterGroup, class... Args>
-  void operator()(OuterGroup& outer_group, Args&&... args) const
+  template<class OuterAgent, class... Args>
+  void operator()(OuterAgent& outer_agent, Args&&... args) const
   {
-    typedef typename execution_group_traits<OuterGroup>::index_type index_type;
+    typedef typename execution_agent_traits<OuterAgent>::index_type index_type;
 
-    std::bulk_async(exec_args.inner_exec, inner_functor<OuterGroup,index_type>{outer_group, f, outer_group.child().index()}, args...).wait();
+    std::bulk_async(exec_args.inner_exec, inner_functor<OuterAgent,index_type>{outer_agent, f, outer_agent.child().index()}, args...).wait();
   }
 };
 
@@ -161,25 +161,25 @@ std::future<void> __bulk_async(ExecutionCategory, const __nested_execution_polic
 }
 
 
-// XXX we should assert that ExecutionCategory is stronger than the category of FlatExecutionGroup
+// XXX we should assert that ExecutionCategory is stronger than the category of FlatExecutionAgent
 // XXX another way to order these parameters would be
 // ExecutionCategory, Asyncable, FlatExecutionGroup = __default_execution_group<ExecutionCategory>
-template<class FlatExecutionGroup,
+template<class FlatExecutionAgent,
          class BulkExecutor,
-         class ExecutionCategory = typename execution_group_traits<FlatExecutionGroup>::execution_category>
+         class ExecutionCategory = typename execution_agent_traits<FlatExecutionAgent>::execution_category>
 class __basic_execution_policy
 {
   public:
-    using execution_group_type = FlatExecutionGroup;
+    using execution_agent_type = FlatExecutionAgent;
     using executor_type        = BulkExecutor;
     using execution_category   = ExecutionCategory;
 
   private:
-    using group_traits         = std::execution_group_traits<execution_group_type>;
+    using agent_traits         = std::execution_agent_traits<execution_agent_type>;
     using agent_param_type     = agent::param_type;
 
   public:
-    using param_tuple_type     = typename group_traits::param_tuple_type;
+    using param_tuple_type     = typename agent_traits::param_tuple_type;
 
     inline __basic_execution_policy(const __basic_execution_policy& other)
       : param_tuple_(other.param_tuple_),
@@ -191,8 +191,8 @@ class __basic_execution_policy
         executor_(executor)
     {}
 
-    inline __basic_execution_policy(const typename group_traits::param_type& group_params, const executor_type& executor = executor_type())
-      : __basic_execution_policy(param_tuple_type(group_params, agent_param_type()), executor)
+    inline __basic_execution_policy(const typename agent_traits::param_type& agent_params, const executor_type& executor = executor_type())
+      : __basic_execution_policy(param_tuple_type(agent_params, agent_param_type()), executor)
     {}
 
     const param_tuple_type& param_tuple() const
@@ -206,27 +206,27 @@ class __basic_execution_policy
     }
 
     template<class... Args>
-    __basic_execution_policy regroup(Args&&... args) const
+    __basic_execution_policy reagent(Args&&... args) const
     {
-      auto group_params = group_param_type(std::forward<Args>(args)...);
-      return __basic_execution_policy(group_params, executor());
+      auto agent_params = agent_param_type(std::forward<Args>(args)...);
+      return __basic_execution_policy(agent_params, executor());
     }
 
-    // XXX regroup() should check that OtherExecutionGroup's execution_category is compatible with 
+    // XXX reagent() should check that OtherExecutionAgent's execution_category is compatible with 
     //     ExecutionCategory (somehow)
-    template<class OtherFlatExecutionGroup, class... Args>
-    __basic_execution_policy<OtherFlatExecutionGroup,executor_type,execution_category>
-      regroup(Args&&... args) const
+    template<class OtherFlatExecutionAgent, class... Args>
+    __basic_execution_policy<OtherFlatExecutionAgent,executor_type,execution_category>
+      reagent(Args&&... args) const
     {
-      using param_type = typename std::execution_group_traits<OtherFlatExecutionGroup>::param_type;
-      auto group_params = param_type(std::forward<Args>(args)...); 
-      return __basic_execution_policy<OtherFlatExecutionGroup,executor_type,execution_category>(group_params, executor());
+      using param_type = typename std::execution_agent_traits<OtherFlatExecutionAgent>::param_type;
+      auto agent_params = param_type(std::forward<Args>(args)...); 
+      return __basic_execution_policy<OtherFlatExecutionAgent,executor_type,execution_category>(agent_params, executor());
     }
 
     template<class OtherBulkExecutor>
-    __basic_execution_policy<FlatExecutionGroup,OtherBulkExecutor,ExecutionCategory> on(const OtherBulkExecutor& executor) const
+    __basic_execution_policy<FlatExecutionAgent,OtherBulkExecutor,ExecutionCategory> on(const OtherBulkExecutor& executor) const
     {
-      return __basic_execution_policy<FlatExecutionGroup,OtherBulkExecutor,ExecutionCategory>(std::get<0>(param_tuple()), executor);
+      return __basic_execution_policy<FlatExecutionAgent,OtherBulkExecutor,ExecutionCategory>(std::get<0>(param_tuple()), executor);
     }
 
   protected:
@@ -239,27 +239,27 @@ class __basic_execution_policy
 };
 
 
-template<class FlatExecutionGroup, class BulkExecutor, class ExecutionCategory>
-struct is_execution_policy<__basic_execution_policy<FlatExecutionGroup,BulkExecutor,ExecutionCategory>> : std::true_type {};
+template<class FlatExecutionAgent, class BulkExecutor, class ExecutionCategory>
+struct is_execution_policy<__basic_execution_policy<FlatExecutionAgent,BulkExecutor,ExecutionCategory>> : std::true_type {};
 
 
 // ExecutionCategory1 corresponds to the category of the executor
 // XXX ExecutionCategory2 corresponds to the category of the policy
 // XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
-template<class ExecutionCategory1, class ExecutionGroup, class BulkExecutor, class ExecutionCategory2, class Function>
+template<class ExecutionCategory1, class ExecutionAgent, class BulkExecutor, class ExecutionCategory2, class Function>
 void __bulk_invoke(ExecutionCategory1,
-                   const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory2>& exec,
+                   const __basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2>& exec,
                    Function f)
 {
-  using traits = std::execution_group_traits<ExecutionGroup>;
+  using traits = std::execution_agent_traits<ExecutionAgent>;
   auto param_tuple = exec.param_tuple();
   auto domain = traits::domain(std::get<0>(param_tuple));
 
   bulk_invoke(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto this_group = traits::make_agent(param_tuple, std::make_tuple(0, domain[agent_idx]));
+    auto this_agent = traits::make_agent(param_tuple, std::make_tuple(0, domain[agent_idx]));
     
-    f(this_group);
+    f(this_agent);
   });
 }
 
@@ -267,36 +267,36 @@ void __bulk_invoke(ExecutionCategory1,
 // ExecutionCategory1 corresponds to the category of the executor
 // XXX ExecutionCategory2 corresponds to the category of the policy
 // XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
-template<class ExecutionCategory1, class ExecutionGroup, class BulkExecutor, class ExecutionCategory2, class Function>
+template<class ExecutionCategory1, class ExecutionAgent, class BulkExecutor, class ExecutionCategory2, class Function>
 std::future<void> __bulk_async(ExecutionCategory1,
-                               const __basic_execution_policy<ExecutionGroup,BulkExecutor,ExecutionCategory2>& exec,
+                               const __basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2>& exec,
                                Function f)
 {
-  using traits = std::execution_group_traits<ExecutionGroup>;
+  using traits = std::execution_agent_traits<ExecutionAgent>;
   auto param_tuple = exec.param_tuple();
   auto domain = traits::domain(std::get<0>(param_tuple));
 
   return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto this_group = traits::make_agent(param_tuple, std::make_tuple(0, domain[agent_idx]));
+    auto this_agent = traits::make_agent(param_tuple, std::make_tuple(0, domain[agent_idx]));
     
-    f(this_group);
+    f(this_agent);
   });
 }
 
 
-template<class ChildGroup, class BulkExecutor, class Function>
+template<class ChildAgent, class BulkExecutor, class Function>
 std::future<void> __bulk_async(std::concurrent_execution_tag,
-                               const __basic_execution_policy<concurrent_agent<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
+                               const __basic_execution_policy<concurrent_agent<ChildAgent>,BulkExecutor,std::concurrent_execution_tag>& exec,
                                Function f)
 {
-  auto group_params = std::get<0>(exec.param_tuple());
+  auto agent_params = std::get<0>(exec.param_tuple());
 
   // XXX shared_ptr might be too expensive for this
-  std::shared_ptr<std::barrier> bar = std::make_shared<std::barrier>(group_params.domain().size());
+  std::shared_ptr<std::barrier> bar = std::make_shared<std::barrier>(agent_params.domain().size());
 
   // pass 0 as the category to ensure we get the fully-generic form of __async() above
-  return __bulk_async(0, exec, [=](concurrent_agent<ChildGroup> &g)
+  return __bulk_async(0, exec, [=](concurrent_agent<ChildAgent> &g)
   {
     __set_barrier(g, bar.get());
   
@@ -305,9 +305,9 @@ std::future<void> __bulk_async(std::concurrent_execution_tag,
 }
 
 
-template<class ChildGroup, class BulkExecutor, class Function>
+template<class ChildAgent, class BulkExecutor, class Function>
 void __bulk_invoke(std::concurrent_execution_tag,
-                   const __basic_execution_policy<concurrent_agent<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
+                   const __basic_execution_policy<concurrent_agent<ChildAgent>,BulkExecutor,std::concurrent_execution_tag>& exec,
                    Function f)
 {
   // call std::bulk_async(...).wait() so we're sure that we get our barrier constructed
@@ -322,14 +322,14 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_a
     using super_t = __basic_execution_policy<sequential_agent<>, sequential_executor>;
 
   public:
-    using typename super_t::execution_group_type;
+    using typename super_t::execution_agent_type;
 
-    sequential_execution_policy(const execution_group_type::param_type& param)
-      : super_t(execution_group_traits<execution_group_type>::param_tuple_type(param, std::agent::param_type()))
+    sequential_execution_policy(const execution_agent_type::param_type& param)
+      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param, std::agent::param_type()))
     {}
 
     sequential_execution_policy(size_t indices_begin, size_t indices_end)
-      : sequential_execution_policy(execution_group_type::param_type(indices_begin, indices_end))
+      : sequential_execution_policy(execution_agent_type::param_type(indices_begin, indices_end))
     {}
 
     sequential_execution_policy(size_t n) : sequential_execution_policy(0, n) {}
@@ -365,14 +365,14 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_a
     using super_t = __basic_execution_policy<concurrent_agent<>, concurrent_executor>;
 
   public:
-    using typename super_t::execution_group_type;
+    using typename super_t::execution_agent_type;
 
-    concurrent_execution_policy(const execution_group_type::param_type& param)
-      : super_t(execution_group_traits<execution_group_type>::param_tuple_type(param, std::agent::param_type()))
+    concurrent_execution_policy(const execution_agent_type::param_type& param)
+      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param, std::agent::param_type()))
     {}
 
     concurrent_execution_policy(size_t indices_begin, size_t indices_end)
-      : concurrent_execution_policy(execution_group_type::param_type(indices_begin, indices_end))
+      : concurrent_execution_policy(execution_agent_type::param_type(indices_begin, indices_end))
     {}
 
     concurrent_execution_policy(size_t n) : concurrent_execution_policy(0, n) {}
@@ -408,14 +408,14 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_agent
     using super_t = __basic_execution_policy<parallel_agent<>, parallel_executor>;
 
   public:
-    using typename super_t::execution_group_type;
+    using typename super_t::execution_agent_type;
 
-    parallel_execution_policy(const execution_group_type::param_type& param)
-      : super_t(execution_group_traits<execution_group_type>::param_tuple_type(param, std::agent::param_type()))
+    parallel_execution_policy(const execution_agent_type::param_type& param)
+      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param, std::agent::param_type()))
     {}
 
     parallel_execution_policy(size_t indices_begin, size_t indices_end)
-      : parallel_execution_policy(execution_group_type::param_type(indices_begin, indices_end))
+      : parallel_execution_policy(execution_agent_type::param_type(indices_begin, indices_end))
     {}
 
     parallel_execution_policy(size_t n) : parallel_execution_policy(0, n) {}
@@ -453,14 +453,14 @@ class vector_execution_policy : public __basic_execution_policy<vector_agent<>, 
     using super_t = __basic_execution_policy<vector_agent<>, vector_executor>;
 
   public:
-    using typename super_t::execution_group_type;
+    using typename super_t::execution_agent_type;
 
-    vector_execution_policy(const execution_group_type::param_type& param)
-      : super_t(execution_group_traits<execution_group_type>::param_tuple_type(param, std::agent::param_type()))
+    vector_execution_policy(const execution_agent_type::param_type& param)
+      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param, std::agent::param_type()))
     {}
 
     vector_execution_policy(size_t indices_begin, size_t indices_end)
-      : vector_execution_policy(execution_group_type::param_type(indices_begin, indices_end))
+      : vector_execution_policy(execution_agent_type::param_type(indices_begin, indices_end))
     {}
 
     vector_execution_policy(size_t n) : vector_execution_policy(0, n) {}
