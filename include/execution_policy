@@ -17,7 +17,7 @@
 #include <barrier>
 #include <functional>
 #include <type_traits>
-#include <execution_group>
+#include <execution_agent>
 #include <functional>
 #include <sequential_executor>
 #include <concurrent_executor>
