@@ -1,5 +1,5 @@
 Simplifications to agent hierarchy:
-  * eliminate std::agent
+  * ~~eliminate std::agent~~
   * ~~rename groups to std::concurrent_agent, std::parallel_agent, std::sequential_agent~~
   * these agents have no .size(), but know their .group_size()
 

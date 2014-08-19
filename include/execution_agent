@@ -149,6 +149,7 @@ class execution_agent_traits
       return agent_type(params, indices);
     }
 
+    // XXX eliminate this
     template<class OtherChild>
     static rebind<OtherChild> rebind_child(agent_type&& g, OtherChild&& child)
     {
@@ -311,37 +312,17 @@ class __execution_agent_base : public __execution_agent_base_base<ExecutionAgent
     index_type  index_;
 
   protected:
-//    typedef execution_agent_traits<child_type> child_traits;
-
-//    // XXX three constructors is too many
-//    template<class Param>
-//    __execution_agent_base(const Param &params, index_type index, child_type&& chld)
-//      : domain_(params.domain()),
-//        index_(index),
-//        child_(std::move(chld))
-//    {}
-//
-//    // the following two constructors are used by execution_group_traits
+    // the following two constructors are used by execution_group_traits
 
     // XXX OtherExecutionAgent must be a descendant of __execution_agent_base<ExecutionCategory,OtherAgent>
     // XXX eliminate this
+    // XXX this is used by execution_agent_traits::rebind_child()
     template<class OtherExecutionAgent, class Child>
     __execution_agent_base(rebind_child_tag, OtherExecutionAgent&& agent, Child&& chld)
       : super_t(std::move(chld)),
         domain_(agent.domain()),
         index_(agent.index())
     {}
-
-//    // XXX this ought to be the only constructor we require
-//    // XXX eliminate the other two constructors we we've revamped __nested_execution_policy to
-//    //     inherit from __basic_execution_policy
-//    // XXX find a way to make this not a template
-//    template<class ParamTuple, class IndexTuple>
-//    __execution_agent_base(const ParamTuple& params, const IndexTuple& indices)
-//      : __execution_agent_base(std::get<0>(params),
-//                               std::get<0>(indices),
-//                               child_traits::make_agent(tuple_tail(params), tuple_tail(indices)))
-//    {}
 
     // XXX this ought to be the only constructor we require
     // XXX eliminate the other two constructors we we've revamped __nested_execution_policy to
