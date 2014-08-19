@@ -268,7 +268,7 @@ class __execution_group_base
       public:
         // copy from related param_types
         // this allows us to copy from e.g.
-        // concurrent_group<>::param_type -> concurrent_group<sequential_group<>>::param_type
+        // concurrent_agent<>::param_type -> concurrent_agent<sequential_agent<>>::param_type
         // the types aren't interoperable otherwise
         template<class OtherParamType>
         param_type(const OtherParamType& other)
@@ -356,7 +356,7 @@ class __execution_group_base
 
 
 template<class ExecutionGroup = std::agent>
-class sequential_group : public __execution_group_base<sequential_execution_tag, ExecutionGroup>
+class sequential_agent : public __execution_group_base<sequential_execution_tag, ExecutionGroup>
 {
   private:
     template<class> friend class execution_group_traits;
@@ -367,7 +367,7 @@ class sequential_group : public __execution_group_base<sequential_execution_tag,
 
 
 template<class ExecutionGroup = std::agent>
-class parallel_group : public __execution_group_base<parallel_execution_tag, ExecutionGroup>
+class parallel_agent : public __execution_group_base<parallel_execution_tag, ExecutionGroup>
 {
   private:
     template<class> friend class execution_group_traits;
@@ -378,7 +378,7 @@ class parallel_group : public __execution_group_base<parallel_execution_tag, Exe
 
 
 template<class ExecutionGroup = std::agent>
-class vector_group : public __execution_group_base<vector_execution_tag, ExecutionGroup>
+class vector_agent : public __execution_group_base<vector_execution_tag, ExecutionGroup>
 {
   private:
     template<class> friend class execution_group_traits;
@@ -389,7 +389,7 @@ class vector_group : public __execution_group_base<vector_execution_tag, Executi
 
 
 template<class ExecutionGroup = std::agent>
-class concurrent_group : public __execution_group_base<concurrent_execution_tag, ExecutionGroup>
+class concurrent_agent : public __execution_group_base<concurrent_execution_tag, ExecutionGroup>
 {
   public:
     void wait() const
@@ -402,7 +402,7 @@ class concurrent_group : public __execution_group_base<concurrent_execution_tag,
 
     template<class> friend class execution_group_traits;
 
-    friend void __set_barrier(concurrent_group &self, std::barrier *bar)
+    friend void __set_barrier(concurrent_agent &self, std::barrier *bar)
     {
       self.barrier_ = bar;
     }
@@ -410,11 +410,11 @@ class concurrent_group : public __execution_group_base<concurrent_execution_tag,
     // XXX might be best to make this a shared_ptr
     std::barrier *barrier_;
 
-    template<class OtherExecutionGroup> friend class concurrent_group;
+    template<class OtherExecutionGroup> friend class concurrent_agent;
 
-    // XXX OtherConcurrentGroup must be a descendant of an instance of concurrent_group<U>
+    // XXX OtherConcurrentGroup must be a descendant of an instance of concurrent_agent<U>
     template<class OtherConcurrentGroup>
-    concurrent_group(OtherConcurrentGroup&& group, typename concurrent_group::child_type&& chld)
+    concurrent_agent(OtherConcurrentGroup&& group, typename concurrent_agent::child_type&& chld)
       : super_t(std::move(group), std::move(chld)),
         barrier_(group.barrier_)
     {}

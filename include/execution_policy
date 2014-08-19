@@ -1,8 +1,8 @@
 #pragma once
 
 // XXX consider implementing the following inheritance relationship:
-// sequential_group -> concurrent_group -> parallel_group -> vector_group
-// that way a lambda which expects a parallel_group could always be executable with async(seq)
+// sequential_agent -> concurrent_agent -> parallel_agent -> vector_agent
+// that way a lambda which expects a parallel_agent could always be executable with async(seq)
 //
 // XXX consider doing away with groups & std::agent
 // XXX and just implement the following inheritance:
@@ -287,7 +287,7 @@ std::future<void> __bulk_async(ExecutionCategory1,
 
 template<class ChildGroup, class BulkExecutor, class Function>
 std::future<void> __bulk_async(std::concurrent_execution_tag,
-                               const __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
+                               const __basic_execution_policy<concurrent_agent<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
                                Function f)
 {
   auto group_params = std::get<0>(exec.param_tuple());
@@ -296,7 +296,7 @@ std::future<void> __bulk_async(std::concurrent_execution_tag,
   std::shared_ptr<std::barrier> bar = std::make_shared<std::barrier>(group_params.domain().size());
 
   // pass 0 as the category to ensure we get the fully-generic form of __async() above
-  return __bulk_async(0, exec, [=](concurrent_group<ChildGroup> &g)
+  return __bulk_async(0, exec, [=](concurrent_agent<ChildGroup> &g)
   {
     __set_barrier(g, bar.get());
   
@@ -307,7 +307,7 @@ std::future<void> __bulk_async(std::concurrent_execution_tag,
 
 template<class ChildGroup, class BulkExecutor, class Function>
 void __bulk_invoke(std::concurrent_execution_tag,
-                   const __basic_execution_policy<concurrent_group<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
+                   const __basic_execution_policy<concurrent_agent<ChildGroup>,BulkExecutor,std::concurrent_execution_tag>& exec,
                    Function f)
 {
   // call std::bulk_async(...).wait() so we're sure that we get our barrier constructed
@@ -316,10 +316,10 @@ void __bulk_invoke(std::concurrent_execution_tag,
 }
 
 
-class sequential_execution_policy : public __basic_execution_policy<sequential_group<>, sequential_executor>
+class sequential_execution_policy : public __basic_execution_policy<sequential_agent<>, sequential_executor>
 {
   private:
-    using super_t = __basic_execution_policy<sequential_group<>, sequential_executor>;
+    using super_t = __basic_execution_policy<sequential_agent<>, sequential_executor>;
 
   public:
     using typename super_t::execution_group_type;
@@ -359,10 +359,10 @@ template<> struct is_execution_policy<sequential_execution_policy> : std::true_t
 const sequential_execution_policy seq{1};
 
 
-class concurrent_execution_policy : public __basic_execution_policy<concurrent_group<>, concurrent_executor>
+class concurrent_execution_policy : public __basic_execution_policy<concurrent_agent<>, concurrent_executor>
 {
   private:
-    using super_t = __basic_execution_policy<concurrent_group<>, concurrent_executor>;
+    using super_t = __basic_execution_policy<concurrent_agent<>, concurrent_executor>;
 
   public:
     using typename super_t::execution_group_type;
@@ -402,10 +402,10 @@ template<> struct is_execution_policy<concurrent_execution_policy> : std::true_t
 const concurrent_execution_policy con{1};
 
 
-class parallel_execution_policy : public __basic_execution_policy<parallel_group<>, parallel_executor>
+class parallel_execution_policy : public __basic_execution_policy<parallel_agent<>, parallel_executor>
 {
   private:
-    using super_t = __basic_execution_policy<parallel_group<>, parallel_executor>;
+    using super_t = __basic_execution_policy<parallel_agent<>, parallel_executor>;
 
   public:
     using typename super_t::execution_group_type;
@@ -447,10 +447,10 @@ template<> struct is_execution_policy<parallel_execution_policy> : std::true_typ
 const parallel_execution_policy par;
 
 
-class vector_execution_policy : public __basic_execution_policy<vector_group<>, vector_executor>
+class vector_execution_policy : public __basic_execution_policy<vector_agent<>, vector_executor>
 {
   private:
-    using super_t = __basic_execution_policy<vector_group<>, vector_executor>;
+    using super_t = __basic_execution_policy<vector_agent<>, vector_executor>;
 
   public:
     using typename super_t::execution_group_type;
