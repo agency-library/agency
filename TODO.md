@@ -1,6 +1,6 @@
 Simplifications to agent hierarchy:
-  * eliminate std::agent
-  * rename groups to std::concurrent_agent, std::parallel_agent, std::sequential_agent
+  * ~~eliminate std::agent~~
+  * ~~rename groups to std::concurrent_agent, std::parallel_agent, std::sequential_agent~~
   * these agents have no .size(), but know their .group_size()
 
 Should enable these simplifications:
@@ -14,4 +14,5 @@ or we could use type erasure to preserve the hierarchy somehow
 
 Miscellaneous:
   * rename .bulk_add() to .bulk_execute()
+  * eliminate __has_domain -- all agents have to have a domain
 
