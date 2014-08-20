@@ -17,7 +17,7 @@ int main()
   auto par_f = bulk_async(par(5), [](std::parallel_agent<> &g)
   {
     mut.lock();
-    std::cout << "Hello world from parallel_agent " << g.index() << g.index() << std::endl;
+    std::cout << "Hello world from parallel_agent " << g.index() << std::endl;
     mut.unlock();
   });
 
