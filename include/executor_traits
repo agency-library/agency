@@ -1,0 +1,56 @@
+#pragma once
+
+#include <__type_traits>
+
+
+namespace std
+{
+
+
+__DEFINE_HAS_NESTED_TYPE(__has_index_type, index_type);
+__DEFINE_HAS_NESTED_TYPE(__has_shape_type, shape_type);
+
+
+template<class Executor>
+struct executor_traits
+{
+  private:
+    template<class T>
+    struct executor_index
+    {
+      using type = typename T::index_type;
+    };
+
+    template<class T>
+    struct executor_shape
+    {
+      using type = typename T::shape_Type;
+    };
+
+  public:
+    using executor_type = Executor;
+
+    using execution_category = typename Executor::execution_category;
+
+    using index_type = typename __lazy_conditional<
+      __has_index_type<executor_type>::value,
+      executor_index<executor_type>,
+      __identity<size_t>
+    >::type;
+
+    using shape_type = typename __lazy_conditional<
+      __has_shape_type<executor_type>::value,
+      executor_shape<executor_type>,
+      __identity<index_type>
+    >::type;
+
+    template<class Function>
+    static void bulk_add(executor_type& ex, shape_type shape, Function f)
+    {
+      return ex.bulk_add(shape, f);
+    }
+};
+
+
+}
+

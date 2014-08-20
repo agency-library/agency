@@ -3,6 +3,7 @@
 #include <execution_categories>
 #include <utility>
 #include <future>
+#include <executor_traits>
 
 namespace std
 {
@@ -17,18 +18,18 @@ class nested_executor
 
     using execution_category = 
       nested_execution_tag<
-        typename outer_executor_type::execution_category,
-        typename inner_executor_type::execution_category
+        typename executor_traits<outer_executor_type>::execution_category,
+        typename executor_traits<inner_executor_type>::execution_category
       >;
 
     using shape_type = std::pair<
-      typename outer_executor_type::shape_type,
-      typename inner_executor_type::shape_type
+      typename executor_traits<outer_executor_type>::shape_type,
+      typename executor_traits<inner_executor_type>::shape_type
     >;
 
     using index_type = std::pair<
-      typename Executor1::index_type,
-      typename Executor2::index_type
+      typename executor_traits<Executor1>::index_type,
+      typename executor_traits<Executor2>::index_type
     >;
 
     nested_executor() = default;
@@ -90,11 +91,11 @@ std::future<void> bulk_async(nested_executor<Executor1,Executor2>& ex,
   // XXX we can't do that because there seems to be no way to collect those futures
   // XXX maybe bulk_async should return a future<vector<result_type>> when the lambda has a result
   
-  using outer_index_type = typename Executor1::index_type;
+  using outer_index_type = typename executor_traits<Executor1>::index_type;
 
   return bulk_async(ex.outer_executor(), shape.first, [=,&ex](outer_index_type outer_idx)
   {
-    using inner_index_type = typename Executor2::index_type;
+    using inner_index_type = typename executor_traits<Executor2>::index_type;
 
     bulk_invoke(ex.inner_executor(), shape.second, [=](inner_index_type inner_idx)
     {

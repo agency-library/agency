@@ -7,6 +7,7 @@
 #include <coordinate>
 #include <execution_categories>
 #include <__tuple_tail>
+#include <__type_traits>
 
 namespace std
 {
@@ -45,13 +46,6 @@ struct __child_type
 };
 
 
-template<typename T>
-struct __identity
-{
-  typedef T type;
-};
-
-
 template<typename>
 struct __sfinae
 {
@@ -75,20 +69,6 @@ template<typename T>
 struct __domain_type
 {
   using type = typename T::domain_type;
-};
-
-
-template<bool b, typename T, typename F>
-struct __lazy_conditional
-{
-  using type = typename T::type;
-};
-
-
-template<typename T, typename F>
-struct __lazy_conditional<false,T,F>
-{
-  using type = typename F::type;
 };
 
 

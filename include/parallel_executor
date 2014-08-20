@@ -13,8 +13,6 @@ class parallel_executor
   public:
     using execution_category = std::parallel_execution_tag;
 
-    using index_type = size_t;
-
     parallel_executor()
       : min_num_agents_per_launch_(1000),
         subscription_(std::max(1u, log2(std::min(1u,std::thread::hardware_concurrency())))),
