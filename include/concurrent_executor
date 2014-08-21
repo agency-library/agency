@@ -18,65 +18,100 @@ class concurrent_executor
 
     using shape_type = size_t;
 
+    // XXX we could potentially parameterize this
     using index_type = size_t;
 
-    template<class T, class Function>
-    void bulk_add(size_t n, T&& shared_arg, Function f)
+    template<class Function>
+    void add(Function&& f)
     {
-      for(index_type i = 0; i < n; ++i)
-      {
-        std::thread t([=,&shared_arg]
-        {
-          f(i, shared_arg);
-        });
+      std::thread t(std::move(f));
 
-        t.detach();
-      }
+      t.detach();
     }
 
     template<class Function>
     void bulk_add(size_t n, Function f)
     {
-      bulk_add(n, 0, [=](size_t i, int)
+      for(index_type i = 0; i < n; ++i)
       {
-        f(i);
-      });
+        std::thread t([=]
+        {
+          f(i);
+        });
+
+        t.detach();
+      }
     }
 };
+
+
+template<class Function>
+struct __set_value_after_function
+{
+  __set_value_after_function(std::promise<void>&& promise, Function f)
+    : p_(std::move(promise)),
+      f_(f)
+  {}
+
+  void operator()()
+  {
+    f_();
+    p_.set_value();
+  }
+
+  std::promise<void> p_;
+  Function f_;
+};
+
+
+
+template<class Function, class... Args>
+std::future<void> __async(concurrent_executor& ex, Function&& f, Args&&... args)
+{
+  auto g = std::bind(std::forward<Function>(f), std::forward<Args>(args)...);
+
+  std::promise<void> p;
+  
+  std::future<void> result = p.get_future();
+
+  ex.add(__set_value_after_function<decltype(g)>(std::move(p), g));
+
+  return result;
+}
 
 
 template<class Function, class... Args>
 std::future<void> bulk_async(concurrent_executor& ex, size_t n, Function&& f, Args&&... args)
 {
-  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::function<Args>(args)...);
+  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...);
 
-  using vector_type = std::vector<std::promise<void>>;
-
-  vector_type promises(n);
-
-  // get a vector of futures
-  std::vector<std::future<void>> futures(n);
-  std::transform(promises.begin(), promises.end(), futures.begin(), [](std::promise<void>& p)
+  return __async(ex, [=,&ex]
   {
-    return p.get_future();
+    std::vector<std::promise<void>> promises(n);
+
+    ex.bulk_add(n, [=,&promises](size_t i)
+    {
+      g(i);
+
+      promises[i].set_value();
+    });
+
+    std::vector<std::future<void>> futures(n);
+    std::transform(promises.begin(), promises.end(), futures.begin(), [](std::promise<void>& p)
+    {
+      return p.get_future();
+    });
+
+    // XXX could use a transform iterator instead of a separate vector of futures here
+    std::when_all(futures.begin(), futures.end()).wait();
   });
-
-  // give the promises to the executor and execute the function
-  ex.bulk_add(n, std::move(promises), [=](size_t i, vector_type& promises)
-  {
-    g(i);
-
-    promises[i].set_value();
-  });
-
-  return std::when_all(futures.begin(), futures.end());
 }
 
 
 template<class Function, class... Args>
 void bulk_invoke(concurrent_executor& ex, size_t n, Function&& f, Args&&... args)
 {
-  std::bulk_invoke(ex, n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...)).wait();
+  std::bulk_async(ex, n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...)).wait();
 }
 
 
