@@ -312,6 +312,11 @@ std::future<void> __bulk_async(ExecutionCategory1,
   auto domain = traits::domain(param);
 
   // XXX should really try to avoid creating a shared_ptr
+  // XXX one idea is to nest the bulk_async inside an async on the same executor
+  //     but that seems kinda lame
+  // XXX another idea would be to move the shared_param into the call to bulk_async
+  //     and make the executor in charge of owning the object
+  //     that also seems kinda lame
   auto shared_param_ptr = __make_shared_helper_ptr<traits>(param, typename traits::has_shared_param_type());
 
   return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
