@@ -82,14 +82,22 @@ int main()
   auto singly_nested_f = bulk_async(con(2, seq(3)), [&mut](std::concurrent_agent<std::sequential_agent<>> &g)
   {
     mut.lock();
-    std::cout << "Hello world from sequential_agent " << g.child().index() << " of concurrent_agent " << g.index() << " arriving at barrier" << std::endl;
+    std::cout << "Hello world from con(seq) agent (" << g.index() << ", " << g.child().index() << ")" << std::endl;
     mut.unlock();
 
-    g.wait();
+    // the first agent in each inner group waits on the outer group 
+    if(g.child().index() == 0)
+    {
+      mut.lock();
+      std::cout << "con(seq) agent " << std::int2(g.index(), g.child().index()) << " arriving at barrier" << std::endl;
+      mut.unlock();
 
-    mut.lock();
-    std::cout << "Hello world from agent " << g.child().index() << " of concurrent_agent " << g.index() << " departing from barrier" << std::endl;
-    mut.unlock();
+      g.wait();
+
+      mut.lock();
+      std::cout << "con(seq) agent (" << g.index() << ", " << g.child().index() << ") departing barrier" << std::endl;
+      mut.unlock();
+    }
   });
 
   singly_nested_f.wait();
