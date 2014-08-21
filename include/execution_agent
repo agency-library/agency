@@ -199,11 +199,17 @@ class concurrent_agent : public __basic_execution_agent<concurrent_execution_tag
     struct shared_param_type
     {
       shared_param_type(const typename super_t::param_type& param)
-        : barrier_(new std::barrier(param.domain().size()))
+        : count_(param.domain().size()),
+          barrier_(count_)
       {}
 
-      // XXX figure out how to just make this a barrier
-      std::unique_ptr<std::barrier> barrier_;
+      shared_param_type(const shared_param_type& other)
+        : count_(other.count_),
+          barrier_(count_)
+      {}
+
+      int count_;
+      std::barrier barrier_;
     };
 
   private:
@@ -214,7 +220,7 @@ class concurrent_agent : public __basic_execution_agent<concurrent_execution_tag
   protected:
     concurrent_agent(const param_type& param, index_type index, shared_param_type& shared_param)
       : super_t(param, index),
-        barrier_(*shared_param.barrier_)
+        barrier_(shared_param.barrier_)
     {}
 };
 
