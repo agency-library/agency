@@ -128,11 +128,12 @@ struct __bulk_async_outer_functor
     template<class InnerAgent, class... Args>
     void operator()(InnerAgent& inner_agent, Args&&... args) const
     {
-      // create a new agent by rebinding the outer agent's child
-      auto rebound_agent = execution_agent_traits<OuterAgent>::rebind_child(std::move(outer_agent), std::move(inner_agent));
+      // XXX this move seems wrong
+      //     we should be copying the outer agent, not moving it
+      auto agent = std::__nest_agents(std::move(outer_agent), std::move(inner_agent));
 
       // call f
-      f(rebound_agent, args...);
+      f(agent, args...);
     }
   };
 
@@ -174,25 +175,21 @@ class __basic_execution_policy
     using agent_traits         = std::execution_agent_traits<execution_agent_type>;
 
   public:
-    using param_tuple_type     = typename agent_traits::param_tuple_type;
+    using param_type           = typename agent_traits::param_type;
 
     inline __basic_execution_policy(const __basic_execution_policy& other)
-      : param_tuple_(other.param_tuple_),
+      : param_(other.param_),
         executor_(other.executor_)
     {} 
 
-    inline __basic_execution_policy(const param_tuple_type& param_tuple, const executor_type& executor = executor_type())
-      : param_tuple_(param_tuple),
+    inline __basic_execution_policy(const param_type& param, const executor_type& executor = executor_type())
+      : param_(param),
         executor_(executor)
     {}
 
-    inline __basic_execution_policy(const typename agent_traits::param_type& agent_params, const executor_type& executor = executor_type())
-      : __basic_execution_policy(param_tuple_type(agent_params), executor)
-    {}
-
-    const param_tuple_type& param_tuple() const
+    const param_type& param() const
     {
-      return param_tuple_;
+      return param_;
     }
 
     executor_type& executor() const
@@ -200,32 +197,14 @@ class __basic_execution_policy
       return executor_;
     }
 
-    template<class... Args>
-    __basic_execution_policy reagent(Args&&... args) const
-    {
-      auto agent_params = agent_param_type(std::forward<Args>(args)...);
-      return __basic_execution_policy(agent_params, executor());
-    }
-
-    // XXX reagent() should check that OtherExecutionAgent's execution_category is compatible with 
-    //     ExecutionCategory (somehow)
-    template<class OtherFlatExecutionAgent, class... Args>
-    __basic_execution_policy<OtherFlatExecutionAgent,executor_type,execution_category>
-      reagent(Args&&... args) const
-    {
-      using param_type = typename std::execution_agent_traits<OtherFlatExecutionAgent>::param_type;
-      auto agent_params = param_type(std::forward<Args>(args)...); 
-      return __basic_execution_policy<OtherFlatExecutionAgent,executor_type,execution_category>(agent_params, executor());
-    }
-
     template<class OtherBulkExecutor>
     __basic_execution_policy<FlatExecutionAgent,OtherBulkExecutor,ExecutionCategory> on(const OtherBulkExecutor& executor) const
     {
-      return __basic_execution_policy<FlatExecutionAgent,OtherBulkExecutor,ExecutionCategory>(std::get<0>(param_tuple()), executor);
+      return __basic_execution_policy<FlatExecutionAgent,OtherBulkExecutor,ExecutionCategory>(param(), executor);
     }
 
   protected:
-    param_tuple_type param_tuple_;
+    param_type param_;
 
     // executor_ needs to be mutable, because:
     // * the global execution policy objects are constexpr
@@ -238,6 +217,62 @@ template<class FlatExecutionAgent, class BulkExecutor, class ExecutionCategory>
 struct is_execution_policy<__basic_execution_policy<FlatExecutionAgent,BulkExecutor,ExecutionCategory>> : std::true_type {};
 
 
+struct __ignore_me
+{
+  __ignore_me operator*() const
+  {
+    return __ignore_me{};
+  }
+};
+
+
+template<class Traits>
+__ignore_me __make_shared_helper(const typename Traits::param_type&, std::false_type)
+{
+  return __ignore_me{};
+}
+
+
+template<class Traits>
+typename Traits::shared_param_type __make_shared_helper(const typename Traits::param_type& param, std::true_type)
+{
+  return typename Traits::shared_param_type(param);
+}
+
+
+template<class Traits>
+__ignore_me __make_shared_helper_ptr(const typename Traits::param_type&, std::false_type)
+{
+  return __ignore_me{};
+}
+
+
+template<class Traits>
+std::shared_ptr<typename Traits::shared_param_type> __make_shared_helper_ptr(const typename Traits::param_type& param, std::true_type)
+{
+  auto shared = __make_shared_helper<Traits>(param, true_type());
+  return std::make_shared<decltype(shared)>(std::move(shared));
+}
+
+
+template<class Traits>
+typename Traits::agent_type __make_agent_helper(const typename Traits::param_type& param,
+                                                const typename Traits::index_param_type& index_param,
+                                                __ignore_me)
+{
+  return Traits::make_agent(param, index_param);
+}
+
+
+template<class Traits>
+typename Traits::agent_type __make_agent_helper(const typename Traits::param_type& param,
+                                                const typename Traits::index_param_type& index_param,
+                                                typename Traits::shared_param_type& shared_param)
+{
+  return Traits::make_agent(param, index_param, shared_param);
+}
+
+
 // ExecutionCategory1 corresponds to the category of the executor
 // XXX ExecutionCategory2 corresponds to the category of the policy
 // XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
@@ -247,14 +282,17 @@ void __bulk_invoke(ExecutionCategory1,
                    Function f)
 {
   using traits = std::execution_agent_traits<ExecutionAgent>;
-  auto param_tuple = exec.param_tuple();
-  auto domain = traits::domain(std::get<0>(param_tuple));
+  auto param = exec.param();
+  auto domain = traits::domain(param);
 
-  bulk_invoke(exec.executor(), domain.size(), [=](size_t agent_idx)
+  auto shared_param = __make_shared_helper<traits>(param, typename traits::has_shared_param_type());
+
+  bulk_invoke(exec.executor(), domain.size(), [=,&shared_param](size_t agent_idx)
   {
-    auto index_tuple = std::make_tuple(domain[agent_idx]);
+    // XXX add make_index_param() ?
+    auto index_param = typename traits::index_param_type(domain[agent_idx]);
 
-    auto this_agent = traits::make_agent(param_tuple, index_tuple);
+    auto this_agent = __make_agent_helper<traits>(param, index_param, shared_param);
     
     f(this_agent);
   });
@@ -270,61 +308,38 @@ std::future<void> __bulk_async(ExecutionCategory1,
                                Function f)
 {
   using traits = std::execution_agent_traits<ExecutionAgent>;
-  auto param_tuple = exec.param_tuple();
-  auto domain = traits::domain(std::get<0>(param_tuple));
+  auto param = exec.param();
+  auto domain = traits::domain(param);
+
+  // XXX should really try to avoid creating a shared_ptr
+  // XXX one idea is to nest the bulk_async inside an async on the same executor
+  //     but that seems kinda lame
+  // XXX another idea would be to move the shared_param into the call to bulk_async
+  //     and make the executor in charge of owning the object
+  //     that also seems kinda lame
+  auto shared_param_ptr = __make_shared_helper_ptr<traits>(param, typename traits::has_shared_param_type());
 
   return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
-    auto index_tuple = std::make_tuple(domain[agent_idx]);
+    auto index_param = typename traits::index_param_type(domain[agent_idx]);
 
-    auto this_agent = traits::make_agent(param_tuple, index_tuple);
+    auto this_agent = __make_agent_helper<traits>(param, index_param, *shared_param_ptr);
     
     f(this_agent);
   });
 }
 
 
-template<class ChildAgent, class BulkExecutor, class Function>
-std::future<void> __bulk_async(std::concurrent_execution_tag,
-                               const __basic_execution_policy<concurrent_agent<ChildAgent>,BulkExecutor,std::concurrent_execution_tag>& exec,
-                               Function f)
-{
-  auto agent_params = std::get<0>(exec.param_tuple());
-
-  // XXX shared_ptr might be too expensive for this
-  std::shared_ptr<std::barrier> bar = std::make_shared<std::barrier>(agent_params.domain().size());
-
-  // pass 0 as the category to ensure we get the fully-generic form of __async() above
-  return __bulk_async(0, exec, [=](concurrent_agent<ChildAgent> &g)
-  {
-    __set_barrier(g, bar.get());
-  
-    f(g);
-  });
-}
-
-
-template<class ChildAgent, class BulkExecutor, class Function>
-void __bulk_invoke(std::concurrent_execution_tag,
-                   const __basic_execution_policy<concurrent_agent<ChildAgent>,BulkExecutor,std::concurrent_execution_tag>& exec,
-                   Function f)
-{
-  // call std::bulk_async(...).wait() so we're sure that we get our barrier constructed
-  // by the function above
-  return std::bulk_async(exec, f).wait();
-}
-
-
-class sequential_execution_policy : public __basic_execution_policy<sequential_agent<>, sequential_executor>
+class sequential_execution_policy : public __basic_execution_policy<sequential_agent, sequential_executor>
 {
   private:
-    using super_t = __basic_execution_policy<sequential_agent<>, sequential_executor>;
+    using super_t = __basic_execution_policy<sequential_agent, sequential_executor>;
 
   public:
     using typename super_t::execution_agent_type;
 
     sequential_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param))
+      : super_t(param)
     {}
 
     sequential_execution_policy(size_t indices_begin, size_t indices_end)
@@ -358,16 +373,16 @@ template<> struct is_execution_policy<sequential_execution_policy> : std::true_t
 const sequential_execution_policy seq{1};
 
 
-class concurrent_execution_policy : public __basic_execution_policy<concurrent_agent<>, concurrent_executor>
+class concurrent_execution_policy : public __basic_execution_policy<concurrent_agent, concurrent_executor>
 {
   private:
-    using super_t = __basic_execution_policy<concurrent_agent<>, concurrent_executor>;
+    using super_t = __basic_execution_policy<concurrent_agent, concurrent_executor>;
 
   public:
     using typename super_t::execution_agent_type;
 
     concurrent_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param))
+      : super_t(param)
     {}
 
     concurrent_execution_policy(size_t indices_begin, size_t indices_end)
@@ -401,16 +416,16 @@ template<> struct is_execution_policy<concurrent_execution_policy> : std::true_t
 const concurrent_execution_policy con{1};
 
 
-class parallel_execution_policy : public __basic_execution_policy<parallel_agent<>, parallel_executor>
+class parallel_execution_policy : public __basic_execution_policy<parallel_agent, parallel_executor>
 {
   private:
-    using super_t = __basic_execution_policy<parallel_agent<>, parallel_executor>;
+    using super_t = __basic_execution_policy<parallel_agent, parallel_executor>;
 
   public:
     using typename super_t::execution_agent_type;
 
     parallel_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param))
+      : super_t(param)
     {}
 
     parallel_execution_policy(size_t indices_begin, size_t indices_end)
@@ -446,16 +461,16 @@ template<> struct is_execution_policy<parallel_execution_policy> : std::true_typ
 const parallel_execution_policy par;
 
 
-class vector_execution_policy : public __basic_execution_policy<vector_agent<>, vector_executor>
+class vector_execution_policy : public __basic_execution_policy<vector_agent, vector_executor>
 {
   private:
-    using super_t = __basic_execution_policy<vector_agent<>, vector_executor>;
+    using super_t = __basic_execution_policy<vector_agent, vector_executor>;
 
   public:
     using typename super_t::execution_agent_type;
 
     vector_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(execution_agent_traits<execution_agent_type>::param_tuple_type(param))
+      : super_t(param)
     {}
 
     vector_execution_policy(size_t indices_begin, size_t indices_end)

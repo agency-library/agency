@@ -9,28 +9,28 @@ int main()
   using std::par;
   using std::con;
 
-  auto seq_f = bulk_async(seq(5), [](std::sequential_agent<> &g)
+  auto seq_f = bulk_async(seq(5), [](std::sequential_agent &self)
   {
-    std::cout << "Hello world from sequential_agent " << g.index() << std::endl;
+    std::cout << "Hello world from sequential_agent " << self.index() << std::endl;
   });
 
-  auto par_f = bulk_async(par(5), [](std::parallel_agent<> &g)
+  auto par_f = bulk_async(par(5), [](std::parallel_agent &self)
   {
     mut.lock();
-    std::cout << "Hello world from parallel_agent " << g.index() << std::endl;
+    std::cout << "Hello world from parallel_agent " << self.index() << std::endl;
     mut.unlock();
   });
 
-  auto con_f = bulk_async(con(5), [](std::concurrent_agent<> &g)
+  auto con_f = bulk_async(con(5), [](std::concurrent_agent &self)
   {
     mut.lock();
-    std::cout << "Hello world from concurrent_agent " << g.index() << " arriving at barrier." << std::endl;
+    std::cout << "Hello world from concurrent_agent " << self.index() << " arriving at barrier." << std::endl;
     mut.unlock();
 
-    g.wait();
+    self.wait();
 
     mut.lock();
-    std::cout << "Hello world from concurrent_agent " << g.index() << " departing from barrier." << std::endl;
+    std::cout << "Hello world from concurrent_agent " << self.index() << " departing from barrier." << std::endl;
     mut.unlock();
   });
 
@@ -38,33 +38,33 @@ int main()
   par_f.wait();
   con_f.wait();
 
-  auto singly_nested_f = bulk_async(con(2, seq(3)), [](std::concurrent_agent<std::sequential_agent<>> &g)
+  auto singly_nested_f = bulk_async(con(2, seq(3)), [](std::concurrent_group<std::sequential_agent> &self)
   {
     mut.lock();
-    std::cout << "Hello world from con(seq) agent (" << g.index() << ", " << g.child().index() << ")" << std::endl;
+    std::cout << "Hello world from con(seq) agent (" << self.index() << ", " << self.child().index() << ")" << std::endl;
     mut.unlock();
 
     // the first agent in each inner group waits on the outer group 
-    if(g.child().index() == 0)
+    if(self.child().index() == 0)
     {
       mut.lock();
-      std::cout << "con(seq) agent " << std::int2(g.index(), g.child().index()) << " arriving at barrier" << std::endl;
+      std::cout << "con(seq) agent " << std::int2(self.index(), self.child().index()) << " arriving at barrier" << std::endl;
       mut.unlock();
 
-      g.wait();
+      self.wait();
 
       mut.lock();
-      std::cout << "con(seq) agent (" << g.index() << ", " << g.child().index() << ") departing barrier" << std::endl;
+      std::cout << "con(seq) agent (" << self.index() << ", " << self.child().index() << ") departing barrier" << std::endl;
       mut.unlock();
     }
   });
 
   singly_nested_f.wait();
 
-  auto doubly_nested_f = bulk_async(seq(2, par(2, seq(3))), [](std::sequential_agent<std::parallel_agent<std::sequential_agent<>>> &g)
+  auto doubly_nested_f = bulk_async(seq(2, par(2, seq(3))), [](std::sequential_group<std::parallel_group<std::sequential_agent>> &self)
   {
     mut.lock();
-    std::cout << "Hello world from sequential_agent " << g.child().child().index() << " of parallel_agent " << g.child().index() << " of sequential_agent " << g.index() << std::endl;
+    std::cout << "Hello world from sequential_agent " << self.child().child().index() << " of parallel_group " << self.child().index() << " of sequential_group " << self.index() << std::endl;
     mut.unlock();
   });
 

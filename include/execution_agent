@@ -13,67 +13,9 @@ namespace std
 {
 
 
-template<class ExecutionAgent, class OtherChild>
-struct __rebind_execution_agent
-{
-  typedef typename ExecutionAgent::template rebind<OtherChild>::other type;
-};
-
-
-template<template<class, class...> class ExecutionAgent, class OriginalChild, class... T, class OtherChild>
-struct __rebind_execution_agent<ExecutionAgent<OriginalChild, T...>, OtherChild>
-{
-  typedef ExecutionAgent<OtherChild, T...> type;
-};
-
-
-template<typename T>
-  struct __has_child_type
-{
-  typedef char yes_type;
-  typedef int  no_type;
-  template<typename S> static yes_type test(typename S::child_type *);
-  template<typename S> static no_type  test(...);
-  static bool const value = sizeof(test<T>(0)) == sizeof(yes_type);
-  typedef std::integral_constant<bool, value> type;
-};
-
-
-template<typename T>
-struct __child_type
-{
-  typedef typename T::child_type type;
-};
-
-
-template<typename>
-struct __sfinae
-{
-  using type = void;
-};
-
-
-template<typename T, typename = void>
-struct __has_domain : std::false_type {};
-
-
-template<typename T>
-struct __has_domain<
-  T,
-  typename __sfinae<decltype(std::declval<T>().domain())>::type
-> : std::true_type
-{};
-
-
-template<typename T>
-struct __domain_type
-{
-  using type = typename T::domain_type;
-};
-
-
-// XXX eliminate this
-struct rebind_child_tag {};
+__DEFINE_HAS_NESTED_TYPE(__has_child_type, child_type);
+__DEFINE_HAS_NESTED_TYPE(__has_index_param_type, index_param_type);
+__DEFINE_HAS_NESTED_TYPE(__has_shared_param_type, shared_param_type);
 
 
 template<class ExecutionAgent>
@@ -94,47 +36,11 @@ class execution_agent_traits
 
   public:
     using agent_type = ExecutionAgent;
-
     using execution_category = typename agent_type::execution_category;
-    
     using param_type = typename agent_type::param_type;
-
-    using domain_type = typename __lazy_conditional<
-      __has_domain<agent_type>::value,
-      __domain_type<agent_type>,
-      __identity<void>
-    >::type;
-
+    using domain_type = decltype(std::declval<agent_type>().domain());
     using index_type = decltype(std::declval<agent_type>().index());
-
     using size_type = decltype(std::declval<agent_type>().group_size());
-
-    typedef typename __lazy_conditional<
-      __has_child_type<agent_type>::value,
-      __child_type<agent_type>,
-      __identity<void>
-    >::type                                              child_type;
-
-    // XXX consider renaming to nesting_depth or grouping_depth
-    //     to emphasize that agents have depth 0
-    // XXX alternatively, make it illegal to use execution_group_traits on non-groups
-    constexpr static size_t depth = depth_impl(0, typename __has_child_type<agent_type>::type());
-    
-    template<class OtherChild>
-    using rebind = typename __rebind_execution_agent<agent_type, OtherChild>::type;
-
-    template<class ParamTuple, class IndexTuple>
-    static agent_type make_agent(const ParamTuple& params, const IndexTuple& indices)
-    {
-      return agent_type(params, indices);
-    }
-
-    // XXX eliminate this
-    template<class OtherChild>
-    static rebind<OtherChild> rebind_child(agent_type&& g, OtherChild&& child)
-    {
-      return rebind<OtherChild>(rebind_child_tag(), std::move(g), std::move(child));
-    }
 
     static domain_type domain(const param_type& params)
     {
@@ -142,95 +48,75 @@ class execution_agent_traits
     }
 
   private:
-    template<typename T>
-    struct child_param_tuple_impl
+    template<class T>
+    struct agent_index_param
     {
-      using child_type = typename execution_agent_traits<T>::child_type;
-      using type = typename execution_agent_traits<child_type>::param_tuple_type;
+      using type = typename T::index_param_type;
     };
 
+  public:
+    using index_param_type = typename __lazy_conditional<
+      __has_index_param_type<agent_type>::value,
+      agent_index_param<agent_type>,
+      __identity<index_type>
+    >::type;
 
+  private:
+    template<class T>
+    struct agent_shared_param
+    {
+      using type = typename T::shared_param_type;
+    };
+
+  public:
+    using shared_param_type = typename __lazy_conditional<
+      __has_shared_param_type<agent_type>::value,
+      agent_shared_param<agent_type>,
+      __identity<void>
+    >::type;
+
+    using has_shared_param_type = typename std::conditional<
+      std::is_same<void, shared_param_type>::value,
+      std::false_type,
+      std::true_type
+    >::type;
+
+  private:
+    template<class T>
+    struct agent_child
+    {
+      using type = typename T::child_type;
+    };
+
+  public:
     typedef typename __lazy_conditional<
       __has_child_type<agent_type>::value,
-      child_param_tuple_impl<agent_type>,
-      __identity<std::tuple<>>
-    >::type child_param_tuple_type;
+      agent_child<agent_type>,
+      __identity<void>
+    >::type child_type;
 
+    // XXX consider renaming this
+    constexpr static size_t depth = depth_impl(0, typename __has_child_type<agent_type>::type());
 
-    template<class... Params>
-    static std::tuple<param_type, Params...> param_tuple_impl(const param_type& head_param, const std::tuple<Params...>& tail_params)
+    // XXX this really shouldn't be a template
+    template<class... SharedParamType>
+    static agent_type make_agent(const param_type& param, const index_param_type& index, SharedParamType&... shared_param)
     {
-      return std::tuple_cat(std::make_tuple(head_param), tail_params);
+      return agent_type(param, index, shared_param...);
     }
 
-    template<class T>
-    static child_param_tuple_type child_param_tuple(T, const agent_type& g, std::false_type)
+    // XXX this really shouldn't be a template
+    template<class... SharedParamType>
+    static shared_param_type shared_param(const param_type& param)
     {
-      return std::tuple<>();
+      return shared_param_type(param);
     }
-
-    template<class T>
-    static child_param_tuple_type child_param_tuple(T, const agent_type& g, std::true_type)
-    {
-      return execution_agent_traits<child_type>::child_param_tuple(g.child());
-    }
-
-
-  public:
-    // returns a tuple containing each node's param, beginning at the root of the hierarchy
-    // e.g. make_tuple(g.param(), g.child().param(), g.child().child().param(), ...)
-    static auto param_tuple(const agent_type& g)
-      -> decltype(param_tuple_impl(g.param(), child_param_tuple(0, g, typename __has_child_type<agent_type>::type())))
-    {
-      return param_tuple_impl(g.param(), child_param_tuple(0, g, typename __has_child_type<agent_type>::type()));
-    }
-
-    using param_tuple_type = decltype(param_tuple(std::declval<agent_type>()));
 };
 
 
-template<class ChildAgent>
-class __execution_agent_base_base
+template<class ExecutionCategory>
+class __basic_execution_agent
 {
-  public:
-    using child_type = ChildAgent;
-
-    child_type& child()
-    {
-      return child_;
-    }
-
-    const child_type& child() const
-    {
-      return child_;
-    }
-
-  protected:
-    template<class... Args>
-    __execution_agent_base_base(Args&&... args)
-      : child_(std::forward<Args>(args)...)
-    {}
-
-    child_type child_;
-};
-
-
-template<> 
-class __execution_agent_base_base<void>
-{
-  public:
-    template<class... Args>
-    __execution_agent_base_base(Args&&...)
-    {}
-};
-
-
-template<class ExecutionCategory, class ExecutionAgent>
-class __execution_agent_base : public __execution_agent_base_base<ExecutionAgent>
-{
-  private:
-    using super_t = __execution_agent_base_base<ExecutionAgent>;
-
   public:
     using execution_category = ExecutionCategory; 
 
@@ -241,16 +127,6 @@ class __execution_agent_base : public __execution_agent_base_base<ExecutionAgent
     class param_type
     {
       public:
-        //// XXX get rid of this
-        //// copy from related param_types
-        //// this allows us to copy from e.g.
-        //// concurrent_agent<>::param_type -> concurrent_agent<sequential_agent<>>::param_type
-        //// the types aren't interoperable otherwise
-        //template<class OtherParamType>
-        //param_type(const OtherParamType& other)
-        //  : domain_(other.domain())
-        //{}
-
         param_type(const param_type& other)
           : domain_(other.domain_)
         {}
@@ -292,98 +168,154 @@ class __execution_agent_base : public __execution_agent_base_base<ExecutionAgent
     index_type  index_;
 
   protected:
-    // the following two constructors are used by execution_group_traits
-
-    // XXX OtherExecutionAgent must be a descendant of __execution_agent_base<ExecutionCategory,OtherAgent>
-    // XXX eliminate this
-    // XXX this is used by execution_agent_traits::rebind_child()
-    template<class OtherExecutionAgent, class Child>
-    __execution_agent_base(rebind_child_tag, OtherExecutionAgent&& agent, Child&& chld)
-      : super_t(std::move(chld)),
-        domain_(agent.domain()),
-        index_(agent.index())
-    {}
-
-    // XXX this ought to be the only constructor we require
-    // XXX eliminate the other two constructors we we've revamped __nested_execution_policy to
-    //     inherit from __basic_execution_policy
-    // XXX find a way to make this not a template
-    template<class ParamTuple, class IndexTuple>
-    __execution_agent_base(const ParamTuple& params, const IndexTuple& indices)
-      : super_t(tuple_tail(params), tuple_tail(indices)),
-        domain_(std::get<0>(params).domain()),
-        index_(std::get<0>(indices))
+    __basic_execution_agent(const param_type& param, index_type index)
+      : domain_(param.domain()),
+        index_(index)
     {}
 };
 
 
-template<class ExecutionAgent = void>
-class sequential_agent : public __execution_agent_base<sequential_execution_tag, ExecutionAgent>
+using sequential_agent = __basic_execution_agent<std::sequential_execution_tag>;
+
+
+using parallel_agent = __basic_execution_agent<std::parallel_execution_tag>;
+
+
+using vector_agent = __basic_execution_agent<std::vector_execution_tag>;
+
+
+// XXX may wish to give __basic_execution_agent a shared_param template parameter defaulting to void
+class concurrent_agent : public __basic_execution_agent<concurrent_execution_tag>
 {
   private:
-    template<class> friend class execution_agent_traits;
+    using super_t = __basic_execution_agent<concurrent_execution_tag>;
 
-  protected:
-    using __execution_agent_base<sequential_execution_tag, ExecutionAgent>::__execution_agent_base;
-};
-
-
-template<class ExecutionAgent = void>
-class parallel_agent : public __execution_agent_base<parallel_execution_tag, ExecutionAgent>
-{
-  private:
-    template<class> friend class execution_agent_traits;
-
-  protected:
-    using __execution_agent_base<parallel_execution_tag, ExecutionAgent>::__execution_agent_base;
-};
-
-
-template<class ExecutionAgent = void>
-class vector_agent : public __execution_agent_base<vector_execution_tag, ExecutionAgent>
-{
-  private:
-    template<class> friend class execution_agent_traits;
-
-  protected:
-    using __execution_agent_base<vector_execution_tag, ExecutionAgent>::__execution_agent_base;
-};
-
-
-template<class ExecutionAgent = void>
-class concurrent_agent : public __execution_agent_base<concurrent_execution_tag, ExecutionAgent>
-{
   public:
     void wait() const
     {
-      barrier_->count_down_and_wait();
+      barrier_.count_down_and_wait();
+    }
+
+    struct shared_param_type
+    {
+      shared_param_type(const typename super_t::param_type& param)
+        : count_(param.domain().size()),
+          barrier_(count_)
+      {}
+
+      shared_param_type(const shared_param_type& other)
+        : count_(other.count_),
+          barrier_(count_)
+      {}
+
+      int count_;
+      std::barrier barrier_;
+    };
+
+  private:
+    template<class> friend class execution_agent_traits;
+
+    std::barrier &barrier_;
+
+  protected:
+    concurrent_agent(const param_type& param, index_type index, shared_param_type& shared_param)
+      : super_t(param, index),
+        barrier_(shared_param.barrier_)
+    {}
+};
+
+
+// XXX may wish not to inherit from ParentAgent
+// XXX need to give this guy a shared_param_type if either the parent or child have one
+//     and also modulate the form of the constructor depending on whether it has a shared_param_type
+template<class ParentAgent, class ChildAgent>
+class __execution_group : public ParentAgent
+{
+  private:
+    using super_t = ParentAgent;
+
+  public:
+    using execution_category = std::nested_execution_tag<
+      typename execution_agent_traits<ParentAgent>::execution_category,
+      typename execution_agent_traits<ChildAgent>::execution_category
+    >;
+
+    using child_type = ChildAgent;
+
+    using param_type = std::tuple<
+      typename execution_agent_traits<ParentAgent>::param_type,
+      typename execution_agent_traits<ChildAgent>::param_type
+    >;
+
+    class index_param_type
+    {
+      public:
+        template<class... Indices>
+        index_param_type(typename execution_agent_traits<ParentAgent>::index_param_type index,
+                         Indices... descendent_indices)
+          : parent_index_param_(index),
+            child_index_param_(descendent_indices...)
+        {}
+
+      private:
+        typename execution_agent_traits<ParentAgent>::index_param_type parent_index_param_;
+        typename execution_agent_traits<ChildAgent>::index_param_type child_index_param_;
+    };
+
+    child_type& child()
+    {
+      return child_;
+    }
+
+    const child_type& child() const
+    {
+      return child_;
     }
 
   private:
-    using super_t = __execution_agent_base<concurrent_execution_tag,ExecutionAgent>;
-
     template<class> friend class execution_agent_traits;
 
-    friend void __set_barrier(concurrent_agent &self, std::barrier *bar)
-    {
-      self.barrier_ = bar;
-    }
-
-    // XXX might be best to make this a shared_ptr
-    std::barrier *barrier_;
-
-    template<class OtherExecutionAgent> friend class concurrent_agent;
-
-//    // XXX OtherConcurrentAgent must be a descendant of an instance of concurrent_agent<U>
-//    template<class OtherConcurrentAgent>
-//    concurrent_agent(OtherConcurrentAgent&& agent, typename concurrent_agent::child_type&& chld)
-//      : super_t(std::move(agent), std::move(chld)),
-//        barrier_(agent.barrier_)
-//    {}
+    child_type child_;
 
   protected:
-    using __execution_agent_base<concurrent_execution_tag, ExecutionAgent>::__execution_agent_base;
+    __execution_group(const param_type& param, const index_param_type& index)
+      : super_t(std::get<0>(param), std::get<0>(index)),
+        child_(std::get<1>(param), std::get<1>(index))
+    {}
+
+    // XXX eliminate this
+    __execution_group(ParentAgent&& parent, ChildAgent&& child)
+      : super_t(std::move(parent)),
+        child_(std::move(child))
+    {}
+
+    // XXX eliminate this
+    template<class P, class C>
+    friend __execution_group<P,C> __nest_agents(P&& parent, C&& child);
 };
+
+
+template<class ParentAgent, class ChildAgent>
+__execution_group<ParentAgent,ChildAgent> __nest_agents(ParentAgent&& parent, ChildAgent&& child)
+{
+  return __execution_group<ParentAgent,ChildAgent>(std::move(parent), std::move(child));
+}
+
+
+template<class ChildAgent>
+using sequential_group = __execution_group<sequential_agent, ChildAgent>;
+
+
+template<class ChildAgent>
+using parallel_group = __execution_group<parallel_agent, ChildAgent>;
+
+
+template<class ChildAgent>
+using vector_group = __execution_group<vector_agent, ChildAgent>;
+
+
+template<class ChildAgent>
+using concurrent_group = __execution_group<concurrent_agent, ChildAgent>;
 
 
 }

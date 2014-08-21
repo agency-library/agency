@@ -8,9 +8,9 @@ int main()
   size_t n = 1 << 16;
   std::vector<int> x(n);
 
-  auto f = std::bulk_async(std::par(n), [&](std::parallel_agent<> &g)
+  auto f = std::bulk_async(std::par(n), [&](std::parallel_agent &self)
   {
-    int i = g.index();
+    int i = self.index();
     x[i] = 13;
   });
 
