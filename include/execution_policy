@@ -217,6 +217,62 @@ template<class FlatExecutionAgent, class BulkExecutor, class ExecutionCategory>
 struct is_execution_policy<__basic_execution_policy<FlatExecutionAgent,BulkExecutor,ExecutionCategory>> : std::true_type {};
 
 
+struct __ignore_me
+{
+  __ignore_me operator*() const
+  {
+    return __ignore_me{};
+  }
+};
+
+
+template<class Traits>
+__ignore_me __make_shared_helper(const typename Traits::param_type&, std::false_type)
+{
+  return __ignore_me{};
+}
+
+
+template<class Traits>
+typename Traits::shared_param_type __make_shared_helper(const typename Traits::param_type& param, std::true_type)
+{
+  return typename Traits::shared_param_type(param);
+}
+
+
+template<class Traits>
+__ignore_me __make_shared_helper_ptr(const typename Traits::param_type&, std::false_type)
+{
+  return __ignore_me{};
+}
+
+
+template<class Traits>
+std::shared_ptr<typename Traits::shared_param_type> __make_shared_helper_ptr(const typename Traits::param_type& param, std::true_type)
+{
+  auto shared = __make_shared_helper<Traits>(param, true_type());
+  return std::make_shared<decltype(shared)>(std::move(shared));
+}
+
+
+template<class Traits>
+typename Traits::agent_type __make_agent_helper(const typename Traits::param_type& param,
+                                                const typename Traits::index_param_type& index_param,
+                                                __ignore_me)
+{
+  return Traits::make_agent(param, index_param);
+}
+
+
+template<class Traits>
+typename Traits::agent_type __make_agent_helper(const typename Traits::param_type& param,
+                                                const typename Traits::index_param_type& index_param,
+                                                typename Traits::shared_param_type& shared_param)
+{
+  return Traits::make_agent(param, index_param, shared_param);
+}
+
+
 // ExecutionCategory1 corresponds to the category of the executor
 // XXX ExecutionCategory2 corresponds to the category of the policy
 // XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
@@ -229,12 +285,14 @@ void __bulk_invoke(ExecutionCategory1,
   auto param = exec.param();
   auto domain = traits::domain(param);
 
-  bulk_invoke(exec.executor(), domain.size(), [=](size_t agent_idx)
+  auto shared_param = __make_shared_helper<traits>(param, typename traits::has_shared_param_type());
+
+  bulk_invoke(exec.executor(), domain.size(), [=,&shared_param](size_t agent_idx)
   {
     // XXX add make_index_param() ?
     auto index_param = typename traits::index_param_type(domain[agent_idx]);
 
-    auto this_agent = traits::make_agent(param, index_param);
+    auto this_agent = __make_agent_helper<traits>(param, index_param, shared_param);
     
     f(this_agent);
   });
@@ -253,45 +311,17 @@ std::future<void> __bulk_async(ExecutionCategory1,
   auto param = exec.param();
   auto domain = traits::domain(param);
 
+  // XXX should really try to avoid creating a shared_ptr
+  auto shared_param_ptr = __make_shared_helper_ptr<traits>(param, typename traits::has_shared_param_type());
+
   return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
   {
     auto index_param = typename traits::index_param_type(domain[agent_idx]);
 
-    auto this_agent = traits::make_agent(param, index_param);
+    auto this_agent = __make_agent_helper<traits>(param, index_param, *shared_param_ptr);
     
     f(this_agent);
   });
-}
-
-
-template<class BulkExecutor, class Function>
-std::future<void> __bulk_async(std::concurrent_execution_tag,
-                               const __basic_execution_policy<concurrent_agent,BulkExecutor,std::concurrent_execution_tag>& exec,
-                               Function f)
-{
-  auto param = exec.param();
-
-  // XXX shared_ptr might be too expensive for this
-  std::shared_ptr<std::barrier> bar = std::make_shared<std::barrier>(param.domain().size());
-
-  // pass 0 as the category to ensure we get the fully-generic form of __async() above
-  return __bulk_async(0, exec, [=](concurrent_agent &g)
-  {
-    __set_barrier(g, bar.get());
-  
-    f(g);
-  });
-}
-
-
-template<class BulkExecutor, class Function>
-void __bulk_invoke(std::concurrent_execution_tag,
-                   const __basic_execution_policy<concurrent_agent,BulkExecutor,std::concurrent_execution_tag>& exec,
-                   Function f)
-{
-  // call std::bulk_async(...).wait() so we're sure that we get our barrier constructed
-  // by the function above
-  return std::bulk_async(exec, f).wait();
 }
 
 
