@@ -44,12 +44,6 @@ struct executor_traits
       __identity<index_type>
     >::type;
 
-    template<class Function>
-    static void bulk_add(executor_type& ex, shape_type shape, Function f)
-    {
-      return ex.bulk_add(shape, f);
-    }
-
 
     // XXX new stuff
 
