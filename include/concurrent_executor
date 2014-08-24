@@ -49,18 +49,6 @@ class concurrent_executor
       return result;
     };
 
-    // XXX eliminate this once executor_traits has the default implementation
-    template<class Function>
-    std::future<void> bulk_async(Function f, size_t n)
-    {
-      return bulk_async([=](size_t index, const int&)
-      {
-        f(index);
-      },
-      n,
-      0);
-    }
-
   private:
     // first must be less than last
     template<class Function, class T>

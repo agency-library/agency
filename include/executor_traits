@@ -45,40 +45,140 @@ struct executor_traits
     >::type;
 
 
-    // XXX new stuff
-
+    // XXX we could make .bulk_async(f, shape, shared_arg) optional
+    //     the default implementation could create a launcher agent to own the shared arg and wait for the
+    //     workers
     template<class Function, class T>
     static std::future<void> bulk_async(executor_type& ex, Function f, shape_type shape, T shared_arg)
     {
       return ex.bulk_async(f, shape, shared_arg);
     }
 
+  private:
+    template<class Function>
+    struct test_for_bulk_async
+    {
+      template<
+        class Executor2,
+        typename = decltype(std::declval<Executor2*>()->bulk_async(
+        std::declval<Function>(),
+        std::declval<shape_type>()))
+      >
+      static true_type test(int);
+
+      template<class>
+      static false_type test(...);
+
+      using type = decltype(test<executor_type>(0));
+    };
+
+    template<class Function>
+    using has_bulk_async = typename test_for_bulk_async<Function>::type;
+
+    template<class Function>
+    static std::future<void> bulk_async(executor_type& ex, Function f, shape_type shape, std::true_type)
+    {
+      return ex.bulk_async(f, shape);
+    }
+
+    template<class Function>
+    static std::future<void> bulk_async(executor_type& ex, Function f, shape_type shape, std::false_type)
+    {
+      return bulk_async(ex, [=](index_type index, const shape_type&)
+      {
+        f(index);
+      },
+      shape, shape
+      );
+    }
+
+  public:
     template<class Function>
     static std::future<void> bulk_async(executor_type& ex, Function f, shape_type shape)
     {
-      return ex.bulk_async(f, shape);
-      
-      // XXX default implementation if member above is missing:
-      //return bulk_async(ex, [=](index_type index, const shape_type&)
-      //{
-      //  f(index);
-      //},
-      //shape, shape
-      //);
+      return bulk_async(ex, f, shape, has_bulk_async<Function>());
+    }
+
+  private:
+    template<class Function, class T>
+    struct test_for_bulk_invoke_with_shared_arg
+    {
+      template<
+        class Executor2,
+        typename = decltype(std::declval<Executor2*>()->bulk_invoke(
+        std::declval<Function>(),
+        std::declval<shape_type>(),
+        std::declval<T>()))
+      >
+      static true_type test(int);
+
+      template<class>
+      static false_type test(...);
+
+      using type = decltype(test<executor_type>(0));
+    };
+
+    template<class Function, class T>
+    using has_bulk_invoke_with_shared_arg = typename test_for_bulk_invoke_with_shared_arg<Function,T>::type;
+
+    template<class Function, class T>
+    static void bulk_invoke(executor_type& ex, Function f, shape_type shape, T shared_arg, true_type)
+    {
+      ex.bulk_invoke(f, shape, shared_arg);
     }
 
     template<class Function, class T>
+    static void bulk_invoke(executor_type& ex, Function f, shape_type shape, T shared_arg, false_type)
+    {
+      bulk_async(ex, f, shape, shared_arg).wait();
+    }
+
+  public:
+    template<class Function, class T>
     static void bulk_invoke(executor_type& ex, Function f, size_t n, T shared_arg)
     {
-      // XXX default implementation if ex.bulk_invoke(f,n,shared_arg) is missing:
-      return bulk_async(ex, f, n, shared_arg).wait();
+      bulk_invoke(ex, f, n, shared_arg, has_bulk_invoke_with_shared_arg<Function,T>());
+    }
+
+  private:
+    template<class Function>
+    struct test_for_bulk_invoke
+    {
+      template<
+        class Executor2,
+        class Function2,
+        typename = decltype(std::declval<Executor2*>()->bulk_invoke(
+        std::declval<Function2>(),
+        std::declval<shape_type>()))
+      >
+      static true_type test(int);
+
+      template<class,class>
+      static false_type test(...);
+
+      using type = decltype(test<executor_type,Function>(0));
+    };
+
+    template<class Function>
+    using has_bulk_invoke = typename test_for_bulk_invoke<Function>::type;
+
+    template<class Function>
+    static void bulk_invoke(executor_type& ex, Function f, shape_type shape, true_type)
+    {
+      ex.bulk_invoke(f, shape);
     }
 
     template<class Function>
-    static void bulk_invoke(executor_type& ex, Function f, size_t n)
+    static void bulk_invoke(executor_type& ex, Function f, shape_type shape, false_type)
     {
-      // XXX default implementation if ex.bulk_invoke(f,n) is missing:
-      return bulk_async(ex, f, n).wait();
+      bulk_async(ex, f, shape).wait();
+    }
+
+  public:
+    template<class Function>
+    static void bulk_invoke(executor_type& ex, Function f, shape_type shape)
+    {
+      bulk_invoke(ex, f, shape, has_bulk_invoke<Function>());
     }
 };
 

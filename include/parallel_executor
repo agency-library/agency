@@ -27,12 +27,12 @@ class parallel_executor
     {
       auto partitioning = partition(n);
     
-      return con().bulk_async([=](size_t outer_idx)
+      return executor_traits<concurrent_executor>::bulk_async(con(), [=](size_t outer_idx)
       {
         auto subgroup_begin = outer_idx * partitioning.second;
         auto subgroup_end   = std::min(n, subgroup_begin + partitioning.second);
 
-        seq().bulk_invoke([=](size_t inner_idx)
+        executor_traits<sequential_executor>::bulk_invoke(seq(), [=](size_t inner_idx)
         {
           auto index = subgroup_begin + inner_idx;
     
@@ -48,12 +48,12 @@ class parallel_executor
     {
       auto partitioning = partition(n);
     
-      return con().bulk_async([=](size_t outer_idx, T& shared_arg)
+      return executor_traits<concurrent_executor>::bulk_async(con(), [=](size_t outer_idx, T& shared_arg)
       {
         auto subgroup_begin = outer_idx * partitioning.second;
         auto subgroup_end   = std::min(n, subgroup_begin + partitioning.second);
 
-        seq().bulk_invoke([=,&shared_arg](size_t inner_idx)
+        executor_traits<sequential_executor>::bulk_invoke(seq(), [=,&shared_arg](size_t inner_idx)
         {
           auto index = subgroup_begin + inner_idx;
     

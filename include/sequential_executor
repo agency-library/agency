@@ -13,26 +13,6 @@ class sequential_executor
   public:
     using execution_category = std::sequential_execution_tag;
 
-    // XXX eliminate this once executor_traits has the default implementation
-    template<class Function>
-    void bulk_invoke(Function f, size_t n)
-    {
-      for(size_t i = 0; i < n; ++i)
-      {
-        f(i);
-      }
-    }
-
-    // XXX eliminate this once executor_traits has the default implementation
-    template<class Function>
-    std::future<void> bulk_async(Function f, size_t n)
-    {
-      return std::async(std::launch::deferred, [=]
-      {
-        bulk_invoke(f, n);
-      });
-    }
-
     template<class Function, class T>
     void bulk_invoke(Function f, size_t n, T shared_arg)
     {
