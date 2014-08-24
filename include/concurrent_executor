@@ -16,98 +16,79 @@ class concurrent_executor
   public:
     using execution_category = std::concurrent_execution_tag;
 
-    template<class Function>
-    void add(Function&& f)
+    template<class Function, class T>
+    std::future<void> bulk_async(Function f, size_t n, T shared_arg)
     {
-      std::thread t(std::move(f));
+      std::future<void> result = std::make_ready_future();
 
-      t.detach();
-    }
-
-    template<class Function>
-    void bulk_add(size_t n, Function f)
-    {
-      for(size_t i = 0; i < n; ++i)
+      if(n > 0)
       {
-        std::thread t([=]
+        result = std::async(std::launch::async, [=]() mutable
         {
-          f(i);
-        });
+          size_t mid = n / 2;
 
-        t.detach();
+          std::future<void> left = std::make_ready_future();
+          if(0 < mid)
+          {
+            left = std::move(bulk_async(f, 0, mid, shared_arg));
+          }
+
+          std::future<void> right = std::make_ready_future();
+          if(mid + 1 < n)
+          {
+            right = std::move(bulk_async(f, mid + 1, n, shared_arg));
+          }
+
+          f(mid, shared_arg);
+
+          left.wait();
+          right.wait();
+        });
       }
+
+      return result;
+    };
+
+    // XXX eliminate this once executor_traits has the default implementation
+    template<class Function>
+    std::future<void> bulk_async(Function f, size_t n)
+    {
+      return bulk_async([=](size_t index, const int&)
+      {
+        f(index);
+      },
+      n,
+      0);
+    }
+
+  private:
+    // first must be less than last
+    template<class Function, class T>
+    std::future<void> bulk_async(Function f, size_t first, size_t last, T& shared_arg)
+    {
+      return std::async(std::launch::async, [=,&shared_arg]
+      {
+        size_t mid = (last + first) / 2;
+
+        std::future<void> left = std::make_ready_future();
+        if(first < mid)
+        {
+          left = std::move(bulk_async(f, first, mid, shared_arg));
+        }
+
+        std::future<void> right = std::make_ready_future();
+        if(mid + 1 < last)
+        {
+          right = std::move(bulk_async(f, mid + 1, last, shared_arg));
+        }
+
+        f(mid, shared_arg);
+
+        left.wait();
+        right.wait();
+      });
     }
 };
-
-
-template<class Function>
-struct __set_value_after_function
-{
-  __set_value_after_function(std::promise<void>&& promise, Function f)
-    : p_(std::move(promise)),
-      f_(f)
-  {}
-
-  void operator()()
-  {
-    f_();
-    p_.set_value();
-  }
-
-  std::promise<void> p_;
-  Function f_;
-};
-
-
-
-template<class Function, class... Args>
-std::future<void> __async(concurrent_executor& ex, Function&& f, Args&&... args)
-{
-  auto g = std::bind(std::forward<Function>(f), std::forward<Args>(args)...);
-
-  std::promise<void> p;
-  
-  std::future<void> result = p.get_future();
-
-  ex.add(__set_value_after_function<decltype(g)>(std::move(p), g));
-
-  return result;
-}
-
-
-template<class Function, class... Args>
-std::future<void> bulk_async(concurrent_executor& ex, size_t n, Function&& f, Args&&... args)
-{
-  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...);
-
-  return __async(ex, [=,&ex]
-  {
-    std::vector<std::promise<void>> promises(n);
-
-    ex.bulk_add(n, [=,&promises](size_t i)
-    {
-      g(i);
-
-      promises[i].set_value();
-    });
-
-    std::vector<std::future<void>> futures(n);
-    std::transform(promises.begin(), promises.end(), futures.begin(), [](std::promise<void>& p)
-    {
-      return p.get_future();
-    });
-
-    // XXX could use a transform iterator instead of a separate vector of futures here
-    std::when_all(futures.begin(), futures.end()).wait();
-  });
-}
-
-
-template<class Function, class... Args>
-void bulk_invoke(concurrent_executor& ex, size_t n, Function&& f, Args&&... args)
-{
-  std::bulk_async(ex, n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...)).wait();
-}
 
 
 }

@@ -13,39 +13,46 @@ class vector_executor
   public:
     using execution_category = std::vector_execution_tag;
 
-    using index_type = size_t;
-
-    using shape_type = size_t;
-
+    // XXX eliminate this once executor_traits has the default implementation 
     template<class Function>
-    void bulk_add(shape_type n, Function f)
+    void bulk_invoke(Function f, size_t n)
     {
 #pragma GCC ivdep
-      for(index_type i = 0; i < n; ++i)
+      for(size_t i = 0; i < n; ++i)
       {
         f(i);
       }
     }
+
+    // XXX eliminate this once executor_traits has the default implementation 
+    template<class Function>
+    std::future<void> bulk_async(Function f, size_t n)
+    {
+      return std::async(std::launch::deferred, [=]
+      {
+        bulk_invoke(f, n);
+      });
+    }
+
+    template<class Function, class T>
+    void bulk_invoke(Function f, size_t n, T shared_arg)
+    {
+#pragma GCC ivdep
+      for(size_t i = 0; i < n; ++i)
+      {
+        f(i, shared_arg);
+      }
+    }
+
+    template<class Function, class T>
+    std::future<void> bulk_async(Function f, size_t n, T shared_arg)
+    {
+      return std::async(std::launch::deferred, [=]
+      {
+        bulk_invoke(f, n, shared_arg);
+      });
+    }
 };
-
-
-template<class Function, class... Args>
-void bulk_invoke(vector_executor& ex, typename vector_executor::shape_type n, Function&& f, Args&&... args)
-{
-  ex.bulk_add(n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...));
-}
-
-
-template<class Function, class... Args>
-std::future<void> bulk_async(vector_executor& ex, typename vector_executor::shape_type n, Function&& f, Args&&... args)
-{
-  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::function<Args>(args)...);
-
-  return std::async(std::launch::deferred, [=,&ex]()
-  {
-    std::bulk_invoke(ex, n, g);
-  });
-}
 
 
 }

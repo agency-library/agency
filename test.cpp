@@ -8,26 +8,33 @@ int main()
   using std::par;
   using std::con;
 
-//  auto f = std::bulk_async(seq(4), [&](std::sequential_agent &g)
-//  {
-//    int i = g.index();
-//
-//    std::cout << i << std::endl;
-//  });
-//
-//  f.wait();
+  std::bulk_invoke(seq(4), [&](std::sequential_agent &g)
+  {
+    int i = g.index();
 
-//  auto f = std::bulk_async(seq(2, seq(1)), [&](std::sequential_group<std::sequential_agent> &self)
-//  {
-//    int i = self.index();
-//    int j = self.child().index();
-//
-//    std::cout << i << " " << j << std::endl;
-//  });
-//
-//  f.wait();
+    std::cout << i << std::endl;
+  });
 
-  auto f = std::bulk_async(seq(3, seq(1, seq(4))), [&](std::sequential_group<std::sequential_group<std::sequential_agent>> &self)
+  auto f1 = std::bulk_async(seq(4), [&](std::sequential_agent &g)
+  {
+    int i = g.index();
+
+    std::cout << i << std::endl;
+  });
+
+  f1.wait();
+
+  auto f2 = std::bulk_async(seq(2, seq(1)), [&](std::sequential_group<std::sequential_agent> &self)
+  {
+    int i = self.index();
+    int j = self.child().index();
+
+    std::cout << i << " " << j << std::endl;
+  });
+
+  f2.wait();
+
+  auto f3 = std::bulk_async(seq(3, seq(1, seq(4))), [&](std::sequential_group<std::sequential_group<std::sequential_agent>> &self)
   {
     int i = self.index();
     int j = self.child().index();
@@ -36,7 +43,7 @@ int main()
     std::cout << i << " " << j << " " << k << std::endl;
   });
 
-  f.wait();
+  f3.wait();
 
   return 0;
 }

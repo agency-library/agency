@@ -45,40 +45,9 @@ int main()
   std::cout << std::endl;
 
 
-  std::cout << "Testing std::seq.on()" << std::endl << std::endl;
-
-  auto cpu = cpu_id(3);
-
-  bulk_async(seq(10).on(cpu), [](std::sequential_agent &self)
-  {
-    std::cout << "agent " << self.index() << " on processor " << this_processor << std::endl;
-  }).wait();
-
-  std::cout << std::endl;
-
-
-  std::cout << "Testing std::con.on()" << std::endl << std::endl;
-
-  std::mutex mut;
-  bulk_async(con(10).on(cpu), [&mut](std::concurrent_agent &self)
-  {
-    mut.lock();
-    std::cout << "agent " << self.index() << " on processor " << this_processor << " arriving at barrier" << std::endl;
-    mut.unlock();
-
-    self.wait();
-
-    mut.lock();
-    std::cout << "agent " << self.index() << " departing barrier" << std::endl;
-    mut.unlock();
-  }).wait();
-
-  std::cout << std::endl;
-
-
   std::cout << "Testing std::seq(std::seq)" << std::endl << std::endl;
 
-
+  std::mutex mut;
   auto singly_nested_f = bulk_async(con(2, seq(3)), [&mut](std::concurrent_group<std::sequential_agent> &self)
   {
     mut.lock();

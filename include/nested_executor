@@ -4,6 +4,9 @@
 #include <utility>
 #include <future>
 #include <executor_traits>
+#include <__tuple_head>
+#include <__tuple_tail>
+#include <__tuple_of_references>
 
 namespace std
 {
@@ -41,18 +44,53 @@ class nested_executor
     {}
 
     template<class Function>
-    void bulk_add(shape_type shape, Function f)
+    std::future<void> bulk_async(Function f, shape_type shape)
     {
       using outer_index_type = typename index_type::first_type;
       using inner_index_type = typename index_type::second_type;
 
-      outer_executor().bulk_add(shape.first, [=](outer_index_type outer_idx)
+      return executor_traits<outer_executor_type>::bulk_async(outer_executor(), [=](outer_index_type outer_idx)
       {
-        inner_executor().bulk_add(shape.second, [=](inner_index_type inner_idx)
+        executor_traits<inner_executor_type>::bulk_invoke(inner_executor(), [=](inner_index_type inner_idx)
         {
           f(index_type(outer_idx, inner_idx));
-        });
-      });
+        },
+        shape.second);
+      },
+      shape.first);
+    }
+
+    // XXX assert tuple_size_v<Tuple> == tuple_size_v<shape_type>
+    template<class Function, class Tuple>
+    std::future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
+    {
+      using outer_index_type = typename index_type::first_type;
+      using inner_index_type = typename index_type::second_type;
+
+      auto shared_head = tuple_head(shared_arg_tuple);
+      auto shared_tail = tuple_tail(shared_arg_tuple);
+
+      return executor_traits<outer_executor_type>::bulk_async(outer_executor(), [=](outer_index_type outer_idx, decltype(shared_head)& shared_tuple_head)
+      {
+        executor_traits<inner_executor_type>::bulk_invoke(inner_executor(), [=,&shared_tuple_head](inner_index_type inner_idx, decltype(shared_tail)& shared_tuple_tail)
+        {
+          // create a 1-tuple of just a reference to the first shared argument
+          auto head_reference  = std::tie(shared_tuple_head);
+
+          // create a tuple of references to the rest of the shared arguments
+          auto tail_references = tuple_of_references(shared_tuple_tail);
+
+          // concatenate the reference to the head to the tuple of tail references
+          auto full_tuple_of_references = std::tuple_cat(head_reference, tail_references);
+
+          // invoke f
+          f(index_type(outer_idx, inner_idx), full_tuple_of_references);
+        },
+        shape.second,
+        shared_tail);
+      },
+      shape.first,
+      shared_head);
     }
 
     outer_executor_type& outer_executor()
@@ -87,30 +125,21 @@ std::future<void> bulk_async(nested_executor<Executor1,Executor2>& ex,
                              Function&& f,
                              Args&&... args)
 {
-  // XXX we really just want to do two nested bulk_asyncs and join the futures returned by the inner bulk_asyncs
-  // XXX we can't do that because there seems to be no way to collect those futures
-  // XXX maybe bulk_async should return a future<vector<result_type>> when the lambda has a result
-  
-  using outer_index_type = typename executor_traits<Executor1>::index_type;
-
-  return bulk_async(ex.outer_executor(), shape.first, [=,&ex](outer_index_type outer_idx)
-  {
-    using inner_index_type = typename executor_traits<Executor2>::index_type;
-
-    bulk_invoke(ex.inner_executor(), shape.second, [=](inner_index_type inner_idx)
-    {
-      using index_type = typename nested_executor<Executor1,Executor2>::index_type;
-
-      f(index_type(outer_idx, inner_idx));
-    });
-  });
+  using executor_type = nested_executor<Executor1,Executor2>;
+  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...);
+  return executor_traits<executor_type>::bulk_async(ex, g, shape);
 }
 
 
 template<class Executor1, class Executor2, class Function, class... Args>
-void bulk_invoke(nested_executor<Executor1,Executor2>& ex, size_t n, Function&& f, Args&&... args)
+void bulk_invoke(nested_executor<Executor1,Executor2>& ex,
+                 typename nested_executor<Executor1,Executor2>::shape_type shape,
+                 Function&& f,
+                 Args&&... args)
 {
-  std::bulk_invoke(ex, n, std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...)).wait();
+  using executor_type = nested_executor<Executor1,Executor2>;
+  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...);
+  return executor_traits<executor_type>::bulk_invoke(ex, g, shape);
 }
 
 

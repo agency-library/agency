@@ -1,0 +1,47 @@
+#pragma once
+
+#include <tuple>
+#include <integer_sequence>
+
+template<class Tuple, size_t... I>
+auto __tuple_of_references(Tuple&& t, std::index_sequence<I...>)
+  -> decltype(std::tie(std::get<I>(std::forward<Tuple>(t))...))
+{
+  return std::tie(std::get<I>(std::forward<Tuple>(t))...);
+}
+
+template<class Tuple>
+auto tuple_of_references(Tuple&& t)
+  -> decltype(__tuple_of_references(
+       std::forward<Tuple>(t),
+       std::make_index_sequence<
+         std::tuple_size<typename std::decay<Tuple>::type>::value
+       >()))
+{
+  return __tuple_of_references(
+    std::forward<Tuple>(t),
+    std::make_index_sequence<
+      std::tuple_size<typename std::decay<Tuple>::type>::value
+    >());
+}
+
+// XXX dunno why the following doesn't work:
+//#include <__tuple_map>
+//
+//struct __forward
+//{
+//  template<class T>
+//  auto operator()(T&& x)
+//    -> decltype(std::forward<T>(x))
+//  {
+//    return std::forward<T>(x);
+//  }
+//};
+//
+//template<class Tuple>
+//auto tuple_of_references(Tuple&& t)
+//  -> decltype(__tuple_map(std::forward<Tuple>(t), __forward()))
+//{
+//  return __tuple_map(std::forward<Tuple>(t), __forward());
+//}
+

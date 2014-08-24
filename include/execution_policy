@@ -19,6 +19,7 @@
 #include <type_traits>
 #include <execution_agent>
 #include <functional>
+#include <executor_traits>
 #include <sequential_executor>
 #include <concurrent_executor>
 #include <parallel_executor>
@@ -287,7 +288,7 @@ void __bulk_invoke(ExecutionCategory1,
 
   auto shared_param = __make_shared_helper<traits>(param, typename traits::has_shared_param_type());
 
-  bulk_invoke(exec.executor(), domain.size(), [=,&shared_param](size_t agent_idx)
+  std::executor_traits<BulkExecutor>::bulk_invoke(exec.executor(), [=](size_t agent_idx, decltype(shared_param)& shared_arg)
   {
     // XXX add make_index_param() ?
     auto index_param = typename traits::index_param_type(domain[agent_idx]);
@@ -295,7 +296,7 @@ void __bulk_invoke(ExecutionCategory1,
     auto this_agent = __make_agent_helper<traits>(param, index_param, shared_param);
     
     f(this_agent);
-  });
+  }, domain.size(), shared_param);
 }
 
 
@@ -311,22 +312,16 @@ std::future<void> __bulk_async(ExecutionCategory1,
   auto param = exec.param();
   auto domain = traits::domain(param);
 
-  // XXX should really try to avoid creating a shared_ptr
-  // XXX one idea is to nest the bulk_async inside an async on the same executor
-  //     but that seems kinda lame
-  // XXX another idea would be to move the shared_param into the call to bulk_async
-  //     and make the executor in charge of owning the object
-  //     that also seems kinda lame
-  auto shared_param_ptr = __make_shared_helper_ptr<traits>(param, typename traits::has_shared_param_type());
+  auto shared_param = __make_shared_helper<traits>(param, typename traits::has_shared_param_type());
 
-  return bulk_async(exec.executor(), domain.size(), [=](size_t agent_idx)
+  return std::executor_traits<BulkExecutor>::bulk_async(exec.executor(), [=](size_t agent_idx, decltype(shared_param)& shared_arg)
   {
     auto index_param = typename traits::index_param_type(domain[agent_idx]);
 
-    auto this_agent = __make_agent_helper<traits>(param, index_param, *shared_param_ptr);
+    auto this_agent = __make_agent_helper<traits>(param, index_param, shared_arg);
     
     f(this_agent);
-  });
+  }, domain.size(), shared_param);
 }
 
 

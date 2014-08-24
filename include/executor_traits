@@ -24,7 +24,7 @@ struct executor_traits
     template<class T>
     struct executor_shape
     {
-      using type = typename T::shape_Type;
+      using type = typename T::shape_type;
     };
 
   public:
@@ -49,7 +49,66 @@ struct executor_traits
     {
       return ex.bulk_add(shape, f);
     }
+
+
+    // XXX new stuff
+
+    template<class Function, class T>
+    static std::future<void> bulk_async(executor_type& ex, Function f, shape_type shape, T shared_arg)
+    {
+      return ex.bulk_async(f, shape, shared_arg);
+    }
+
+    template<class Function>
+    static std::future<void> bulk_async(executor_type& ex, Function f, shape_type shape)
+    {
+      return ex.bulk_async(f, shape);
+      
+      // XXX default implementation if member above is missing:
+      //return bulk_async(ex, [=](index_type index, const shape_type&)
+      //{
+      //  f(index);
+      //},
+      //shape, shape
+      //);
+    }
+
+    template<class Function, class T>
+    static void bulk_invoke(executor_type& ex, Function f, size_t n, T shared_arg)
+    {
+      // XXX default implementation if ex.bulk_invoke(f,n,shared_arg) is missing:
+      return bulk_async(ex, f, n, shared_arg).wait();
+    }
+
+    template<class Function>
+    static void bulk_invoke(executor_type& ex, Function f, size_t n)
+    {
+      // XXX default implementation if ex.bulk_invoke(f,n) is missing:
+      return bulk_async(ex, f, n).wait();
+    }
 };
+
+
+template<class Executor, class Function, class... Args>
+std::future<void> bulk_async(Executor& ex,
+                             typename executor_traits<Executor>::shape_type shape,
+                             Function&& f,
+                             Args&&... args)
+{
+  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...);
+  return executor_traits<Executor>::bulk_async(ex, f, shape);
+}
+
+
+template<class Executor, class Function, class... Args>
+void bulk_invoke(Executor& ex,
+                 typename executor_traits<Executor>::shape_type shape,
+                 Function&& f,
+                 Args&&... args)
+{
+  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...);
+  return executor_traits<Executor>::bulk_invoke(ex, f, shape);
+}
 
 
 }
