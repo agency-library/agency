@@ -25,6 +25,7 @@
 #include <parallel_executor>
 #include <vector_executor>
 #include <memory>
+#include <tuple>
 
 namespace std
 {
@@ -218,19 +219,10 @@ template<class FlatExecutionAgent, class BulkExecutor, class ExecutionCategory>
 struct is_execution_policy<__basic_execution_policy<FlatExecutionAgent,BulkExecutor,ExecutionCategory>> : std::true_type {};
 
 
-struct __ignore_me
-{
-  __ignore_me operator*() const
-  {
-    return __ignore_me{};
-  }
-};
-
-
 template<class Traits>
-__ignore_me __make_shared_helper(const typename Traits::param_type&, std::false_type)
+decltype(std::ignore) __make_shared_helper(const typename Traits::param_type&, std::false_type)
 {
-  return __ignore_me{};
+  return std::ignore;
 }
 
 
@@ -242,24 +234,9 @@ typename Traits::shared_param_type __make_shared_helper(const typename Traits::p
 
 
 template<class Traits>
-__ignore_me __make_shared_helper_ptr(const typename Traits::param_type&, std::false_type)
-{
-  return __ignore_me{};
-}
-
-
-template<class Traits>
-std::shared_ptr<typename Traits::shared_param_type> __make_shared_helper_ptr(const typename Traits::param_type& param, std::true_type)
-{
-  auto shared = __make_shared_helper<Traits>(param, true_type());
-  return std::make_shared<decltype(shared)>(std::move(shared));
-}
-
-
-template<class Traits>
 typename Traits::agent_type __make_agent_helper(const typename Traits::param_type& param,
                                                 const typename Traits::index_param_type& index_param,
-                                                __ignore_me)
+                                                decltype(std::ignore))
 {
   return Traits::make_agent(param, index_param);
 }
