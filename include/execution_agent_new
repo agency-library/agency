@@ -128,11 +128,50 @@ struct execution_agent_traits_new
 
 template<class ExecutionCategory>
 class __basic_execution_agent_new
-  : public __basic_execution_agent<ExecutionCategory>
 {
   public:
-    using param_type = typename __basic_execution_agent<ExecutionCategory>::param_type;
+    using execution_category = ExecutionCategory;
 
+    size_t index() const
+    {
+      return index_;
+    }
+
+    const regular_grid<size_t>& domain() const
+    {
+      return domain_;
+    }
+
+    size_t group_size() const
+    {
+      return domain_.size();
+    }
+
+    class param_type
+    {
+      public:
+        param_type(const param_type& other)
+          : domain_(other.domain_)
+        {}
+
+        param_type(const regular_grid<size_t>& d)
+          : domain_(d)
+        {}
+
+        param_type(size_t min, size_t max)
+          : param_type(regular_grid<size_t>(min,max))
+        {}
+
+        const regular_grid<size_t>& domain() const
+        {
+          return domain_;
+        }
+
+      private:
+        regular_grid<size_t> domain_;
+    };
+
+    // XXX merge this into the constructor?
     template<class Index, class Function>
     static void execute(const Index& index, const param_type& param, Function f)
     {
@@ -143,8 +182,13 @@ class __basic_execution_agent_new
   protected:
     template<class Index>
     __basic_execution_agent_new(const Index& index, const param_type& param)
-      : __basic_execution_agent<ExecutionCategory>(param, param.domain()[index])
+      : index_(index),
+        domain_(param.domain())
     {}
+
+  private:
+    size_t index_;
+    regular_grid<size_t> domain_;
 };
 
 
