@@ -7,7 +7,7 @@
 template<class Head, class... Tail, size_t... I>
 std::tuple<Tail...> __tuple_tail(const std::tuple<Head,Tail...> &t, std::index_sequence<I...>)
 {
-  return std::make_tuple(std::get<I+1>(t)...);
+  return std::tie(std::get<I+1>(t)...);
 }
 
 template<class Head, class... Tail>

@@ -1,0 +1,68 @@
+#pragma once
+
+#include <execution_policy>
+#include <nested_executor>
+
+namespace std
+{
+
+
+template<class ExecutionPolicy1, class ExecutionPolicy2>
+class __nested_execution_policy_new
+  : public __basic_execution_policy<
+      __execution_group_new<
+        typename ExecutionPolicy1::execution_agent_type,
+        typename ExecutionPolicy2::execution_agent_type
+      >,
+      nested_executor<
+        typename ExecutionPolicy1::executor_type,
+        typename ExecutionPolicy2::executor_type
+      >,
+      nested_execution_tag<
+        typename ExecutionPolicy1::execution_category,
+        typename ExecutionPolicy2::execution_category
+      >
+    >
+{
+  private:
+    using super_t = __basic_execution_policy<
+      __execution_group_new<
+        typename ExecutionPolicy1::execution_agent_type,
+        typename ExecutionPolicy2::execution_agent_type
+      >,
+      nested_executor<
+        typename ExecutionPolicy1::executor_type,
+        typename ExecutionPolicy2::executor_type
+      >,
+      nested_execution_tag<
+        typename ExecutionPolicy1::execution_category,
+        typename ExecutionPolicy2::execution_category
+      >
+    >;
+
+
+  public:
+    using outer_execution_policy_type = ExecutionPolicy1;
+    using inner_execution_policy_type = ExecutionPolicy2;
+    using typename super_t::execution_agent_type;
+    using typename super_t::executor_type;
+
+    __nested_execution_policy_new(const outer_execution_policy_type& outer_exec,
+                                  const inner_execution_policy_type& inner_exec)
+      : super_t(typename execution_agent_type::param_type(outer_exec.param(), inner_exec.param()),
+                executor_type(outer_exec.executor(), inner_exec.executor()))
+    {}
+};
+
+
+template<class T1, class T2>
+struct is_execution_policy<__nested_execution_policy_new<T1,T2>>
+  : std::integral_constant<
+      bool,
+      is_execution_policy<T1>::value && is_execution_policy<T2>::value
+    >
+{};
+
+
+}
+

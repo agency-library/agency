@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <tuple>
 
 #define __DEFINE_HAS_NESTED_TYPE(trait_name, nested_type_name) \
 template<typename T> \
@@ -36,6 +37,30 @@ template<typename T>
 struct __identity
 {
   typedef T type;
+};
+
+
+template<class T, class Enable = void>
+struct __is_tuple : std::false_type {};
+
+
+template<class T>
+struct __is_tuple<T, typename std::enable_if<(tuple_size<T>::value > 0)>::type>
+  : std::true_type
+{};
+
+
+template<class T, class Enable = void>
+struct __tuple_size_if_tuple_else_zero
+  : std::integral_constant<std::size_t, 0>
+{ 
+};
+
+
+template<class T>
+struct __tuple_size_if_tuple_else_zero<T, typename enable_if<__is_tuple<T>::value>::type>
+  : std::tuple_size<T>
+{
 };
 
 

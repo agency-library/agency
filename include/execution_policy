@@ -302,10 +302,10 @@ std::future<void> __bulk_async(ExecutionCategory1,
 }
 
 
-class sequential_execution_policy : public __basic_execution_policy<sequential_agent, sequential_executor>
+class sequential_execution_policy : public __basic_execution_policy<sequential_agent_new, sequential_executor>
 {
   private:
-    using super_t = __basic_execution_policy<sequential_agent, sequential_executor>;
+    using super_t = __basic_execution_policy<sequential_agent_new, sequential_executor>;
 
   public:
     using typename super_t::execution_agent_type;
@@ -345,10 +345,10 @@ template<> struct is_execution_policy<sequential_execution_policy> : std::true_t
 const sequential_execution_policy seq{1};
 
 
-class concurrent_execution_policy : public __basic_execution_policy<concurrent_agent, concurrent_executor>
+class concurrent_execution_policy : public __basic_execution_policy<concurrent_agent_new, concurrent_executor>
 {
   private:
-    using super_t = __basic_execution_policy<concurrent_agent, concurrent_executor>;
+    using super_t = __basic_execution_policy<concurrent_agent_new, concurrent_executor>;
 
   public:
     using typename super_t::execution_agent_type;

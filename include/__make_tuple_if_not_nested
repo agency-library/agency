@@ -1,0 +1,63 @@
+#pragma once
+
+#include <execution_agent>
+#include <tuple>
+#include <utility>
+
+
+namespace std
+{
+
+
+// execution is nested, just return x
+template<class ExecutionCategory1, class ExecutionCategory2, class T>
+auto __make_tuple_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
+  -> decltype(std::forward<T>(x))
+{
+  return std::forward<T>(x);
+}
+
+
+// execution is not nested, wrap up x in a tuple
+template<class ExecutionCategory, class T>
+auto __make_tuple_if_not_nested(ExecutionCategory, T&& x)
+  -> decltype(std::make_tuple(std::forward<T>(x)))
+{
+  return std::make_tuple(std::forward<T>(x));
+}
+
+
+template<class ExecutionCategory, class T>
+auto __make_tuple_if_not_nested(T&& x)
+  -> decltype(__make_tuple_if_not_nested(ExecutionCategory(), std::forward<T>(x)))
+{
+  return __make_tuple_if_not_nested(ExecutionCategory(), std::forward<T>(x));
+}
+
+
+template<class ExecutionCategory1, class ExecutionCategory2, class T>
+auto __tie_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
+  -> decltype(std::forward<T>(x))
+{
+  return std::forward<T>(x);
+}
+
+
+template<class ExecutionCategory, class T>
+auto __tie_if_not_nested(ExecutionCategory, T&& x)
+  -> decltype(std::tie(std::forward<T>(x)))
+{
+  return std::tie(std::forward<T>(x));
+}
+
+
+template<class ExecutionCategory, class T>
+auto __tie_if_not_nested(T&& x)
+  -> decltype(__tie_if_not_nested(ExecutionCategory(), std::forward<T>(x)))
+{
+  return __tie_if_not_nested(ExecutionCategory(), std::forward<T>(x));
+}
+
+
+}
+

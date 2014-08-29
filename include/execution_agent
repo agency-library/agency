@@ -172,6 +172,14 @@ class __basic_execution_agent
       : domain_(param.domain()),
         index_(index)
     {}
+
+    template<class Index, class Function>
+    static void execute_agent(const Index& index, const param_type& param, Function f)
+    {
+      auto self = __basic_execution_agent(param, param.domain()[index]);
+
+      f(self);
+    }
 };
 
 

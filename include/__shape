@@ -1,0 +1,63 @@
+#pragma once
+
+#include <execution_agent>
+#include <tuple>
+#include <__make_tuple_if_not_nested>
+
+namespace std
+{
+
+
+template<class ExecutionAgent, class ExecutionCategory>
+struct __shape_impl
+{
+  static auto shape(const typename execution_agent_traits<ExecutionAgent>::param_type& param)
+    -> decltype(execution_agent_traits<ExecutionAgent>::domain(param).size())
+  {
+    return execution_agent_traits<ExecutionAgent>::domain(param).size();
+  };
+};
+
+
+template<class ExecutionAgent, class ExecutionCategory1,class ExecutionCategory2>
+struct __shape_impl<ExecutionAgent, nested_execution_tag<ExecutionCategory1,ExecutionCategory2>>
+{
+  // XXX we can't rely on these types to exist
+  using outer_execution_agent_type = typename ExecutionAgent::outer_execution_agent_type;
+  using inner_execution_agent_type = typename ExecutionAgent::inner_execution_agent_type;
+
+  static auto shape(const typename execution_agent_traits<ExecutionAgent>::param_type& param)
+    -> decltype(
+         std::tuple_cat(
+           __make_tuple_if_not_nested<ExecutionCategory1>(
+             __shape_impl<outer_execution_agent_type,ExecutionCategory1>::shape(std::get<0>(param))
+           ),
+           __make_tuple_if_not_nested<ExecutionCategory2>(
+             __shape_impl<inner_execution_agent_type,ExecutionCategory2>::shape(std::get<1>(param))
+           )
+         )
+       )
+  {
+    auto outer_shape = __shape_impl<outer_execution_agent_type,ExecutionCategory1>::shape(std::get<0>(param));
+    auto inner_shape = __shape_impl<inner_execution_agent_type,ExecutionCategory2>::shape(std::get<1>(param));
+
+    auto outer_tuple = __make_tuple_if_not_nested<ExecutionCategory1>(outer_shape);
+    auto inner_tuple = __make_tuple_if_not_nested<ExecutionCategory2>(inner_shape);
+
+    return std::tuple_cat(outer_tuple, inner_tuple);
+  }
+};
+
+
+template<class ExecutionAgent>
+auto __shape(const typename execution_agent_traits<ExecutionAgent>::param_type& param)
+  -> decltype(
+       __shape_impl<ExecutionAgent, typename execution_agent_traits<ExecutionAgent>::execution_category>::shape(param)
+     )
+{
+  return __shape_impl<ExecutionAgent, typename execution_agent_traits<ExecutionAgent>::execution_category>::shape(param);
+}
+
+
+}
+

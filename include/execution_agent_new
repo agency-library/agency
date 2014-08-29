@@ -1,0 +1,333 @@
+#pragma once
+
+#include <execution_agent>
+#include <type_traits>
+#include <__type_traits>
+#include <__tuple_head>
+#include <__tuple_tail>
+#include <__shape>
+#include <__unwrap_tuple_if_not_nested>
+
+namespace std
+{
+
+
+template<class ExecutionAgent>
+struct execution_agent_traits_new
+  : execution_agent_traits<ExecutionAgent>
+{
+  using execution_agent_type = ExecutionAgent;
+
+  using param_type = typename execution_agent_traits<ExecutionAgent>::param_type;
+
+  using shape_type = decltype(__shape<execution_agent_type>(std::declval<param_type>()));
+
+  static shape_type shape(const param_type& param)
+  {
+    return __shape<ExecutionAgent>(param);
+  }
+
+  template<class Tuple, class Function>
+  static typename enable_if<
+    (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple>::value)
+  >::type
+    execute(const Tuple& indices, const param_type& param, Function f)
+  {
+    ExecutionAgent::execute(indices, param, f);
+  }
+
+  private:
+    template<class ExecutionAgent1>
+    struct test_for_make_shared_initializer
+    {
+      template<
+        class ExecutionAgent2,
+        typename = decltype(
+          ExecutionAgent2::make_shared_initializer(
+            std::declval<param_type>()
+          )
+        )
+      >
+      static true_type test(int);
+
+      template<class>
+      static false_type test(...);
+
+      using type = decltype(test<ExecutionAgent1>(0));
+    };
+
+    using has_make_shared_initializer = typename test_for_make_shared_initializer<execution_agent_type>::type;
+
+    // XXX this should only be enabled for flat execution_agents
+    //     nested agents should return a tuple of shared initializers
+    template<class ExecutionAgent1>
+    static decltype(std::ignore) make_shared_initializer(const param_type&, std::false_type)
+    {
+      return std::ignore;
+    }
+
+    template<class ExecutionAgent1>
+    static auto make_shared_initializer(const param_type& param, std::true_type)
+      -> decltype(
+           ExecutionAgent1::make_shared_initializer(param)
+         )
+    {
+      return ExecutionAgent1::make_shared_initializer(param);
+    }
+
+  public:
+
+  static auto make_shared_initializer(const param_type& param)
+    -> decltype(
+         make_shared_initializer<execution_agent_type>(param, has_make_shared_initializer())
+       )
+  {
+    return make_shared_initializer<execution_agent_type>(param, has_make_shared_initializer());
+  }
+
+  using shared_initializer_type = decltype(
+    make_shared_initializer(std::declval<param_type>())
+  );
+
+
+  private:
+    template<class Tuple1, class Function, class Tuple2>
+    static typename enable_if<
+      (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple1>::value) &&
+      (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple2>::value)
+    >::type
+      execute(const Tuple1& indices, const param_type& param, Function f, Tuple2&, std::false_type)
+    {
+      ExecutionAgent::execute(indices, param, f);
+    }
+
+    template<class Tuple1, class Function, class Tuple2>
+    static typename enable_if<
+      (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple1>::value) &&
+      (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple2>::value)
+    >::type
+      execute(const Tuple1& indices, const param_type& param, Function f, Tuple2& shared_params, std::true_type)
+    {
+      ExecutionAgent::execute(indices, param, f, shared_params);
+    }
+
+
+  public:
+
+  template<class Tuple1, class Function, class Tuple2>
+  static typename enable_if<
+    (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple1>::value) &&
+    (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple2>::value)
+  >::type
+    execute(const Tuple1& indices, const param_type& param, Function f, Tuple2& shared_params)
+  {
+    execute(indices, param, f, shared_params, has_make_shared_initializer());
+  }
+};
+
+
+template<class ExecutionCategory>
+class __basic_execution_agent_new
+  : public __basic_execution_agent<ExecutionCategory>
+{
+  public:
+    using param_type = typename __basic_execution_agent<ExecutionCategory>::param_type;
+
+    template<class Index, class Function>
+    static void execute(const Index& index, const param_type& param, Function f)
+    {
+      auto self = __basic_execution_agent_new(index, param);
+      f(self);
+    }
+
+  protected:
+    template<class Index>
+    __basic_execution_agent_new(const Index& index, const param_type& param)
+      : __basic_execution_agent<ExecutionCategory>(param, param.domain()[index])
+    {}
+};
+
+
+using sequential_agent_new = __basic_execution_agent_new<sequential_execution_tag>;
+
+
+class concurrent_agent_new : public __basic_execution_agent_new<concurrent_execution_tag>
+{
+  private:
+    using super_t = __basic_execution_agent_new<concurrent_execution_tag>;
+
+  public:
+    void wait() const
+    {
+      barrier_.count_down_and_wait();
+    }
+
+    struct shared_param_type
+    {
+      shared_param_type(const typename super_t::param_type& param)
+        : count_(param.domain().size()),
+          barrier_(count_)
+      {}
+
+      shared_param_type(const shared_param_type& other)
+        : count_(other.count_),
+          barrier_(count_)
+      {}
+
+      int count_;
+      std::barrier barrier_;
+    };
+
+    static shared_param_type make_shared_initializer(const param_type& param)
+    {
+      return shared_param_type(param);
+    }
+
+    template<class Index, class Function>
+    static void execute(const Index& index, const param_type& param, Function f, shared_param_type& shared_param)
+    {
+      auto self = concurrent_agent_new(index, param, shared_param);
+
+      f(self);
+    }
+
+  private:
+    std::barrier &barrier_;
+
+  protected:
+    template<class Index>
+    concurrent_agent_new(const Index& index, const param_type& param, shared_param_type& shared_param)
+      : super_t(index, param),
+        barrier_(shared_param.barrier_)
+    {}
+};
+
+
+
+template<class OuterExecutionAgent, class InnerExecutionAgent>
+class __execution_group_new : public OuterExecutionAgent
+{
+  private:
+    template<class> friend struct execution_agent_traits_new; 
+
+    using outer_traits = execution_agent_traits_new<OuterExecutionAgent>;
+    using inner_traits = execution_agent_traits_new<InnerExecutionAgent>;
+
+    using outer_execution_category = typename outer_traits::execution_category;
+    using inner_execution_category = typename inner_traits::execution_category;
+
+  public:
+    using execution_category = nested_execution_tag<
+      outer_execution_category,
+      inner_execution_category
+    >;
+
+    // XXX should get rid of this typedef
+    using outer_execution_agent_type = OuterExecutionAgent;
+
+    using inner_execution_agent_type = InnerExecutionAgent;
+
+    inner_execution_agent_type& child()
+    {
+      return inner_agent_;
+    }
+
+    const inner_execution_agent_type& inner() const
+    {
+      return inner_agent_;
+    }
+
+    using param_type = std::tuple<
+      typename outer_traits::param_type,
+      typename inner_traits::param_type
+    >;
+
+    template<class Tuple, class Function>
+    static void execute(const Tuple& indices, const param_type& param, Function f)
+    {
+      outer_traits::execute(tuple_head(indices), std::get<0>(param), [=,&indices](outer_execution_agent_type& outer_agent)
+      {
+        auto tail_indices = tuple_tail(indices);
+
+        // if the inner agent isn't nested, we need to unwrap the tail tuple
+        auto& inner_indices = __unwrap_tuple_if_not_nested<inner_execution_category>(tail_indices);
+
+        inner_traits::execute(inner_indices, std::get<1>(param), [=,&outer_agent](inner_execution_agent_type& inner_agent)
+        {
+          auto self = __execution_group_new(std::move(outer_agent), inner_agent);
+
+          f(self);
+        });
+      });
+    }
+
+
+    template<class Tuple1, class Function, class Tuple2>
+    static void execute(const Tuple1& indices, const param_type& param, Function f, Tuple2& shared_param)
+    {
+      outer_traits::execute(tuple_head(indices), std::get<0>(param), [=,&indices,&shared_param](outer_execution_agent_type& outer_agent)
+      {
+        auto tail_indices = tuple_tail(indices);
+
+        // if the inner agent isn't nested, we need to unwrap the tail index tuple
+        auto& inner_indices = __unwrap_tuple_if_not_nested<inner_execution_category>(tail_indices);
+
+        auto shared_param_tail = tuple_tail(shared_param);
+
+        // if the inner agent isn't nested, we need to unwrap the tail shared param
+        auto& inner_shared_param = __unwrap_tuple_if_not_nested<inner_execution_category>(shared_param_tail);
+
+        inner_traits::execute(inner_indices, std::get<1>(param), [=,&outer_agent](inner_execution_agent_type& inner_agent)
+        {
+          auto self = __execution_group_new(std::move(outer_agent), inner_agent);
+
+          f(self);
+        },
+        inner_shared_param);
+      },
+      tuple_head(shared_param)
+      );
+    }
+
+
+    static auto make_shared_initializer(const param_type& param)
+      -> decltype(
+           std::tuple_cat(
+             __make_tuple_if_not_nested<outer_execution_category>(
+               outer_traits::make_shared_initializer(std::get<0>(param))
+             ),
+             __make_tuple_if_not_nested<inner_execution_category>(
+               inner_traits::make_shared_initializer(std::get<1>(param))
+             )
+           )
+         )
+    {
+      auto outer_shared_init = outer_traits::make_shared_initializer(std::get<0>(param));
+      auto inner_shared_init = inner_traits::make_shared_initializer(std::get<1>(param));
+
+      auto outer_tuple = __make_tuple_if_not_nested<outer_execution_category>(outer_shared_init);
+      auto inner_tuple = __make_tuple_if_not_nested<inner_execution_category>(inner_shared_init);
+
+      return std::tuple_cat(outer_tuple, inner_tuple);
+    }
+
+
+  protected:
+    inner_execution_agent_type inner_agent_;
+
+    __execution_group_new(outer_execution_agent_type&& outer_agent, inner_execution_agent_type& inner_agent)
+      : outer_execution_agent_type(std::move(outer_agent)),
+        inner_agent_(inner_agent)
+    {}
+};
+
+
+template<class InnerExecutionAgent>
+using sequential_group_new = __execution_group_new<sequential_agent_new, InnerExecutionAgent>;
+
+template<class InnerExecutionAgent>
+using concurrent_group_new = __execution_group_new<concurrent_agent_new, InnerExecutionAgent>;
+
+
+}
+
