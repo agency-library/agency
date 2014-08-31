@@ -12,6 +12,9 @@ namespace std
 {
 
 
+__DEFINE_HAS_NESTED_TYPE(__has_param_type, param_type);
+
+
 template<class ExecutionAgent>
 struct execution_agent_traits_new
   : execution_agent_traits<ExecutionAgent>
@@ -30,8 +33,20 @@ struct execution_agent_traits_new
     )
   >;
 
-  // XXX should default to size_type if no param_type is found
-  using param_type = typename execution_agent_traits<ExecutionAgent>::param_type;
+  private:
+    template<class T>
+    struct execution_agent_param
+    {
+      using type = typename T::param_type;
+    };
+
+  public:
+
+  using param_type = typename __lazy_conditional<
+    __has_param_type<execution_agent_type>::value,
+    execution_agent_param<execution_agent_type>,
+    __identity<size_type>
+  >::type;
 
   // XXX should default to regular_grid<size_t> if no .domain() is found
   // XXX should add function domain(const execution_agent_type& agent)
