@@ -5,8 +5,8 @@
 #include <__type_traits>
 #include <__tuple_head>
 #include <__tuple_tail>
-#include <__shape>
 #include <__unwrap_tuple_if_not_nested>
+#include <__make_tuple_if_not_nested>
 
 namespace std
 {
@@ -75,12 +75,55 @@ struct execution_agent_traits_new : __execution_agent_traits_new_base<ExecutionA
     )
   >;
 
-  using shape_type = decltype(__shape<execution_agent_type>(std::declval<param_type>()));
+  private:
+    template<class ExecutionAgent1>
+    struct test_for_shape
+    {
+      template<
+        class ExecutionAgent2,
+        typename = decltype(
+          ExecutionAgent2::shape(
+            std::declval<param_type>()
+          )
+        )
+      >
+      static true_type test(int);
 
-  static shape_type shape(const param_type& param)
+      template<class>
+      static false_type test(...);
+
+      using type = decltype(test<ExecutionAgent1>(0));
+    };
+
+    using has_shape = typename test_for_shape<execution_agent_type>::type;
+
+    template<class ExecutionAgent1>
+    static auto shape_impl(const param_type& param, std::false_type,
+                           typename std::enable_if<
+                             !__has_inner_execution_agent_type<ExecutionAgent1>::value
+                           >::type* = 0)
+      -> decltype(execution_agent_traits<ExecutionAgent1>::domain(param).shape())
+    {
+      return execution_agent_traits<ExecutionAgent1>::domain(param).shape();
+    }
+
+    template<class ExecutionAgent1>
+    static auto shape_impl(const param_type& param, std::true_type)
+      -> decltype(ExecutionAgent1::shape(param))
+    {
+      return ExecutionAgent1::shape(param);
+    }
+
+  public:
+
+  static auto shape(const param_type& param)
+    -> decltype(shape_impl<execution_agent_type>(param, has_shape()))
   {
-    return __shape<ExecutionAgent>(param);
+    return shape_impl<execution_agent_type>(param, has_shape());
   }
+
+  using shape_type = decltype(shape(std::declval<param_type>()));
+
 
   template<class Tuple, class Function>
   static typename enable_if<
@@ -416,6 +459,28 @@ class __execution_group_new : public OuterExecutionAgent
 
       auto outer_tuple = __make_tuple_if_not_nested<outer_execution_category>(outer_shared_init);
       auto inner_tuple = __make_tuple_if_not_nested<inner_execution_category>(inner_shared_init);
+
+      return std::tuple_cat(outer_tuple, inner_tuple);
+    }
+
+
+    static auto shape(const param_type& param)
+      -> decltype(
+           std::tuple_cat(
+             __make_tuple_if_not_nested<outer_execution_category>(
+               outer_traits::shape(std::get<0>(param))
+             ),
+             __make_tuple_if_not_nested<inner_execution_category>(
+               inner_traits::shape(std::get<1>(param))
+             )
+           )
+         )
+    {
+      auto outer_shape = outer_traits::shape(std::get<0>(param));
+      auto inner_shape = inner_traits::shape(std::get<1>(param));
+
+      auto outer_tuple = __make_tuple_if_not_nested<outer_execution_category>(outer_shape);
+      auto inner_tuple = __make_tuple_if_not_nested<inner_execution_category>(inner_shape);
 
       return std::tuple_cat(outer_tuple, inner_tuple);
     }
