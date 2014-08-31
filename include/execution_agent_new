@@ -17,8 +17,30 @@ struct execution_agent_traits_new
   : execution_agent_traits<ExecutionAgent>
 {
   using execution_agent_type = ExecutionAgent;
+  using execution_category = typename execution_agent_type::execution_category;
+  using index_type = decay_t<
+    decltype(
+      std::declval<execution_agent_type>().index()
+    )
+  >;
 
+  using size_type = decay_t<
+    decltype(
+      std::declval<execution_agent_type>().group_size()
+    )
+  >;
+
+  // XXX should default to size_type if no param_type is found
   using param_type = typename execution_agent_traits<ExecutionAgent>::param_type;
+
+  // XXX should default to regular_grid<size_t> if no .domain() is found
+  // XXX should add function domain(const execution_agent_type& agent)
+  //     if agent.domain() is not found, return regular_grid<index_type>(0, agent.group_size())
+  using domain_type = decay_t<
+    decltype(
+      std::declval<execution_agent_type>().domain()
+    )
+  >;
 
   using shape_type = decltype(__shape<execution_agent_type>(std::declval<param_type>()));
 
