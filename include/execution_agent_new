@@ -13,11 +13,29 @@ namespace std
 
 
 __DEFINE_HAS_NESTED_TYPE(__has_param_type, param_type);
+__DEFINE_HAS_NESTED_TYPE(__has_inner_execution_agent_type, inner_execution_agent_type);
+
+
+template<class ExecutionAgent, class Enable = void>
+struct __execution_agent_traits_new_base
+{
+};
 
 
 template<class ExecutionAgent>
-struct execution_agent_traits_new
-  : execution_agent_traits<ExecutionAgent>
+struct __execution_agent_traits_new_base<
+  ExecutionAgent,
+  typename std::enable_if<
+    __has_inner_execution_agent_type<ExecutionAgent>::type
+  >::type
+>
+{
+  using inner_execution_agent_type = typename ExecutionAgent::inner_execution_agent_type;
+};
+
+
+template<class ExecutionAgent>
+struct execution_agent_traits_new : __execution_agent_traits_new_base<ExecutionAgent>
 {
   using execution_agent_type = ExecutionAgent;
   using execution_category = typename execution_agent_type::execution_category;
