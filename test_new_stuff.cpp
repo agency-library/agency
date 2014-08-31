@@ -51,18 +51,6 @@ int main()
     mut.unlock();
   });
 
-  using inner_agent_type = std::sequential_agent_new;
-  using inner_traits = std::execution_agent_traits_new<inner_agent_type>;
-  auto inner_param = inner_traits::param_type(0,2);
-
-  using outer_agent_type = inner_agent_type;
-  using outer_traits = std::execution_agent_traits_new<outer_agent_type>;
-  auto outer_param = inner_traits::param_type(0,3);
-
-  using agent_type = std::sequential_group_new<inner_agent_type>;
-  using traits = std::execution_agent_traits_new<agent_type>;
-  auto param = traits::param_type(outer_param, inner_param);
-
   using seq_seq_type = std::__nested_execution_policy_new<
     std::sequential_execution_policy,
     std::sequential_execution_policy
