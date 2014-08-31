@@ -48,9 +48,9 @@ struct execution_agent_traits_new
     __identity<size_type>
   >::type;
 
-  // XXX should default to regular_grid<size_t> if no .domain() is found
+  // XXX should default to regular_grid<index_type> if no .domain() is found
   // XXX should add function domain(const execution_agent_type& agent)
-  //     if agent.domain() is not found, return regular_grid<index_type>(0, agent.group_size())
+  //     if agent.domain() is not found, return regular_grid<index_type>(shape(agent))
   using domain_type = decay_t<
     decltype(
       std::declval<execution_agent_type>().domain()
@@ -179,6 +179,10 @@ class __basic_execution_agent_new
       return domain_;
     }
 
+    // XXX should provide group_shape(), not group_size()
+    //     group_size() is derivable from group_shape
+    //     group_shape() is only derivable from group_size()
+    //     for 1D domains
     size_t group_size() const
     {
       return domain_.size();
