@@ -12,9 +12,9 @@ template<class ExecutionAgent, class ExecutionCategory>
 struct __shape_impl
 {
   static auto shape(const typename execution_agent_traits<ExecutionAgent>::param_type& param)
-    -> decltype(execution_agent_traits<ExecutionAgent>::domain(param).size())
+    -> decltype(execution_agent_traits<ExecutionAgent>::domain(param).shape())
   {
-    return execution_agent_traits<ExecutionAgent>::domain(param).size();
+    return execution_agent_traits<ExecutionAgent>::domain(param).shape();
   };
 };
 
