@@ -75,6 +75,13 @@ struct execution_agent_traits_new : __execution_agent_traits_new_base<ExecutionA
     )
   >;
 
+  // XXX generalize this - call ExecutionAgent::domain(param)
+  //     what should we do if ExecutionAgent::domain(param) does not exist?
+  static domain_type domain(const param_type& param)
+  {
+    return param.domain();
+  }
+
   private:
     template<class ExecutionAgent1>
     struct test_for_shape
@@ -102,9 +109,9 @@ struct execution_agent_traits_new : __execution_agent_traits_new_base<ExecutionA
                            typename std::enable_if<
                              !__has_inner_execution_agent_type<ExecutionAgent1>::value
                            >::type* = 0)
-      -> decltype(execution_agent_traits<ExecutionAgent1>::domain(param).shape())
+      -> decltype(execution_agent_traits_new<ExecutionAgent1>::domain(param).shape())
     {
-      return execution_agent_traits<ExecutionAgent1>::domain(param).shape();
+      return execution_agent_traits_new<ExecutionAgent1>::domain(param).shape();
     }
 
     template<class ExecutionAgent1>
