@@ -19,7 +19,7 @@ __DEFINE_HAS_NESTED_TYPE(__has_shared_param_type, shared_param_type);
 
 
 template<class ExecutionAgent>
-class execution_agent_traits
+class execution_agent_traits_old
 {
   private:
     template<class T>
@@ -31,7 +31,7 @@ class execution_agent_traits
     template<class T>
     static constexpr size_t depth_impl(T, std::true_type has_child)
     {
-      return 1 + execution_agent_traits<child_type>::depth;
+      return 1 + execution_agent_traits_old<child_type>::depth;
     }
 
   public:
@@ -115,7 +115,7 @@ class execution_agent_traits
 
 
 template<class ExecutionCategory>
-class __basic_execution_agent
+class __basic_execution_agent_old
 {
   public:
     using execution_category = ExecutionCategory; 
@@ -162,13 +162,13 @@ class __basic_execution_agent
     index_type index() const { return index_; }
 
   private:
-    template<class> friend class execution_agent_traits;
+    template<class> friend class execution_agent_traits_old;
 
     domain_type domain_;
     index_type  index_;
 
   protected:
-    __basic_execution_agent(const param_type& param, index_type index)
+    __basic_execution_agent_old(const param_type& param, index_type index)
       : domain_(param.domain()),
         index_(index)
     {}
@@ -176,27 +176,27 @@ class __basic_execution_agent
     template<class Index, class Function>
     static void execute_agent(const Index& index, const param_type& param, Function f)
     {
-      auto self = __basic_execution_agent(param, param.domain()[index]);
+      auto self = __basic_execution_agent_old(param, param.domain()[index]);
 
       f(self);
     }
 };
 
 
-using sequential_agent = __basic_execution_agent<std::sequential_execution_tag>;
+using sequential_agent_old = __basic_execution_agent_old<std::sequential_execution_tag>;
 
 
-using parallel_agent = __basic_execution_agent<std::parallel_execution_tag>;
+using parallel_agent_old = __basic_execution_agent_old<std::parallel_execution_tag>;
 
 
-using vector_agent = __basic_execution_agent<std::vector_execution_tag>;
+using vector_agent_old = __basic_execution_agent_old<std::vector_execution_tag>;
 
 
 // XXX may wish to give __basic_execution_agent a shared_param template parameter defaulting to void
-class concurrent_agent : public __basic_execution_agent<concurrent_execution_tag>
+class concurrent_agent_old : public __basic_execution_agent_old<concurrent_execution_tag>
 {
   private:
-    using super_t = __basic_execution_agent<concurrent_execution_tag>;
+    using super_t = __basic_execution_agent_old<concurrent_execution_tag>;
 
   public:
     void wait() const
@@ -226,7 +226,7 @@ class concurrent_agent : public __basic_execution_agent<concurrent_execution_tag
     std::barrier &barrier_;
 
   protected:
-    concurrent_agent(const param_type& param, index_type index, shared_param_type& shared_param)
+    concurrent_agent_old(const param_type& param, index_type index, shared_param_type& shared_param)
       : super_t(param, index),
         barrier_(shared_param.barrier_)
     {}
@@ -237,37 +237,37 @@ class concurrent_agent : public __basic_execution_agent<concurrent_execution_tag
 // XXX need to give this guy a shared_param_type if either the parent or child have one
 //     and also modulate the form of the constructor depending on whether it has a shared_param_type
 template<class ParentAgent, class ChildAgent>
-class __execution_group : public ParentAgent
+class __execution_group_old : public ParentAgent
 {
   private:
     using super_t = ParentAgent;
 
   public:
     using execution_category = std::nested_execution_tag<
-      typename execution_agent_traits<ParentAgent>::execution_category,
-      typename execution_agent_traits<ChildAgent>::execution_category
+      typename execution_agent_traits_old<ParentAgent>::execution_category,
+      typename execution_agent_traits_old<ChildAgent>::execution_category
     >;
 
     using child_type = ChildAgent;
 
     using param_type = std::tuple<
-      typename execution_agent_traits<ParentAgent>::param_type,
-      typename execution_agent_traits<ChildAgent>::param_type
+      typename execution_agent_traits_old<ParentAgent>::param_type,
+      typename execution_agent_traits_old<ChildAgent>::param_type
     >;
 
     class index_param_type
     {
       public:
         template<class... Indices>
-        index_param_type(typename execution_agent_traits<ParentAgent>::index_param_type index,
+        index_param_type(typename execution_agent_traits_old<ParentAgent>::index_param_type index,
                          Indices... descendent_indices)
           : parent_index_param_(index),
             child_index_param_(descendent_indices...)
         {}
 
       private:
-        typename execution_agent_traits<ParentAgent>::index_param_type parent_index_param_;
-        typename execution_agent_traits<ChildAgent>::index_param_type child_index_param_;
+        typename execution_agent_traits_old<ParentAgent>::index_param_type parent_index_param_;
+        typename execution_agent_traits_old<ChildAgent>::index_param_type child_index_param_;
     };
 
     child_type& child()
@@ -281,49 +281,49 @@ class __execution_group : public ParentAgent
     }
 
   private:
-    template<class> friend class execution_agent_traits;
+    template<class> friend class execution_agent_traits_old;
 
     child_type child_;
 
   protected:
-    __execution_group(const param_type& param, const index_param_type& index)
+    __execution_group_old(const param_type& param, const index_param_type& index)
       : super_t(std::get<0>(param), std::get<0>(index)),
         child_(std::get<1>(param), std::get<1>(index))
     {}
 
     // XXX eliminate this
-    __execution_group(ParentAgent&& parent, ChildAgent&& child)
+    __execution_group_old(ParentAgent&& parent, ChildAgent&& child)
       : super_t(std::move(parent)),
         child_(std::move(child))
     {}
 
     // XXX eliminate this
     template<class P, class C>
-    friend __execution_group<P,C> __nest_agents(P&& parent, C&& child);
+    friend __execution_group_old<P,C> __nest_agents(P&& parent, C&& child);
 };
 
 
 template<class ParentAgent, class ChildAgent>
-__execution_group<ParentAgent,ChildAgent> __nest_agents(ParentAgent&& parent, ChildAgent&& child)
+__execution_group_old<ParentAgent,ChildAgent> __nest_agents(ParentAgent&& parent, ChildAgent&& child)
 {
-  return __execution_group<ParentAgent,ChildAgent>(std::move(parent), std::move(child));
+  return __execution_group_old<ParentAgent,ChildAgent>(std::move(parent), std::move(child));
 }
 
 
 template<class ChildAgent>
-using sequential_group = __execution_group<sequential_agent, ChildAgent>;
+using sequential_group_old = __execution_group_old<sequential_agent_old, ChildAgent>;
 
 
 template<class ChildAgent>
-using parallel_group = __execution_group<parallel_agent, ChildAgent>;
+using parallel_group_old = __execution_group_old<parallel_agent_old, ChildAgent>;
 
 
 template<class ChildAgent>
-using vector_group = __execution_group<vector_agent, ChildAgent>;
+using vector_group_old = __execution_group_old<vector_agent_old, ChildAgent>;
 
 
 template<class ChildAgent>
-using concurrent_group = __execution_group<concurrent_agent, ChildAgent>;
+using concurrent_group_old = __execution_group_old<concurrent_agent_old, ChildAgent>;
 
 
 }

@@ -145,7 +145,7 @@ struct __bulk_async_outer_functor
   template<class OuterAgent, class... Args>
   void operator()(OuterAgent& outer_agent, Args&&... args) const
   {
-    typedef typename execution_agent_traits<OuterAgent>::index_type index_type;
+    typedef typename execution_agent_traits_new<OuterAgent>::index_type index_type;
 
     std::bulk_async(exec_args.inner_exec, inner_functor<OuterAgent,index_type>{outer_agent, f}, args...).wait();
   }
@@ -165,7 +165,7 @@ std::future<void> __bulk_async(ExecutionCategory, const __nested_execution_polic
 // ExecutionCategory, Asyncable, FlatExecutionGroup = __default_execution_group<ExecutionCategory>
 template<class FlatExecutionAgent,
          class BulkExecutor,
-         class ExecutionCategory = typename execution_agent_traits<FlatExecutionAgent>::execution_category>
+         class ExecutionCategory = typename execution_agent_traits_new<FlatExecutionAgent>::execution_category>
 class __basic_execution_policy
 {
   public:
@@ -174,7 +174,7 @@ class __basic_execution_policy
     using execution_category   = ExecutionCategory;
 
   private:
-    using agent_traits         = std::execution_agent_traits<execution_agent_type>;
+    using agent_traits         = std::execution_agent_traits_new<execution_agent_type>;
 
   public:
     using param_type           = typename agent_traits::param_type;
@@ -259,7 +259,7 @@ void __bulk_invoke(ExecutionCategory1,
                    const __basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2>& exec,
                    Function f)
 {
-  using traits = std::execution_agent_traits<ExecutionAgent>;
+  using traits = std::execution_agent_traits_old<ExecutionAgent>;
   auto param = exec.param();
   auto domain = traits::domain(param);
 
@@ -285,7 +285,7 @@ std::future<void> __bulk_async(ExecutionCategory1,
                                const __basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2>& exec,
                                Function f)
 {
-  using traits = std::execution_agent_traits<ExecutionAgent>;
+  using traits = std::execution_agent_traits_old<ExecutionAgent>;
   auto param = exec.param();
   auto domain = traits::domain(param);
 
@@ -388,10 +388,10 @@ template<> struct is_execution_policy<concurrent_execution_policy> : std::true_t
 const concurrent_execution_policy con{1};
 
 
-class parallel_execution_policy : public __basic_execution_policy<parallel_agent, parallel_executor>
+class parallel_execution_policy : public __basic_execution_policy<parallel_agent_new, parallel_executor>
 {
   private:
-    using super_t = __basic_execution_policy<parallel_agent, parallel_executor>;
+    using super_t = __basic_execution_policy<parallel_agent_new, parallel_executor>;
 
   public:
     using typename super_t::execution_agent_type;
@@ -433,10 +433,10 @@ template<> struct is_execution_policy<parallel_execution_policy> : std::true_typ
 const parallel_execution_policy par;
 
 
-class vector_execution_policy : public __basic_execution_policy<vector_agent, vector_executor>
+class vector_execution_policy : public __basic_execution_policy<vector_agent_new, vector_executor>
 {
   private:
-    using super_t = __basic_execution_policy<vector_agent, vector_executor>;
+    using super_t = __basic_execution_policy<vector_agent_new, vector_executor>;
 
   public:
     using typename super_t::execution_agent_type;
