@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 namespace std
 {
 
@@ -36,6 +38,14 @@ struct nested_execution_tag
 // XXX figure out how sequential is related to concurrent
 //
 // XXX figure out how nested_execution_tag sorts
+
+
+template<class ExecutionCategory>
+struct __is_nested_execution_category : std::false_type {};
+
+
+template<class ExecutionCategory1, class ExecutionCategory2>
+struct __is_nested_execution_category<nested_execution_tag<ExecutionCategory1,ExecutionCategory2>> : std::true_type {};
 
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <__type_traits>
+#include <__tuple_of_references>
 
 
 namespace std
@@ -76,13 +77,13 @@ struct executor_traits
     using has_bulk_async = typename test_for_bulk_async<Function>::type;
 
     template<class Function>
-    static std::future<void> bulk_async(executor_type& ex, Function f, shape_type shape, std::true_type)
+    static std::future<void> bulk_async_impl(executor_type& ex, Function f, shape_type shape, std::true_type)
     {
       return ex.bulk_async(f, shape);
     }
 
     template<class Function>
-    static std::future<void> bulk_async(executor_type& ex, Function f, shape_type shape, std::false_type)
+    static std::future<void> bulk_async_impl(executor_type& ex, Function f, shape_type shape, std::false_type)
     {
       return bulk_async(ex, [=](index_type index, const shape_type&)
       {
@@ -96,7 +97,7 @@ struct executor_traits
     template<class Function>
     static std::future<void> bulk_async(executor_type& ex, Function f, shape_type shape)
     {
-      return bulk_async(ex, f, shape, has_bulk_async<Function>());
+      return bulk_async_impl(ex, f, shape, has_bulk_async<Function>());
     }
 
   private:
@@ -122,22 +123,22 @@ struct executor_traits
     using has_bulk_invoke_with_shared_arg = typename test_for_bulk_invoke_with_shared_arg<Function,T>::type;
 
     template<class Function, class T>
-    static void bulk_invoke(executor_type& ex, Function f, shape_type shape, T shared_arg, true_type)
+    static void bulk_invoke_with_shared_arg_impl(executor_type& ex, Function f, shape_type shape, T shared_arg, true_type)
     {
       ex.bulk_invoke(f, shape, shared_arg);
     }
 
     template<class Function, class T>
-    static void bulk_invoke(executor_type& ex, Function f, shape_type shape, T shared_arg, false_type)
+    static void bulk_invoke_with_shared_arg_impl(executor_type& ex, Function f, shape_type shape, T shared_arg, false_type)
     {
       bulk_async(ex, f, shape, shared_arg).wait();
     }
 
   public:
     template<class Function, class T>
-    static void bulk_invoke(executor_type& ex, Function f, size_t n, T shared_arg)
+    static void bulk_invoke(executor_type& ex, Function f, shape_type shape, T shared_arg)
     {
-      bulk_invoke(ex, f, n, shared_arg, has_bulk_invoke_with_shared_arg<Function,T>());
+      bulk_invoke_with_shared_arg_impl(ex, f, shape, shared_arg, has_bulk_invoke_with_shared_arg<Function,T>());
     }
 
   private:
@@ -163,13 +164,13 @@ struct executor_traits
     using has_bulk_invoke = typename test_for_bulk_invoke<Function>::type;
 
     template<class Function>
-    static void bulk_invoke(executor_type& ex, Function f, shape_type shape, true_type)
+    static void bulk_invoke_impl(executor_type& ex, Function f, shape_type shape, true_type)
     {
       ex.bulk_invoke(f, shape);
     }
 
     template<class Function>
-    static void bulk_invoke(executor_type& ex, Function f, shape_type shape, false_type)
+    static void bulk_invoke_impl(executor_type& ex, Function f, shape_type shape, false_type)
     {
       bulk_async(ex, f, shape).wait();
     }
@@ -178,8 +179,32 @@ struct executor_traits
     template<class Function>
     static void bulk_invoke(executor_type& ex, Function f, shape_type shape)
     {
-      bulk_invoke(ex, f, shape, has_bulk_invoke<Function>());
+      bulk_invoke_impl(ex, f, shape, has_bulk_invoke<Function>());
     }
+
+  private:
+    template<class T>
+    struct tuple_of_references_t
+    {
+      using type = decltype(__tuple_of_references(*std::declval<T*>()));
+    };
+
+    // the shared parameter is passed to the lamda
+    // as a tuple of references when the executor is nested
+    // otherwise, it's just passed as a raw reference
+    template<class T>
+    struct shared_param_type_impl
+      : __lazy_conditional<
+          __is_nested_execution_category<execution_category>::value,
+          tuple_of_references_t<T>,
+          std::add_lvalue_reference<T>
+        >
+    {
+    };
+
+  public:
+    template<class T>
+    using shared_param_type = typename shared_param_type_impl<T>::type;
 };
 
 

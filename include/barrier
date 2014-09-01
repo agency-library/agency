@@ -26,8 +26,8 @@ class barrier
     }
 
     inline barrier(size_t num_threads, function<size_t()> completion)
-      : count_(num_threads),
-        completion_(completion)
+      : completion_(completion),
+        count_(num_threads)
     {
       if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
     }

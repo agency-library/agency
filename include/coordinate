@@ -135,7 +135,7 @@ class __axis_aligned_box
       (*this)[1] = p;
     }
 
-    point_type extent() const
+    point_type shape() const
     {
       return max() - min();
     }
@@ -252,7 +252,7 @@ class regular_grid
 
     // creates a new regular_grid with min as the first lattice point
     // through max exclusive
-    // XXX should probably make this (min, extent) instead
+    // XXX should probably make this (min, shape) instead
     //     otherwise we'd have to require that min[i] <= max[i]
     regular_grid(const value_type& min, const value_type& max)
       : box_(min, max)
@@ -287,9 +287,10 @@ class regular_grid
     }
 
     // returns the number of lattice points along each of this regular_grid's dimensions
-    index_type extent() const
+    // chose the name shape instead of extent to jibe with e.g. numpy.ndarray.shape
+    index_type shape() const
     {
-      return box_.extent();
+      return box_.shape();
     }
 
     // returns whether or not p is the value of a lattice point
@@ -301,7 +302,7 @@ class regular_grid
     // returns the number of lattice points
     size_type size() const
     {
-      return __product(extent());
+      return __product(shape());
     }
 
     bool empty() const
@@ -582,7 +583,7 @@ class __grid_iterator
       for(int i = rank - 1; i-- > 0;)
       {
         // accumulate the stride of the lower dimension
-        result[i] = result[i+1] * grid_.extent()[i];
+        result[i] = result[i+1] * grid_.shape()[i];
       }
 
       return result;
@@ -611,7 +612,7 @@ class __grid_iterator
       for(int i = rank; i-- > 0; )
       {
         result += multiplier * idx[i];
-        multiplier *= grid_.extent()[i];
+        multiplier *= grid_.shape()[i];
       }
 
       return result;

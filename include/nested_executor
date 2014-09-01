@@ -7,6 +7,9 @@
 #include <__tuple_head>
 #include <__tuple_tail>
 #include <__tuple_of_references>
+#include <__make_tuple_if_not_nested>
+#include <__unwrap_tuple_if_not_nested>
+#include <__type_traits>
 
 namespace std
 {
@@ -19,21 +22,51 @@ class nested_executor
     using outer_executor_type = Executor1;
     using inner_executor_type = Executor2;
 
+  private:
+    using outer_traits = executor_traits<outer_executor_type>;
+    using inner_traits = executor_traits<inner_executor_type>;
+
+    using outer_execution_category = typename outer_traits::execution_category;
+    using inner_execution_category = typename inner_traits::execution_category;
+
+    using outer_index_type = typename outer_traits::index_type;
+    using inner_index_type = typename inner_traits::index_type;
+
+    static auto make_index(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
+      -> decltype(
+           std::tuple_cat(
+             __make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+             __make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+           )
+         )
+    {
+      return std::tuple_cat(__make_tuple_if_not_nested<outer_execution_category>(outer_idx), __make_tuple_if_not_nested<inner_execution_category>(inner_idx));
+    }
+
+    using outer_shape_type = typename outer_traits::shape_type;
+    using inner_shape_type = typename inner_traits::shape_type;
+
+  public:
     using execution_category = 
       nested_execution_tag<
-        typename executor_traits<outer_executor_type>::execution_category,
-        typename executor_traits<inner_executor_type>::execution_category
+        outer_execution_category,
+        inner_execution_category
       >;
 
-    using shape_type = std::pair<
-      typename executor_traits<outer_executor_type>::shape_type,
-      typename executor_traits<inner_executor_type>::shape_type
-    >;
+    // XXX consider adding a public static make_shape() function
+    using shape_type = decltype(
+      std::tuple_cat(
+        __make_tuple_if_not_nested<outer_execution_category>(std::declval<outer_shape_type>()),
+        __make_tuple_if_not_nested<inner_execution_category>(std::declval<inner_shape_type>())
+      )
+    );
 
-    using index_type = std::pair<
-      typename executor_traits<Executor1>::index_type,
-      typename executor_traits<Executor2>::index_type
-    >;
+    using index_type = decltype(
+      make_index(
+        std::declval<outer_index_type>(), 
+        std::declval<inner_shape_type>()
+      )
+    );
 
     nested_executor() = default;
 
@@ -46,51 +79,65 @@ class nested_executor
     template<class Function>
     std::future<void> bulk_async(Function f, shape_type shape)
     {
-      using outer_index_type = typename index_type::first_type;
-      using inner_index_type = typename index_type::second_type;
+      // split the shape into the inner & outer portions
+      auto outer_shape = this->outer_shape(shape);
+      auto inner_shape = this->inner_shape(shape);
 
-      return executor_traits<outer_executor_type>::bulk_async(outer_executor(), [=](outer_index_type outer_idx)
+      return outer_traits::bulk_async(outer_executor(), [=](outer_index_type outer_idx)
       {
-        executor_traits<inner_executor_type>::bulk_invoke(inner_executor(), [=](inner_index_type inner_idx)
+        inner_traits::bulk_invoke(inner_executor(), [=](inner_index_type inner_idx)
         {
-          f(index_type(outer_idx, inner_idx));
+          f(make_index(outer_idx, inner_idx));
         },
-        shape.second);
+        inner_shape
+        );
       },
-      shape.first);
+      outer_shape
+      );
     }
 
-    // XXX assert tuple_size_v<Tuple> == tuple_size_v<shape_type>
     template<class Function, class Tuple>
     std::future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
-      using outer_index_type = typename index_type::first_type;
-      using inner_index_type = typename index_type::second_type;
+      static_assert(std::tuple_size<shape_type>::value == std::tuple_size<Tuple>::value, "Tuple of shared arguments must be the same size as shape_type.");
 
-      auto shared_head = tuple_head(shared_arg_tuple);
-      auto shared_tail = tuple_tail(shared_arg_tuple);
+      // split the shape into the inner & outer portions
+      auto outer_shape = this->outer_shape(shape);
+      auto inner_shape = this->inner_shape(shape);
 
-      return executor_traits<outer_executor_type>::bulk_async(outer_executor(), [=](outer_index_type outer_idx, decltype(shared_head)& shared_tuple_head)
+      // split the shared argument tuple into the inner & outer portions
+      auto outer_shared_arg = tuple_head(shared_arg_tuple);
+      auto inner_shared_arg_tuple = tuple_tail(shared_arg_tuple);
+
+      // if the inner executor isn't nested, we need to unwrap the tail arguments
+      auto inner_shared_arg = __unwrap_tuple_if_not_nested<inner_execution_category>(inner_shared_arg_tuple);
+
+      // figure out what the type of the shared argument to the lambdas need to be 
+      using outer_shared_ref_type = typename outer_traits::template shared_param_type<decltype(outer_shared_arg)>;
+      using inner_shared_ref_type = typename inner_traits::template shared_param_type<decltype(inner_shared_arg)>;
+
+      return outer_traits::bulk_async(outer_executor(), [=](outer_index_type outer_idx, outer_shared_ref_type outer_shared_ref)
       {
-        executor_traits<inner_executor_type>::bulk_invoke(inner_executor(), [=,&shared_tuple_head](inner_index_type inner_idx, decltype(shared_tail)& shared_tuple_tail)
+        inner_traits::bulk_invoke(inner_executor(), [=,&outer_shared_ref](inner_index_type inner_idx, inner_shared_ref_type inner_shared_ref)
         {
-          // create a 1-tuple of just a reference to the first shared argument
-          auto head_reference  = std::tie(shared_tuple_head);
+          // create a 1-tuple of just a reference to the outer shared argument
+          auto outer_shared_ref_tuple = std::tie(outer_shared_ref);
 
-          // create a tuple of references to the rest of the shared arguments
-          auto tail_references = tuple_of_references(shared_tuple_tail);
+          // if the inner executor isn't nested, we need to tie the inner_shared_ref into a 1-element tuple
+          auto inner_shared_ref_tuple = __tie_if_not_nested<inner_execution_category>(inner_shared_ref);
 
-          // concatenate the reference to the head to the tuple of tail references
-          auto full_tuple_of_references = std::tuple_cat(head_reference, tail_references);
+          // concatenate the outer reference tuple inner tuple of references
+          auto full_tuple_of_references = std::tuple_cat(outer_shared_ref_tuple, inner_shared_ref_tuple);
 
-          // invoke f
-          f(index_type(outer_idx, inner_idx), full_tuple_of_references);
+          f(make_index(outer_idx, inner_idx), full_tuple_of_references);
         },
-        shape.second,
-        shared_tail);
+        inner_shape,
+        inner_shared_arg
+        );
       },
-      shape.first,
-      shared_head);
+      outer_shape,
+      outer_shared_arg
+      );
     }
 
     outer_executor_type& outer_executor()
@@ -114,33 +161,22 @@ class nested_executor
     }
 
   private:
+    static outer_shape_type outer_shape(const shape_type& shape)
+    {
+      // the outer portion is always the head of the tuple
+      return tuple_head(shape);
+    }
+
+    static inner_shape_type inner_shape(const shape_type& shape)
+    {
+      // the inner portion is the tail of the tuple, but if the 
+      // inner executor is not nested, then the tuple needs to be unwrapped
+      return __unwrap_tuple_if_not_nested<inner_execution_category>(tuple_tail(shape));
+    }
+
     outer_executor_type outer_ex_;
     inner_executor_type inner_ex_;
 };
-
-
-template<class Executor1, class Executor2, class Function, class... Args>
-std::future<void> bulk_async(nested_executor<Executor1,Executor2>& ex,
-                             typename nested_executor<Executor1,Executor2>::shape_type shape,
-                             Function&& f,
-                             Args&&... args)
-{
-  using executor_type = nested_executor<Executor1,Executor2>;
-  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...);
-  return executor_traits<executor_type>::bulk_async(ex, g, shape);
-}
-
-
-template<class Executor1, class Executor2, class Function, class... Args>
-void bulk_invoke(nested_executor<Executor1,Executor2>& ex,
-                 typename nested_executor<Executor1,Executor2>::shape_type shape,
-                 Function&& f,
-                 Args&&... args)
-{
-  using executor_type = nested_executor<Executor1,Executor2>;
-  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...);
-  return executor_traits<executor_type>::bulk_invoke(ex, g, shape);
-}
 
 
 }
