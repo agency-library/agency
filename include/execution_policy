@@ -24,6 +24,7 @@
 #include <concurrent_executor>
 #include <parallel_executor>
 #include <vector_executor>
+#include <nested_executor>
 #include <memory>
 #include <tuple>
 
@@ -77,7 +78,10 @@ struct __enable_if_nested_call
 
 template<class Result, class... Args>
 struct __disable_if_nested_call
-  : __disable_if_execution_policy<__last_type<Args...>, Result>
+  : __disable_if_execution_policy<
+      decay_t<__last_type<Args...>>,
+      Result
+    >
 {};
 
 
@@ -89,75 +93,6 @@ bulk_invoke(ExecutionPolicy&& exec, Function&& f, Args&&... args);
 template<class ExecutionPolicy, class Function, class... Args>
 typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::type
 bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
-
-
-// XXX fully flesh this out with the nested typedefs
-template<class OuterPolicy, class InnerPolicy>
-struct __nested_execution_policy
-{
-  // XXX shouldn't the execution_category be nested_execution_tag<outer,inner>?
-  using execution_category = typename OuterPolicy::execution_category;
-  OuterPolicy outer_exec;
-  InnerPolicy inner_exec;
-};
-
-
-template<class T1, class T2>
-struct is_execution_policy<__nested_execution_policy<T1,T2>>
-  : std::integral_constant<
-      bool,
-      is_execution_policy<T1>::value && is_execution_policy<T2>::value
-    >
-{};
-
-
-template<class OuterPolicy, class InnerPolicy>
-__nested_execution_policy<OuterPolicy,InnerPolicy> __make_nested(const OuterPolicy outer, const InnerPolicy &inner)
-{
-  return __nested_execution_policy<OuterPolicy,InnerPolicy>{outer,inner};
-}
-
-
-template<class OuterPolicy, class InnerPolicy, class Function>
-struct __bulk_async_outer_functor
-{
-  template<class OuterAgent, class Index>
-  struct inner_functor
-  {
-    OuterAgent &outer_agent;
-    Function f;
-
-    template<class InnerAgent, class... Args>
-    void operator()(InnerAgent& inner_agent, Args&&... args) const
-    {
-      // XXX this move seems wrong
-      //     we should be copying the outer agent, not moving it
-      auto agent = std::__nest_agents(std::move(outer_agent), std::move(inner_agent));
-
-      // call f
-      f(agent, args...);
-    }
-  };
-
-  __nested_execution_policy<OuterPolicy,InnerPolicy> exec_args;
-  Function f;
-
-  template<class OuterAgent, class... Args>
-  void operator()(OuterAgent& outer_agent, Args&&... args) const
-  {
-    typedef typename execution_agent_traits_new<OuterAgent>::index_type index_type;
-
-    std::bulk_async(exec_args.inner_exec, inner_functor<OuterAgent,index_type>{outer_agent, f}, args...).wait();
-  }
-};
-
-
-template<class ExecutionCategory, class OuterPolicy, class InnerPolicy, class Function>
-std::future<void> __bulk_async(ExecutionCategory, const __nested_execution_policy<OuterPolicy,InnerPolicy> &exec_args, Function f)
-{
-  // XXX use __async_outer_functor because gcc 4.8 has trouble with lambdas + parameter packs
-  return std::bulk_async(exec_args.outer_exec, __bulk_async_outer_functor<OuterPolicy,InnerPolicy,Function>{exec_args,f});
-}
 
 
 // XXX we should assert that ExecutionCategory is stronger than the category of FlatExecutionAgent
@@ -259,21 +194,21 @@ void __bulk_invoke(ExecutionCategory1,
                    const __basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2>& exec,
                    Function f)
 {
-  using traits = std::execution_agent_traits_old<ExecutionAgent>;
+  using traits = std::execution_agent_traits_new<ExecutionAgent>;
+
   auto param = exec.param();
-  auto domain = traits::domain(param);
+  auto shape = traits::shape(param);
+  auto shared_init = traits::make_shared_initializer(param);
 
-  auto shared_param = __make_shared_helper<traits>(param, typename traits::has_shared_param_type());
+  using executor_index = typename executor_traits<BulkExecutor>::index_type;
+  using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
 
-  std::executor_traits<BulkExecutor>::bulk_invoke(exec.executor(), [=](size_t agent_idx, decltype(shared_param)& shared_arg)
+  return executor_traits<BulkExecutor>::bulk_invoke(exec.executor(), [=](executor_index agent_idx, shared_param_type shared_params)
   {
-    // XXX add make_index_param() ?
-    auto index_param = typename traits::index_param_type(domain[agent_idx]);
-
-    auto this_agent = __make_agent_helper<traits>(param, index_param, shared_param);
-    
-    f(this_agent);
-  }, domain.size(), shared_param);
+    traits::execute(agent_idx, param, f, shared_params);
+  },
+  shape,
+  shared_init);
 }
 
 
@@ -285,21 +220,79 @@ std::future<void> __bulk_async(ExecutionCategory1,
                                const __basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2>& exec,
                                Function f)
 {
-  using traits = std::execution_agent_traits_old<ExecutionAgent>;
+  using traits = std::execution_agent_traits_new<ExecutionAgent>;
+
   auto param = exec.param();
-  auto domain = traits::domain(param);
+  auto shape = traits::shape(param);
+  auto shared_init = traits::make_shared_initializer(param);
 
-  auto shared_param = __make_shared_helper<traits>(param, typename traits::has_shared_param_type());
+  using executor_index = typename executor_traits<BulkExecutor>::index_type;
+  using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
 
-  return std::executor_traits<BulkExecutor>::bulk_async(exec.executor(), [=](size_t agent_idx, decltype(shared_param)& shared_arg)
+  return executor_traits<BulkExecutor>::bulk_async(exec.executor(), [=](executor_index agent_idx, shared_param_type shared_params)
   {
-    auto index_param = typename traits::index_param_type(domain[agent_idx]);
-
-    auto this_agent = __make_agent_helper<traits>(param, index_param, shared_arg);
-    
-    f(this_agent);
-  }, domain.size(), shared_param);
+    traits::execute(agent_idx, param, f, shared_params);
+  },
+  shape,
+  shared_init);
 }
+
+
+template<class ExecutionPolicy1, class ExecutionPolicy2>
+class __nested_execution_policy_new
+  : public __basic_execution_policy<
+      __execution_group_new<
+        typename ExecutionPolicy1::execution_agent_type,
+        typename ExecutionPolicy2::execution_agent_type
+      >,
+      nested_executor<
+        typename ExecutionPolicy1::executor_type,
+        typename ExecutionPolicy2::executor_type
+      >,
+      nested_execution_tag<
+        typename ExecutionPolicy1::execution_category,
+        typename ExecutionPolicy2::execution_category
+      >
+    >
+{
+  private:
+    using super_t = __basic_execution_policy<
+      __execution_group_new<
+        typename ExecutionPolicy1::execution_agent_type,
+        typename ExecutionPolicy2::execution_agent_type
+      >,
+      nested_executor<
+        typename ExecutionPolicy1::executor_type,
+        typename ExecutionPolicy2::executor_type
+      >,
+      nested_execution_tag<
+        typename ExecutionPolicy1::execution_category,
+        typename ExecutionPolicy2::execution_category
+      >
+    >;
+
+
+  public:
+    using outer_execution_policy_type = ExecutionPolicy1;
+    using inner_execution_policy_type = ExecutionPolicy2;
+    using typename super_t::execution_agent_type;
+    using typename super_t::executor_type;
+
+    __nested_execution_policy_new(const outer_execution_policy_type& outer_exec,
+                                  const inner_execution_policy_type& inner_exec)
+      : super_t(typename execution_agent_type::param_type(outer_exec.param(), inner_exec.param()),
+                executor_type(outer_exec.executor(), inner_exec.executor()))
+    {}
+};
+
+
+template<class T1, class T2>
+struct is_execution_policy<__nested_execution_policy_new<T1,T2>>
+  : std::integral_constant<
+      bool,
+      is_execution_policy<T1>::value && is_execution_policy<T2>::value
+    >
+{};
 
 
 class sequential_execution_policy : public __basic_execution_policy<sequential_agent_new, sequential_executor>
@@ -322,10 +315,10 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_a
 
     // this is the nested form of operator()
     template<class OtherExecutionPolicy>
-    __nested_execution_policy<sequential_execution_policy, OtherExecutionPolicy>
+    __nested_execution_policy_new<sequential_execution_policy, OtherExecutionPolicy>
       operator()(size_t n, const OtherExecutionPolicy &exec) const
     {
-      return __make_nested(operator()(n), exec);
+      return __nested_execution_policy_new<sequential_execution_policy,OtherExecutionPolicy>(operator()(n), exec);
     }
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
@@ -365,10 +358,10 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_a
 
     // this is the nested form of operator()
     template<class OtherExecutionPolicy>
-    __nested_execution_policy<concurrent_execution_policy, OtherExecutionPolicy>
+    __nested_execution_policy_new<concurrent_execution_policy, OtherExecutionPolicy>
       operator()(size_t n, const OtherExecutionPolicy &exec) const
     {
-      return __make_nested(operator()(n), exec);
+      return __nested_execution_policy_new<concurrent_execution_policy,OtherExecutionPolicy>(operator()(n), exec);
     }
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
@@ -410,10 +403,10 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_agent
 
     // this is the nested form of operator()
     template<class OtherExecutionPolicy>
-    __nested_execution_policy<parallel_execution_policy, OtherExecutionPolicy>
+    __nested_execution_policy_new<parallel_execution_policy, OtherExecutionPolicy>
       operator()(size_t n, const OtherExecutionPolicy &exec) const
     {
-      return __make_nested(operator()(n), exec);
+      return __nested_execution_policy_new<parallel_execution_policy,OtherExecutionPolicy>(operator()(n), exec);
     }
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
@@ -455,10 +448,10 @@ class vector_execution_policy : public __basic_execution_policy<vector_agent_new
 
     // this is the nested form of operator()
     template<class OtherExecutionPolicy>
-    __nested_execution_policy<vector_execution_policy, OtherExecutionPolicy>
+    __nested_execution_policy_new<vector_execution_policy, OtherExecutionPolicy>
       operator()(size_t n, const OtherExecutionPolicy &exec) const
     {
-      return __make_nested(operator()(n), exec);
+      return __nested_execution_policy_new<vector_execution_policy,OtherExecutionPolicy>(operator()(n), exec);
     }
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
