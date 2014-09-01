@@ -3,6 +3,7 @@
 #include <execution_categories>
 #include <coordinate>
 #include <type_traits>
+#include <barrier>
 #include <__type_traits>
 #include <__tuple_head>
 #include <__tuple_tail>
@@ -18,13 +19,13 @@ __DEFINE_HAS_NESTED_TYPE(__has_inner_execution_agent_type, inner_execution_agent
 
 
 template<class ExecutionAgent, class Enable = void>
-struct __execution_agent_traits_new_base
+struct __execution_agent_traits_base
 {
 };
 
 
 template<class ExecutionAgent>
-struct __execution_agent_traits_new_base<
+struct __execution_agent_traits_base<
   ExecutionAgent,
   typename std::enable_if<
     __has_inner_execution_agent_type<ExecutionAgent>::type
@@ -36,7 +37,7 @@ struct __execution_agent_traits_new_base<
 
 
 template<class ExecutionAgent>
-struct execution_agent_traits_new : __execution_agent_traits_new_base<ExecutionAgent>
+struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
 {
   using execution_agent_type = ExecutionAgent;
   using execution_category = typename execution_agent_type::execution_category;
@@ -110,9 +111,9 @@ struct execution_agent_traits_new : __execution_agent_traits_new_base<ExecutionA
                            typename std::enable_if<
                              !__has_inner_execution_agent_type<ExecutionAgent1>::value
                            >::type* = 0)
-      -> decltype(execution_agent_traits_new<ExecutionAgent1>::domain(param).shape())
+      -> decltype(execution_agent_traits<ExecutionAgent1>::domain(param).shape())
     {
-      return execution_agent_traits_new<ExecutionAgent1>::domain(param).shape();
+      return execution_agent_traits<ExecutionAgent1>::domain(param).shape();
     }
 
     template<class ExecutionAgent1>
@@ -233,7 +234,7 @@ struct execution_agent_traits_new : __execution_agent_traits_new_base<ExecutionA
 
 
 template<class ExecutionCategory>
-class __basic_execution_agent_new
+class __basic_execution_agent
 {
   public:
     using execution_category = ExecutionCategory;
@@ -285,13 +286,13 @@ class __basic_execution_agent_new
     template<class Index, class Function>
     static void execute(const Index& index, const param_type& param, Function f)
     {
-      auto self = __basic_execution_agent_new(index, param);
+      auto self = __basic_execution_agent(index, param);
       f(self);
     }
 
   protected:
     template<class Index>
-    __basic_execution_agent_new(const Index& index, const param_type& param)
+    __basic_execution_agent(const Index& index, const param_type& param)
       : index_(index),
         domain_(param.domain())
     {}
@@ -302,19 +303,19 @@ class __basic_execution_agent_new
 };
 
 
-using sequential_agent_new = __basic_execution_agent_new<sequential_execution_tag>;
+using sequential_agent = __basic_execution_agent<sequential_execution_tag>;
 
 
-using parallel_agent_new = __basic_execution_agent_new<std::parallel_execution_tag>;
+using parallel_agent = __basic_execution_agent<std::parallel_execution_tag>;
 
 
-using vector_agent_new = __basic_execution_agent_new<std::vector_execution_tag>;
+using vector_agent = __basic_execution_agent<std::vector_execution_tag>;
 
 
-class concurrent_agent_new : public __basic_execution_agent_new<concurrent_execution_tag>
+class concurrent_agent : public __basic_execution_agent<concurrent_execution_tag>
 {
   private:
-    using super_t = __basic_execution_agent_new<concurrent_execution_tag>;
+    using super_t = __basic_execution_agent<concurrent_execution_tag>;
 
   public:
     void wait() const
@@ -346,7 +347,7 @@ class concurrent_agent_new : public __basic_execution_agent_new<concurrent_execu
     template<class Index, class Function>
     static void execute(const Index& index, const param_type& param, Function f, shared_param_type& shared_param)
     {
-      auto self = concurrent_agent_new(index, param, shared_param);
+      auto self = concurrent_agent(index, param, shared_param);
 
       f(self);
     }
@@ -356,7 +357,7 @@ class concurrent_agent_new : public __basic_execution_agent_new<concurrent_execu
 
   protected:
     template<class Index>
-    concurrent_agent_new(const Index& index, const param_type& param, shared_param_type& shared_param)
+    concurrent_agent(const Index& index, const param_type& param, shared_param_type& shared_param)
       : super_t(index, param),
         barrier_(shared_param.barrier_)
     {}
@@ -365,13 +366,13 @@ class concurrent_agent_new : public __basic_execution_agent_new<concurrent_execu
 
 
 template<class OuterExecutionAgent, class InnerExecutionAgent>
-class __execution_group_new : public OuterExecutionAgent
+class __execution_group : public OuterExecutionAgent
 {
   private:
-    template<class> friend struct execution_agent_traits_new; 
+    template<class> friend struct execution_agent_traits; 
 
-    using outer_traits = execution_agent_traits_new<OuterExecutionAgent>;
-    using inner_traits = execution_agent_traits_new<InnerExecutionAgent>;
+    using outer_traits = execution_agent_traits<OuterExecutionAgent>;
+    using inner_traits = execution_agent_traits<InnerExecutionAgent>;
 
     using outer_execution_category = typename outer_traits::execution_category;
     using inner_execution_category = typename inner_traits::execution_category;
@@ -414,7 +415,7 @@ class __execution_group_new : public OuterExecutionAgent
 
         inner_traits::execute(inner_indices, std::get<1>(param), [=,&outer_agent](inner_execution_agent_type& inner_agent)
         {
-          auto self = __execution_group_new(std::move(outer_agent), inner_agent);
+          auto self = __execution_group(std::move(outer_agent), inner_agent);
 
           f(self);
         });
@@ -439,7 +440,7 @@ class __execution_group_new : public OuterExecutionAgent
 
         inner_traits::execute(inner_indices, std::get<1>(param), [=,&outer_agent](inner_execution_agent_type& inner_agent)
         {
-          auto self = __execution_group_new(std::move(outer_agent), inner_agent);
+          auto self = __execution_group(std::move(outer_agent), inner_agent);
 
           f(self);
         },
@@ -499,7 +500,7 @@ class __execution_group_new : public OuterExecutionAgent
   protected:
     inner_execution_agent_type inner_agent_;
 
-    __execution_group_new(outer_execution_agent_type&& outer_agent, inner_execution_agent_type& inner_agent)
+    __execution_group(outer_execution_agent_type&& outer_agent, inner_execution_agent_type& inner_agent)
       : outer_execution_agent_type(std::move(outer_agent)),
         inner_agent_(inner_agent)
     {}
@@ -507,16 +508,16 @@ class __execution_group_new : public OuterExecutionAgent
 
 
 template<class InnerExecutionAgent>
-using sequential_group_new = __execution_group_new<sequential_agent_new, InnerExecutionAgent>;
+using sequential_group = __execution_group<sequential_agent, InnerExecutionAgent>;
 
 template<class InnerExecutionAgent>
-using parallel_group_new = __execution_group_new<parallel_agent_new, InnerExecutionAgent>;
+using parallel_group = __execution_group<parallel_agent, InnerExecutionAgent>;
 
 template<class InnerExecutionAgent>
-using concurrent_group_new = __execution_group_new<concurrent_agent_new, InnerExecutionAgent>;
+using concurrent_group = __execution_group<concurrent_agent, InnerExecutionAgent>;
 
 template<class InnerExecutionAgent>
-using vector_group_new = __execution_group_new<vector_agent_new, InnerExecutionAgent>;
+using vector_group = __execution_group<vector_agent, InnerExecutionAgent>;
 
 
 }
