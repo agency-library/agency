@@ -95,16 +95,16 @@ typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::ty
 bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
 
 
-// XXX we should assert that ExecutionCategory is stronger than the category of FlatExecutionAgent
+// XXX we should assert that ExecutionCategory is stronger than the category of ExecutionAgent
 // XXX another way to order these parameters would be
-// ExecutionCategory, Asyncable, FlatExecutionGroup = __default_execution_group<ExecutionCategory>
-template<class FlatExecutionAgent,
+// ExecutionCategory, Asyncable, ExecutionGroup = __default_execution_group<ExecutionCategory>
+template<class ExecutionAgent,
          class BulkExecutor,
-         class ExecutionCategory = typename execution_agent_traits<FlatExecutionAgent>::execution_category>
+         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category>
 class __basic_execution_policy
 {
   public:
-    using execution_agent_type = FlatExecutionAgent;
+    using execution_agent_type = ExecutionAgent;
     using executor_type        = BulkExecutor;
     using execution_category   = ExecutionCategory;
 
@@ -135,9 +135,9 @@ class __basic_execution_policy
     }
 
     template<class OtherBulkExecutor>
-    __basic_execution_policy<FlatExecutionAgent,OtherBulkExecutor,ExecutionCategory> on(const OtherBulkExecutor& executor) const
+    __basic_execution_policy<ExecutionAgent,OtherBulkExecutor,ExecutionCategory> on(const OtherBulkExecutor& executor) const
     {
-      return __basic_execution_policy<FlatExecutionAgent,OtherBulkExecutor,ExecutionCategory>(param(), executor);
+      return __basic_execution_policy<ExecutionAgent,OtherBulkExecutor,ExecutionCategory>(param(), executor);
     }
 
   protected:
@@ -150,40 +150,8 @@ class __basic_execution_policy
 };
 
 
-template<class FlatExecutionAgent, class BulkExecutor, class ExecutionCategory>
-struct is_execution_policy<__basic_execution_policy<FlatExecutionAgent,BulkExecutor,ExecutionCategory>> : std::true_type {};
-
-
-template<class Traits>
-decltype(std::ignore) __make_shared_helper(const typename Traits::param_type&, std::false_type)
-{
-  return std::ignore;
-}
-
-
-template<class Traits>
-typename Traits::shared_param_type __make_shared_helper(const typename Traits::param_type& param, std::true_type)
-{
-  return typename Traits::shared_param_type(param);
-}
-
-
-template<class Traits>
-typename Traits::agent_type __make_agent_helper(const typename Traits::param_type& param,
-                                                const typename Traits::index_param_type& index_param,
-                                                decltype(std::ignore))
-{
-  return Traits::make_agent(param, index_param);
-}
-
-
-template<class Traits>
-typename Traits::agent_type __make_agent_helper(const typename Traits::param_type& param,
-                                                const typename Traits::index_param_type& index_param,
-                                                typename Traits::shared_param_type& shared_param)
-{
-  return Traits::make_agent(param, index_param, shared_param);
-}
+template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory>
+struct is_execution_policy<__basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory>> : std::true_type {};
 
 
 // ExecutionCategory1 corresponds to the category of the executor
