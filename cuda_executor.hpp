@@ -162,6 +162,115 @@ cudaError_t __cuda_triple_chevrons(void* kernel, uint2 shape, int shared_memory_
 }
 
 
+// XXX generalize to multiple arguments
+template<class Arg>
+__host__ __device__
+cudaError_t __launch_cuda_kernel(void* kernel, uint2 shape, int shared_memory_size, cudaStream_t stream, const Arg& arg)
+{
+  struct workaround
+  {
+    __host__ __device__
+    static cudaError_t supported_path(void* kernel, uint2 shape, int shared_memory_size, cudaStream_t stream, const Arg& arg)
+    {
+      // reference the kernel to encourage the compiler not to optimize it away
+      (void)kernel;
+
+      return __cuda_triple_chevrons(kernel, shape, shared_memory_size, stream, arg);
+    }
+
+    __host__ __device__
+    static cudaError_t unsupported_path(void* kernel, uint2, int, cudaStream_t, const Arg&)
+    {
+      // reference the kernel to encourage the compiler not to optimize it away
+      (void)kernel;
+
+      return cudaErrorNotSupported;
+    }
+  };
+
+#if __cuda_lib_has_cudart
+  cudaError_t result = workaround::supported_path(kernel, shape, shared_memory_size, stream, arg);
+#else
+  cudaError_t result = workaround::unsupported_path(kernel, shape, shared_memory_size, stream, arg);
+#endif
+
+  return result;
+}
+
+
+// XXX generalize to multiple arguments
+template<class Arg>
+__host__ __device__
+void __checked_launch_cuda_kernel(void* kernel, uint2 shape, int shared_memory_size, cudaStream_t stream, const Arg& arg)
+{
+  // the error message we return depends on how the program was compiled
+  const char* error_message = 
+#if __cuda_lib_has_cudart
+   // we have access to CUDART, so something went wrong during the kernel
+#  ifndef __CUDA_ARCH__
+   "__checked_launch_cuda_kernel(): CUDA error after cudaLaunch()"
+#  else
+   "__checked_launch_cuda_kernel(): CUDA error after cudaLaunchDevice()"
+#  endif // __CUDA_ARCH__
+#else // __cuda_lib_has_cudart
+   // we don't have access to CUDART, so output a useful error message explaining why it's unsupported
+#  ifndef __CUDA_ARCH__
+   "__checked_launch_cuda_kernel(): CUDA kernel launch from host requires nvcc"
+#  else
+   "__checked_launch_cuda_kernel(): CUDA kernel launch from device requires arch=sm_35 or better and rdc=true"
+#  endif // __CUDA_ARCH__
+#endif
+  ;
+
+  __throw_on_error(__launch_cuda_kernel(kernel, shape, shared_memory_size, stream, arg), error_message);
+}
+
+
+// XXX generalize to multiple arguments
+template<class Arg>
+__host__ __device__
+void __checked_launch_cuda_kernel_on_device(void* kernel, uint2 shape, int shared_memory_size, cudaStream_t stream, int device, const Arg& arg)
+{
+#if __cuda_lib_has_cudart
+  // record the current device
+  int current_device = 0;
+  __throw_on_error(cudaGetDevice(&current_device), "__checked_launch_cuda_kernel_on_device(): cudaGetDevice()");
+  if(current_device != device)
+  {
+#  ifndef __CUDA_ARCH__
+    __throw_on_error(cudaSetDevice(device), "__checked_launch_cuda_kernel_on_device(): cudaSetDevice()");
+#  else
+    __throw_on_error(cudaErrorNotSupported, "__checked_launch_cuda_kernel_on_device(): CUDA kernel launch only allowed on the current device in __device__ code");
+#  endif // __CUDA_ARCH__
+  }
+#else
+  // the error message we return depends on how the program was compiled
+  const char* error_message = 
+#  ifndef __CUDA_ARCH__
+     "__checked_launch_cuda_kernel_on_device(): CUDA kernel launch from host requires nvcc"
+#  else
+     "__checked_launch_cuda_kernel_on_device(): CUDA kernel launch from device requires arch=sm_35 or better and rdc=true"
+#  endif
+  ;
+  __throw_on_error(cudaErrorNotSupported, error_message);
+#endif // __cuda_lib_has_cudart
+
+  __checked_launch_cuda_kernel(kernel, shape, shared_memory_size, stream, arg);
+
+#if __cuda_lib_has_cudart
+  // restore the device
+#  ifndef __CUDA_ARCH__
+  if(current_device != device)
+  {
+    __throw_on_error(cudaSetDevice(current_device), "__checked_launch_cuda_kernel_on_device: cudaSetDevice()");
+  }
+#  endif // __CUDA_ARCH__
+#else
+  __throw_on_error(cudaErrorNotSupported, "__checked_launch_cuda_kernel_on_device(): cudaSetDevice requires CUDART");
+#endif // __cuda_lib_has_cudart
+}
+
+
 template<class Function>
 __global__ void __launch_function(Function f)
 {
@@ -232,74 +341,9 @@ class cuda_executor
     __host__ __device__
     void bulk_add(shape_type shape, Function f, int shared_memory_size, cudaStream_t stream, gpu_id gpu)
     {
-      // XXX should refactor all the triple chevron replacement stuff out of this function
-      struct workaround
-      {
-        __host__ __device__
-        static void supported_path(void* kernel, shape_type shape, Function f, int shared_memory_size, cudaStream_t stream, gpu_id gpu)
-        {
-          // reference the kernel to encourage the compiler not to optimize it away
-          (void)kernel;
-
-#if __cuda_lib_has_cudart
-          if(shape.x > 0 && shape.y > 0)
-          {
-            // record the current device
-            int current_gpu = 0;
-            __throw_on_error(cudaGetDevice(&current_gpu), "cuda_executor::bulk_add(): cudaGetDevice()");
-            if(current_gpu != gpu.native_handle())
-            {
-#  ifndef __CUDA_ARCH__
-              __throw_on_error(cudaSetDevice(gpu.native_handle()), "cuda_executor::bulk_add(): cudaSetDevice()");
-#  else
-              __throw_on_error(cudaErrorNotSupported, "cuda_executor::bulk_add(): CUDA kernel launch only allowed on the current device in __device__ code");
-#  endif
-            }
-
-            // launch the kernel
-            __throw_on_error(__cuda_triple_chevrons(kernel, shape, shared_memory_size, stream, f),
-#  ifndef __CUDA_ARCH__
-              "cuda_executor::bulk_add(): after cudaLaunch()"
-#  else
-              "cuda_executor::bulk_add(): after cudaLaunchDevice()"
-#  endif
-            );
-
-            // restore the current device
-#  ifndef __CUDA_ARCH__
-            if(current_gpu != gpu.native_handle())
-            {
-              __throw_on_error(cudaSetDevice(current_gpu), "cuda_executor::bulk_add(): cudaSetDevice()");
-            }
-#  endif // __CUDA_ARCH__
-          }
-#endif // __cuda_lib_has_cudart
-        } // end supported_path
-
-        __host__ __device__
-        static void unsupported_path(void* kernel, shape_type shape, Function f, int shared_memory_size, cudaStream_t stream, gpu_id gpu)
-        {
-          // reference the kernel to encourage the compiler not to optimize it away
-          (void)kernel;
-
-          __throw_on_error(cudaErrorNotSupported,
-#ifndef __CUDA_ARCH__
-            "cuda_executor::bulk_add(): CUDA kernel launch from host requires nvcc"
-#else
-            "cuda_executor::bulk_add(): CUDA kernel launch from device requires arch=sm_35 or better and rdc=true"
-#endif
-          );
-        } // end unsupported_path
-      }; // end workaround
-
-      // unconditionally instantiate the kernel to encourage the compiler not to optimize it away in the unsupported case
       void* kernel = reinterpret_cast<void*>(global_function_pointer<Function>());
 
-#if __cuda_lib_has_cudart
-      workaround::supported_path(kernel, shape, f, shared_memory_size, stream, gpu);
-#else
-      workaround::unsupported_path(kernel, shape, f, shared_memory_size, stream, gpu);
-#endif
+      __checked_launch_cuda_kernel_on_device(kernel, shape, shared_memory_size, stream, gpu.native_handle(), f);
     }
 
 
