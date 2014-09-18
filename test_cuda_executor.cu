@@ -13,7 +13,8 @@ struct hello_world
 __host__ __device__
 void launch_nested_kernel()
 {
-  cuda_executor().bulk_add(make_uint2(2,2), hello_world());
+  cuda_executor ex;
+  bulk_invoke(ex, make_uint2(2,2), hello_world());
 }
 
 
@@ -51,13 +52,13 @@ int main()
 
   cudaDeviceSynchronize();
 
-  std::cout << "Testing bulk_add() on device" << std::endl;
+  std::cout << "Testing bulk_invoke() on device" << std::endl;
 
   kernel<<<1,1>>>();
 
   cudaDeviceSynchronize();
 
-  std::cout << "Testing bulk_add() on device from kernel template" << std::endl;
+  std::cout << "Testing bulk_invoke() on device from kernel template" << std::endl;
 
   kernel_template<int><<<1,1>>>();
 

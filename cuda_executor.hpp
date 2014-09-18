@@ -315,6 +315,14 @@ __global__ void __launch_function(Function f)
 }
 
 
+void __notify(cudaStream_t stream, cudaError_t status, void* data)
+{
+  std::unique_ptr<std::promise<void>> promise(reinterpret_cast<std::promise<void>*>(data));
+
+  promise->set_value();
+}
+
+
 // cuda_executor is a BulkExecutor implemented with CUDA kernel launch
 class cuda_executor
 {
@@ -375,43 +383,39 @@ class cuda_executor
 
 
     template<class Function>
-    __host__ __device__
-    void bulk_add(shape_type shape, Function f, int shared_memory_size, cudaStream_t stream, gpu_id gpu)
+    std::future<void> bulk_async(Function f, shape_type shape)
     {
+      launch(f, shape);
+
       void* kernel = reinterpret_cast<void*>(global_function_pointer<Function>());
 
-      __checked_launch_cuda_kernel_on_device(kernel, shape, shared_memory_size, stream, gpu.native_handle(), f);
+      // XXX unique_ptr & promise won't be valid in __device__ code
+      std::unique_ptr<std::promise<void>> promise(new std::promise<void>());
+    
+      auto result = promise->get_future();
+    
+      // call __notify when kernel is finished
+      // XXX cudaStreamAddCallback probably isn't valid in __device__ code
+      __throw_on_error(cudaStreamAddCallback(stream(), __notify, promise.release(), 0),
+                       "cuda_executor::bulk_async(): cudaStreamAddCallback");
+    
+      return result;
     }
 
 
     template<class Function>
     __host__ __device__
-    void bulk_add(shape_type shape, Function f, int shared_memory_size, cudaStream_t stream)
+    void bulk_invoke(Function f, shape_type shape)
     {
-      bulk_add(shape,
-               f,
-               shared_memory_size,
-               stream,
-               gpu());
-    }
+#ifndef __CUDA_ARCH__
+      bulk_async(f, shape).wait();
+#else
+      launch(f, shape);
 
-
-    template<class Function>
-    __host__ __device__
-    void bulk_add(shape_type shape, Function f, int shared_memory_size)
-    {
-      bulk_add(shape,
-               f,
-               shared_memory_size,
-               stream());
-    }
-
-
-    template<class Function>
-    __host__ __device__
-    void bulk_add(shape_type shape, Function f)
-    {
-      bulk_add(shape, f, shared_memory_size(), stream());
+#  if __cuda_lib_has_cudart
+      __throw_on_error(cudaDeviceSynchronize(), "cuda_executor::bulk_invoke(): cudaDeviceSynchronize");
+#  endif
+#endif
     }
 
 
@@ -426,47 +430,48 @@ class cuda_executor
 
 
   private:
+    template<class Function>
+    __host__ __device__
+    void launch(Function f, shape_type shape)
+    {
+      launch(f, shape, shared_memory_size());
+    }
+
+    template<class Function>
+    __host__ __device__
+    void launch(Function f, shape_type shape, int shared_memory_size)
+    {
+      launch(f, shape, shared_memory_size, stream());
+    }
+
+    template<class Function>
+    __host__ __device__
+    void launch(Function f, shape_type shape, int shared_memory_size, cudaStream_t stream)
+    {
+      launch(f, shape, shared_memory_size, stream, gpu());
+    }
+
+    template<class Function>
+    __host__ __device__
+    void launch(Function f, shape_type shape, int shared_memory_size, cudaStream_t stream, gpu_id gpu)
+    {
+      void* kernel = reinterpret_cast<void*>(global_function_pointer<Function>());
+
+      __checked_launch_cuda_kernel_on_device(kernel, shape, shared_memory_size, stream, gpu.native_handle(), f);
+    }
+
     int shared_memory_size_;
     cudaStream_t stream_;
     gpu_id gpu_;
 };
 
 
-void __notify(cudaStream_t stream, cudaError_t status, void* data)
-{
-  std::unique_ptr<std::promise<void>> promise(reinterpret_cast<std::promise<void>*>(data));
-
-  promise->set_value();
-}
-
-
-// XXX can't make this __host__ __device__ due to the std::future
-template<class Function, class... Args>
-std::future<void> bulk_async(cuda_executor& ex, typename cuda_executor::shape_type shape, Function&& f, Args&&... args)
-{
-  // add to the executor
-  ex.bulk_add(shape, make_cuda_closure(std::forward<Function>(f), std::forward<Args>(args)...));
-
-  // XXX unique_ptr & promise won't be valid in __device__ code
-  std::unique_ptr<std::promise<void>> promise(new std::promise<void>());
-
-  auto result = promise->get_future();
-
-  // call __notify when kernel is finished
-  // XXX add error checking
-  // XXX cudaStreamAddCallback probably isn't valid in __device__ code
-  __throw_on_error(cudaStreamAddCallback(ex.stream(), __notify, promise.release(), 0),
-                   "bulk_async(): cudaStreamAddcallback");
-
-  return result;
-}
-
-
 // XXX could probably make this __host__ __device__
 template<class Function, class... Args>
+__host__ __device__
 void bulk_invoke(cuda_executor& ex, typename cuda_executor::shape_type shape, Function&& f, Args&&... args)
 {
-  // XXX might be a more efficient way to do this by simply synchronizing with ex.stream()
-  bulk_async(ex, shape, std::forward<Function>(f), std::forward<Args>(args)...).wait();
+  auto g = make_cuda_closure(std::forward<Function>(f), std::forward<Args>(args)...);
+  ex.bulk_invoke(g, shape);
 }
 
