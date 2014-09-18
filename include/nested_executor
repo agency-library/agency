@@ -76,6 +76,7 @@ class nested_executor
         inner_ex_(inner_ex)
     {}
 
+    // XXX think we can eliminate this function
     template<class Function>
     std::future<void> bulk_async(Function f, shape_type shape)
     {

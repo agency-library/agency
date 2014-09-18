@@ -2,113 +2,14 @@
 
 #include <concurrent_executor>
 #include <sequential_executor>
+#include <nested_executor>
+#include <flattened_executor>
 
 namespace std
 {
 
 
-// XXX maybe we could parameterize this as an executor adaptor
-class parallel_executor
-{
-  public:
-    using execution_category = std::parallel_execution_tag;
-
-    using index_type = size_t;
-
-    parallel_executor()
-      : min_num_agents_per_launch_(1000),
-        subscription_(std::max(1u, log2(std::min(1u,std::thread::hardware_concurrency())))),
-        con_exec_(),
-        seq_exec_()
-    {}
-
-    template<class Function>
-    std::future<void> bulk_async(Function f, size_t n)
-    {
-      auto partitioning = partition(n);
-    
-      return executor_traits<concurrent_executor>::bulk_async(con(), [=](size_t outer_idx)
-      {
-        auto subgroup_begin = outer_idx * partitioning.second;
-        auto subgroup_end   = std::min(n, subgroup_begin + partitioning.second);
-
-        executor_traits<sequential_executor>::bulk_invoke(seq(), [=](size_t inner_idx)
-        {
-          auto index = subgroup_begin + inner_idx;
-    
-          f(index);
-        },
-        subgroup_end - subgroup_begin);
-      },
-      partitioning.first);
-    }
-
-    template<class Function, class T>
-    std::future<void> bulk_async(Function f, size_t n, T shared_arg)
-    {
-      auto partitioning = partition(n);
-    
-      return executor_traits<concurrent_executor>::bulk_async(con(), [=](size_t outer_idx, T& shared_arg)
-      {
-        auto subgroup_begin = outer_idx * partitioning.second;
-        auto subgroup_end   = std::min(n, subgroup_begin + partitioning.second);
-
-        executor_traits<sequential_executor>::bulk_invoke(seq(), [=,&shared_arg](size_t inner_idx)
-        {
-          auto index = subgroup_begin + inner_idx;
-    
-          f(index, shared_arg);
-        },
-        subgroup_end - subgroup_begin);
-      },
-      partitioning.first,
-      shared_arg);
-    }
-
-    // returns (number of concurrent agents, number of sequential agents)
-    std::pair<size_t,size_t> partition(size_t n) const
-    {
-      size_t num_concurrent_agents = (n + min_num_agents_per_launch_ - 1) / min_num_agents_per_launch_;
-      num_concurrent_agents = std::min<size_t>(subscription_ * std::thread::hardware_concurrency(), num_concurrent_agents);
-
-      const size_t num_seq_agents_per_concurrent = (n + num_concurrent_agents - 1) / num_concurrent_agents;
-
-      return std::make_pair(num_concurrent_agents, num_seq_agents_per_concurrent);
-    }
-
-    inline concurrent_executor& con()
-    {
-      return con_exec_;
-    }
-
-    inline const concurrent_executor& con() const
-    {
-      return con_exec_;
-    }
-
-    inline sequential_executor& seq()
-    {
-      return seq_exec_;
-    }
-
-    inline const sequential_executor& seq() const
-    {
-      return seq_exec_;
-    }
-
-  private:
-    inline unsigned int log2(unsigned int x)
-    {
-      unsigned int result = 0;
-      while(x >>= 1) ++result;
-      return result;
-    }
-
-    size_t min_num_agents_per_launch_;
-    size_t subscription_;
-    concurrent_executor con_exec_;
-    sequential_executor seq_exec_;
-};
+using parallel_executor = flattened_executor<nested_executor<concurrent_executor, sequential_executor>>;
 
 
 }
