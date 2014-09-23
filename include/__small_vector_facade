@@ -421,7 +421,9 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
                sizeof...(OtherT) == Rank
              >::type>
     __small_vector_adaptor(OtherT... args)
-      : __small_vector_adaptor{static_cast<value_type>(args)...}
+// XXX WAR nvcc 6.5 issue
+//      : __small_vector_adaptor{static_cast<value_type>(args)...}
+      : __small_vector_adaptor({static_cast<value_type>(args)...})
     {}
 
 

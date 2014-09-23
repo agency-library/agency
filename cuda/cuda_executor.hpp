@@ -1,47 +1,19 @@
 #pragma once
 
-// cf. c++ feature test study group
-#if defined(__CUDACC__)
-#  if !defined(__CUDA_ARCH__) || (__CUDA_ARCH__>= 350 && defined(__CUDACC_RDC__))
-#    define __cuda_lib_has_cudart 1
-#  else
-#    define __cuda_lib_has_cudart 0
-#  endif
-#else
-#  define __cuda_lib_has_cudart 0
-#endif
-
-#if defined(__CUDACC__)
-#  if !defined(__CUDA_ARCH__) || (__CUDA_ARCH__ >= 200)
-#    define __cuda_lib_has_printf 1
-#  else
-#    define __cuda_lib_has_printf 0
-#  endif
-#else
-#  define __cuda_lib_has_printf 1
-#endif
-
 #include <execution_categories>
 #include <future>
 #include <memory>
 #include <iostream>
 #include <exception>
-#include <thrust/system_error.h>
-#include <thrust/system/cuda/error.h>
 #include <cstring>
 #include <type_traits>
-#include "cuda_closure.hpp"
-
-
-__host__ __device__
-inline void __terminate()
-{
-#ifdef __CUDA_ARCH__
-  asm("trap;");
-#else
-  std::terminate();
-#endif
-}
+#include <thrust/system_error.h>
+#include <thrust/system/cuda/error.h>
+#include <thrust/tuple.h>
+#include "feature_test.hpp"
+#include "bind.hpp"
+#include "unique_cuda_ptr.hpp"
+#include "terminate.hpp"
 
 
 inline __host__ __device__
@@ -229,7 +201,8 @@ void __checked_launch_cuda_kernel_on_device(void* kernel, uint2 shape, int share
 template<class Function>
 __global__ void __launch_function(Function f)
 {
-  f(::make_uint2(blockIdx.x, threadIdx.x));
+  uint2 idx = make_uint2(blockIdx.x, threadIdx.x);
+  f(idx);
 }
 
 
@@ -323,6 +296,98 @@ gpu_id __this_gpu()
 }
 
 
+// give CUDA built-in vector types Tuple-like access
+template<std::size_t i>
+__host__ __device__
+unsigned int&
+  get(uint2& x)
+{
+  return reinterpret_cast<unsigned int*>(&x)[i];
+}
+
+
+template<std::size_t i>
+__host__ __device__
+const unsigned int&
+  get(const uint2& x)
+{
+  return reinterpret_cast<const unsigned int*>(&x)[i];
+}
+
+
+namespace std
+{
+
+
+template<>
+struct tuple_size<uint2> : integral_constant<size_t,2> {};
+
+
+template<size_t i>
+struct tuple_element<i,uint2>
+{
+  using type = unsigned int;
+};
+
+
+} // end std
+
+
+template<class Function, class OuterSharedType, class InnerSharedType>
+struct __function_with_shared_arguments
+{
+  __host__ __device__
+  __function_with_shared_arguments(Function f, OuterSharedType* outer_ptr, InnerSharedType inner_shared_init)
+    : f_(f),
+      outer_ptr_(outer_ptr),
+      inner_shared_init_(inner_shared_init)
+  {}
+
+  template<class Agent>
+  __device__
+  void operator()(Agent& agent)
+  {
+    __shared__ InnerSharedType inner_param;
+
+    // initialize the inner shared parameter
+    if(agent.y == 0)
+    {
+      printf("initializing inner parameter with %d\n", inner_shared_init_);
+      inner_param = inner_shared_init_;
+    }
+    __syncthreads();
+
+    thrust::tuple<OuterSharedType&,InnerSharedType&> shared_params(*outer_ptr_, inner_param);
+
+    f_(agent, shared_params);
+  }
+
+  Function         f_;
+  OuterSharedType* outer_ptr_;
+  InnerSharedType  inner_shared_init_;
+};
+
+
+template<class OuterSharedType>
+struct __copy_outer_shared_parameter
+{
+  __host__ __device__
+  __copy_outer_shared_parameter(OuterSharedType* outer_shared_ptr, const OuterSharedType& outer_shared_init)
+    : outer_shared_ptr_(outer_shared_ptr),
+      outer_shared_init_(outer_shared_init)
+  {}
+
+  __device__
+  void operator()(uint2)
+  {
+    new (outer_shared_ptr_) OuterSharedType(outer_shared_init_);
+  }
+
+  OuterSharedType* outer_shared_ptr_;
+  OuterSharedType  outer_shared_init_;
+};
+
+
 // cuda_executor is a BulkExecutor implemented with CUDA kernel launch
 class cuda_executor
 {
@@ -339,14 +404,14 @@ class cuda_executor
     //     the value of each each element specifies the size of a node in the execution hierarchy
     //     the tuple_size<shape_type> must be the same as the nesting depth of execution_category
     //using shape_type = std::uint2;
-    using shape_type = ::uint2;
+    using shape_type = uint2;
 
 
     // this is the type of the parameter handed to functions invoked through bulk_add()
     // XXX threadIdx.x is actually an int
     //     maybe we need to make this int2
     //using index_type = std::uint2;
-    using index_type = ::uint2;
+    using index_type = uint2;
 
 
     // XXX might want to introduce max_shape (cf. allocator::max_size)
@@ -403,6 +468,32 @@ class cuda_executor
     }
 
 
+    template<class Function, class Tuple>
+    std::future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
+    {
+      using outer_shared_type = typename thrust::tuple_element<0,Tuple>::type;
+      using inner_shared_type = typename thrust::tuple_element<1,Tuple>::type;
+
+      // XXX wrap all this up into make_unique_cuda
+      // allocate outer shared argument
+      unique_cuda_ptr<outer_shared_type> outer_shared_arg(thrust::cuda::malloc<outer_shared_type>(1));
+
+      // copy construct the outer shared arg
+      // XXX do this asynchronously
+      //     don't do this if outer_shared_type is std::ignore
+      bulk_invoke(__copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg.get(), get<0>(shared_arg_tuple)), shape_type(1,1));
+
+      // wrap up f in a thing that will marshal the shared arguments to it
+      // note the .release()
+      auto g = __function_with_shared_arguments<Function, outer_shared_type, inner_shared_type>(f, outer_shared_arg.release(), get<1>(shared_arg_tuple));
+
+      // XXX to deallocate & destroy the outer_shared_arg, we need to do a bulk_async(...).then(...)
+      //     for now it just leaks :(
+
+      return bulk_async(g, shape);
+    }
+
+
     template<class Function>
     __host__ __device__
     void bulk_invoke(Function f, shape_type shape)
@@ -416,6 +507,27 @@ class cuda_executor
       __throw_on_error(cudaDeviceSynchronize(), "cuda_executor::bulk_invoke(): cudaDeviceSynchronize");
 #  endif
 #endif
+    }
+
+
+    template<class Function, class Tuple>
+    __host__ __device__
+    void bulk_invoke(Function f, shape_type shape, Tuple shared_arg_tuple)
+    {
+      using outer_shared_type = typename thrust::tuple_element<0,Tuple>::type;
+      using inner_shared_type = typename thrust::tuple_element<1,Tuple>::type;
+
+      // allocate outer shared argument
+      unique_cuda_ptr<outer_shared_type> outer_shared_arg(thrust::cuda::malloc<outer_shared_type>(1));
+
+      // copy construct the outer shared arg
+      // XXX don't do this if outer_shared_type is std::ignore
+      bulk_invoke(__copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg.get(), get<0>(shared_arg_tuple)), shape_type{1,1});
+
+      // wrap up f in a thing that will marshal the shared arguments to it
+      auto g = __function_with_shared_arguments<Function, outer_shared_type, inner_shared_type>(f, outer_shared_arg.get(), get<1>(shared_arg_tuple));
+
+      return bulk_invoke(g, shape);
     }
 
 
@@ -471,7 +583,7 @@ template<class Function, class... Args>
 __host__ __device__
 void bulk_invoke(cuda_executor& ex, typename cuda_executor::shape_type shape, Function&& f, Args&&... args)
 {
-  auto g = make_cuda_closure(std::forward<Function>(f), std::forward<Args>(args)...);
+  auto g = thrust::experimental::bind(std::forward<Function>(f), thrust::placeholders::_1, std::forward<Args>(args)...);
   ex.bulk_invoke(g, shape);
 }
 

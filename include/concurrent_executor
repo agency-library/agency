@@ -47,7 +47,7 @@ class concurrent_executor
       }
 
       return result;
-    };
+    }
 
   private:
     // first must be less than last
