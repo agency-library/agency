@@ -6,8 +6,8 @@
 
 #include <type_traits>
 #include <utility>
-#include <thrust/tuple.h>
 #include <thrust/functional.h>
+#include "thrust_tuple_cpp11.hpp"
 
 
 namespace thrust
@@ -196,206 +196,15 @@ auto substitute_arg(ArgTuple&& arg_tuple, const BoundArg&,
 }
 
 
-// XXX WAR nvbug 1527140
-//     unpack template parameter packs into thrust::tuple manually
 template<class... T>
-struct tuple_war_1527140;
-
-template<>
-struct tuple_war_1527140<>
-{
-  using type = thrust::tuple<>;
-};
-
-template<class T1>
-struct tuple_war_1527140<T1>
-{
-  using type = thrust::tuple<T1>;
-};
-
-template<class T1, class T2>
-struct tuple_war_1527140<T1,T2>
-{
-  using type = thrust::tuple<T1,T2>;
-};
-
-template<class T1, class T2, class T3>
-struct tuple_war_1527140<T1,T2,T3>
-{
-  using type = thrust::tuple<T1,T2,T3>;
-};
-
-template<class T1, class T2, class T3, class T4>
-struct tuple_war_1527140<T1,T2,T3,T4>
-{
-  using type = thrust::tuple<T1,T2,T3,T4>;
-};
-
-template<class T1, class T2, class T3, class T4, class T5>
-struct tuple_war_1527140<T1,T2,T3,T4,T5>
-{
-  using type = thrust::tuple<T1,T2,T3,T4,T5>;
-};
-
-template<class T1, class T2, class T3, class T4, class T5, class T6>
-struct tuple_war_1527140<T1,T2,T3,T4,T5,T6>
-{
-  using type = thrust::tuple<T1,T2,T3,T4,T5,T6>;
-};
-
-template<class T1, class T2, class T3, class T4, class T5, class T6, class T7>
-struct tuple_war_1527140<T1,T2,T3,T4,T5,T6,T7>
-{
-  using type = thrust::tuple<T1,T2,T3,T4,T5,T6,T7>;
-};
-
-template<class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8>
-struct tuple_war_1527140<T1,T2,T3,T4,T5,T6,T7,T8>
-{
-  using type = thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8>;
-};
-
-template<class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9>
-struct tuple_war_1527140<T1,T2,T3,T4,T5,T6,T7,T8,T9>
-{
-  using type = thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9>;
-};
-
-template<class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10>
-struct tuple_war_1527140<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>
-{
-  using type = thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>;
-};
-
-template<class... T>
-using tuple = typename tuple_war_1527140<T...>::type;
-
-
-// XXX replace this with the variadic forward_as_tuple() when thrust::tuple's constructor can receive && references
-inline __host__ __device__
-tuple<> forward_as_tuple()
-{
-  return tuple<>();
-}
-
-
-template<class T>
-__host__ __device__
-tuple<T&> forward_as_tuple(T& arg)
-{
-  return tuple<T&>(arg);
-}
-
-
-template<class T>
-__host__ __device__
-tuple<const T&> forward_as_tuple(const T& arg)
-{
-  return tuple<const T&>(arg);
-}
-
-
-template<class T1, class T2>
-__host__ __device__
-tuple<T1&,T2&> forward_as_tuple(T1& arg1, T2& arg2)
-{
-  return tuple<T1&,T2&>(arg1, arg2);
-}
-
-
-template<class T1, class T2>
-__host__ __device__
-tuple<T1&,const T2&> forward_as_tuple(T1& arg1, const T2& arg2)
-{
-  return tuple<T1&,const T2&>(arg1, arg2);
-}
-
-
-template<class T1, class T2>
-__host__ __device__
-tuple<const T1&,T2&> forward_as_tuple(const T1& arg1, T2& arg2)
-{
-  return tuple<const T1&,T2&>(arg1, arg2);
-}
-
-
-template<class T1, class T2>
-__host__ __device__
-tuple<const T1&,const T2&> forward_as_tuple(const T1& arg1, const T2& arg2)
-{
-  return tuple<const T1&,const T2&>(arg1, arg2);
-}
-
-
-template<class T1, class T2, class T3>
-__host__ __device__
-tuple<T1&,T2&,T3&> forward_as_tuple(T1& arg1, T2& arg2, T3& arg3)
-{
-  return tuple<T1&,T2&,T3&>(arg1, arg2, arg3);
-}
-
-
-template<class T1, class T2, class T3>
-__host__ __device__
-tuple<T1&,T2&,const T3&> forward_as_tuple(T1& arg1, T2& arg2, const T3& arg3)
-{
-  return tuple<T1&,T2&,const T3&>(arg1, arg2, arg3);
-}
-
-
-template<class T1, class T2, class T3>
-__host__ __device__
-tuple<T1&,const T2&,T3&> forward_as_tuple(T1& arg1, const T2& arg2, T3& arg3)
-{
-  return tuple<T1&,const T2&, T3&>(arg1, arg2, arg3);
-}
-
-
-template<class T1, class T2, class T3>
-__host__ __device__
-tuple<T1&,const T2&,const T3&> forward_as_tuple(T1& arg1, const T2& arg2, const T3& arg3)
-{
-  return tuple<T1&,const T2&,const T3&>(arg1, arg2, arg3);
-}
-
-
-template<class T1, class T2, class T3>
-__host__ __device__
-tuple<const T1&,T2&,T3&> forward_as_tuple(const T1& arg1, T2& arg2, T3& arg3)
-{
-  return tuple<const T1&,T2&,T3&>(arg1, arg2, arg3);
-}
-
-
-template<class T1, class T2, class T3>
-__host__ __device__
-tuple<const T1&,T2&,const T3&> forward_as_tuple(const T1& arg1, T2& arg2, const T3& arg3)
-{
-  return tuple<const T1&,T2&,const T3&>(arg1, arg2, arg3);
-}
-
-
-template<class T1, class T2, class T3>
-__host__ __device__
-tuple<const T1&,const T2&,T3&> forward_as_tuple(const T1& arg1, const T2& arg2, T3& arg3)
-{
-  return tuple<const T1&,const T2&, T3&>(arg1, arg2, arg3);
-}
-
-
-template<class T1, class T2, class T3>
-__host__ __device__
-tuple<const T1&,const T2&,const T3&> forward_as_tuple(const T1& arg1, const T2& arg2, const T3& arg3)
-{
-  return tuple<const T1&,const T2&,const T3&>(arg1, arg2, arg3);
-}
+using tuple = thrust::experimental::cpp11::tuple<T...>;
 
 
 template<class ArgTuple, class BoundArgTuple, size_t... I>
 __host__ __device__
 auto substitute_impl(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple, index_sequence<I...>)
   -> decltype(
-       forward_as_tuple(
+       thrust::experimental::cpp11::forward_as_tuple(
          substitute_arg(
            std::forward<ArgTuple>(arg_tuple),
            thrust::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
@@ -403,7 +212,7 @@ auto substitute_impl(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple, inde
        )
      )
 {
-  return forward_as_tuple(
+  return thrust::experimental::cpp11::forward_as_tuple(
     substitute_arg(
       std::forward<ArgTuple>(arg_tuple),
       thrust::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
@@ -445,7 +254,7 @@ class bind_expression
            apply(
              *std::declval<const F*>(),
              substitute(
-               forward_as_tuple(std::forward<OtherArgs>(args)...),
+               thrust::experimental::cpp11::forward_as_tuple(std::forward<OtherArgs>(args)...),
                *std::declval<const tuple<BoundArgs...>*>()
              )
            )
@@ -454,7 +263,7 @@ class bind_expression
       return apply(
         fun_,
         substitute(
-          forward_as_tuple(std::forward<OtherArgs>(args)...),
+          thrust::experimental::cpp11::forward_as_tuple(std::forward<OtherArgs>(args)...),
           bound_args_
         )
       );
@@ -467,7 +276,7 @@ class bind_expression
            apply(
              *std::declval<F*>(),
              substitute(
-               forward_as_tuple(std::forward<OtherArgs>(args)...),
+               thrust::experimental::cpp11::forward_as_tuple(std::forward<OtherArgs>(args)...),
                *std::declval<tuple<BoundArgs...>*>()
              )
            )
@@ -476,7 +285,7 @@ class bind_expression
       return apply(
         fun_,
         substitute(
-          forward_as_tuple(std::forward<OtherArgs>(args)...),
+          thrust::experimental::cpp11::forward_as_tuple(std::forward<OtherArgs>(args)...),
           bound_args_
         )
       );

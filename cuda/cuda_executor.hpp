@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
-#include <thrust/tuple.h>
+#include "thrust_tuple_cpp11.hpp"
 #include "feature_test.hpp"
 #include "bind.hpp"
 #include "unique_cuda_ptr.hpp"
@@ -413,6 +413,9 @@ class cuda_executor
     //using index_type = std::uint2;
     using index_type = uint2;
 
+    template<class Tuple>
+    using shared_param_type = __thrust_tuple_of_references_t<Tuple>;
+
 
     // XXX might want to introduce max_shape (cf. allocator::max_size)
     //     CUDA would definitely take advantage of it
@@ -471,21 +474,24 @@ class cuda_executor
     template<class Function, class Tuple>
     std::future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
-      using outer_shared_type = typename thrust::tuple_element<0,Tuple>::type;
-      using inner_shared_type = typename thrust::tuple_element<1,Tuple>::type;
+      auto outer_shared_arg = get<0>(shared_arg_tuple);
+      auto inner_shared_arg = get<1>(shared_arg_tuple);
+
+      using outer_shared_type = decltype(outer_shared_arg);
+      using inner_shared_type = decltype(inner_shared_arg);
 
       // XXX wrap all this up into make_unique_cuda
       // allocate outer shared argument
-      unique_cuda_ptr<outer_shared_type> outer_shared_arg(thrust::cuda::malloc<outer_shared_type>(1));
+      unique_cuda_ptr<outer_shared_type> outer_shared_arg_ptr(thrust::cuda::malloc<outer_shared_type>(1));
 
       // copy construct the outer shared arg
       // XXX do this asynchronously
       //     don't do this if outer_shared_type is std::ignore
-      bulk_invoke(__copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg.get(), get<0>(shared_arg_tuple)), shape_type(1,1));
+      bulk_invoke(__copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg_ptr.get(), outer_shared_arg), shape_type{1,1});
 
       // wrap up f in a thing that will marshal the shared arguments to it
       // note the .release()
-      auto g = __function_with_shared_arguments<Function, outer_shared_type, inner_shared_type>(f, outer_shared_arg.release(), get<1>(shared_arg_tuple));
+      auto g = __function_with_shared_arguments<Function, outer_shared_type, inner_shared_type>(f, outer_shared_arg_ptr.release(), inner_shared_arg);
 
       // XXX to deallocate & destroy the outer_shared_arg, we need to do a bulk_async(...).then(...)
       //     for now it just leaks :(
@@ -514,18 +520,21 @@ class cuda_executor
     __host__ __device__
     void bulk_invoke(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
-      using outer_shared_type = typename thrust::tuple_element<0,Tuple>::type;
-      using inner_shared_type = typename thrust::tuple_element<1,Tuple>::type;
+      auto outer_shared_arg = get<0>(shared_arg_tuple);
+      auto inner_shared_arg = get<1>(shared_arg_tuple);
+
+      using outer_shared_type = decltype(outer_shared_arg);
+      using inner_shared_type = decltype(inner_shared_arg);
 
       // allocate outer shared argument
-      unique_cuda_ptr<outer_shared_type> outer_shared_arg(thrust::cuda::malloc<outer_shared_type>(1));
+      unique_cuda_ptr<outer_shared_type> outer_shared_arg_ptr(thrust::cuda::malloc<outer_shared_type>(1));
 
       // copy construct the outer shared arg
       // XXX don't do this if outer_shared_type is std::ignore
-      bulk_invoke(__copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg.get(), get<0>(shared_arg_tuple)), shape_type{1,1});
+      bulk_invoke(__copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg_ptr.get(), outer_shared_arg), shape_type{1,1});
 
       // wrap up f in a thing that will marshal the shared arguments to it
-      auto g = __function_with_shared_arguments<Function, outer_shared_type, inner_shared_type>(f, outer_shared_arg.get(), get<1>(shared_arg_tuple));
+      auto g = __function_with_shared_arguments<Function, outer_shared_type, inner_shared_type>(f, outer_shared_arg_ptr.get(), inner_shared_arg);
 
       return bulk_invoke(g, shape);
     }
