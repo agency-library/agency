@@ -85,7 +85,7 @@ struct executor_traits
     template<class Function>
     static std::future<void> bulk_async_impl(executor_type& ex, Function f, shape_type shape, std::false_type)
     {
-      return bulk_async(ex, [=](index_type index, const shape_type&)
+      return bulk_async(ex, [=](index_type index, const shape_type&) mutable
       {
         f(index);
       },
