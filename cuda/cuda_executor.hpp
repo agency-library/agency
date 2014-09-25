@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
+#include <flattened_executor>
+#include <thrust/detail/minmax.h>
 #include "thrust_tuple_cpp11.hpp"
 #include "feature_test.hpp"
 #include "bind.hpp"
@@ -595,4 +597,132 @@ void bulk_invoke(cuda_executor& ex, typename cuda_executor::shape_type shape, Fu
   auto g = thrust::experimental::bind(std::forward<Function>(f), thrust::placeholders::_1, std::forward<Args>(args)...);
   ex.bulk_invoke(g, shape);
 }
+
+
+// specialize std::flattened_executor<cuda_executor>
+// to add __host__ __device__ to its functions and avoid lambdas
+namespace std
+{
+
+
+template<class Function>
+struct __flattened_cuda_executor_functor
+{
+  Function f_;
+  std::size_t shape_;
+  cuda_executor::shape_type partitioning_;
+
+  __host__ __device__
+  __flattened_cuda_executor_functor(const Function& f, std::size_t shape, cuda_executor::shape_type partitioning)
+    : f_(f),
+      shape_(shape),
+      partitioning_(partitioning)
+  {}
+
+  template<class T>
+  __device__
+  void operator()(cuda_executor::index_type idx, T&& shared_params)
+  {
+    auto flat_idx = get<0>(idx) * get<1>(partitioning_) + get<1>(idx);
+
+    if(flat_idx < shape_)
+    {
+      f_(flat_idx, get<0>(shared_params));
+    }
+  }
+
+  inline __device__
+  void operator()(cuda_executor::index_type idx)
+  {
+    auto flat_idx = get<0>(idx) * get<1>(partitioning_) + get<1>(idx);
+
+    if(flat_idx < shape_)
+    {
+      f_(flat_idx);
+    }
+  }
+};
+
+
+template<>
+class flattened_executor<cuda_executor>
+{
+  public:
+    using execution_category = parallel_execution_tag;
+    using base_executor_type = cuda_executor;
+
+    // XXX maybe use whichever of the first two elements of base_executor_type::shape_type has larger dimensionality?
+    using shape_type = size_t;
+
+    // XXX initialize outer_subscription_ correctly
+    __host__ __device__
+    flattened_executor(const base_executor_type& base_executor = base_executor_type())
+      : min_inner_size_(256), // choose min_inner_size_ dynamically based on occupancy
+        outer_subscription_(2),
+        base_executor_(base_executor)
+    {}
+
+    template<class Function>
+    std::future<void> bulk_async(Function f, shape_type shape)
+    {
+      auto partitioning = partition(shape);
+
+      auto execute_me = __flattened_cuda_executor_functor<Function>{f, shape, partitioning};
+
+      return base_executor().bulk_async(execute_me, partitioning);
+    }
+
+    template<class Function, class T>
+    std::future<void> bulk_async(Function f, shape_type shape, T shared_arg)
+    {
+      auto partitioning = partition(shape);
+
+      auto shared_init = std::make_tuple(shared_arg, std::ignore);
+      using shared_param_type = typename executor_traits<base_executor_type>::template shared_param_type<decltype(shared_init)>;
+
+      auto execute_me = __flattened_cuda_executor_functor<Function>{f, shape, partitioning};
+
+      return base_executor().bulk_async(execute_me, partitioning, shared_init);
+    }
+
+    __host__ __device__
+    const base_executor_type& base_executor() const
+    {
+      return base_executor_;
+    }
+
+    __host__ __device__
+    base_executor_type& base_executor()
+    {
+      return base_executor_;
+    }
+
+  private:
+
+    using partition_type = typename executor_traits<base_executor_type>::shape_type;
+
+    // returns (outer size, inner size)
+    __host__ __device__
+    partition_type partition(shape_type shape) const
+    {
+      using outer_shape_type = typename std::tuple_element<0,partition_type>::type;
+      using inner_shape_type = typename std::tuple_element<1,partition_type>::type;
+
+      outer_shape_type outer_size = (shape + min_inner_size_ - 1) / min_inner_size_;
+
+      // XXX instead of using 16, estimate something for hardware_concurrency, like number of SMs
+      outer_size = thrust::min<size_t>(outer_subscription_ * 16, outer_size);
+
+      inner_shape_type inner_size = (shape + outer_size - 1) / outer_size;
+
+      return partition_type{outer_size, inner_size};
+    }
+
+    size_t min_inner_size_;
+    size_t outer_subscription_;
+    base_executor_type base_executor_;
+};
+
+
+} // end std
 
