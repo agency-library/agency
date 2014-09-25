@@ -1,4 +1,4 @@
-#include "cuda/cuda_executor.hpp"
+#include "cuda/grid_executor.hpp"
 
 struct hello_world
 {
@@ -35,7 +35,7 @@ struct with_shared_arg
 __host__ __device__
 void launch_nested_kernel()
 {
-  cuda_executor ex;
+  cuda::grid_executor ex;
   bulk_invoke(ex, make_uint2(2,2), hello_world());
 }
 
@@ -67,7 +67,7 @@ __global__ void kernel_template()
 
 int main()
 {
-  cuda_executor ex;
+  cuda::grid_executor ex;
 
   std::cout << "Testing bulk_invoke on host" << std::endl;
   bulk_invoke(ex, make_uint2(2,2), hello_world());

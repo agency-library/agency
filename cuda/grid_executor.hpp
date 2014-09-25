@@ -18,6 +18,10 @@
 #include "terminate.hpp"
 
 
+namespace cuda
+{
+
+
 inline __host__ __device__
 void __throw_on_error(cudaError_t e, const char* message)
 {
@@ -298,6 +302,9 @@ gpu_id __this_gpu()
 }
 
 
+} // end cuda
+
+
 // give CUDA built-in vector types Tuple-like access
 template<std::size_t i>
 __host__ __device__
@@ -333,6 +340,10 @@ struct tuple_element<i,uint2>
 
 
 } // end std
+
+
+namespace cuda
+{
 
 
 template<class Function, class OuterSharedType, class InnerSharedType>
@@ -390,8 +401,8 @@ struct __copy_outer_shared_parameter
 };
 
 
-// cuda_executor is a BulkExecutor implemented with CUDA kernel launch
-class cuda_executor
+// grid_executor is a BulkExecutor implemented with CUDA kernel launch
+class grid_executor
 {
   public:
     using execution_category =
@@ -424,7 +435,7 @@ class cuda_executor
 
 
     __host__ __device__
-    explicit cuda_executor(int shared_memory_size = 0, cudaStream_t stream = 0, gpu_id gpu = __this_gpu())
+    explicit grid_executor(int shared_memory_size = 0, cudaStream_t stream = 0, gpu_id gpu = __this_gpu())
       : shared_memory_size_(shared_memory_size),
         stream_(stream),
         gpu_(gpu)
@@ -467,7 +478,7 @@ class cuda_executor
       // call __notify when kernel is finished
       // XXX cudaStreamAddCallback probably isn't valid in __device__ code
       __throw_on_error(cudaStreamAddCallback(stream(), __notify, promise.release(), 0),
-                       "cuda_executor::bulk_async(): cudaStreamAddCallback");
+                       "cuda::grid_executor::bulk_async(): cudaStreamAddCallback");
     
       return result;
     }
@@ -512,7 +523,7 @@ class cuda_executor
       launch(f, shape);
 
 #  if __cuda_lib_has_cudart
-      __throw_on_error(cudaDeviceSynchronize(), "cuda_executor::bulk_invoke(): cudaDeviceSynchronize");
+      __throw_on_error(cudaDeviceSynchronize(), "cuda::grid_executor::bulk_invoke(): cudaDeviceSynchronize");
 #  endif
 #endif
     }
@@ -592,28 +603,22 @@ class cuda_executor
 // XXX could probably make this __host__ __device__
 template<class Function, class... Args>
 __host__ __device__
-void bulk_invoke(cuda_executor& ex, typename cuda_executor::shape_type shape, Function&& f, Args&&... args)
+void bulk_invoke(grid_executor& ex, typename grid_executor::shape_type shape, Function&& f, Args&&... args)
 {
   auto g = thrust::experimental::bind(std::forward<Function>(f), thrust::placeholders::_1, std::forward<Args>(args)...);
   ex.bulk_invoke(g, shape);
 }
 
 
-// specialize std::flattened_executor<cuda_executor>
-// to add __host__ __device__ to its functions and avoid lambdas
-namespace std
-{
-
-
 template<class Function>
-struct __flattened_cuda_executor_functor
+struct __flattened_grid_executor_functor
 {
   Function f_;
   std::size_t shape_;
-  cuda_executor::shape_type partitioning_;
+  cuda::grid_executor::shape_type partitioning_;
 
   __host__ __device__
-  __flattened_cuda_executor_functor(const Function& f, std::size_t shape, cuda_executor::shape_type partitioning)
+  __flattened_grid_executor_functor(const Function& f, std::size_t shape, cuda::grid_executor::shape_type partitioning)
     : f_(f),
       shape_(shape),
       partitioning_(partitioning)
@@ -621,7 +626,7 @@ struct __flattened_cuda_executor_functor
 
   template<class T>
   __device__
-  void operator()(cuda_executor::index_type idx, T&& shared_params)
+  void operator()(cuda::grid_executor::index_type idx, T&& shared_params)
   {
     auto flat_idx = get<0>(idx) * get<1>(partitioning_) + get<1>(idx);
 
@@ -632,7 +637,7 @@ struct __flattened_cuda_executor_functor
   }
 
   inline __device__
-  void operator()(cuda_executor::index_type idx)
+  void operator()(cuda::grid_executor::index_type idx)
   {
     auto flat_idx = get<0>(idx) * get<1>(partitioning_) + get<1>(idx);
 
@@ -644,12 +649,21 @@ struct __flattened_cuda_executor_functor
 };
 
 
+} // end cuda
+
+
+// specialize std::flattened_executor<grid_executor>
+// to add __host__ __device__ to its functions and avoid lambdas
+namespace std
+{
+
+
 template<>
-class flattened_executor<cuda_executor>
+class flattened_executor<cuda::grid_executor>
 {
   public:
     using execution_category = parallel_execution_tag;
-    using base_executor_type = cuda_executor;
+    using base_executor_type = cuda::grid_executor;
 
     // XXX maybe use whichever of the first two elements of base_executor_type::shape_type has larger dimensionality?
     using shape_type = size_t;
@@ -667,7 +681,7 @@ class flattened_executor<cuda_executor>
     {
       auto partitioning = partition(shape);
 
-      auto execute_me = __flattened_cuda_executor_functor<Function>{f, shape, partitioning};
+      auto execute_me = cuda::__flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
       return base_executor().bulk_async(execute_me, partitioning);
     }
@@ -680,7 +694,7 @@ class flattened_executor<cuda_executor>
       auto shared_init = std::make_tuple(shared_arg, std::ignore);
       using shared_param_type = typename executor_traits<base_executor_type>::template shared_param_type<decltype(shared_init)>;
 
-      auto execute_me = __flattened_cuda_executor_functor<Function>{f, shape, partitioning};
+      auto execute_me = cuda::__flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
       return base_executor().bulk_async(execute_me, partitioning, shared_init);
     }
