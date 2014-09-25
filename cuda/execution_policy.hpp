@@ -3,7 +3,7 @@
 #include <execution_policy>
 #include <flattened_executor>
 #include <type_traits>
-#include "cuda_executor.hpp"
+#include "grid_executor.hpp"
 #include "bind.hpp"
 
 namespace std
@@ -13,9 +13,9 @@ namespace __cuda
 
 
 template<class T>
-struct has_cuda_executor
+struct has_cuda_grid_executor
   : std::is_same<
-      cuda_executor,
+      cuda::grid_executor,
       typename T::executor_type
     >
 {
@@ -27,14 +27,14 @@ struct is_cuda_execution_policy
   : std::integral_constant<
       bool,
       std::is_execution_policy<ExecutionPolicy>::value &&
-      has_cuda_executor<ExecutionPolicy>::value
+      has_cuda_grid_executor<ExecutionPolicy>::value
     >
 {};
 
 
 using execution_policy = __basic_execution_policy<
   parallel_agent,
-  flattened_executor<cuda_executor>
+  flattened_executor<cuda::grid_executor>
 >;
 
 
