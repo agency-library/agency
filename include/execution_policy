@@ -135,10 +135,7 @@ class __basic_execution_policy
     }
 
     template<class OtherBulkExecutor>
-    __basic_execution_policy<ExecutionAgent,OtherBulkExecutor,ExecutionCategory> on(const OtherBulkExecutor& executor) const
-    {
-      return __basic_execution_policy<ExecutionAgent,OtherBulkExecutor,ExecutionCategory>(param(), executor);
-    }
+    __basic_execution_policy<ExecutionAgent,OtherBulkExecutor,ExecutionCategory> on(const OtherBulkExecutor& executor) const;
 
   protected:
     param_type param_;
@@ -152,6 +149,29 @@ class __basic_execution_policy
 
 template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory>
 struct is_execution_policy<__basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory>> : std::true_type {};
+
+
+// XXX since we intend this function to use ADL on the type of the Executor, perhaps it should be the first parameter? 
+// XXX we might prefer this customization point to work differently, e.g. template specialization of some trait,
+//     e.g. execution_policy_traits<ExecutionPolicy>::template rebind_executor<Executor>
+//     the problem is that there's no simple way to specialize a template member
+template<class ExecutionPolicy, class Executor>
+__basic_execution_policy<typename ExecutionPolicy::execution_agent_type, Executor> change_executor(const ExecutionPolicy& exec, const Executor& executor)
+{
+  return __basic_execution_policy<typename ExecutionPolicy::execution_agent_type,Executor>(exec.param(), executor);
+}
+
+
+template<class ExecutionAgent,
+         class Executor,
+         class ExecutionCategory>
+  template<class OtherExecutor>
+__basic_execution_policy<ExecutionAgent,OtherExecutor,ExecutionCategory>
+  __basic_execution_policy<ExecutionAgent,Executor,ExecutionCategory>
+    ::on(const OtherExecutor& executor) const
+{
+  return change_executor(*this, executor);
+}
 
 
 // ExecutionCategory1 corresponds to the category of the executor
