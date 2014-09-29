@@ -95,12 +95,31 @@ typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::ty
 bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
 
 
+template<class ExecutionAgent,
+         class BulkExecutor,
+         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category>
+class __basic_execution_policy;
+
+
+// customization point -- allow users to specialize this
+// to change the type of execution policy based on the type of an executor
+template<class ExecutionPolicy, class Executor>
+struct rebind_executor
+{
+  using type = __basic_execution_policy<ExecutionPolicy,Executor>;
+};
+
+
+template<class ExecutionPolicy, class Executor>
+using rebind_executor_t = typename rebind_executor<ExecutionPolicy,Executor>::type;
+
+
 // XXX we should assert that ExecutionCategory is stronger than the category of ExecutionAgent
 // XXX another way to order these parameters would be
 // ExecutionCategory, Asyncable, ExecutionGroup = __default_execution_group<ExecutionCategory>
 template<class ExecutionAgent,
          class BulkExecutor,
-         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category>
+         class ExecutionCategory>
 class __basic_execution_policy
 {
   public:
@@ -134,8 +153,11 @@ class __basic_execution_policy
       return executor_;
     }
 
-    template<class OtherBulkExecutor>
-    __basic_execution_policy<ExecutionAgent,OtherBulkExecutor,ExecutionCategory> on(const OtherBulkExecutor& executor) const;
+    template<class OtherExecutor>
+    rebind_executor_t<__basic_execution_policy,OtherExecutor> on(const OtherExecutor& executor) const
+    {
+      return rebind_executor_t<__basic_execution_policy,OtherExecutor>(param(), executor);
+    }
 
   protected:
     param_type param_;
@@ -149,29 +171,6 @@ class __basic_execution_policy
 
 template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory>
 struct is_execution_policy<__basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory>> : std::true_type {};
-
-
-// XXX since we intend this function to use ADL on the type of the Executor, perhaps it should be the first parameter? 
-// XXX we might prefer this customization point to work differently, e.g. template specialization of some trait,
-//     e.g. execution_policy_traits<ExecutionPolicy>::template rebind_executor<Executor>
-//     the problem is that there's no simple way to specialize a template member
-template<class ExecutionPolicy, class Executor>
-__basic_execution_policy<typename ExecutionPolicy::execution_agent_type, Executor> change_executor(const ExecutionPolicy& exec, const Executor& executor)
-{
-  return __basic_execution_policy<typename ExecutionPolicy::execution_agent_type,Executor>(exec.param(), executor);
-}
-
-
-template<class ExecutionAgent,
-         class Executor,
-         class ExecutionCategory>
-  template<class OtherExecutor>
-__basic_execution_policy<ExecutionAgent,OtherExecutor,ExecutionCategory>
-  __basic_execution_policy<ExecutionAgent,Executor,ExecutionCategory>
-    ::on(const OtherExecutor& executor) const
-{
-  return change_executor(*this, executor);
-}
 
 
 // ExecutionCategory1 corresponds to the category of the executor
