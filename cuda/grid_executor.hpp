@@ -7,6 +7,7 @@
 #include <exception>
 #include <cstring>
 #include <type_traits>
+#include <cassert>
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
 #include <flattened_executor>
@@ -365,7 +366,6 @@ struct __function_with_shared_arguments
     // initialize the inner shared parameter
     if(agent.y == 0)
     {
-      printf("initializing inner parameter with %d\n", inner_shared_init_);
       inner_param = inner_shared_init_;
     }
     __syncthreads();
@@ -417,6 +417,7 @@ class grid_executor
     //     the value of each each element specifies the size of a node in the execution hierarchy
     //     the tuple_size<shape_type> must be the same as the nesting depth of execution_category
     //using shape_type = std::uint2;
+    // XXX for cuda, maybe this should be int2?
     using shape_type = uint2;
 
 
@@ -428,10 +429,6 @@ class grid_executor
 
     template<class Tuple>
     using shared_param_type = __thrust_tuple_of_references_t<Tuple>;
-
-
-    // XXX might want to introduce max_shape (cf. allocator::max_size)
-    //     CUDA would definitely take advantage of it
 
 
     __host__ __device__
@@ -460,6 +457,53 @@ class grid_executor
     gpu_id gpu() const
     {
       return gpu_;
+    }
+
+
+    template<class Function>
+    __host__ __device__
+    shape_type max_shape(Function) const
+    {
+      shape_type result = {0,0};
+
+      auto fun_ptr = global_function_pointer<Function>();
+      (void)fun_ptr;
+
+#if __cuda_lib_has_cudart
+      // record the current device
+      int current_device = 0;
+      __throw_on_error(cudaGetDevice(&current_device), "cuda::grid_executor::max_shape(): cudaGetDevice()");
+      if(current_device != gpu().native_handle())
+      {
+#  ifndef __CUDA_ARCH__
+        __throw_on_error(cudaSetDevice(gpu().native_handle()), "cuda::grid_executor::max_shape(): cudaSetDevice()");
+#  else
+        __throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
+#  endif // __CUDA_ARCH__
+      }
+
+      int max_block_dimension_x = 0;
+      __throw_on_error(cudaDeviceGetAttribute(&max_block_dimension_x, cudaDevAttrMaxBlockDimX, gpu().native_handle()),
+                       "cuda::grid_executor::max_shape(): cudaDeviceGetAttribute");
+
+      cudaFuncAttributes attr{};
+      __throw_on_error(cudaFuncGetAttributes(&attr, fun_ptr),
+                       "cuda::grid_executor::max_shape(): cudaFuncGetAttributes");
+
+      // restore current device
+      if(current_device != gpu().native_handle())
+      {
+#  ifndef __CUDA_ARCH__
+        __throw_on_error(cudaSetDevice(current_device), "cuda::grid_executor::max_shape(): cudaSetDevice()");
+#  else
+        __throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
+#  endif // __CUDA_ARCH__
+      }
+
+      result = shape_type{static_cast<unsigned int>(max_block_dimension_x), static_cast<unsigned int>(attr.maxThreadsPerBlock)};
+#endif // __cuda_lib_has_cudart
+
+      return result;
     }
 
 
@@ -671,29 +715,39 @@ class flattened_executor<cuda::grid_executor>
     // XXX initialize outer_subscription_ correctly
     __host__ __device__
     flattened_executor(const base_executor_type& base_executor = base_executor_type())
-      : min_inner_size_(256), // choose min_inner_size_ dynamically based on occupancy
-        outer_subscription_(2),
+      : outer_subscription_(2),
         base_executor_(base_executor)
     {}
 
-    template<class Function>
-    std::future<void> bulk_async(Function f, shape_type shape)
-    {
-      auto partitioning = partition(shape);
-
-      auto execute_me = cuda::__flattened_grid_executor_functor<Function>{f, shape, partitioning};
-
-      return base_executor().bulk_async(execute_me, partitioning);
-    }
+//    template<class Function>
+//    std::future<void> bulk_async(Function f, shape_type shape)
+//    {
+//      // create a dummy function for partitioning purposes
+//      auto dummy_function = cuda::__flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
+//
+//      // partition up the iteration space
+//      auto partitioning = partition(dummy_function, shape);
+//
+//      // create a function to execute
+//      auto execute_me = cuda::__flattened_grid_executor_functor<Function>{f, shape, partitioning};
+//
+//      return base_executor().bulk_async(execute_me, partitioning);
+//    }
 
     template<class Function, class T>
     std::future<void> bulk_async(Function f, shape_type shape, T shared_arg)
     {
-      auto partitioning = partition(shape);
+      // create a dummy function for partitioning purposes
+      auto dummy_function = cuda::__flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
 
+      // partition up the iteration space
+      auto partitioning = partition(dummy_function, shape);
+
+      // create a shared initializer
       auto shared_init = std::make_tuple(shared_arg, std::ignore);
       using shared_param_type = typename executor_traits<base_executor_type>::template shared_param_type<decltype(shared_init)>;
 
+      // create a function to execute
       auto execute_me = cuda::__flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
       return base_executor().bulk_async(execute_me, partitioning, shared_init);
@@ -716,18 +770,21 @@ class flattened_executor<cuda::grid_executor>
     using partition_type = typename executor_traits<base_executor_type>::shape_type;
 
     // returns (outer size, inner size)
+    template<class Function>
     __host__ __device__
-    partition_type partition(shape_type shape) const
+    partition_type partition(Function f, shape_type shape) const
     {
       using outer_shape_type = typename std::tuple_element<0,partition_type>::type;
       using inner_shape_type = typename std::tuple_element<1,partition_type>::type;
 
-      outer_shape_type outer_size = (shape + min_inner_size_ - 1) / min_inner_size_;
+      auto max_shape = base_executor().max_shape(f);
 
-      // XXX instead of using 16, estimate something for hardware_concurrency, like number of SMs
-      outer_size = thrust::min<size_t>(outer_subscription_ * 16, outer_size);
+      // make the inner groups as large as possible
+      inner_shape_type inner_size = get<1>(max_shape);
 
-      inner_shape_type inner_size = (shape + outer_size - 1) / outer_size;
+      outer_shape_type outer_size = (shape + inner_size - 1) / inner_size;
+
+      assert(outer_size <= get<0>(max_shape));
 
       return partition_type{outer_size, inner_size};
     }
