@@ -192,7 +192,7 @@ void __bulk_invoke(ExecutionCategory1,
 
   return executor_traits<BulkExecutor>::bulk_invoke(exec.executor(), [=](executor_index agent_idx, shared_param_type shared_params)
   {
-    traits::execute(agent_idx, param, f, shared_params);
+    traits::execute(f, agent_idx, param, shared_params);
   },
   shape,
   shared_init);
@@ -218,7 +218,7 @@ std::future<void> __bulk_async(ExecutionCategory1,
 
   return executor_traits<BulkExecutor>::bulk_async(exec.executor(), [=](executor_index agent_idx, shared_param_type shared_params)
   {
-    traits::execute(agent_idx, param, f, shared_params);
+    traits::execute(f, agent_idx, param, shared_params);
   },
   shape,
   shared_init);
