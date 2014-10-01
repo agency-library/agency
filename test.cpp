@@ -27,7 +27,7 @@ int main()
   auto f2 = std::bulk_async(seq(2, seq(1)), [&](std::sequential_group<std::sequential_agent> &self)
   {
     int i = self.index();
-    int j = self.child().index();
+    int j = self.inner().index();
 
     std::cout << i << " " << j << std::endl;
   });
@@ -37,8 +37,8 @@ int main()
   auto f3 = std::bulk_async(seq(3, seq(1, seq(4))), [&](std::sequential_group<std::sequential_group<std::sequential_agent>> &self)
   {
     int i = self.index();
-    int j = self.child().index();
-    int k = self.child().child().index();
+    int j = self.inner().index();
+    int k = self.inner().inner().index();
 
     std::cout << i << " " << j << " " << k << std::endl;
   });

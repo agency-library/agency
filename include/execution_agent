@@ -138,9 +138,9 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
   static typename enable_if<
     (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple>::value)
   >::type
-    execute(const Tuple& indices, const param_type& param, Function f)
+    execute(Function f, const Tuple& indices, const param_type& param)
   {
-    ExecutionAgent::execute(indices, param, f);
+    ExecutionAgent agent(f, indices, param);
   }
 
   private:
@@ -163,8 +163,6 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
       using type = decltype(test<ExecutionAgent1>(0));
     };
 
-    using has_make_shared_initializer = typename test_for_make_shared_initializer<execution_agent_type>::type;
-
     // XXX this should only be enabled for flat execution_agents
     //     nested agents should return a tuple of shared initializers
     template<class ExecutionAgent1>
@@ -184,6 +182,8 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
 
   public:
 
+  using has_make_shared_initializer = typename test_for_make_shared_initializer<execution_agent_type>::type;
+
   static auto make_shared_initializer(const param_type& param)
     -> decltype(
          make_shared_initializer<execution_agent_type>(param, has_make_shared_initializer())
@@ -198,37 +198,37 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
 
 
   private:
-    template<class Tuple1, class Function, class Tuple2>
+    template<class Function, class Tuple1, class Tuple2>
     static typename enable_if<
       (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple1>::value) &&
       (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple2>::value)
     >::type
-      execute(const Tuple1& indices, const param_type& param, Function f, Tuple2&, std::false_type)
+      execute_with_shared_params_impl(Function f, const Tuple1& indices, const param_type& param, Tuple2&, std::false_type)
     {
-      ExecutionAgent::execute(indices, param, f);
+      ExecutionAgent agent(f, indices, param);
     }
 
-    template<class Tuple1, class Function, class Tuple2>
+    template<class Function, class Tuple1, class Tuple2>
     static typename enable_if<
       (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple1>::value) &&
       (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple2>::value)
     >::type
-      execute(const Tuple1& indices, const param_type& param, Function f, Tuple2& shared_params, std::true_type)
+      execute_with_shared_params_impl(Function f, const Tuple1& indices, const param_type& param, Tuple2& shared_params, std::true_type)
     {
-      ExecutionAgent::execute(indices, param, f, shared_params);
+      ExecutionAgent agent(f, indices, param, shared_params);
     }
 
 
   public:
 
-  template<class Tuple1, class Function, class Tuple2>
+  template<class Function, class Tuple1, class Tuple2>
   static typename enable_if<
     (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple1>::value) &&
     (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple2>::value)
   >::type
-    execute(const Tuple1& indices, const param_type& param, Function f, Tuple2& shared_params)
+    execute(Function f, const Tuple1& indices, const param_type& param, Tuple2& shared_params)
   {
-    execute(indices, param, f, shared_params, has_make_shared_initializer());
+    execute_with_shared_params_impl(f, indices, param, shared_params, has_make_shared_initializer());
   }
 };
 
@@ -282,20 +282,16 @@ class __basic_execution_agent
         regular_grid<size_t> domain_;
     };
 
-    // XXX merge this into the constructor?
-    template<class Index, class Function>
-    static void execute(const Index& index, const param_type& param, Function f)
-    {
-      auto self = __basic_execution_agent(index, param);
-      f(self);
-    }
-
   protected:
-    template<class Index>
-    __basic_execution_agent(const Index& index, const param_type& param)
+    template<class Function, class Index>
+    __basic_execution_agent(Function f, const Index& index, const param_type& param)
       : index_(index),
         domain_(param.domain())
-    {}
+    {
+      f(*this);
+    }
+
+    friend struct execution_agent_traits<__basic_execution_agent>;
 
   private:
     size_t index_;
@@ -344,24 +340,73 @@ class concurrent_agent : public __basic_execution_agent<concurrent_execution_tag
       return shared_param_type(param);
     }
 
-    template<class Index, class Function>
-    static void execute(const Index& index, const param_type& param, Function f, shared_param_type& shared_param)
-    {
-      auto self = concurrent_agent(index, param, shared_param);
-
-      f(self);
-    }
-
   private:
     std::barrier &barrier_;
 
   protected:
-    template<class Index>
-    concurrent_agent(const Index& index, const param_type& param, shared_param_type& shared_param)
-      : super_t(index, param),
+    template<class Function, class Index>
+    concurrent_agent(Function f, const Index& index, const param_type& param, shared_param_type& shared_param)
+      : super_t([](super_t&){}, index, param),
         barrier_(shared_param.barrier_)
-    {}
+    {
+      f(*this);
+    }
+
+    // friend execution_agent_traits to give it access to the constructor
+    friend struct execution_agent_traits<concurrent_agent>;
 };
+
+
+// derive from ExecutionAgent to give access to its constructor
+template<class ExecutionAgent>
+struct __agent_access_helper : public ExecutionAgent
+{
+  template<class... Args>
+  __agent_access_helper(Args&&... args)
+    : ExecutionAgent(std::forward<Args>(args)...)
+  {}
+};
+
+
+// __make_agent helper function passes a noop functor to the agent's constructor and filters out shared parameters when necessary
+template<class ExecutionAgent, class Tuple>
+ExecutionAgent __make_agent(const Tuple& indices, const typename std::execution_agent_traits<ExecutionAgent>::param_type& param)
+{
+  auto noop = [](ExecutionAgent&){};
+  return __agent_access_helper<ExecutionAgent>(noop, indices, param);
+}
+
+// if an agent does not have a shared parameter, we ignore the last parameter
+template<class ExecutionAgent, class Tuple, class T>
+static ExecutionAgent __make_agent(const Tuple& indices, const typename std::execution_agent_traits<ExecutionAgent>::param_type& param, T&&,
+                                   typename std::enable_if<
+                                     !std::execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
+                                   >::type* = 0)
+{
+  return __make_agent<ExecutionAgent>(indices, param);
+}
+
+// tupled shared parameters are recieved by const reference
+template<class ExecutionAgent, class Tuple1, class Tuple2>
+static ExecutionAgent __make_agent(const Tuple1& indices, const typename std::execution_agent_traits<ExecutionAgent>::param_type& param, const Tuple2& shared_param_tuple,
+                                   typename std::enable_if<
+                                     std::execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
+                                   >::type* = 0)
+{
+  auto noop = [](ExecutionAgent&){};
+  return __agent_access_helper<ExecutionAgent>(noop, indices, param, shared_param_tuple);
+}
+
+// scalar shared parameters are received by mutable reference
+template<class ExecutionAgent, class Tuple, class T>
+static ExecutionAgent __make_agent(const Tuple& indices, const typename std::execution_agent_traits<ExecutionAgent>::param_type& param, T& shared_param,
+                                   typename std::enable_if<
+                                     std::execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
+                                   >::type* = 0)
+{
+  auto noop = [](ExecutionAgent&){};
+  return __agent_access_helper<ExecutionAgent>(noop, indices, param, shared_param);
+}
 
 
 
@@ -369,8 +414,6 @@ template<class OuterExecutionAgent, class InnerExecutionAgent>
 class __execution_group : public OuterExecutionAgent
 {
   private:
-    template<class> friend struct execution_agent_traits; 
-
     using outer_traits = execution_agent_traits<OuterExecutionAgent>;
     using inner_traits = execution_agent_traits<InnerExecutionAgent>;
 
@@ -388,7 +431,7 @@ class __execution_group : public OuterExecutionAgent
 
     using inner_execution_agent_type = InnerExecutionAgent;
 
-    inner_execution_agent_type& child()
+    inner_execution_agent_type& inner()
     {
       return inner_agent_;
     }
@@ -402,53 +445,6 @@ class __execution_group : public OuterExecutionAgent
       typename outer_traits::param_type,
       typename inner_traits::param_type
     >;
-
-    template<class Tuple, class Function>
-    static void execute(const Tuple& indices, const param_type& param, Function f)
-    {
-      outer_traits::execute(tuple_head(indices), std::get<0>(param), [=,&indices](outer_execution_agent_type& outer_agent)
-      {
-        auto tail_indices = tuple_tail(indices);
-
-        // if the inner agent isn't nested, we need to unwrap the tail tuple
-        auto& inner_indices = __unwrap_tuple_if_not_nested<inner_execution_category>(tail_indices);
-
-        inner_traits::execute(inner_indices, std::get<1>(param), [=,&outer_agent](inner_execution_agent_type& inner_agent)
-        {
-          auto self = __execution_group(std::move(outer_agent), inner_agent);
-
-          f(self);
-        });
-      });
-    }
-
-
-    template<class Tuple1, class Function, class Tuple2>
-    static void execute(const Tuple1& indices, const param_type& param, Function f, Tuple2& shared_param)
-    {
-      outer_traits::execute(tuple_head(indices), std::get<0>(param), [=,&indices,&shared_param](outer_execution_agent_type& outer_agent)
-      {
-        auto tail_indices = tuple_tail(indices);
-
-        // if the inner agent isn't nested, we need to unwrap the tail index tuple
-        auto& inner_indices = __unwrap_tuple_if_not_nested<inner_execution_category>(tail_indices);
-
-        auto shared_param_tail = tuple_tail(shared_param);
-
-        // if the inner agent isn't nested, we need to unwrap the tail shared param
-        auto& inner_shared_param = __unwrap_tuple_if_not_nested<inner_execution_category>(shared_param_tail);
-
-        inner_traits::execute(inner_indices, std::get<1>(param), [=,&outer_agent](inner_execution_agent_type& inner_agent)
-        {
-          auto self = __execution_group(std::move(outer_agent), inner_agent);
-
-          f(self);
-        },
-        inner_shared_param);
-      },
-      tuple_head(shared_param)
-      );
-    }
 
 
     // XXX move this into execution_agent_traits
@@ -500,10 +496,37 @@ class __execution_group : public OuterExecutionAgent
   protected:
     inner_execution_agent_type inner_agent_;
 
-    __execution_group(outer_execution_agent_type&& outer_agent, inner_execution_agent_type& inner_agent)
-      : outer_execution_agent_type(std::move(outer_agent)),
-        inner_agent_(inner_agent)
-    {}
+    template<class Function, class Tuple>
+    __execution_group(Function f, const Tuple& indices, const param_type& param)
+      : outer_execution_agent_type(__make_agent<outer_execution_agent_type>(tuple_head(indices), std::get<0>(param))),
+        inner_agent_(__make_agent<inner_execution_agent_type>(__unwrap_tuple_if_not_nested<inner_execution_category>(tuple_tail(indices)), std::get<1>(param)))
+    {
+      f(*this);
+    }
+
+
+    template<class Function, class Tuple1, class Tuple2>
+    __execution_group(Function f, const Tuple1& indices, const param_type& param, Tuple2& shared_param)
+      : outer_execution_agent_type(
+          __make_agent<outer_execution_agent_type>(
+            tuple_head(indices),
+            std::get<0>(param),
+            tuple_head(shared_param)
+          )
+        ),
+        inner_agent_(
+          __make_agent<inner_execution_agent_type>(
+            __unwrap_tuple_if_not_nested<inner_execution_category>(tuple_tail(indices)),
+            std::get<1>(param),
+            __unwrap_tuple_if_not_nested<inner_execution_category>(tuple_tail(shared_param))
+          )
+        )
+    {
+      f(*this);
+    }
+
+    // friend execution_agent_traits so it has access to the constructors
+    template<class> friend struct execution_agent_traits; 
 };
 
 
