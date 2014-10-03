@@ -74,3 +74,16 @@ class unique_cuda_ptr : public thrust::cuda::pointer<T>
     }
 };
 
+
+// XXX need to take parameters and call constructor
+template<class T>
+__host__ __device__
+unique_cuda_ptr<T> make_unique_cuda()
+{
+  unique_cuda_ptr<T> result(thrust::cuda::malloc<T>(1));
+
+  // XXX call constructor here
+
+  return std::move(result);
+}
+
