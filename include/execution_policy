@@ -106,7 +106,10 @@ class __basic_execution_policy;
 template<class ExecutionPolicy, class Executor>
 struct rebind_executor
 {
-  using type = __basic_execution_policy<ExecutionPolicy,Executor>;
+  using type = __basic_execution_policy<
+    typename ExecutionPolicy::execution_agent_type,
+    Executor
+  >;
 };
 
 
