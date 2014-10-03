@@ -20,6 +20,7 @@
 #include "terminate.hpp"
 #include "uninitialized.hpp"
 #include "detail/launch_kernel.hpp"
+#include "detail/workaround_unused_variable_warning.hpp"
 
 
 // give CUDA built-in vector types Tuple-like access
@@ -213,7 +214,7 @@ class grid_executor
       shape_type result = {0,0};
 
       auto fun_ptr = global_function_pointer<Function>();
-      (void)fun_ptr;
+      detail::workaround_unused_variable_warning(fun_ptr);
 
 #if __cuda_lib_has_cudart
       // record the current device
@@ -284,8 +285,7 @@ class grid_executor
       using inner_shared_type = decltype(inner_shared_arg);
 
       // allocate outer shared argument
-      // XXX need to pass outer_shared_arg
-      auto outer_shared_arg_ptr = cuda::make_unique<outer_shared_type>();
+      auto outer_shared_arg_ptr = cuda::make_unique<outer_shared_type>(stream(), outer_shared_arg);
 
       // copy construct the outer shared arg
       // XXX do this asynchronously
@@ -330,8 +330,7 @@ class grid_executor
       using inner_shared_type = decltype(inner_shared_arg);
 
       // allocate outer shared argument
-      // XXX need to pass outer_shared_arg
-      auto outer_shared_arg_ptr = cuda::make_unique<outer_shared_type>();
+      auto outer_shared_arg_ptr = cuda::make_unique<outer_shared_type>(stream(), outer_shared_arg);
 
       // copy construct the outer shared arg
       // XXX don't do this if outer_shared_type is std::ignore

@@ -2,6 +2,7 @@
 
 #include "../feature_test.hpp"
 #include "../terminate.hpp"
+#include "workaround_unused_variable_warning.hpp"
 
 namespace cuda
 {
@@ -40,7 +41,7 @@ __host__ __device__
 cudaError_t triple_chevrons(void* kernel, uint2 shape, int shared_memory_size, cudaStream_t stream, const Args&... args)
 {
   // reference the kernel to encourage the compiler not to optimize it away
-  (void)kernel;
+  workaround_unused_variable_warning(kernel);
 
 #if __cuda_lib_has_cudart
 #  ifndef __CUDA_ARCH__
@@ -76,7 +77,7 @@ cudaError_t launch_kernel(void* kernel, uint2 shape, int shared_memory_size, cud
     static cudaError_t supported_path(void* kernel, uint2 shape, int shared_memory_size, cudaStream_t stream, const Args&... args)
     {
       // reference the kernel to encourage the compiler not to optimize it away
-      (void)kernel;
+      workaround_unused_variable_warning(kernel);
 
       return triple_chevrons(kernel, shape, shared_memory_size, stream, args...);
     }
@@ -85,7 +86,7 @@ cudaError_t launch_kernel(void* kernel, uint2 shape, int shared_memory_size, cud
     static cudaError_t unsupported_path(void* kernel, uint2, int, cudaStream_t, const Args&...)
     {
       // reference the kernel to encourage the compiler not to optimize it away
-      (void)kernel;
+      workaround_unused_variable_warning(kernel);
 
       return cudaErrorNotSupported;
     }
