@@ -335,6 +335,10 @@ class concurrent_agent : public __basic_execution_agent<concurrent_execution_tag
       std::barrier barrier_;
     };
 
+    // XXX seems like we either need shared_param_type or make_shared_initializer()
+    //     but not both
+    //     if execution_agent_traits checks for the existence of shared_param_type,
+    //     can't it just call its constructor?
     static shared_param_type make_shared_initializer(const param_type& param)
     {
       return shared_param_type(param);
