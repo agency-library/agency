@@ -630,20 +630,20 @@ class flattened_executor<cuda::grid_executor>
         base_executor_(base_executor)
     {}
 
-//    template<class Function>
-//    std::future<void> bulk_async(Function f, shape_type shape)
-//    {
-//      // create a dummy function for partitioning purposes
-//      auto dummy_function = cuda::__flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
-//
-//      // partition up the iteration space
-//      auto partitioning = partition(dummy_function, shape);
-//
-//      // create a function to execute
-//      auto execute_me = cuda::__flattened_grid_executor_functor<Function>{f, shape, partitioning};
-//
-//      return base_executor().bulk_async(execute_me, partitioning);
-//    }
+    template<class Function>
+    std::future<void> bulk_async(Function f, shape_type shape)
+    {
+      // create a dummy function for partitioning purposes
+      auto dummy_function = cuda::__flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
+
+      // partition up the iteration space
+      auto partitioning = partition(dummy_function, shape);
+
+      // create a function to execute
+      auto execute_me = cuda::__flattened_grid_executor_functor<Function>{f, shape, partitioning};
+
+      return base_executor().bulk_async(execute_me, partitioning);
+    }
 
     template<class Function, class T>
     std::future<void> bulk_async(Function f, shape_type shape, T shared_arg)
