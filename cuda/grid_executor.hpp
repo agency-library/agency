@@ -400,15 +400,19 @@ void bulk_invoke(grid_executor& ex, typename grid_executor::shape_type shape, Fu
 }
 
 
+namespace detail
+{
+
+
 template<class Function>
-struct __flattened_grid_executor_functor
+struct flattened_grid_executor_functor
 {
   Function f_;
   std::size_t shape_;
   cuda::grid_executor::shape_type partitioning_;
 
   __host__ __device__
-  __flattened_grid_executor_functor(const Function& f, std::size_t shape, cuda::grid_executor::shape_type partitioning)
+  flattened_grid_executor_functor(const Function& f, std::size_t shape, cuda::grid_executor::shape_type partitioning)
     : f_(f),
       shape_(shape),
       partitioning_(partitioning)
@@ -439,6 +443,7 @@ struct __flattened_grid_executor_functor
 };
 
 
+} // end detail
 } // end cuda
 
 
@@ -469,13 +474,13 @@ class flattened_executor<cuda::grid_executor>
     std::future<void> bulk_async(Function f, shape_type shape)
     {
       // create a dummy function for partitioning purposes
-      auto dummy_function = cuda::__flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
+      auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
 
       // partition up the iteration space
       auto partitioning = partition(dummy_function, shape);
 
       // create a function to execute
-      auto execute_me = cuda::__flattened_grid_executor_functor<Function>{f, shape, partitioning};
+      auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
       return base_executor().bulk_async(execute_me, partitioning);
     }
@@ -484,7 +489,7 @@ class flattened_executor<cuda::grid_executor>
     std::future<void> bulk_async(Function f, shape_type shape, T shared_arg)
     {
       // create a dummy function for partitioning purposes
-      auto dummy_function = cuda::__flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
+      auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
 
       // partition up the iteration space
       auto partitioning = partition(dummy_function, shape);
@@ -494,7 +499,7 @@ class flattened_executor<cuda::grid_executor>
       using shared_param_type = typename executor_traits<base_executor_type>::template shared_param_type<decltype(shared_init)>;
 
       // create a function to execute
-      auto execute_me = cuda::__flattened_grid_executor_functor<Function>{f, shape, partitioning};
+      auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
       return base_executor().bulk_async(execute_me, partitioning, shared_init);
     }
