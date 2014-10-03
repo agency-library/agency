@@ -14,6 +14,7 @@
 #include <thrust/detail/minmax.h>
 #include "thrust_tuple_cpp11.hpp"
 #include "feature_test.hpp"
+#include "gpu.hpp"
 #include "bind.hpp"
 #include "unique_cuda_ptr.hpp"
 #include "terminate.hpp"
@@ -22,25 +23,6 @@
 
 namespace cuda
 {
-
-
-inline __host__ __device__
-void __throw_on_error(cudaError_t e, const char* message)
-{
-  if(e)
-  {
-#ifndef __CUDA_ARCH__
-    throw thrust::system_error(e, thrust::cuda_category(), message);
-#else
-#  if (__cuda_lib_has_printf && __cuda_lib_has_cudart)
-    printf("Error after %s: %s\n", message, cudaGetErrorString(e));
-#  elif __cuda_lib_has_printf
-    printf("Error: %s\n", message);
-#  endif
-    __terminate();
-#endif
-  }
-}
 
 
 inline void __cuda_setup_arguments(size_t){}
@@ -222,86 +204,6 @@ void __notify(cudaStream_t stream, cudaError_t status, void* data)
 }
 
 
-class gpu_id
-{
-  public:
-    typedef int native_handle_type;
-
-    __host__ __device__
-    gpu_id(native_handle_type handle)
-      : handle_(handle)
-    {}
-
-    // default constructor creates a gpu_id which represents no gpu
-    __host__ __device__
-    gpu_id()
-      : gpu_id(-1)
-    {}
-
-    // XXX std::this_thread::native_handle() is not const -- why?
-    __host__ __device__
-    native_handle_type native_handle() const
-    {
-      return handle_;
-    }
-
-    __host__ __device__
-    friend inline bool operator==(gpu_id lhs, const gpu_id& rhs)
-    {
-      return lhs.handle_ == rhs.handle_;
-    }
-
-    __host__ __device__
-    friend inline bool operator!=(gpu_id lhs, gpu_id rhs)
-    {
-      return lhs.handle_ != rhs.handle_;
-    }
-
-    __host__ __device__
-    friend inline bool operator<(gpu_id lhs, gpu_id rhs)
-    {
-      return lhs.handle_ < rhs.handle_;
-    }
-
-    __host__ __device__
-    friend inline bool operator<=(gpu_id lhs, gpu_id rhs)
-    {
-      return lhs.handle_ <= rhs.handle_;
-    }
-
-    __host__ __device__
-    friend inline bool operator>(gpu_id lhs, gpu_id rhs)
-    {
-      return lhs.handle_ > rhs.handle_;
-    }
-
-    __host__ __device__
-    friend inline bool operator>=(gpu_id lhs, gpu_id rhs)
-    {
-      return lhs.handle_ >= rhs.handle_;
-    }
-
-    friend std::ostream& operator<<(std::ostream &os, const gpu_id& id)
-    {
-      return os << id.native_handle();
-    }
-
-  private:
-    native_handle_type handle_;
-};
-
-
-__host__ __device__
-gpu_id __this_gpu()
-{
-  int result = -1;
-
-#if __cuda_lib_has_cudart
-  __throw_on_error(cudaGetDevice(&result), "__this_gpu(): cudaGetDevice()");
-#endif
-
-  return gpu_id(result);
-}
 
 
 } // end cuda
@@ -442,7 +344,7 @@ class grid_executor
 
 
     __host__ __device__
-    explicit grid_executor(int shared_memory_size = 0, cudaStream_t stream = 0, gpu_id gpu = __this_gpu())
+    explicit grid_executor(int shared_memory_size = 0, cudaStream_t stream = 0, gpu_id gpu = detail::current_gpu())
       : shared_memory_size_(shared_memory_size),
         stream_(stream),
         gpu_(gpu)

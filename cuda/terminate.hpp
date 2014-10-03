@@ -37,3 +37,24 @@ inline void __terminate_on_error(cudaError_t e, const char* message)
   }
 }
 
+
+inline __host__ __device__
+void __throw_on_error(cudaError_t e, const char* message)
+{
+  if(e)
+  {
+#ifndef __CUDA_ARCH__
+    throw thrust::system_error(e, thrust::cuda_category(), message);
+#else
+#  if (__cuda_lib_has_printf && __cuda_lib_has_cudart)
+    printf("Error after %s: %s\n", message, cudaGetErrorString(e));
+#  elif __cuda_lib_has_printf
+    printf("Error: %s\n", message);
+#  endif
+    __terminate();
+#endif
+  }
+}
+
+
+
