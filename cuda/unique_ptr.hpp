@@ -6,7 +6,14 @@
 #include <type_traits>
 #include "terminate.hpp"
 
-struct __destroy_functor
+
+namespace cuda
+{
+namespace detail
+{
+
+
+struct destroy_functor
 {
   template<class T>
   __host__ __device__
@@ -17,8 +24,12 @@ struct __destroy_functor
 };
 
 
+}
+
+
+// XXX probably shouldn't inherit from thrust::cuda::pointer<T>
 template<class T>
-class unique_cuda_ptr : public thrust::cuda::pointer<T>
+class unique_ptr : public thrust::cuda::pointer<T>
 {
   private:
     using super_t = thrust::cuda::pointer<T>;
@@ -27,12 +38,12 @@ class unique_cuda_ptr : public thrust::cuda::pointer<T>
     using element_type = std::decay_t<T>;
 
     __host__ __device__
-    explicit unique_cuda_ptr(thrust::cuda::pointer<T> ptr)
+    explicit unique_ptr(thrust::cuda::pointer<T> ptr)
       : super_t(ptr)
     {}
   
     __host__ __device__
-    unique_cuda_ptr(unique_cuda_ptr&& other)
+    unique_ptr(unique_ptr&& other)
       : super_t()
     {
       thrust::swap(static_cast<super_t&>(*this),
@@ -40,14 +51,14 @@ class unique_cuda_ptr : public thrust::cuda::pointer<T>
     }
   
     __host__ __device__
-    ~unique_cuda_ptr()
+    ~unique_ptr()
     {
 #if __cuda_lib_has_cudart
       if(this->get())
       {
         // call T's destructor
         // XXX we should do this with bulk_invoke
-        thrust::for_each(thrust::cuda::par, this->get(), this->get() + 1, __destroy_functor());
+        thrust::for_each(thrust::cuda::par, this->get(), this->get() + 1, detail::destroy_functor());
 
         // deallocate
         thrust::cuda::free(*static_cast<super_t*>(this));
@@ -58,7 +69,7 @@ class unique_cuda_ptr : public thrust::cuda::pointer<T>
     }
 
     __host__ __device__
-    unique_cuda_ptr& operator=(unique_cuda_ptr&& other)
+    unique_ptr& operator=(unique_ptr&& other)
     {
       thrust::swap(static_cast<super_t&>(*this),
                    static_cast<super_t&>(other));
@@ -78,12 +89,15 @@ class unique_cuda_ptr : public thrust::cuda::pointer<T>
 // XXX need to take parameters and call constructor
 template<class T>
 __host__ __device__
-unique_cuda_ptr<T> make_unique_cuda()
+unique_ptr<T> make_unique()
 {
-  unique_cuda_ptr<T> result(thrust::cuda::malloc<T>(1));
+  unique_ptr<T> result(thrust::cuda::malloc<T>(1));
 
   // XXX call constructor here
 
   return std::move(result);
 }
+
+
+} // end cuda
 

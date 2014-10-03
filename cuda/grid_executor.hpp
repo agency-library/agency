@@ -16,7 +16,7 @@
 #include "feature_test.hpp"
 #include "gpu.hpp"
 #include "bind.hpp"
-#include "unique_cuda_ptr.hpp"
+#include "unique_ptr.hpp"
 #include "terminate.hpp"
 #include "uninitialized.hpp"
 #include "detail/launch_kernel.hpp"
@@ -285,7 +285,7 @@ class grid_executor
 
       // allocate outer shared argument
       // XXX need to pass outer_shared_arg
-      auto outer_shared_arg_ptr = make_unique_cuda<outer_shared_type>();
+      auto outer_shared_arg_ptr = cuda::make_unique<outer_shared_type>();
 
       // copy construct the outer shared arg
       // XXX do this asynchronously
@@ -331,7 +331,7 @@ class grid_executor
 
       // allocate outer shared argument
       // XXX need to pass outer_shared_arg
-      auto outer_shared_arg_ptr = make_unique_cuda<outer_shared_type>();
+      auto outer_shared_arg_ptr = cuda::make_unique<outer_shared_type>();
 
       // copy construct the outer shared arg
       // XXX don't do this if outer_shared_type is std::ignore
