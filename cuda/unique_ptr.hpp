@@ -27,27 +27,22 @@ struct destroy_functor
 }
 
 
-// XXX probably shouldn't inherit from thrust::cuda::pointer<T>
 template<class T>
-class unique_ptr : public thrust::cuda::pointer<T>
+class unique_ptr
 {
-  private:
-    using super_t = thrust::cuda::pointer<T>;
-
   public:
     using element_type = std::decay_t<T>;
 
     __host__ __device__
     explicit unique_ptr(thrust::cuda::pointer<T> ptr)
-      : super_t(ptr)
+      : ptr_(ptr)
     {}
   
     __host__ __device__
     unique_ptr(unique_ptr&& other)
-      : super_t()
+      : ptr_()
     {
-      thrust::swap(static_cast<super_t&>(*this),
-                   static_cast<super_t&>(other));
+      thrust::swap(ptr_, other.ptr_);
     }
   
     __host__ __device__
@@ -61,7 +56,7 @@ class unique_ptr : public thrust::cuda::pointer<T>
         thrust::for_each(thrust::cuda::par, this->get(), this->get() + 1, detail::destroy_functor());
 
         // deallocate
-        thrust::cuda::free(*static_cast<super_t*>(this));
+        thrust::cuda::free(ptr_);
       }
 #else
       __terminate_with_message("outer_shared_ptr dtor: thrust::cuda::free requires CUDART");
@@ -71,18 +66,26 @@ class unique_ptr : public thrust::cuda::pointer<T>
     __host__ __device__
     unique_ptr& operator=(unique_ptr&& other)
     {
-      thrust::swap(static_cast<super_t&>(*this),
-                   static_cast<super_t&>(other));
+      thrust::swap(ptr_, other.ptr_);
       return *this;
+    }
+
+    __host__ __device__
+    element_type* get() const
+    {
+      return ptr_.get();
     }
 
     __host__ __device__
     element_type* release()
     {
-      element_type* result = super_t::get();
-      *static_cast<super_t*>(this) = super_t{};
-      return result;
+      thrust::cuda::pointer<element_type> result;
+      thrust::swap(ptr_, result);
+      return result.get();
     }
+
+  private:
+    thrust::cuda::pointer<T> ptr_;
 };
 
 
