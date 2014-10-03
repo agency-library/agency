@@ -17,6 +17,7 @@
 #include "bind.hpp"
 #include "unique_cuda_ptr.hpp"
 #include "terminate.hpp"
+#include "uninitialized.hpp"
 
 
 namespace cuda
@@ -361,18 +362,27 @@ struct __function_with_shared_arguments
   __device__
   void operator()(Agent& agent)
   {
-    __shared__ InnerSharedType inner_param;
+    // XXX can't rely on a default constructor
+    __shared__ cuda::uninitialized<InnerSharedType> inner_param;
 
     // initialize the inner shared parameter
     if(agent.y == 0)
     {
-      inner_param = inner_shared_init_;
+      inner_param.construct(inner_shared_init_);
     }
     __syncthreads();
 
     thrust::tuple<OuterSharedType&,InnerSharedType&> shared_params(*outer_ptr_, inner_param);
 
     f_(agent, shared_params);
+
+    __syncthreads();
+
+    // destroy the inner shared parameter
+    if(agent.y == 0)
+    {
+      inner_param.destroy();
+    }
   }
 
   Function         f_;
@@ -644,7 +654,6 @@ class grid_executor
 };
 
 
-// XXX could probably make this __host__ __device__
 template<class Function, class... Args>
 __host__ __device__
 void bulk_invoke(grid_executor& ex, typename grid_executor::shape_type shape, Function&& f, Args&&... args)

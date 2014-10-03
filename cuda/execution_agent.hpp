@@ -172,6 +172,73 @@ class basic_execution_agent : public basic_execution_agent_base<ExecutionCategor
 using parallel_agent = detail::basic_execution_agent<std::parallel_execution_tag>;
 
 
+class concurrent_agent : public detail::basic_execution_agent<std::concurrent_execution_tag>
+{
+  private:
+    using super_t = detail::basic_execution_agent<std::concurrent_execution_tag>;
+
+  public:
+    __host__ __device__
+    void wait() const
+    {
+      #ifndef __CUDA_ARCH__
+//        barrier_.count_down_and_wait();
+      #else
+        __syncthreads();
+      #endif
+    }
+
+    struct shared_param_type
+    {
+      __host__ __device__
+      shared_param_type(const typename super_t::param_type& param)
+ //       : count_(param.domain().size()),
+ //         barrier_(count_)
+        : count_(param.domain().size())
+      {}
+
+      __host__ __device__
+      shared_param_type(const shared_param_type& other)
+//        : count_(other.count_),
+//          barrier_(count_)
+        : count_(other.count_)
+      {}
+
+      int count_;
+//      std::barrier barrier_;
+    };
+
+    __host__ __device__
+    static shared_param_type make_shared_initializer(const param_type& param)
+    {
+      return shared_param_type(param);
+    }
+
+  private:
+//    std::barrier &barrier_;
+//
+
+    struct noop
+    {
+      __host__ __device__ void operator()(super_t&){}
+    };
+
+  protected:
+    template<class Function, class Index>
+    __host__ __device__
+    concurrent_agent(Function f, const Index& index, const param_type& param, shared_param_type& shared_param)
+//      : super_t(noop(), index, param),
+//        barrier_(shared_param.barrier_)
+      : super_t(noop(), index, param)
+    {
+      f(*this);
+    }
+
+    // friend std::execution_agent_traits to give it access to the constructor
+    friend struct std::execution_agent_traits<concurrent_agent>;
+};
+
+
 } // end cuda
 
 
@@ -192,6 +259,31 @@ struct execution_agent_traits<cuda::parallel_agent>
     execute(Function f, const Tuple& indices, const param_type& param)
   {
     cuda::parallel_agent agent(f, indices, param);
+  }
+};
+
+
+template<>
+struct execution_agent_traits<cuda::concurrent_agent>
+  : std::execution_agent_traits<cuda::detail::basic_execution_agent_base<std::concurrent_execution_tag>>
+{
+  template<class Function, class Tuple1, class Tuple2>
+  __host__ __device__
+  static typename enable_if<
+    (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple1>::value) &&
+    (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple2>::value)
+  >::type
+    execute(Function f, const Tuple1& indices, const param_type& param, Tuple2& shared_params)
+  {
+    cuda::concurrent_agent agent(f, indices, param, shared_params);
+  }
+
+  using has_make_shared_initializer = std::true_type;
+
+  __host__ __device__
+  static cuda::concurrent_agent::shared_param_type make_shared_initializer(const cuda::concurrent_agent::param_type& param)
+  {
+    return cuda::concurrent_agent::make_shared_initializer(param);
   }
 };
 
