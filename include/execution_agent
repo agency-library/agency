@@ -239,12 +239,16 @@ class __basic_execution_agent
   public:
     using execution_category = ExecutionCategory;
 
-    size_t index() const
+    using index_type = size_t;
+
+    index_type index() const
     {
       return index_;
     }
 
-    const regular_grid<size_t>& domain() const
+    using domain_type = regular_grid<index_type>;
+
+    const domain_type& domain() const
     {
       return domain_;
     }
@@ -265,26 +269,26 @@ class __basic_execution_agent
           : domain_(other.domain_)
         {}
 
-        param_type(const regular_grid<size_t>& d)
+        param_type(const domain_type& d)
           : domain_(d)
         {}
 
         param_type(size_t min, size_t max)
-          : param_type(regular_grid<size_t>(min,max))
+          : param_type(domain_type(min,max))
         {}
 
-        const regular_grid<size_t>& domain() const
+        const domain_type& domain() const
         {
           return domain_;
         }
 
       private:
-        regular_grid<size_t> domain_;
+        domain_type domain_;
     };
 
   protected:
-    template<class Function, class Index>
-    __basic_execution_agent(Function f, const Index& index, const param_type& param)
+    template<class Function>
+    __basic_execution_agent(Function f, const index_type& index, const param_type& param)
       : index_(index),
         domain_(param.domain())
     {
@@ -294,8 +298,8 @@ class __basic_execution_agent
     friend struct execution_agent_traits<__basic_execution_agent>;
 
   private:
-    size_t index_;
-    regular_grid<size_t> domain_;
+    index_type index_;
+    domain_type domain_;
 };
 
 
