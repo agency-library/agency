@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <__small_vector_facade>
 #include <array>
+#include <__tuple_utility>
 
 namespace std
 {
@@ -52,6 +53,13 @@ struct tuple_element<I,point<T,Rank>>
 {
   static_assert(I < Rank, "I must be less than Rank.");
   using type = T;
+};
+
+
+template<class T, size_t N>
+struct tuple_size<point<T,N>>
+{
+  static const size_t value = N;
 };
 
 
@@ -103,102 +111,6 @@ using double9  = point<double,9>;
 using double10 = point<double,10>;
 
 
-// T is any type with operators +, +=, -, -=, *, *=,  /, /=, <
-template<class T>
-class __axis_aligned_box
-  : public __small_vector_adaptor<__axis_aligned_box<T>,std::array<T,2>,T,2>
-{
-  using super_t = __small_vector_adaptor<__axis_aligned_box<T>,std::array<T,2>,T,2>;
-
-  public:
-    using point_type = T;
-
-    using super_t::super_t;
-
-    const point_type& min() const
-    {
-      return (*this)[0];
-    }
-
-    const point_type& max() const
-    {
-      return (*this)[1];
-    }
-
-    void min(const point_type& p)
-    {
-      (*this)[0] = p;
-    }
-
-    void max(const point_type& p)
-    {
-      (*this)[1] = p;
-    }
-
-    point_type shape() const
-    {
-      return max() - min();
-    }
-
-    bool empty() const
-    {
-      return min() == max();
-    }
-
-    bool contains(const point_type& x) const
-    {
-      return contains(x, is_arithmetic<T>());
-    }
-
-  private:
-    // T is point-like case
-    bool contains(const point_type& x, std::false_type) const
-    {
-      bool result = true;
-
-      for(size_t dim = 0; dim != super_t::rank; ++dim)
-      {
-        result = result && min()[dim] <= x[dim];
-        result = result && x[dim] < max()[dim];
-      }
-
-      return result;
-    }
-
-    // T is scalar case
-    bool contains(const point_type& x, std::true_type) const
-    {
-      return min() <= x && x < max();
-    }
-};
-
-
-template<class T1, class T2>
-struct common_type<__axis_aligned_box<T1>,__axis_aligned_box<T2>>
-{
-  using type = __axis_aligned_box<common_type_t<T1,T2>>;
-};
-
-
-template<class Arithmetic, class = typename enable_if<is_arithmetic<Arithmetic>::value>::type>
-Arithmetic __product(Arithmetic n)
-{
-  return n;
-}
-
-
-template<class Range>
-typename Range::value_type __product(const Range& rng, typename Range::value_type init = typename Range::value_type{1})
-{
-  for(auto x : rng)
-  {
-    init *= x;
-  }
-
-  return init;
-}
-
-
 template<typename T, typename Enable = void>
 struct __rank
 {
@@ -216,6 +128,74 @@ struct __rank<T, typename enable_if<is_arithmetic<T>::value>::type>
 template<class T> class __grid_iterator;
 
 
+template<typename Array, typename T>
+struct __rebind_array;
+
+template<template<typename,size_t> class array_template, size_t N, typename OldT, typename NewT>
+struct __rebind_array<array_template<OldT,N>, NewT>
+{
+  using type = array_template<NewT,N>;
+};
+
+
+template<typename Array, typename T>
+using __rebind_array_t = typename __rebind_array<Array,T>::type;
+
+// there are two overloads for __shape_size()
+template<typename Shape>
+size_t __shape_size(const Shape& s,
+                    typename std::enable_if<
+                      std::is_integral<Shape>::value,
+                      size_t
+                    >::type* = 0);
+
+template<typename Shape>
+size_t __shape_size(const Shape& s,
+                    typename std::enable_if<
+                      std::is_integral<Shape>::value,
+                      size_t
+                    >::type* = 0);
+
+
+// scalar case
+template<typename Shape>
+size_t __shape_size(const Shape& s,
+                    typename std::enable_if<
+                      std::is_integral<Shape>::value,
+                      size_t
+                    >::type* = 0)
+{
+  return static_cast<size_t>(s);
+}
+
+struct __shape_size_functor
+{
+  template<typename T>
+  size_t operator()(const T& x)
+  {
+    return __shape_size(x);
+  }
+};
+
+// tuple case
+template<typename Shape>
+size_t __shape_size(const Shape& s,
+                    typename std::enable_if<
+                      !std::is_integral<Shape>::value,
+                      size_t
+                    >::type* = 0)
+{
+  // transform s into a tuple of sizes
+  auto tuple_of_sizes = __tu::tuple_map(__shape_size_functor{}, s);
+
+  // reduce the sizes
+  return __tu::tuple_reduce(tuple_of_sizes, size_t{1}, [](size_t x, size_t y)
+  {
+    return x * y;
+  });
+}
+
+
 // this class is a lattice, the points of which take on values which are unit-spaced
 // could call this class unit_grid instead, or just lattice, or just grid
 // but a more general grid type might have arbitrary spacing
@@ -229,20 +209,35 @@ class regular_grid
     constexpr static size_t rank = __rank<T>::value;
     using size_type              = size_t;
 
-    // check if T is scalar or point-like
-    // if T is scalar, index_type is just size_t
-    // else, index_type is a point with size_t coordinates
-    using index_type = typename std::conditional<
-      is_arithmetic<T>::value,
-      size_t,
-      point<size_t,rank>
-    >::type;
-
     using value_type             = T;
     using reference              = value_type;
     using const_reference        = reference;
     using const_iterator         = __grid_iterator<T>;
     using iterator               = const_iterator;
+
+    // returns the value of the smallest lattice point
+    value_type min() const
+    {
+      return min_;
+    }
+
+    // returns the value of the one-past-the-last lattice point
+    value_type max() const
+    {
+      return max_;
+    }
+
+    // returns the number of lattice points along each of this regular_grid's dimensions
+    // chose the name shape instead of extent to jibe with e.g. numpy.ndarray.shape
+    auto shape() const
+      -> decltype(
+           this->max() - this->min()
+         )
+    {
+      return max() - min();
+    }
+
+    using index_type = decltype(std::declval<regular_grid>().shape());
 
     // XXX should create a grid empty of points
     regular_grid() = default;
@@ -255,7 +250,7 @@ class regular_grid
     // XXX should probably make this (min, shape) instead
     //     otherwise we'd have to require that min[i] <= max[i]
     regular_grid(const value_type& min, const value_type& max)
-      : box_(min, max)
+      : min_(min), max_(max)
     {}
 
     template<class... Size,
@@ -274,35 +269,16 @@ class regular_grid
       : regular_grid(index_type{}, dimensions)
     {}
 
-    // returns the value of the smallest lattice point
-    value_type min() const
-    {
-      return box_.min();
-    }
-
-    // returns the value of the one-past-the-last lattice point
-    value_type max() const
-    {
-      return box_.max();
-    }
-
-    // returns the number of lattice points along each of this regular_grid's dimensions
-    // chose the name shape instead of extent to jibe with e.g. numpy.ndarray.shape
-    index_type shape() const
-    {
-      return box_.shape();
-    }
-
     // returns whether or not p is the value of a lattice point
     bool contains(const value_type& p) const
     {
-      return box_.contains(p);
+      return contains(p, is_arithmetic<value_type>());
     }
 
     // returns the number of lattice points
     size_type size() const
     {
-      return __product(shape());
+      return __shape_size(shape());
     }
 
     bool empty() const
@@ -331,7 +307,7 @@ class regular_grid
     // reshape does not move the origin
     void reshape(const index_type& dimensions)
     {
-      box_.max(box_.min() + dimensions);
+      max_ = min() + dimensions;
     }
 
     // reshape does not move the origin
@@ -359,7 +335,27 @@ class regular_grid
     }
 
   private:
-    __axis_aligned_box<value_type> box_;
+    // T is point-like case
+    bool contains(const value_type& x, std::false_type) const
+    {
+      bool result = true;
+
+      for(size_t dim = 0; dim != rank; ++dim)
+      {
+        result = result && min()[dim] <= x[dim];
+        result = result && x[dim] < max()[dim];
+      }
+
+      return result;
+    }
+
+    // T is scalar case
+    bool contains(const value_type& x, std::true_type) const
+    {
+      return min() <= x && x < max();
+    }
+
+    value_type min_, max_;
 };
 
 
@@ -499,6 +495,7 @@ class __grid_iterator
 
       for(int i = rank; i-- > 0;)
       {
+        increment(current_[i]);
         ++current_[i];
 
         if(min[i] <= current_[i] && current_[i] < max[i])
