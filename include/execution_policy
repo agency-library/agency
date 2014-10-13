@@ -165,7 +165,7 @@ void __bulk_invoke(ExecutionCategory1,
   using traits = std::execution_agent_traits<ExecutionAgent>;
 
   auto param = exec.param();
-  auto shape = traits::shape(param);
+  auto shape = traits::domain(param).shape();
   auto shared_init = traits::make_shared_initializer(param);
 
   using executor_index = typename executor_traits<BulkExecutor>::index_type;
@@ -191,7 +191,7 @@ std::future<void> __bulk_async(ExecutionCategory1,
   using traits = std::execution_agent_traits<ExecutionAgent>;
 
   auto param = exec.param();
-  auto shape = traits::shape(param);
+  auto shape = traits::domain(param).shape();
   auto shared_init = traits::make_shared_initializer(param);
 
   using executor_index = typename executor_traits<BulkExecutor>::index_type;
