@@ -112,14 +112,11 @@ using double10 = point<double,10>;
 
 
 template<typename T, typename Enable = void>
-struct __rank
-{
-  constexpr static size_t value = T::rank;
-};
+struct __index_size : std::tuple_size<T> {};
 
 
 template<typename T>
-struct __rank<T, typename enable_if<is_arithmetic<T>::value>::type>
+struct __index_size<T, typename enable_if<is_integral<T>::value>::type>
 {
   constexpr static size_t value = 1;
 };
@@ -205,8 +202,9 @@ template<class T>
 class regular_grid
 {
   public:
-    // XXX should rely on std::rank
-    constexpr static size_t rank = __rank<T>::value;
+    // XXX should pick a different name for rank
+    //     or maybe just eliminate it and rely on .size()
+    constexpr static size_t rank = __index_size<T>::value;
     using size_type              = size_t;
 
     using value_type             = T;
