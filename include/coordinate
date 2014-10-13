@@ -143,27 +143,27 @@ using __rebind_array_t = typename __rebind_array<Array,T>::type;
 
 // there are two overloads for __shape_size()
 template<typename Shape>
-size_t __shape_size(const Shape& s,
-                    typename std::enable_if<
-                      std::is_integral<Shape>::value,
-                      size_t
-                    >::type* = 0);
+typename std::enable_if<
+  std::is_integral<Shape>::value,
+  size_t
+>::type
+  __shape_size(const Shape& s);
 
 template<typename Shape>
-size_t __shape_size(const Shape& s,
-                    typename std::enable_if<
-                      std::is_integral<Shape>::value,
-                      size_t
-                    >::type* = 0);
+typename std::enable_if<
+  !std::is_integral<Shape>::value,
+  size_t
+>::type
+  __shape_size(const Shape& s);
 
 
 // scalar case
 template<typename Shape>
-size_t __shape_size(const Shape& s,
-                    typename std::enable_if<
-                      std::is_integral<Shape>::value,
-                      size_t
-                    >::type* = 0)
+typename std::enable_if<
+  std::is_integral<Shape>::value,
+  size_t
+>::type
+  __shape_size(const Shape& s)
 {
   return static_cast<size_t>(s);
 }
@@ -179,11 +179,11 @@ struct __shape_size_functor
 
 // tuple case
 template<typename Shape>
-size_t __shape_size(const Shape& s,
-                    typename std::enable_if<
-                      !std::is_integral<Shape>::value,
-                      size_t
-                    >::type* = 0)
+typename std::enable_if<
+  !std::is_integral<Shape>::value,
+  size_t
+>::type
+  __shape_size(const Shape& s)
 {
   // transform s into a tuple of sizes
   auto tuple_of_sizes = __tu::tuple_map(__shape_size_functor{}, s);
@@ -495,7 +495,6 @@ class __grid_iterator
 
       for(int i = rank; i-- > 0;)
       {
-        increment(current_[i]);
         ++current_[i];
 
         if(min[i] <= current_[i] && current_[i] < max[i])

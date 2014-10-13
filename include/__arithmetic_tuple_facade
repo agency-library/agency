@@ -1,0 +1,252 @@
+#pragma once
+
+#include <tuple>
+#include <type_traits>
+#include <__tuple_utility>
+#include <iostream>
+
+namespace std
+{
+
+
+template<typename Derived>
+  class __arithmetic_tuple_facade
+{
+  private:
+    struct plus_assign
+    {
+      template<typename T1, typename T2>
+      T1& operator()(T1 &lhs, const T2& rhs) const
+      {
+        return lhs += rhs;
+      }
+    };
+
+    struct minus_assign
+    {
+      template<typename T1, typename T2>
+      T1& operator()(T1 &lhs, const T2& rhs) const
+      {
+        return lhs -= rhs;
+      }
+    };
+
+    struct multiplies_assign
+    {
+      template<typename T1, typename T2>
+      T1& operator()(T1 &lhs, const T2& rhs) const
+      {
+        return lhs *= rhs;
+      }
+    };
+
+    template<typename T>
+    struct multiplies_assign_constant
+    {
+      T c;
+
+      template<typename U>
+      U& operator()(U& x) const
+      {
+        return x *= c;
+      }
+    };
+
+    struct divides_assign
+    {
+      template<typename T1, typename T2>
+      T1& operator()(T1 &lhs, const T2& rhs) const
+      {
+        return lhs /= rhs;
+      }
+    };
+
+    template<typename T>
+    struct divides_assign_constant
+    {
+      T c;
+
+      template<typename U>
+      U& operator()(U& x) const
+      {
+        return x /= c;
+      }
+    };
+
+    struct make_derived
+    {
+      template<class... Args>
+      Derived operator()(Args&&... args) const
+      {
+        return Derived{std::forward<Args>(args)...};
+      }
+    };
+
+    Derived& derived()
+    {
+      return static_cast<Derived&>(*this);
+    }
+
+    const Derived& derived() const
+    {
+      return static_cast<const Derived&>(*this);
+    }
+
+  public:
+
+  // fused op-assignment
+  template<class ArithmeticTuple>
+  typename std::enable_if<
+    std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value,
+    Derived&
+  >::type
+    operator*=(const ArithmeticTuple& rhs)
+  {
+    __tu::tuple_map_with_make(multiplies_assign{}, make_derived{}, derived(), rhs);
+    return derived();
+  }
+
+  template<class ArithmeticTuple>
+  typename std::enable_if<
+    std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value,
+    Derived&
+  >::type
+    operator/=(const ArithmeticTuple& rhs)
+  {
+    __tu::tuple_map_with_make(divides_assign{}, make_derived{}, derived(), rhs);
+    return derived();
+  }
+
+  template<class ArithmeticTuple>
+  typename std::enable_if<
+    std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value,
+    Derived&
+  >::type
+    operator+=(const ArithmeticTuple& rhs)
+  {
+    __tu::tuple_map_with_make(plus_assign{}, make_derived{}, derived(), rhs);
+    return derived();
+  }
+
+  template<class ArithmeticTuple>
+  typename std::enable_if<
+    std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value,
+    Derived&
+  >::type
+    operator-=(const ArithmeticTuple& rhs)
+  {
+    __tu::tuple_map_with_make(minus_assign{}, make_derived{}, derived(), rhs);
+    return derived();
+  }
+
+
+  // multiply by scalar
+  template<class Arithmetic>
+  typename std::enable_if<
+    std::is_arithmetic<Arithmetic>::value,
+    Derived&
+  >::type
+    operator*=(const Arithmetic& rhs)
+  {
+    __tu::tuple_map_with_make(multiplies_assign_constant<Arithmetic>(rhs), make_derived{}, derived());
+    return derived();
+  }
+
+  // divide by scalar
+  template<class Arithmetic>
+  typename std::enable_if<
+    std::is_arithmetic<Arithmetic>::value,
+    Derived&
+  >::type
+    operator/=(const Arithmetic& rhs)
+  {
+    __tu::tuple_map_with_make(divides_assign_constant<Arithmetic>(rhs), make_derived{}, derived());
+    return derived();
+  }
+
+
+  // ops
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
+           >::type>
+  Derived operator+(const ArithmeticTuple& rhs) const
+  {
+    Derived result = derived();
+    static_cast<__arithmetic_tuple_facade&>(result) += rhs;
+    return result;
+  }
+
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
+           >::type>
+  Derived operator-(const ArithmeticTuple& rhs) const
+  {
+    Derived result = derived();
+    static_cast<__arithmetic_tuple_facade&>(result) -= rhs;
+    return result;
+  }
+
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
+           >::type>
+  Derived operator*(const ArithmeticTuple& rhs) const
+  {
+    Derived result = derived();
+    static_cast<__arithmetic_tuple_facade&>(result) *= rhs;
+    return result;
+  }
+
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
+           >::type>
+  Derived operator/(const ArithmeticTuple& rhs) const
+  {
+    Derived result = derived();
+    static_cast<__arithmetic_tuple_facade&>(result) /= rhs;
+    return result;
+  }
+
+
+  // relational ops
+
+  template<class ArithmeticTuple>
+  bool operator<(const ArithmeticTuple& rhs) const
+  {
+    return __tu::tuple_lexicographical_compare(derived(), rhs);
+  }
+
+  template<class ArithmeticTuple>
+  bool operator>(const ArithmeticTuple& rhs) const
+  {
+    return __tu::tuple_lexicographical_compare(rhs, derived());
+  }
+
+  template<class ArithmeticTuple>
+  bool operator<=(const ArithmeticTuple& rhs) const
+  {
+    return !operator>(rhs);
+  }
+
+  template<class ArithmeticTuple>
+  bool operator>=(const ArithmeticTuple& rhs) const
+  {
+    return !operator<(rhs);
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const __arithmetic_tuple_facade& t)
+  {
+    os << "{";
+    __tu::tuple_print(t.derived(), os);
+    os << "}";
+
+    return os;
+  }
+};
+
+
+}
+

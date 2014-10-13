@@ -292,6 +292,27 @@ T tuple_reduce(Tuple&& t, T init, Function f,
 }
 
 
+template<class Tuple, class Function>
+typename std::enable_if<
+  (std::tuple_size<__decay_t<Tuple>>::value == 0)
+>::type
+  tuple_for_each(Tuple&& t, Function f)
+{
+  ;
+}
+
+
+template<class Tuple, class Function>
+typename std::enable_if<
+  (std::tuple_size<__decay_t<Tuple>>::value > 0)
+>::type
+  tuple_for_each(Tuple&& t, Function f)
+{
+  f(tuple_head(std::forward<Tuple>(t)));
+  tuple_for_each(tuple_tail(std::forward<Tuple>(t)), f);
+}
+
+
 template<class Tuple, class T>
 typename std::enable_if<
   std::tuple_size<Tuple>::value == 0
@@ -324,6 +345,39 @@ template<class Tuple>
 void tuple_print(const Tuple& t, std::ostream& os = std::cout)
 {
   tuple_print(t, os, ", ");
+}
+
+
+template<class Tuple1, class Tuple2>
+typename std::enable_if<
+  std::tuple_size<Tuple2>::value == 0,
+  bool
+>::type
+  tuple_lexicographical_compare(const Tuple1&, const Tuple2&)
+{
+  return false;
+}
+
+template<class Tuple1, class Tuple2>
+typename std::enable_if<
+  (std::tuple_size<Tuple1>::value == 0 && std::tuple_size<Tuple2>::value > 0),
+  bool
+>::type
+  tuple_lexicographical_compare(const Tuple1& t1, const Tuple2& t2)
+{
+  return true;
+}
+
+template<class Tuple1, class Tuple2>
+typename std::enable_if<
+  (std::tuple_size<Tuple1>::value > 0 && std::tuple_size<Tuple2>::value > 0),
+  bool
+>::type
+  tuple_lexicographical_compare(const Tuple1& t1, const Tuple2& t2)
+{
+  return (tuple_head(t1) < tuple_head(t2)) ? true :
+         (tuple_head(t2) < tuple_head(t1)) ? false :
+         tuple_lexicographical_compare(tuple_tail(t1), tuple_tail(t2));
 }
 
 
