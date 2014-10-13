@@ -9,6 +9,7 @@
 #include <__tuple_tail>
 #include <__unwrap_tuple_if_not_nested>
 #include <__make_tuple_if_not_nested>
+#include <__index_tuple>
 
 namespace std
 {
@@ -421,7 +422,7 @@ static ExecutionAgent __make_agent(const Tuple& indices, const typename std::exe
 template<class OuterExecutionAgent, class InnerExecutionAgent>
 class __execution_group : public OuterExecutionAgent
 {
-  private:
+  protected:
     using outer_traits = execution_agent_traits<OuterExecutionAgent>;
     using inner_traits = execution_agent_traits<InnerExecutionAgent>;
 
@@ -535,6 +536,200 @@ class __execution_group : public OuterExecutionAgent
 
     // friend execution_agent_traits so it has access to the constructors
     template<class> friend struct execution_agent_traits; 
+};
+
+
+template<class InnerExecutionAgent>
+using sequential_group = __execution_group<sequential_agent, InnerExecutionAgent>;
+
+template<class InnerExecutionAgent>
+using parallel_group = __execution_group<parallel_agent, InnerExecutionAgent>;
+
+template<class InnerExecutionAgent>
+using concurrent_group = __execution_group<concurrent_agent, InnerExecutionAgent>;
+
+template<class InnerExecutionAgent>
+using vector_group = __execution_group<vector_agent, InnerExecutionAgent>;
+
+
+template<class OuterExecutionAgent, class InnerExecutionAgent>
+class __new_execution_group
+{
+  private:
+    using outer_traits = execution_agent_traits<OuterExecutionAgent>;
+    using inner_traits = execution_agent_traits<InnerExecutionAgent>;
+
+    using outer_execution_category = typename outer_traits::execution_category;
+    using inner_execution_category = typename inner_traits::execution_category;
+
+    using outer_index_type = typename std::execution_agent_traits<OuterExecutionAgent>::index_type;
+    using inner_index_type = typename std::execution_agent_traits<InnerExecutionAgent>::index_type;
+
+    // concatenates an outer index with an inner index
+    // returns an __index_tuple (not a std::tuple)
+    static auto index_cat(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
+      -> decltype(
+           __tu::tuple_cat_apply(
+             __index_tuple_maker{},
+             __make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+             __make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+           )
+         )
+    {
+      return __tu::tuple_cat_apply(
+        __index_tuple_maker{},
+        __make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+        __make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+      );
+    }
+
+  public:
+    using execution_category = nested_execution_tag<
+      outer_execution_category,
+      inner_execution_category
+    >;
+
+    using outer_execution_agent_type = OuterExecutionAgent;
+    using inner_execution_agent_type = InnerExecutionAgent;
+
+    using param_type = std::tuple<
+      typename outer_traits::param_type,
+      typename inner_traits::param_type
+    >;
+
+    // XXX move this into execution_agent_traits
+    static auto make_shared_initializer(const param_type& param)
+      -> decltype(
+           std::tuple_cat(
+             __make_tuple_if_not_nested<outer_execution_category>(
+               outer_traits::make_shared_initializer(std::get<0>(param))
+             ),
+             __make_tuple_if_not_nested<inner_execution_category>(
+               inner_traits::make_shared_initializer(std::get<1>(param))
+             )
+           )
+         )
+    {
+      auto outer_shared_init = outer_traits::make_shared_initializer(std::get<0>(param));
+      auto inner_shared_init = inner_traits::make_shared_initializer(std::get<1>(param));
+
+      auto outer_tuple = __make_tuple_if_not_nested<outer_execution_category>(outer_shared_init);
+      auto inner_tuple = __make_tuple_if_not_nested<inner_execution_category>(inner_shared_init);
+
+      return std::tuple_cat(outer_tuple, inner_tuple);
+    }
+
+    outer_execution_agent_type& outer()
+    {
+      return outer_agent_;
+    }
+
+    const outer_execution_agent_type& outer() const
+    {
+      return outer_agent_;
+    }
+
+    inner_execution_agent_type& inner()
+    {
+      return inner_agent_;
+    }
+
+    const inner_execution_agent_type& inner() const
+    {
+      return inner_agent_;
+    }
+
+    auto index() const
+      -> decltype(
+           index_cat(
+             std::declval<__new_execution_group>().outer().index(),
+             std::declval<__new_execution_group>().inner().index()
+           )
+         )
+    {
+      return index_cat(this->outer().index(), this->inner().index());
+    }
+
+    using index_type = decltype(std::declval<__new_execution_group>().index());
+
+    using domain_type = std::regular_grid<index_type>;
+
+    domain_type domain() const
+    {
+      auto outer_domain = outer().domain();
+      auto inner_domain = this->inner().domain();
+
+      auto min = index_cat(outer_domain.min(), inner_domain.min());
+      auto max = index_cat(outer_domain.max(), inner_domain.max());
+
+      return domain_type{min,max};
+    }
+
+    static domain_type domain(const param_type& param)
+    {
+      auto outer_domain = outer_traits::domain(std::get<0>(param));
+      auto inner_domain = inner_traits::domain(std::get<1>(param));
+
+      auto min = index_cat(outer_domain.min(), inner_domain.min());
+      auto max = index_cat(outer_domain.max(), inner_domain.max());
+
+      return domain_type{min,max};
+    }
+
+    // XXX eliminate this -- all we need is .domain()
+    static auto shape(const param_type& param)
+      -> decltype(
+           domain(param).shape()
+         )
+    {
+      return domain(param).shape();
+    }
+
+    size_t group_size() const
+    {
+      return outer().group_size();
+    }
+
+    template<class Function>
+    __new_execution_group(Function f, const index_type& index, const param_type& param)
+      : outer_agent_(__make_agent<outer_execution_agent_type>(outer_index(index), std::get<0>(param))),
+        inner_agent_(__make_agent<inner_execution_agent_type>(inner_index(index), std::get<1>(param)))
+    {
+      f(*this);
+    }
+
+    template<class Function, class Tuple>
+    __new_execution_group(Function f, const index_type& index, const param_type& param, Tuple& shared_param)
+      : outer_agent_(__make_agent<outer_execution_agent_type>(outer_index(index), std::get<0>(param), tuple_head(shared_param))),
+        inner_agent_(__make_agent<inner_execution_agent_type>(inner_index(index), std::get<1>(param), tuple_tail(shared_param)))
+    {
+      f(*this);
+    }
+
+    // friend execution_agent_traits so it has access to the constructors
+    template<class> friend struct execution_agent_traits;
+
+  protected:
+    template<class ExecutionAgent>
+    static ExecutionAgent __make_agent(const typename std::execution_agent_traits<ExecutionAgent>::index_type& index,
+                                       const typename std::execution_agent_traits<ExecutionAgent>::param_type& param)
+    {
+      auto noop = [](ExecutionAgent&){};
+      return __agent_access_helper<ExecutionAgent>(noop, index, param);
+    }
+
+    static outer_index_type outer_index(const index_type& index)
+    {
+      return __unwrap_tuple_if_not_nested<outer_execution_category>(__tu::tuple_tail(index));
+    }
+
+    static inner_index_type inner_index(const index_type& index)
+    {
+      return __unwrap_tuple_if_not_nested<inner_execution_category>(__tu::tuple_tail(index));
+    }
+
+    outer_execution_agent_type outer_agent_;
+    inner_execution_agent_type inner_agent_;
 };
 
 
