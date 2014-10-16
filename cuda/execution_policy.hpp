@@ -91,7 +91,7 @@ void bulk_invoke(const ExecutionPolicy& exec, Function&& f)
 
   auto param = exec.param();
   auto execute_me = make_execute_agent_functor<traits>(f, param);
-  auto shape = traits::shape(param);
+  auto shape = traits::domain(param).shape();
   auto shared_init = traits::make_shared_initializer(param);
 
   using executor_type = typename ExecutionPolicy::executor_type;

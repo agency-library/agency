@@ -110,7 +110,7 @@ using rebind_executor_t = typename rebind_executor<ExecutionPolicy,Executor>::ty
 
 // XXX we should assert that ExecutionCategory is stronger than the category of ExecutionAgent
 // XXX another way to order these parameters would be
-// ExecutionCategory, Asyncable, ExecutionGroup = __default_execution_group<ExecutionCategory>
+// ExecutionCategory, BulkExecutor, ExecutionAgent = __default_execution_agent<ExecutionAgent>
 template<class ExecutionAgent,
          class BulkExecutor,
          class ExecutionCategory>
@@ -154,13 +154,13 @@ class __basic_execution_policy
     typename __disable_if_nested_call<__basic_execution_policy, Arg1, Args...>::type
       operator()(Arg1&& arg1, Args&&... args) const
     {
-      return __basic_execution_policy(param_type{std::forward<Arg1>(arg1), std::forward<Args>(args)...}, executor());
+      return __basic_execution_policy{param_type{std::forward<Arg1>(arg1), std::forward<Args>(args)...}, executor()};
     }
 
     template<class Arg1, class... Args>
     __basic_execution_policy operator()(std::initializer_list<Arg1> arg1, std::initializer_list<Args>... args) const
     {
-      return __basic_execution_policy(param_type{std::move(arg1), std::move(args)...}, executor());
+      return __basic_execution_policy{param_type{std::move(arg1), std::move(args)...}, executor()};
     }
 
   protected:

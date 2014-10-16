@@ -69,15 +69,18 @@ class basic_execution_agent_base
     using execution_category = ExecutionCategory;
 
     // XXX might want to make index return int for CUDA
+    using index_type = size_t;
 
     __host__ __device__
-    size_t index() const
+    index_type index() const
     {
       return index_;
     }
 
+    using domain_type = detail::domain;
+
     __host__ __device__
-    const detail::domain& domain() const
+    const domain_type& domain() const
     {
       return domain_;
     }
@@ -101,29 +104,34 @@ class basic_execution_agent_base
         {}
 
         __host__ __device__
-        param_type(const detail::domain& d)
+        param_type(const domain_type& d)
           : domain_(d)
         {}
 
         __host__ __device__
-        param_type(size_t min, size_t max)
+        param_type(index_type min, index_type max)
           : domain_(min,max)
         {}
 
         __host__ __device__
-        const detail::domain& domain() const
+        const domain_type& domain() const
         {
           return domain_;
         }
 
       private:
-        detail::domain domain_;
+        domain_type domain_;
     };
 
+    static domain_type domain(const param_type& p)
+    {
+      return p.domain();
+    }
+
   protected:
-    template<class Function, class Index>
+    template<class Function>
     __host__ __device__
-    basic_execution_agent_base(Function f, const Index& index, const param_type& param)
+    basic_execution_agent_base(Function f, const index_type& index, const param_type& param)
       : index_(index),
         domain_(param.domain())
     {
@@ -131,7 +139,7 @@ class basic_execution_agent_base
     }
 
   private:
-    size_t index_;
+    index_type index_;
     detail::domain domain_;
 };
 
@@ -143,8 +151,9 @@ class basic_execution_agent : public basic_execution_agent_base<ExecutionCategor
     using super_t = basic_execution_agent_base<ExecutionCategory>;
 
   public:
-    using basic_execution_agent_base<ExecutionCategory>::basic_execution_agent_base;
-    using param_type = typename basic_execution_agent_base<ExecutionCategory>::param_type;
+    using super_t::basic_execution_agent_base;
+    using typename super_t::index_type;
+    using param_type = typename super_t::param_type;
 
     friend struct std::execution_agent_traits<basic_execution_agent>;
 
@@ -156,9 +165,9 @@ class basic_execution_agent : public basic_execution_agent_base<ExecutionCategor
     };
 
   protected:
-    template<class Function, class Index>
+    template<class Function>
     __host__ __device__
-    basic_execution_agent(Function f, const Index& index, const param_type& param)
+    basic_execution_agent(Function f, const index_type& index, const param_type& param)
       : super_t(noop(), index, param)
     {
       f(*this);
@@ -251,14 +260,11 @@ template<>
 struct execution_agent_traits<cuda::parallel_agent>
   : std::execution_agent_traits<cuda::detail::basic_execution_agent_base<std::parallel_execution_tag>>
 {
-  template<class Function, class Tuple>
+  template<class Function>
   __host__ __device__
-  static typename enable_if<
-    (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple>::value)
-  >::type
-    execute(Function f, const Tuple& indices, const param_type& param)
+  static void execute(Function f, const index_type& index, const param_type& param)
   {
-    cuda::parallel_agent agent(f, indices, param);
+    cuda::parallel_agent agent(f, index, param);
   }
 };
 
@@ -267,15 +273,11 @@ template<>
 struct execution_agent_traits<cuda::concurrent_agent>
   : std::execution_agent_traits<cuda::detail::basic_execution_agent_base<std::concurrent_execution_tag>>
 {
-  template<class Function, class Tuple1, class Tuple2>
+  template<class Function, class Tuple>
   __host__ __device__
-  static typename enable_if<
-    (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple1>::value) &&
-    (__tuple_size_if_tuple_else_zero<shape_type>::value == __tuple_size_if_tuple_else_zero<Tuple2>::value)
-  >::type
-    execute(Function f, const Tuple1& indices, const param_type& param, Tuple2& shared_params)
+  static void execute(Function f, const index_type& index, const param_type& param, Tuple& shared_params)
   {
-    cuda::concurrent_agent agent(f, indices, param, shared_params);
+    cuda::concurrent_agent agent(f, index, param, shared_params);
   }
 
   using has_make_shared_initializer = std::true_type;
