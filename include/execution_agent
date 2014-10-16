@@ -199,6 +199,8 @@ class __basic_execution_agent
     class param_type
     {
       public:
+        param_type() = default;
+
         param_type(const param_type& other)
           : domain_(other.domain_)
         {}
