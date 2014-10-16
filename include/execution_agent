@@ -142,19 +142,13 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
 
   private:
     template<class Function, class Tuple>
-    static typename enable_if<
-      (__tuple_size_if_tuple_else_zero<index_type>::value == __tuple_size_if_tuple_else_zero<Tuple>::value)
-    >::type
-      execute_with_shared_params_impl(Function f, const index_type& index, const param_type& param, Tuple&, std::false_type)
+    static void execute_with_shared_params_impl(Function f, const index_type& index, const param_type& param, Tuple&, std::false_type)
     {
       ExecutionAgent agent(f, index, param);
     }
 
     template<class Function, class Tuple>
-    static typename enable_if<
-      (__tuple_size_if_tuple_else_zero<index_type>::value == __tuple_size_if_tuple_else_zero<Tuple>::value)
-    >::type
-      execute_with_shared_params_impl(Function f, const index_type& index, const param_type& param, Tuple& shared_params, std::true_type)
+    static void execute_with_shared_params_impl(Function f, const index_type& index, const param_type& param, Tuple& shared_params, std::true_type)
     {
       ExecutionAgent agent(f, index, param, shared_params);
     }
@@ -163,10 +157,7 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
   public:
 
   template<class Function, class Tuple>
-  static typename enable_if<
-    (__tuple_size_if_tuple_else_zero<index_type>::value == __tuple_size_if_tuple_else_zero<Tuple>::value)
-  >::type
-    execute(Function f, const index_type& index, const param_type& param, Tuple& shared_params)
+  static void execute(Function f, const index_type& index, const param_type& param, Tuple& shared_params)
   {
     execute_with_shared_params_impl(f, index, param, shared_params, has_make_shared_initializer());
   }

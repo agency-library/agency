@@ -27,6 +27,8 @@
 #include <nested_executor>
 #include <memory>
 #include <tuple>
+#include <__shape_cast>
+#include <__index_cast>
 
 namespace std
 {
@@ -165,17 +167,25 @@ void __bulk_invoke(ExecutionCategory1,
   using traits = std::execution_agent_traits<ExecutionAgent>;
 
   auto param = exec.param();
-  auto shape = traits::domain(param).shape();
+  auto agent_shape = traits::domain(param).shape();
   auto shared_init = traits::make_shared_initializer(param);
 
-  using executor_index = typename executor_traits<BulkExecutor>::index_type;
+  using executor_index_type = typename executor_traits<BulkExecutor>::index_type;
   using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
 
-  return executor_traits<BulkExecutor>::bulk_invoke(exec.executor(), [=](executor_index agent_idx, shared_param_type shared_params)
+  // convert the shape of the agent into the type of the executor's shape
+  using executor_shape_type = typename executor_traits<BulkExecutor>::shape_type;
+  executor_shape_type executor_shape = std::__shape_cast<executor_shape_type>(agent_shape);
+
+  return executor_traits<BulkExecutor>::bulk_invoke(exec.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
   {
+    // convert the index of the executor into the type of the agent's index
+    using agent_index_type = typename traits::index_type;
+    auto agent_idx = std::__index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
+
     traits::execute(f, agent_idx, param, shared_params);
   },
-  shape,
+  executor_shape,
   shared_init);
 }
 
@@ -191,17 +201,25 @@ std::future<void> __bulk_async(ExecutionCategory1,
   using traits = std::execution_agent_traits<ExecutionAgent>;
 
   auto param = exec.param();
-  auto shape = traits::domain(param).shape();
+  auto agent_shape = traits::domain(param).shape();
   auto shared_init = traits::make_shared_initializer(param);
 
-  using executor_index = typename executor_traits<BulkExecutor>::index_type;
+  using executor_index_type = typename executor_traits<BulkExecutor>::index_type;
   using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
 
-  return executor_traits<BulkExecutor>::bulk_async(exec.executor(), [=](executor_index agent_idx, shared_param_type shared_params)
+  // convert the shape of the agent into the type of the executor's shape
+  using executor_shape_type = typename executor_traits<BulkExecutor>::shape_type;
+  executor_shape_type executor_shape = std::__shape_cast<executor_shape_type>(agent_shape);
+
+  return executor_traits<BulkExecutor>::bulk_async(exec.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
   {
+    // convert the index of the executor into the type of the agent's index
+    using agent_index_type = typename traits::index_type;
+    auto agent_idx = std::__index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
+
     traits::execute(f, agent_idx, param, shared_params);
   },
-  shape,
+  executor_shape,
   shared_init);
 }
 
