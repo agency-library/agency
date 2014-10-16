@@ -106,12 +106,14 @@ class flattened_executor
     // returns (outer size, inner size)
     partition_type partition(shape_type shape) const
     {
+      if(shape <= 0) return partition_type{0,0};
+
       size_t outer_size = (shape + min_inner_size_ - 1) / min_inner_size_;
       outer_size = std::min<size_t>(outer_subscription_ * std::thread::hardware_concurrency(), outer_size);
 
       size_t inner_size = (shape + outer_size - 1) / outer_size;
 
-      return partition_type(outer_size, inner_size);
+      return partition_type{outer_size, inner_size};
     }
 
     inline static unsigned int log2(unsigned int x)
