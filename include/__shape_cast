@@ -184,7 +184,7 @@ typename std::enable_if<
 >::type
   __shape_cast(const FromShape& x)
 {
-  return __tuple_map_with_make(__shape_cast_functor{}, __make<ToShape>{}, ToShape{}, x);
+  return __tu::tuple_map_with_make(__shape_cast_functor{}, __make<ToShape>{}, ToShape{}, x);
 }
 
 
