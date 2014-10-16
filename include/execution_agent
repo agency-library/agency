@@ -164,13 +164,13 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
 };
 
 
-template<class ExecutionCategory>
+template<class ExecutionCategory, class Index = size_t>
 class __basic_execution_agent
 {
   public:
     using execution_category = ExecutionCategory;
 
-    using index_type = size_t;
+    using index_type = Index;
 
     index_type index() const
     {
@@ -184,13 +184,16 @@ class __basic_execution_agent
       return domain_;
     }
 
-    // XXX should provide group_shape(), not group_size()
-    //     group_size() is derivable from group_shape
-    //     group_shape() is only derivable from group_size()
-    //     for 1D domains
-    size_t group_size() const
+    auto group_size() const
+      -> decltype(this->domain().size())
     {
-      return domain_.size();
+      return domain().size();
+    }
+
+    auto group_shape() const
+      -> decltype(this->domain().shape())
+    {
+      return domain().shape();
     }
 
     class param_type
@@ -204,7 +207,7 @@ class __basic_execution_agent
           : domain_(d)
         {}
 
-        param_type(size_t min, size_t max)
+        param_type(const index_type& min, const index_type& max)
           : param_type(domain_type(min,max))
         {}
 
