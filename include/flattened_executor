@@ -106,10 +106,15 @@ class flattened_executor
     // returns (outer size, inner size)
     partition_type partition(shape_type shape) const
     {
+      // avoid division by zero below
+      // XXX implement me!
+//      if(is_empty(shape)) return partition_type{};
+
       using outer_shape_type = typename std::tuple_element<0,partition_type>::type;
       using inner_shape_type = typename std::tuple_element<1,partition_type>::type;
 
       outer_shape_type outer_size = (shape + min_inner_size_ - 1) / min_inner_size_;
+
       outer_size = std::min<size_t>(outer_subscription_ * std::thread::hardware_concurrency(), outer_size);
 
       inner_shape_type inner_size = (shape + outer_size - 1) / outer_size;

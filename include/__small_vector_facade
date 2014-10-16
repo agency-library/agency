@@ -1,8 +1,31 @@
 #pragma once
 
+// have to declare std::get for __small_vector_facade
+// before deriving from __arithmetic_tuple_facade
+// because std::get can't be looked up via ADL
+namespace std
+{
+
+
+template<typename Derived, typename T, std::size_t Rank>
+class __small_vector_facade;
+
+
+template<size_t I, class Derived, class T, size_t Rank>
+T& get(__small_vector_facade<Derived,T,Rank>& x);
+
+
+template<size_t I, class Derived, class T, size_t Rank>
+const T& get(const __small_vector_facade<Derived,T,Rank>& x);
+
+
+}
+
+
 #include <type_traits>
 #include <algorithm>
 #include <__operator_traits>
+#include <__arithmetic_tuple_facade>
 #include <iostream>
 #include <array>
 #include <utility>
@@ -27,7 +50,7 @@ using common_type_t = typename common_type<T1,T2>::type;
 
 
 template<typename Derived, typename T, std::size_t Rank>
-  class __small_vector_facade
+  class __small_vector_facade : public __arithmetic_tuple_facade<Derived>
 {
   static_assert(__has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
   static_assert(Rank > 0, "Rank must be greater than 0.");
@@ -132,204 +155,6 @@ template<typename Derived, typename T, std::size_t Rank>
     }
 
 
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_less<value_type,OtherT>::value,
-      bool
-    >::type
-    operator<(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs) const
-    {
-      return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
-    }
-
-
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_less<OtherT,value_type>::value,
-      bool
-    >::type
-    operator>(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs) const
-    {
-      return rhs < *this;
-    }
-
-
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_less<OtherT,value_type>::value,
-      bool
-    >::type
-    operator<=(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs) const
-    {
-      return !(rhs < (*this));
-    }
-
-
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_less<value_type,OtherT>::value,
-      bool
-    >::type
-    operator>=(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs) const
-    {
-      return !(*this < rhs);
-    }
-
-
-    // multiply by scalar
-    template<class OtherT>
-    typename enable_if<
-      __has_operator_multiplies_assign<value_type,OtherT>::value,
-      Derived&
-    >::type
-      operator*=(OtherT rhs)
-    {
-      for(size_type i = 0; i < rank; ++i)
-      {
-        operator[](i) *= rhs;
-      }
-
-      return derived();
-    }
-
-
-    // divide by scalar
-    template<class OtherT>
-    typename enable_if<
-      __has_operator_divides_assign<value_type,OtherT>::value,
-      Derived&
-    >::type
-      operator/=(OtherT rhs)
-    {
-      for(size_type i = 0; i < rank; ++i)
-      {
-        operator[](i) /= rhs;
-      }
-
-      return derived();
-    }
-
-
-    // XXX should try to fully parameterize the rhs
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_plus_assign<value_type,OtherT>::value,
-      Derived&
-    >::type
-      operator+=(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs)
-    {
-      for(size_type i = 0; i < rank; ++i)
-      {
-        operator[](i) += rhs[i];
-      }
-
-      return derived();
-    }
-
-
-    // XXX should try to fully parameterize the rhs
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_plus<value_type,OtherT>::value,
-      common_type_t<Derived,OtherDerived>
-    >::type
-      operator+(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs) const
-    {
-      using result_type = common_type_t<Derived,OtherDerived>;
-
-      return result_type{*this} += rhs;
-    }
-
-    // XXX should try to fully parameterize the rhs
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_minus_assign<OtherT>::value,
-      Derived&
-    >::type
-      operator-=(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs)
-    {
-      for(size_type i = 0; i < rank; ++i)
-      {
-        operator[](i) -= rhs[i];
-      }
-
-      return derived();
-    }
-
-    // XXX should try to fully parameterize the rhs
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_minus<value_type,OtherT>::value,
-      common_type_t<Derived,OtherDerived>
-    >::type
-      operator-(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs) const
-    {
-      using result_type = common_type_t<Derived,OtherDerived>;
-
-      return result_type{*this} -= rhs;
-    }
-
-
-    // XXX should try to fully parameterize the rhs
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_multiplies_assign<value_type,OtherT>::value,
-      Derived&
-    >::type
-      operator*=(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs)
-    {
-      for(size_type i = 0; i < rank; ++i)
-      {
-        operator[](i) *= rhs[i];
-      }
-
-      return derived();
-    }
-
-    // XXX should try to fully parameterize the rhs
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_multiplies<value_type,OtherT>::value,
-      common_type_t<Derived,OtherDerived>
-    >::type
-      operator*(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs) const
-    {
-      using result_type = common_type_t<Derived,OtherDerived>;
-
-      return result_type{*this} *= rhs;
-    }
-
-
-    // XXX should try to fully parameterize the rhs
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_divides_assign<value_type,OtherT>::value,
-      Derived&
-    >::type
-      operator/=(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs)
-    {
-      for(size_type i = 0; i < rank; ++i)
-      {
-        operator[](i) /= rhs[i];
-      }
-
-      return derived();
-    }
-
-    // XXX should try to fully parameterize the rhs
-    template<class OtherDerived, class OtherT>
-    typename enable_if<
-      __has_operator_divides<value_type,OtherT>::value,
-      common_type_t<Derived,OtherDerived>
-    >::type
-      operator/(const __small_vector_facade<OtherDerived,OtherT,Rank>& rhs) const
-    {
-      using result_type = common_type_t<Derived,OtherDerived>;
-
-      return result_type{*this} /= rhs;
-    }
-
-
   private:
     inline Derived &derived()
     {
@@ -344,8 +169,7 @@ template<typename Derived, typename T, std::size_t Rank>
 
 
 template<size_t I, class Derived, class T, size_t Rank>
-typename __small_vector_facade<Derived,T,Rank>::reference
-  get(__small_vector_facade<Derived,T,Rank>& x)
+T& get(__small_vector_facade<Derived,T,Rank>& x)
 {
   static_assert(I < Rank, "I must be less than Rank.");
   return x[I];
@@ -353,29 +177,10 @@ typename __small_vector_facade<Derived,T,Rank>::reference
 
 
 template<size_t I, class Derived, class T, size_t Rank>
-typename __small_vector_facade<Derived,T,Rank>::const_reference
-  get(const __small_vector_facade<Derived,T,Rank>& x)
+const T& get(const __small_vector_facade<Derived,T,Rank>& x)
 {
   static_assert(I < Rank, "I must be less than Rank.");
   return x[I];
-}
-
-
-template<class Derived, class T, size_t Rank>
-std::ostream& operator<<(std::ostream& os, const __small_vector_facade<Derived,T,Rank>& vec)
-{
-  os << "(";
-
-  for(auto i = vec.begin(); i != vec.end() - 1; ++i)
-  {
-    os << *i << ", ";
-  }
-
-  os << vec.back();
-
-  os << ")";
-
-  return os;
 }
 
 

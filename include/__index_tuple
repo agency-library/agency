@@ -1,0 +1,84 @@
+#pragma once
+
+#include <__arithmetic_tuple_facade>
+#include <tuple>
+#include <type_traits>
+
+namespace std
+{
+
+
+template<class... Indices>
+class __index_tuple :
+  public std::tuple<Indices...>,
+  public __arithmetic_tuple_facade<__index_tuple<Indices...>>
+{
+  public:
+    using std::tuple<Indices...>::tuple;
+};
+
+
+template<class... Indices>
+struct tuple_size<__index_tuple<Indices...>> : std::tuple_size<std::tuple<Indices...>> {};
+
+template<size_t i, class... Indices>
+struct tuple_element<i,__index_tuple<Indices...>> : std::tuple_element<i,std::tuple<Indices...>> {};
+
+template<size_t i, class... Indices>
+auto get(__index_tuple<Indices...>& t)
+  -> decltype(
+       std::get<i>(static_cast<std::tuple<Indices...>&>(t))
+     )
+{
+  return std::get<i>(static_cast<std::tuple<Indices...>&>(t));
+}
+
+
+template<size_t i, class... Indices>
+auto get(const __index_tuple<Indices...>& t)
+  -> decltype(
+       std::get<i>(static_cast<const std::tuple<Indices...>&>(t))
+     )
+{
+  return std::get<i>(static_cast<const std::tuple<Indices...>&>(t));
+}
+
+
+template<size_t i, class... Indices>
+auto get(__index_tuple<Indices...>&& t)
+  -> decltype(
+       std::get<i>(std::move<std::tuple<Indices...>&&>(t))
+     )
+{
+  return std::get<i>(std::move<std::tuple<Indices...>&&>(t));
+}
+
+
+template<class... Indices>
+__index_tuple<Indices...> __make_index_tuple(const std::tuple<Indices...>& indices)
+{
+  return __index_tuple<Indices...>(indices);
+}
+
+template<class... Args>
+__index_tuple<std::decay_t<Args>...> __make_index_tuple(Args&&... args)
+{
+  return __index_tuple<std::decay_t<Args>...>(std::forward<Args>(args)...);
+}
+
+
+struct __index_tuple_maker
+{
+  template<class... Args>
+  auto operator()(Args&&... args) const
+    -> decltype(
+         __make_index_tuple(std::forward<Args>(args)...)
+       )
+  {
+    return __make_index_tuple(std::forward<Args>(args)...);
+  }
+};
+
+
+}
+
