@@ -142,6 +142,13 @@ class __basic_execution_policy
       return __basic_execution_policy<ExecutionAgent,OtherBulkExecutor,ExecutionCategory>(param(), executor);
     }
 
+    template<class Arg1, class... Args>
+    typename __disable_if_nested_call<__basic_execution_policy, Arg1, Args...>::type
+      operator()(Arg1&& arg1, Args&&... args) const
+    {
+      return __basic_execution_policy(param_type{std::forward<Arg1>(arg1), std::forward<Args>(args)...}, executor());
+    }
+
   protected:
     param_type param_;
 
@@ -300,12 +307,12 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_a
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
-    // XXX we should try to move the implementation of this into the base class
     template<class Arg1, class... Args>
     typename __disable_if_nested_call<sequential_execution_policy, Arg1, Args...>::type
       operator()(Arg1&& arg1, Args&&... args) const
     {
-      return sequential_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+      // note we convert the result of super_t::operator() to sequential_execution_policy
+      return super_t::operator()(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
 };
 
@@ -335,12 +342,11 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_a
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
-    // XXX we should try to move the implementation of this into the base class
     template<class Arg1, class... Args>
     typename __disable_if_nested_call<concurrent_execution_policy, Arg1, Args...>::type
       operator()(Arg1&& arg1, Args&&... args) const
     {
-      return concurrent_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+      return super_t::operator()(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
 };
 
@@ -370,12 +376,11 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_agent
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
-    // XXX we should try to move the implementation of this into the base class
     template<class Arg1, class... Args>
     typename __disable_if_nested_call<parallel_execution_policy, Arg1, Args...>::type
       operator()(Arg1&& arg1, Args&&... args) const
     {
-      return parallel_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+      return super_t::operator()(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
 };
 
@@ -405,12 +410,11 @@ class vector_execution_policy : public __basic_execution_policy<vector_agent, ve
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
-    // XXX we should try to move the implementation of this into the base class
     template<class Arg1, class... Args>
     typename __disable_if_nested_call<vector_execution_policy, Arg1, Args...>::type
       operator()(Arg1&& arg1, Args&&... args) const
     {
-      return vector_execution_policy(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+      return super_t::operator()(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
 };
 
