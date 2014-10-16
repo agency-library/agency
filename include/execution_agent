@@ -481,15 +481,6 @@ class __execution_group
       return domain_type{min,max};
     }
 
-    // XXX eliminate this -- all we need is .domain()
-    static auto shape(const param_type& param)
-      -> decltype(
-           domain(param).shape()
-         )
-    {
-      return domain(param).shape();
-    }
-
     size_t group_size() const
     {
       return outer().group_size();
