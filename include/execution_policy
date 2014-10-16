@@ -1,17 +1,5 @@
 #pragma once
 
-// XXX consider implementing the following inheritance relationship:
-// sequential_agent -> concurrent_agent -> parallel_agent -> vector_agent
-// that way a lambda which expects a parallel_agent could always be executable with async(seq)
-//
-// XXX consider doing away with groups & std::agent
-// XXX and just implement the following inheritance:
-//     sequential_agent -> concurrent_agent -> parallel_agent -> vector_agent
-//     std::agent would be a synonym for one of these
-// if i have a sequential_agent i should be able to execute a parallel task
-// if i have a concurrent_agent i should be able to execute a parallel task or a vector task
-// if i have a parallel_agent i should be able to execute a vector task
-
 #include <future>
 #include <utility>
 #include <barrier>
@@ -116,14 +104,26 @@ class __basic_execution_policy
   public:
     using param_type           = typename agent_traits::param_type;
 
-    inline __basic_execution_policy(const __basic_execution_policy& other)
-      : param_(other.param_),
-        executor_(other.executor_)
-    {} 
+    __basic_execution_policy() = default;
+    __basic_execution_policy(const __basic_execution_policy&) = default;
+    __basic_execution_policy(__basic_execution_policy&&) = default;
 
-    inline __basic_execution_policy(const param_type& param, const executor_type& executor = executor_type())
+    __basic_execution_policy(const param_type& param, const executor_type& executor = executor_type{})
       : param_(param),
         executor_(executor)
+    {}
+
+    // this constructor matches everything else and assumes that all arguments should be forwarded 
+    // to the param_type's constructor
+    template<class Arg1, class... Args,
+             class = typename std::enable_if<
+               !std::is_same<
+                 std::decay_t<Arg1>, param_type
+                >::value
+             >::type>
+    __basic_execution_policy(Arg1&& param_arg1, Args&&... param_args)
+      : param_(std::forward<Arg1>(param_arg1), std::forward<Args>(param_args)...),
+        executor_{}
     {}
 
     const param_type& param() const
@@ -265,7 +265,7 @@ class __nested_execution_policy
     using typename super_t::executor_type;
 
     __nested_execution_policy(const outer_execution_policy_type& outer_exec,
-                                  const inner_execution_policy_type& inner_exec)
+                              const inner_execution_policy_type& inner_exec)
       : super_t(typename execution_agent_type::param_type(outer_exec.param(), inner_exec.param()),
                 executor_type(outer_exec.executor(), inner_exec.executor()))
     {}
@@ -287,19 +287,10 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_a
     using super_t = __basic_execution_policy<sequential_agent, sequential_executor>;
 
   public:
-    using typename super_t::execution_agent_type;
-
-    sequential_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(param)
-    {}
-
-    sequential_execution_policy(size_t indices_begin, size_t indices_end)
-      : sequential_execution_policy(execution_agent_type::param_type(indices_begin, indices_end))
-    {}
-
-    sequential_execution_policy(size_t n) : sequential_execution_policy(0, n) {}
+    using super_t::__basic_execution_policy;
 
     // this is the nested form of operator()
+    // XXX we should try to move the implementation of this into the base class
     template<class OtherExecutionPolicy>
     __nested_execution_policy<sequential_execution_policy, OtherExecutionPolicy>
       operator()(size_t n, const OtherExecutionPolicy &exec) const
@@ -309,6 +300,7 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_a
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
+    // XXX we should try to move the implementation of this into the base class
     template<class Arg1, class... Args>
     typename __disable_if_nested_call<sequential_execution_policy, Arg1, Args...>::type
       operator()(Arg1&& arg1, Args&&... args) const
@@ -330,19 +322,10 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_a
     using super_t = __basic_execution_policy<concurrent_agent, concurrent_executor>;
 
   public:
-    using typename super_t::execution_agent_type;
-
-    concurrent_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(param)
-    {}
-
-    concurrent_execution_policy(size_t indices_begin, size_t indices_end)
-      : concurrent_execution_policy(execution_agent_type::param_type(indices_begin, indices_end))
-    {}
-
-    concurrent_execution_policy(size_t n) : concurrent_execution_policy(0, n) {}
+    using super_t::__basic_execution_policy;
 
     // this is the nested form of operator()
+    // XXX we should try to move the implementation of this into the base class
     template<class OtherExecutionPolicy>
     __nested_execution_policy<concurrent_execution_policy, OtherExecutionPolicy>
       operator()(size_t n, const OtherExecutionPolicy &exec) const
@@ -352,6 +335,7 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_a
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
+    // XXX we should try to move the implementation of this into the base class
     template<class Arg1, class... Args>
     typename __disable_if_nested_call<concurrent_execution_policy, Arg1, Args...>::type
       operator()(Arg1&& arg1, Args&&... args) const
@@ -373,21 +357,10 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_agent
     using super_t = __basic_execution_policy<parallel_agent, parallel_executor>;
 
   public:
-    using typename super_t::execution_agent_type;
-
-    parallel_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(param)
-    {}
-
-    parallel_execution_policy(size_t indices_begin, size_t indices_end)
-      : parallel_execution_policy(execution_agent_type::param_type(indices_begin, indices_end))
-    {}
-
-    parallel_execution_policy(size_t n) : parallel_execution_policy(0, n) {}
-
-    parallel_execution_policy() : parallel_execution_policy(1) {}
+    using super_t::__basic_execution_policy;
 
     // this is the nested form of operator()
+    // XXX we should try to move the implementation of this into the base class
     template<class OtherExecutionPolicy>
     __nested_execution_policy<parallel_execution_policy, OtherExecutionPolicy>
       operator()(size_t n, const OtherExecutionPolicy &exec) const
@@ -397,6 +370,7 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_agent
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
+    // XXX we should try to move the implementation of this into the base class
     template<class Arg1, class... Args>
     typename __disable_if_nested_call<parallel_execution_policy, Arg1, Args...>::type
       operator()(Arg1&& arg1, Args&&... args) const
@@ -409,7 +383,7 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_agent
 template<> struct is_execution_policy<parallel_execution_policy> : std::true_type {};
 
 
-const parallel_execution_policy par;
+const parallel_execution_policy par{};
 
 
 class vector_execution_policy : public __basic_execution_policy<vector_agent, vector_executor>
@@ -418,21 +392,10 @@ class vector_execution_policy : public __basic_execution_policy<vector_agent, ve
     using super_t = __basic_execution_policy<vector_agent, vector_executor>;
 
   public:
-    using typename super_t::execution_agent_type;
-
-    vector_execution_policy(const execution_agent_type::param_type& param)
-      : super_t(param)
-    {}
-
-    vector_execution_policy(size_t indices_begin, size_t indices_end)
-      : vector_execution_policy(execution_agent_type::param_type(indices_begin, indices_end))
-    {}
-
-    vector_execution_policy(size_t n) : vector_execution_policy(0, n) {}
-
-    vector_execution_policy() : vector_execution_policy(1) {}
+    using super_t::__basic_execution_policy;
 
     // this is the nested form of operator()
+    // XXX we should try to move the implementation of this into the base class
     template<class OtherExecutionPolicy>
     __nested_execution_policy<vector_execution_policy, OtherExecutionPolicy>
       operator()(size_t n, const OtherExecutionPolicy &exec) const
@@ -442,6 +405,7 @@ class vector_execution_policy : public __basic_execution_policy<vector_agent, ve
 
     // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
     // this is the flat form of operator()
+    // XXX we should try to move the implementation of this into the base class
     template<class Arg1, class... Args>
     typename __disable_if_nested_call<vector_execution_policy, Arg1, Args...>::type
       operator()(Arg1&& arg1, Args&&... args) const
@@ -454,7 +418,7 @@ class vector_execution_policy : public __basic_execution_policy<vector_agent, ve
 template<> struct is_execution_policy<vector_execution_policy> : std::true_type {};
 
 
-const vector_execution_policy vec;
+const vector_execution_policy vec{};
 
 
 template<class ExecutionPolicy, class Function, class... Args>
