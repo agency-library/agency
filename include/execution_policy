@@ -128,31 +128,10 @@ class __basic_execution_policy
     using param_type           = typename agent_traits::param_type;
 
     __basic_execution_policy() = default;
-    __basic_execution_policy(const __basic_execution_policy&) = default;
-    __basic_execution_policy(__basic_execution_policy&&) = default;
 
     __basic_execution_policy(const param_type& param, const executor_type& executor = executor_type{})
       : param_(param),
         executor_(executor)
-    {}
-
-    // this constructor matches everything else and assumes that all arguments should be forwarded 
-    // to the param_type's constructor
-    template<class Arg1, class... Args,
-             class = typename std::enable_if<
-               !std::is_same<
-                 std::decay_t<Arg1>, param_type
-                >::value
-             >::type>
-    __basic_execution_policy(Arg1&& param_arg1, Args&&... param_args)
-      : param_(std::forward<Arg1>(param_arg1), std::forward<Args>(param_args)...),
-        executor_{}
-    {}
-
-    template<class Arg1, class... Args>
-    __basic_execution_policy(std::initializer_list<Arg1> param_arg1, std::initializer_list<Args>... param_args)
-      : param_(std::move(param_arg1), std::move(param_args)...),
-        executor_{}
     {}
 
     const param_type& param() const
@@ -331,6 +310,13 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_a
   public:
     using super_t::__basic_execution_policy;
 
+    // XXX we shouldn't have to include either of these constructors due to the
+    // using above
+    sequential_execution_policy() = default;
+    sequential_execution_policy(const super_t& other)
+      : super_t(other)
+    {}
+
     // this is the nested form of operator()
     // XXX we should try to move the implementation of this into the base class
     template<class OtherExecutionPolicy>
@@ -355,7 +341,7 @@ class sequential_execution_policy : public __basic_execution_policy<sequential_a
 template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
 
 
-const sequential_execution_policy seq{1};
+const sequential_execution_policy seq{};
 
 
 class concurrent_execution_policy : public __basic_execution_policy<concurrent_agent, concurrent_executor>
@@ -365,6 +351,13 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_a
 
   public:
     using super_t::__basic_execution_policy;
+
+    // XXX we shouldn't have to include either of these constructors due to the
+    // using above
+    concurrent_execution_policy() = default;
+    concurrent_execution_policy(const super_t& other)
+      : super_t(other)
+    {}
 
     // this is the nested form of operator()
     // XXX we should try to move the implementation of this into the base class
@@ -389,7 +382,7 @@ class concurrent_execution_policy : public __basic_execution_policy<concurrent_a
 template<> struct is_execution_policy<concurrent_execution_policy> : std::true_type {};
 
 
-const concurrent_execution_policy con{1};
+const concurrent_execution_policy con{};
 
 
 class parallel_execution_policy : public __basic_execution_policy<parallel_agent, parallel_executor>
@@ -399,6 +392,13 @@ class parallel_execution_policy : public __basic_execution_policy<parallel_agent
 
   public:
     using super_t::__basic_execution_policy;
+
+    // XXX we shouldn't have to include either of these constructors due to the
+    // using above
+    parallel_execution_policy() = default;
+    parallel_execution_policy(const super_t& other)
+      : super_t(other)
+    {}
 
     // this is the nested form of operator()
     // XXX we should try to move the implementation of this into the base class
@@ -433,6 +433,13 @@ class vector_execution_policy : public __basic_execution_policy<vector_agent, ve
 
   public:
     using super_t::__basic_execution_policy;
+
+    // XXX we shouldn't have to include either of these constructors due to the
+    // using above
+    vector_execution_policy() = default;
+    vector_execution_policy(const super_t& other)
+      : super_t(other)
+    {}
 
     // this is the nested form of operator()
     // XXX we should try to move the implementation of this into the base class
