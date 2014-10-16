@@ -317,43 +317,50 @@ struct __agent_access_helper : public ExecutionAgent
 
 
 // __make_agent helper function passes a noop functor to the agent's constructor and filters out shared parameters when necessary
-template<class ExecutionAgent, class Tuple>
-ExecutionAgent __make_agent(const Tuple& indices, const typename std::execution_agent_traits<ExecutionAgent>::param_type& param)
+template<class ExecutionAgent>
+ExecutionAgent __make_agent(const typename std::execution_agent_traits<ExecutionAgent>::index_type& index,
+                            const typename std::execution_agent_traits<ExecutionAgent>::param_type& param)
 {
   auto noop = [](ExecutionAgent&){};
-  return __agent_access_helper<ExecutionAgent>(noop, indices, param);
+  return __agent_access_helper<ExecutionAgent>(noop, index, param);
 }
 
 // if an agent does not have a shared parameter, we ignore the last parameter
-template<class ExecutionAgent, class Tuple, class T>
-static ExecutionAgent __make_agent(const Tuple& indices, const typename std::execution_agent_traits<ExecutionAgent>::param_type& param, T&&,
+template<class ExecutionAgent, class T>
+static ExecutionAgent __make_agent(const typename std::execution_agent_traits<ExecutionAgent>::index_type& index,
+                                   const typename std::execution_agent_traits<ExecutionAgent>::param_type& param,
+                                   T&&,
                                    typename std::enable_if<
                                      !std::execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
                                    >::type* = 0)
 {
-  return __make_agent<ExecutionAgent>(indices, param);
+  return __make_agent<ExecutionAgent>(index, param);
 }
 
 // tupled shared parameters are recieved by const reference
-template<class ExecutionAgent, class Tuple1, class Tuple2>
-static ExecutionAgent __make_agent(const Tuple1& indices, const typename std::execution_agent_traits<ExecutionAgent>::param_type& param, const Tuple2& shared_param_tuple,
+template<class ExecutionAgent, class Tuple>
+static ExecutionAgent __make_agent(const typename std::execution_agent_traits<ExecutionAgent>::index_type& index,
+                                   const typename std::execution_agent_traits<ExecutionAgent>::param_type& param,
+                                   const Tuple& shared_param_tuple,
                                    typename std::enable_if<
                                      std::execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
                                    >::type* = 0)
 {
   auto noop = [](ExecutionAgent&){};
-  return __agent_access_helper<ExecutionAgent>(noop, indices, param, shared_param_tuple);
+  return __agent_access_helper<ExecutionAgent>(noop, index, param, shared_param_tuple);
 }
 
 // scalar shared parameters are received by mutable reference
-template<class ExecutionAgent, class Tuple, class T>
-static ExecutionAgent __make_agent(const Tuple& indices, const typename std::execution_agent_traits<ExecutionAgent>::param_type& param, T& shared_param,
+template<class ExecutionAgent, class T>
+static ExecutionAgent __make_agent(const typename std::execution_agent_traits<ExecutionAgent>::index_type& index,
+                                   const typename std::execution_agent_traits<ExecutionAgent>::param_type& param,
+                                   T& shared_param,
                                    typename std::enable_if<
                                      std::execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
                                    >::type* = 0)
 {
   auto noop = [](ExecutionAgent&){};
-  return __agent_access_helper<ExecutionAgent>(noop, indices, param, shared_param);
+  return __agent_access_helper<ExecutionAgent>(noop, index, param, shared_param);
 }
 
 
