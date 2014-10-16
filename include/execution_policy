@@ -15,6 +15,7 @@
 #include <nested_executor>
 #include <memory>
 #include <tuple>
+#include <initializer_list>
 #include <__shape_cast>
 #include <__index_cast>
 
@@ -126,6 +127,12 @@ class __basic_execution_policy
         executor_{}
     {}
 
+    template<class Arg1, class... Args>
+    __basic_execution_policy(std::initializer_list<Arg1> param_arg1, std::initializer_list<Args>... param_args)
+      : param_(std::move(param_arg1), std::move(param_args)...),
+        executor_{}
+    {}
+
     const param_type& param() const
     {
       return param_;
@@ -147,6 +154,12 @@ class __basic_execution_policy
       operator()(Arg1&& arg1, Args&&... args) const
     {
       return __basic_execution_policy(param_type{std::forward<Arg1>(arg1), std::forward<Args>(args)...}, executor());
+    }
+
+    template<class Arg1, class... Args>
+    __basic_execution_policy operator()(std::initializer_list<Arg1> arg1, std::initializer_list<Args>... args) const
+    {
+      return __basic_execution_policy(param_type{std::move(arg1), std::move(args)...}, executor());
     }
 
   protected:
