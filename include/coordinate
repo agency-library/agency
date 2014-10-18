@@ -22,13 +22,6 @@ class point : public __small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T
 };
 
 
-template<class T1, size_t Rank, class T2>
-struct common_type<point<T1,Rank>,point<T2,Rank>>
-{
-  using type = point<typename common_type<T1,T2>::type, Rank>;
-};
-
-
 // scalar multiply
 // XXX fix return type -- it should be point<common_type,Rank>
 template<class T1, class T2, size_t Rank>
@@ -38,7 +31,7 @@ typename enable_if<
 >::type
   operator*(T1 val, const point<T2,Rank>& p)
 {
-  using result_type = point<common_type_t<T1,T2>, Rank>;
+  using result_type = point<T2, Rank>;
 
   return result_type(val) * p;
 }

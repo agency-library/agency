@@ -101,12 +101,12 @@ auto tuple_tail(Tuple&& t)
 template<size_t... I, class Tuple>
 auto __tuple_take_impl(Tuple&& t, __index_sequence<I...>)
   -> decltype(
-       std::tie(
+       std::make_tuple(
          std::get<I>(std::forward<Tuple>(t))...
        )
      )
 {
-  return std::tie(std::get<I>(std::forward<Tuple>(t))...);
+  return std::make_tuple(std::get<I>(std::forward<Tuple>(t))...);
 }
 
 template<size_t N, class Tuple>
@@ -292,24 +292,24 @@ T tuple_reduce(Tuple&& t, T init, Function f,
 }
 
 
-template<class Tuple, class Function>
+template<class Function, class Tuple1, class... Tuples>
 typename std::enable_if<
-  (std::tuple_size<__decay_t<Tuple>>::value == 0)
+  (std::tuple_size<__decay_t<Tuple1>>::value == 0)
 >::type
-  tuple_for_each(Tuple&& t, Function f)
+  tuple_for_each(Function f, Tuple1&& t1, Tuples&&... ts)
 {
   ;
 }
 
 
-template<class Tuple, class Function>
+template<class Function, class Tuple1, class... Tuples>
 typename std::enable_if<
-  (std::tuple_size<__decay_t<Tuple>>::value > 0)
+  (std::tuple_size<__decay_t<Tuple1>>::value > 0)
 >::type
-  tuple_for_each(Tuple&& t, Function f)
+  tuple_for_each(Function f, Tuple1&& t1, Tuples&&... ts)
 {
-  f(tuple_head(std::forward<Tuple>(t)));
-  tuple_for_each(tuple_tail(std::forward<Tuple>(t)), f);
+  f(tuple_head(std::forward<Tuple1>(t1)), tuple_head(std::forward<Tuples>(ts))...);
+  tuple_for_each(f, tuple_tail(std::forward<Tuple1>(t1)), tuple_tail(std::forward<Tuples>(ts))...);
 }
 
 
@@ -429,7 +429,18 @@ auto tuple_cat_apply(Function f, Tuples&&... tuples)
 }
 
 
+template<class... Tuples>
+auto tuple_zip(Tuples&&... tuples)
+  -> decltype(
+       tuple_map(__std_tuple_maker{}, std::forward<Tuples>(tuples)...)
+     )
+{
+  return tuple_map(__std_tuple_maker{}, std::forward<Tuples>(tuples)...);
+}
+
+
 #ifdef TUPLE_UTILITY_NAMESPACE
 } // close namespace
 #endif // TUPLE_UTILITY_NAMESPACE
+
 
