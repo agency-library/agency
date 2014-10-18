@@ -464,7 +464,9 @@ class __execution_group
       return index_cat(this->outer().index(), this->inner().index());
     }
 
-    using index_type = decltype(std::declval<__execution_group>().index());
+    using index_type = typename std::result_of<
+      decltype(&__execution_group::index)(__execution_group)
+    >::type;
 
     using domain_type = std::regular_grid<index_type>;
 
