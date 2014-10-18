@@ -228,7 +228,9 @@ class regular_grid
       return max() - min();
     }
 
-    using index_type = decltype(std::declval<regular_grid>().shape());
+    using index_type = typename std::result_of<
+      decltype(&regular_grid::shape)(regular_grid)
+    >::type;
 
     // XXX should create a grid empty of points
     regular_grid() = default;
