@@ -39,3 +39,13 @@ The design of the library is intended to achieve the following goals:
   * Interface to the underlying platform via executors
 
   * Provide a mechanism for controlling the placement of work to be created
+
+# Building the Example Programs
+
+Programs with filenames ending in the `.cpp` extension are compilable with a C++11 compiler, e.g.:
+
+    $ g++ -std=c++11 -Iinclude example.cpp
+    
+Programs with filenames ending in the `.cu` extension are compilable with the NVIDIA compiler, e.g.:
+
+    $ nvcc -std=c++11 -Iinclude example.cu
