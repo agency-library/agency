@@ -115,6 +115,13 @@ class parallel_execution_policy : public std::__basic_execution_policy<cuda::par
 
     using super_t::__basic_execution_policy;
 
+    // XXX we shouldn't have to include either of these constructors due to the
+    // using above
+    parallel_execution_policy() = default;
+    parallel_execution_policy(const super_t& other)
+      : super_t(other)
+    {}
+
     parallel_execution_policy(const param_type& param, const executor_type& executor = executor_type())
       : super_t(param, executor)
     {}
@@ -124,7 +131,16 @@ class parallel_execution_policy : public std::__basic_execution_policy<cuda::par
       : parallel_execution_policy(param_type(param.domain().min(), param.domain().max()),
                                   executor)
     {}
+
+    template<class Arg1, class... Args>
+    parallel_execution_policy operator()(Arg1&& arg1, Args&&... args) const
+    {
+      return super_t::operator()(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+    }
 };
+
+
+const parallel_execution_policy par{};
 
 
 class concurrent_execution_policy : public std::__basic_execution_policy<cuda::concurrent_agent, cuda::block_executor>
