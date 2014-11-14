@@ -45,10 +45,6 @@ template<bool Value1> struct __all_of<Value1>
 {};
 
 
-template<class T1, class T2>
-using common_type_t = typename common_type<T1,T2>::type;
-
-
 template<typename Derived, typename T, std::size_t Rank>
   class __small_vector_facade : public __arithmetic_tuple_facade<Derived>
 {
@@ -201,6 +197,7 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
 
 
     __small_vector_adaptor()
+      : __small_vector_adaptor(value_type{})
     {
       for(size_type i = 0; i != super_t::rank; ++i)
       {
@@ -230,9 +227,11 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
     {}
 
 
+    // XXX need to only enable this if the initializer_list is the right size
+    //     but we can't do that until c++14
     template<class OtherT,
-             typename = typename enable_if<
-               is_convertible<OtherT,value_type>::value
+             typename = typename std::enable_if<
+               std::is_convertible<OtherT,value_type>::value
              >::type>
     __small_vector_adaptor(std::initializer_list<OtherT> l)
     {
@@ -241,11 +240,11 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
 
 
     // XXX should fully parameterize this
-    template<class OtherDerived, class OtherT>
-    __small_vector_adaptor(const __small_vector_facade<OtherDerived,OtherT,Rank>& other,
-                           typename enable_if<
-                             is_convertible<OtherT,value_type>::value
-                           >::type* = 0)
+    template<class OtherDerived, class OtherT,
+             class = typename std::enable_if<
+               std::is_convertible<OtherT,value_type>::value
+             >::type>
+    __small_vector_adaptor(const __small_vector_facade<OtherDerived,OtherT,Rank>& other)
     {
       for(size_type i = 0; i < super_t::size(); ++i)
       {
@@ -255,12 +254,13 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
 
 
     // fills the vector with a constant value
-    template<class OtherT>
-    __small_vector_adaptor(OtherT val,
-                           typename enable_if<
-                             (Rank > 1) &&
-                             is_convertible<OtherT,value_type>::value
-                           >::type* = 0)
+    template<class OtherT,
+             class = typename std::enable_if<
+               (Rank > 1) &&
+               std::is_convertible<OtherT,value_type>::value
+             >::type
+             >
+    __small_vector_adaptor(OtherT val)
     {
       std::fill(super_t::begin(),super_t::end(),val);
     }
