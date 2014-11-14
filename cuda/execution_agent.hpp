@@ -21,6 +21,11 @@ struct domain
   {}
 
   __host__ __device__
+  domain(const value_type& size)
+    : min_(0), max_(size)
+  {}
+
+  __host__ __device__
   domain(const value_type& min, const value_type& max)
     : min_(min), max_(max)
   {}
@@ -112,7 +117,7 @@ class basic_execution_agent_base
 
         __host__ __device__
         param_type(index_type min, index_type max)
-          : domain_(min,max)
+          : param_type(domain_type(min,max))
         {}
 
         __host__ __device__
