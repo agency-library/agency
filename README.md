@@ -44,7 +44,7 @@ The design of the library is intended to achieve the following goals:
 
 Programs with filenames ending in the `.cpp` extension are compilable with a C++11 compiler, e.g.:
 
-    $ g++ -std=c++11 -Iinclude example.cpp
+    $ g++ -std=c++11 -Iinclude -pthread example.cpp
     
 Programs with filenames ending in the `.cu` extension are compilable with the NVIDIA compiler, e.g.:
 
