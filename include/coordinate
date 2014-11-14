@@ -18,9 +18,7 @@ class point : public __small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T
   using super_t = __small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T, Rank>;
 
   public:
-    // XXX WAR nvcc 6.5 issue
-    //using super_t::super_t;
-    using super_t::__small_vector_adaptor;
+    using super_t::super_t;
 };
 
 
