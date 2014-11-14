@@ -98,6 +98,8 @@ class basic_execution_agent_base
     class param_type
     {
       public:
+        param_type() = default;
+
         __host__ __device__
         param_type(const param_type& other)
           : domain_(other.domain_)
