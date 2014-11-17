@@ -4,7 +4,7 @@
 #include <utility>
 #include <future>
 #include <executor_traits>
-#include <__tuple_head>
+#include <agency/detail/tuple_utility.hpp>
 #include <__tuple_tail>
 #include <__tuple_of_references>
 #include <__make_tuple_if_not_nested>
@@ -107,7 +107,7 @@ class nested_executor
       auto inner_shape = this->inner_shape(shape);
 
       // split the shared argument tuple into the inner & outer portions
-      auto outer_shared_arg = tuple_head(shared_arg_tuple);
+      auto outer_shared_arg = __tu::tuple_head(shared_arg_tuple);
       auto inner_shared_arg_tuple = tuple_tail(shared_arg_tuple);
 
       // if the inner executor isn't nested, we need to unwrap the tail arguments
@@ -165,7 +165,7 @@ class nested_executor
     static outer_shape_type outer_shape(const shape_type& shape)
     {
       // the outer portion is always the head of the tuple
-      return tuple_head(shape);
+      return __tu::tuple_head(shape);
     }
 
     static inner_shape_type inner_shape(const shape_type& shape)

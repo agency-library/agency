@@ -5,7 +5,6 @@
 #include <type_traits>
 #include <barrier>
 #include <__type_traits>
-#include <__tuple_head>
 #include <__tuple_tail>
 #include <__unwrap_tuple_if_not_nested>
 #include <__make_tuple_if_not_nested>
@@ -508,7 +507,7 @@ class __execution_group
 
     template<class Function, class Tuple>
     __execution_group(Function f, const index_type& index, const param_type& param, Tuple& shared_param)
-      : outer_agent_(__make_agent<outer_execution_agent_type>(outer_index(index), std::get<0>(param), tuple_head(shared_param))),
+      : outer_agent_(__make_agent<outer_execution_agent_type>(outer_index(index), std::get<0>(param), __tu::tuple_head(shared_param))),
         inner_agent_(__make_agent<inner_execution_agent_type>(inner_index(index), std::get<1>(param), tuple_tail(shared_param)))
     {
       f(*this);
