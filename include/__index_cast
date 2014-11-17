@@ -2,7 +2,7 @@
 
 #include <type_traits>
 #include <tuple>
-#include <__shape_cast>
+#include <agency/detail/shape_cast.hpp>
 #include <__index_tuple>
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/coordinate.hpp>

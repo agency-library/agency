@@ -6,21 +6,23 @@
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/coordinate.hpp>
 
-namespace std
+namespace agency
+{
+namespace detail
 {
 
 
-template<class T, size_t N, class Enable = void> struct __rebind_point_size_impl;
+template<class T, size_t N, class Enable = void> struct rebind_point_size_impl;
 
 template<template<class,size_t> class point, class T, size_t N, size_t M>
-struct __rebind_point_size_impl<point<T,N>, M>
+struct rebind_point_size_impl<point<T,N>, M>
 {
   using type = point<T,M>;
 };
 
 
 template<class T, size_t N>
-struct __rebind_point_size_impl<T, N,
+struct rebind_point_size_impl<T, N,
   typename std::enable_if<
     std::is_arithmetic<T>::value
   >::type
@@ -31,21 +33,21 @@ struct __rebind_point_size_impl<T, N,
 
 
 template<class T, size_t N>
-struct __rebind_point_size
+struct rebind_point_size
 {
-  using type = typename __rebind_point_size_impl<T,N>::type;
+  using type = typename rebind_point_size_impl<T,N>::type;
 };
 
 template<class T, size_t N>
-using __rebind_point_size_t = typename __rebind_point_size<T,N>::type;
+using rebind_point_size_t = typename rebind_point_size<T,N>::type;
 
 
 template<class T, class Enable = void>
-struct __point_size : std::tuple_size<T> {};
+struct point_size : std::tuple_size<T> {};
 
 
 template<class T>
-struct __point_size<
+struct point_size<
   T,
   typename std::enable_if<
     std::is_arithmetic<T>::value
@@ -58,12 +60,12 @@ struct __point_size<
 // reduces the dimensionality of x by eliding the last dimension
 // and multiplying the second-to-last dimension by the last 
 template<class Point>
-__rebind_point_size_t<
+rebind_point_size_t<
   Point,
-  __point_size<Point>::value - 1
-> __project_shape(const Point& x)
+  point_size<Point>::value - 1
+> project_shape(const Point& x)
 {
-  using result_type = __rebind_point_size_t<Point,std::tuple_size<Point>::value-1>;
+  using result_type = rebind_point_size_t<Point,std::tuple_size<Point>::value-1>;
 
   auto last = std::get<std::tuple_size<result_type>::value>(x);
 
@@ -78,16 +80,16 @@ __rebind_point_size_t<
 // increases the dimensionality of x
 // by appending a dimension (and setting it to 1)
 template<class Point>
-__rebind_point_size_t<
+rebind_point_size_t<
   Point,
-  __point_size<Point>::value + 1
-> __lift_shape(const Point& x)
+  point_size<Point>::value + 1
+> lift_shape(const Point& x)
 {
   // x could be a scalar, so create an intermediate which is at least a 1-element tuple
-  using intermediate_type = __rebind_point_size_t<Point,__point_size<Point>::value>;
+  using intermediate_type = rebind_point_size_t<Point,point_size<Point>::value>;
   intermediate_type intermediate{x};
 
-  using result_type = __rebind_point_size_t<Point,__point_size<Point>::value + 1>;
+  using result_type = rebind_point_size_t<Point,point_size<Point>::value + 1>;
 
   return __tu::make_from_tuple<result_type>(__tu::tuple_append(intermediate, 1));
 }
@@ -99,39 +101,39 @@ __rebind_point_size_t<
 // Scalar -> Scalar (base case)
 template<class ToShape, class FromShape>
 typename std::enable_if<
-  (__point_size<ToShape>::value == __point_size<FromShape>::value) &&
-  (__point_size<ToShape>::value == 1),
+  (point_size<ToShape>::value == point_size<FromShape>::value) &&
+  (point_size<ToShape>::value == 1),
   ToShape
 >::type
-  __shape_cast(const FromShape& x);
+  shape_cast(const FromShape& x);
 
 
 // recursive case for casting two shapes of equal size (recursive case)
 template<class ToShape, class FromShape>
 typename std::enable_if<
-  (__point_size<ToShape>::value == __point_size<FromShape>::value) &&
-  (__point_size<ToShape>::value > 1),
+  (point_size<ToShape>::value == point_size<FromShape>::value) &&
+  (point_size<ToShape>::value > 1),
   ToShape
 >::type
-  __shape_cast(const FromShape& x);
+  shape_cast(const FromShape& x);
 
 
 // downcast (recursive)
 template<class ToShape, class FromShape>
 typename std::enable_if<
-  (__point_size<ToShape>::value < __point_size<FromShape>::value),
+  (point_size<ToShape>::value < point_size<FromShape>::value),
   ToShape
 >::type
-  __shape_cast(const FromShape& x);
+  shape_cast(const FromShape& x);
 
 
 // upcast (recursive)
 template<class ToShape, class FromShape>
 typename std::enable_if<
-  (__point_size<ToShape>::value > __point_size<FromShape>::value),
+  (point_size<ToShape>::value > point_size<FromShape>::value),
   ToShape
 >::type
-  __shape_cast(const FromShape& x);
+  shape_cast(const FromShape& x);
 
 
 // definitions of __shape_cast follow
@@ -140,32 +142,32 @@ typename std::enable_if<
 // terminal case for casting shapes of size 1
 template<class ToShape, class FromShape>
 typename std::enable_if<
-  (__point_size<ToShape>::value == __point_size<FromShape>::value) &&
-  (__point_size<ToShape>::value == 1),
+  (point_size<ToShape>::value == point_size<FromShape>::value) &&
+  (point_size<ToShape>::value == 1),
   ToShape
 >::type
-  __shape_cast(const FromShape& x)
+  shape_cast(const FromShape& x)
 {
   // x might not be a tuple, but instead a scalar type
   // to ensure we can get the 0th value from x in a uniform way, lift it first
-  return ToShape{std::get<0>(__lift_shape(x))};
+  return ToShape{std::get<0>(lift_shape(x))};
 }
 
-struct __shape_cast_functor
+struct shape_cast_functor
 {
   template<class ToShape, class FromShape>
   auto operator()(const ToShape&, const FromShape& x)
     -> decltype(
-         __shape_cast<ToShape>(x)
+         shape_cast<ToShape>(x)
        )
   {
-    return __shape_cast<ToShape>(x);
+    return shape_cast<ToShape>(x);
   }
 };
 
 
 template<class T>
-struct __make
+struct make
 {
   template<class... Args>
   T operator()(Args&&... args)
@@ -178,39 +180,40 @@ struct __make
 // recursive case for casting to a shape of equal size
 template<class ToShape, class FromShape>
 typename std::enable_if<
-  (__point_size<ToShape>::value == __point_size<FromShape>::value) &&
-  (__point_size<ToShape>::value > 1),
+  (point_size<ToShape>::value == point_size<FromShape>::value) &&
+  (point_size<ToShape>::value > 1),
   ToShape
 >::type
-  __shape_cast(const FromShape& x)
+  shape_cast(const FromShape& x)
 {
-  return __tu::tuple_map_with_make(__shape_cast_functor{}, __make<ToShape>{}, ToShape{}, x);
+  return __tu::tuple_map_with_make(shape_cast_functor{}, make<ToShape>{}, ToShape{}, x);
 }
 
 
 // recursive case for casting to a lower dimensional shape
 template<class ToShape, class FromShape>
 typename std::enable_if<
-  (__point_size<ToShape>::value < __point_size<FromShape>::value),
+  (point_size<ToShape>::value < point_size<FromShape>::value),
   ToShape
 >::type
-  __shape_cast(const FromShape& x)
+  shape_cast(const FromShape& x)
 {
-  return __shape_cast<ToShape>(__project_shape(x));
+  return shape_cast<ToShape>(project_shape(x));
 }
 
 
 // recursive case for casting to a higher dimensional shape
 template<class ToShape, class FromShape>
 typename std::enable_if<
-  (__point_size<ToShape>::value > __point_size<FromShape>::value),
+  (point_size<ToShape>::value > point_size<FromShape>::value),
   ToShape
 >::type
-  __shape_cast(const FromShape& x)
+  shape_cast(const FromShape& x)
 {
-  return __shape_cast<ToShape>(__lift_shape(x));
+  return shape_cast<ToShape>(lift_shape(x));
 }
 
 
-} // end std
+} // end detail
+} // end agency
 

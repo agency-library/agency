@@ -16,7 +16,7 @@
 #include <memory>
 #include <tuple>
 #include <initializer_list>
-#include <__shape_cast>
+#include <agency/detail/shape_cast.hpp>
 #include <__index_cast>
 
 namespace std
@@ -174,7 +174,7 @@ void __bulk_invoke(ExecutionCategory1,
 
   // convert the shape of the agent into the type of the executor's shape
   using executor_shape_type = typename executor_traits<BulkExecutor>::shape_type;
-  executor_shape_type executor_shape = std::__shape_cast<executor_shape_type>(agent_shape);
+  executor_shape_type executor_shape = agency::detail::shape_cast<executor_shape_type>(agent_shape);
 
   return executor_traits<BulkExecutor>::bulk_invoke(exec.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
   {
@@ -208,7 +208,7 @@ std::future<void> __bulk_async(ExecutionCategory1,
 
   // convert the shape of the agent into the type of the executor's shape
   using executor_shape_type = typename executor_traits<BulkExecutor>::shape_type;
-  executor_shape_type executor_shape = std::__shape_cast<executor_shape_type>(agent_shape);
+  executor_shape_type executor_shape = agency::detail::shape_cast<executor_shape_type>(agent_shape);
 
   return executor_traits<BulkExecutor>::bulk_async(exec.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
   {
