@@ -6,7 +6,7 @@
 #include <barrier>
 #include <agency/detail/type_traits.hpp>
 #include <__tuple_tail>
-#include <__unwrap_tuple_if_not_nested>
+#include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 #include <__make_tuple_if_not_nested>
 #include <agency/detail/index_tuple.hpp>
 
@@ -523,7 +523,7 @@ class __execution_group
 
     static inner_index_type inner_index(const index_type& index)
     {
-      return __unwrap_tuple_if_not_nested<inner_execution_category>(__tu::tuple_tail(index));
+      return agency::detail::unwrap_tuple_if_not_nested<inner_execution_category>(__tu::tuple_tail(index));
     }
 
     outer_execution_agent_type outer_agent_;

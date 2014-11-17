@@ -8,7 +8,7 @@
 #include <__tuple_tail>
 #include <__tuple_of_references>
 #include <__make_tuple_if_not_nested>
-#include <__unwrap_tuple_if_not_nested>
+#include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 
 namespace std
 {
@@ -110,7 +110,7 @@ class nested_executor
       auto inner_shared_arg_tuple = tuple_tail(shared_arg_tuple);
 
       // if the inner executor isn't nested, we need to unwrap the tail arguments
-      auto inner_shared_arg = __unwrap_tuple_if_not_nested<inner_execution_category>(inner_shared_arg_tuple);
+      auto inner_shared_arg = agency::detail::unwrap_tuple_if_not_nested<inner_execution_category>(inner_shared_arg_tuple);
 
       // figure out what the type of the shared argument to the lambdas need to be 
       using outer_shared_ref_type = typename outer_traits::template shared_param_type<decltype(outer_shared_arg)>;
@@ -171,7 +171,7 @@ class nested_executor
     {
       // the inner portion is the tail of the tuple, but if the 
       // inner executor is not nested, then the tuple needs to be unwrapped
-      return __unwrap_tuple_if_not_nested<inner_execution_category>(tuple_tail(shape));
+      return agency::detail::unwrap_tuple_if_not_nested<inner_execution_category>(tuple_tail(shape));
     }
 
     outer_executor_type outer_ex_;
