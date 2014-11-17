@@ -4,7 +4,7 @@
 #include <tuple>
 #include <__shape_cast>
 #include <__index_tuple>
-#include <__tuple_utility>
+#include <agency/detail/tuple_utility.hpp>
 
 namespace std
 {
