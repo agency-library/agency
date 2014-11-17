@@ -17,7 +17,7 @@
 #include <tuple>
 #include <initializer_list>
 #include <agency/detail/shape_cast.hpp>
-#include <__index_cast>
+#include <agency/detail/index_cast.hpp>
 
 namespace std
 {
@@ -180,7 +180,7 @@ void __bulk_invoke(ExecutionCategory1,
   {
     // convert the index of the executor into the type of the agent's index
     using agent_index_type = typename traits::index_type;
-    auto agent_idx = std::__index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
+    auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
 
     traits::execute(f, agent_idx, param, shared_params);
   },
@@ -214,7 +214,7 @@ std::future<void> __bulk_async(ExecutionCategory1,
   {
     // convert the index of the executor into the type of the agent's index
     using agent_index_type = typename traits::index_type;
-    auto agent_idx = std::__index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
+    auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
 
     traits::execute(f, agent_idx, param, shared_params);
   },
