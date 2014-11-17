@@ -3,7 +3,7 @@
 #include <array>
 #include <initializer_list>
 #include <type_traits>
-#include <__small_vector_facade>
+#include <agency/detail/small_vector_facade.hpp>
 #include <array>
 #include <agency/detail/tuple_utility.hpp>
 
@@ -13,9 +13,9 @@ namespace std
 
 // T is any type with operators +, +=, -, -=, *, *=,  /, /=, <
 template<class T, size_t Rank>
-class point : public __small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T, Rank>
+class point : public agency::detail::small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T, Rank>
 {
-  using super_t = __small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T, Rank>;
+  using super_t = agency::detail::small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T, Rank>;
 
   public:
     using super_t::super_t;
@@ -248,8 +248,8 @@ class regular_grid
 
     template<class... Size,
              typename = typename enable_if<
-               __all_of<
-                 is_convertible<Size,size_t>::value...
+               agency::detail::all_of<
+                 std::is_convertible<Size,size_t>::value...
                >::value &&
                sizeof...(Size) == rank
              >::type 
@@ -306,8 +306,8 @@ class regular_grid
     // reshape does not move the origin
     template<class... Size,
              typename = typename enable_if<
-               __all_of<
-                 is_convertible<Size,size_t>::value...
+               agency::detail::all_of<
+                 std::is_convertible<Size,size_t>::value...
                >::value &&
                sizeof...(Size) == rank
              >::type 
