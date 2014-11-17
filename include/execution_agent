@@ -9,7 +9,7 @@
 #include <__tuple_tail>
 #include <__unwrap_tuple_if_not_nested>
 #include <__make_tuple_if_not_nested>
-#include <__index_tuple>
+#include <agency/detail/index_tuple.hpp>
 
 namespace std
 {
@@ -380,18 +380,18 @@ class __execution_group
     using inner_index_type = typename std::execution_agent_traits<InnerExecutionAgent>::index_type;
 
     // concatenates an outer index with an inner index
-    // returns an __index_tuple (not a std::tuple)
+    // returns an index_tuple with arithmetic ops (not a std::tuple)
     static auto index_cat(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
       -> decltype(
            __tu::tuple_cat_apply(
-             __index_tuple_maker{},
+             agency::detail::index_tuple_maker{},
              __make_tuple_if_not_nested<outer_execution_category>(outer_idx),
              __make_tuple_if_not_nested<inner_execution_category>(inner_idx)
            )
          )
     {
       return __tu::tuple_cat_apply(
-        __index_tuple_maker{},
+        agency::detail::index_tuple_maker{},
         __make_tuple_if_not_nested<outer_execution_category>(outer_idx),
         __make_tuple_if_not_nested<inner_execution_category>(inner_idx)
       );
