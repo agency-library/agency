@@ -4,7 +4,7 @@
 #include <agency/coordinate.hpp>
 #include <type_traits>
 #include <barrier>
-#include <__type_traits>
+#include <agency/detail/type_traits.hpp>
 #include <__tuple_tail>
 #include <__unwrap_tuple_if_not_nested>
 #include <__make_tuple_if_not_nested>
@@ -62,10 +62,10 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
 
   public:
 
-  using param_type = typename __lazy_conditional<
+  using param_type = typename agency::detail::lazy_conditional<
     __has_param_type<execution_agent_type>::value,
     execution_agent_param<execution_agent_type>,
-    __identity<size_type>
+    agency::detail::identity<size_type>
   >::type;
 
   // XXX what should we do if ExecutionAgent::domain(param) does not exist?

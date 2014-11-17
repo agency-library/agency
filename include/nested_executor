@@ -9,7 +9,6 @@
 #include <__tuple_of_references>
 #include <__make_tuple_if_not_nested>
 #include <__unwrap_tuple_if_not_nested>
-#include <__type_traits>
 
 namespace std
 {

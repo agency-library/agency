@@ -15,54 +15,33 @@ template<typename T> \
   typedef std::integral_constant<bool, value> type;\
 };
 
-namespace std
+namespace agency
+{
+namespace detail
 {
 
 
 template<bool b, typename T, typename F>
-struct __lazy_conditional
+struct lazy_conditional
 {
   using type = typename T::type;
 };
 
 
 template<typename T, typename F>
-struct __lazy_conditional<false,T,F>
+struct lazy_conditional<false,T,F>
 {
   using type = typename F::type;
 };
 
 
 template<typename T>
-struct __identity
+struct identity
 {
   typedef T type;
 };
 
 
-template<class T, class Enable = void>
-struct __is_tuple : std::false_type {};
-
-
-template<class T>
-struct __is_tuple<T, typename std::enable_if<(tuple_size<T>::value > 0)>::type>
-  : std::true_type
-{};
-
-
-template<class T, class Enable = void>
-struct __tuple_size_if_tuple_else_zero
-  : std::integral_constant<std::size_t, 0>
-{ 
-};
-
-
-template<class T>
-struct __tuple_size_if_tuple_else_zero<T, typename enable_if<__is_tuple<T>::value>::type>
-  : std::tuple_size<T>
-{
-};
-
-
-}
+} // end detail
+} // end agency
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <__type_traits>
+#include <agency/detail/type_traits.hpp>
 #include <__tuple_of_references>
 
 
@@ -33,16 +33,16 @@ struct executor_traits
 
     using execution_category = typename Executor::execution_category;
 
-    using index_type = typename __lazy_conditional<
+    using index_type = typename agency::detail::lazy_conditional<
       __has_index_type<executor_type>::value,
       executor_index<executor_type>,
-      __identity<size_t>
+      agency::detail::identity<size_t>
     >::type;
 
-    using shape_type = typename __lazy_conditional<
+    using shape_type = typename agency::detail::lazy_conditional<
       __has_shape_type<executor_type>::value,
       executor_shape<executor_type>,
-      __identity<index_type>
+      agency::detail::identity<index_type>
     >::type;
 
 
@@ -194,7 +194,7 @@ struct executor_traits
     // otherwise, it's just passed as a raw reference
     template<class T>
     struct shared_param_type_impl
-      : __lazy_conditional<
+      : agency::detail::lazy_conditional<
           __is_nested_execution_category<execution_category>::value,
           tuple_of_references_t<T>,
           std::add_lvalue_reference<T>
