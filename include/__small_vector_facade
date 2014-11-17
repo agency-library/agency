@@ -24,7 +24,7 @@ const T& get(const __small_vector_facade<Derived,T,Rank>& x);
 
 #include <type_traits>
 #include <algorithm>
-#include <__operator_traits>
+#include <agency/detail/operator_traits.hpp>
 #include <agency/detail/arithmetic_tuple_facade.hpp>
 #include <iostream>
 #include <array>
@@ -48,7 +48,7 @@ template<bool Value1> struct __all_of<Value1>
 template<typename Derived, typename T, std::size_t Rank>
   class __small_vector_facade : public agency::detail::arithmetic_tuple_facade<Derived>
 {
-  static_assert(__has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
+  static_assert(agency::detail::has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
   static_assert(Rank > 0, "Rank must be greater than 0.");
 
   public:
@@ -183,7 +183,7 @@ const T& get(const __small_vector_facade<Derived,T,Rank>& x)
 template<typename Derived, typename Base, typename T, std::size_t Rank>
   class __small_vector_adaptor : public __small_vector_facade<Derived, T, Rank>
 {
-  static_assert(__has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
+  static_assert(agency::detail::has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
   static_assert(Rank > 0, "Rank must be greater than 0.");
 
   using super_t = __small_vector_facade<Derived,T,Rank>;

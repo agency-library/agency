@@ -26,7 +26,7 @@ class point : public __small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T
 // XXX fix return type -- it should be point<common_type,Rank>
 template<class T1, class T2, size_t Rank>
 typename enable_if<
-  (is_arithmetic<T1>::value && __has_operator_multiplies<T1,T2>::value),
+  (is_arithmetic<T1>::value && agency::detail::has_operator_multiplies<T1,T2>::value),
   point<T2,Rank>
 >::type
   operator*(T1 val, const point<T2,Rank>& p)
