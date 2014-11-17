@@ -1,6 +1,6 @@
 #pragma once
 
-#include <__arithmetic_tuple_facade>
+#include <agency/detail/arithmetic_tuple_facade.hpp>
 #include <tuple>
 #include <type_traits>
 
@@ -11,7 +11,7 @@ namespace std
 template<class... Indices>
 class __index_tuple :
   public std::tuple<Indices...>,
-  public __arithmetic_tuple_facade<__index_tuple<Indices...>>
+  public agency::detail::arithmetic_tuple_facade<__index_tuple<Indices...>>
 {
   public:
     using std::tuple<Indices...>::tuple;

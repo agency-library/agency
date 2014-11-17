@@ -5,12 +5,14 @@
 #include <agency/detail/tuple_utility.hpp>
 #include <iostream>
 
-namespace std
+namespace agency
+{
+namespace detail
 {
 
 
 template<typename Derived>
-  class __arithmetic_tuple_facade
+  class arithmetic_tuple_facade
 {
   private:
     struct plus_assign
@@ -169,7 +171,7 @@ template<typename Derived>
   Derived operator+(const ArithmeticTuple& rhs) const
   {
     Derived result = derived();
-    static_cast<__arithmetic_tuple_facade&>(result) += rhs;
+    static_cast<arithmetic_tuple_facade&>(result) += rhs;
     return result;
   }
 
@@ -180,7 +182,7 @@ template<typename Derived>
   Derived operator-(const ArithmeticTuple& rhs) const
   {
     Derived result = derived();
-    static_cast<__arithmetic_tuple_facade&>(result) -= rhs;
+    static_cast<arithmetic_tuple_facade&>(result) -= rhs;
     return result;
   }
 
@@ -191,7 +193,7 @@ template<typename Derived>
   Derived operator*(const ArithmeticTuple& rhs) const
   {
     Derived result = derived();
-    static_cast<__arithmetic_tuple_facade&>(result) *= rhs;
+    static_cast<arithmetic_tuple_facade&>(result) *= rhs;
     return result;
   }
 
@@ -202,7 +204,7 @@ template<typename Derived>
   Derived operator/(const ArithmeticTuple& rhs) const
   {
     Derived result = derived();
-    static_cast<__arithmetic_tuple_facade&>(result) /= rhs;
+    static_cast<arithmetic_tuple_facade&>(result) /= rhs;
     return result;
   }
 
@@ -233,7 +235,7 @@ template<typename Derived>
     return !operator<(rhs);
   }
 
-  friend std::ostream& operator<<(std::ostream& os, const __arithmetic_tuple_facade& t)
+  friend std::ostream& operator<<(std::ostream& os, const arithmetic_tuple_facade& t)
   {
     os << "{";
     __tu::tuple_print(t.derived(), os);
@@ -244,5 +246,6 @@ template<typename Derived>
 };
 
 
-}
+} // end detail
+} // end agency
 
