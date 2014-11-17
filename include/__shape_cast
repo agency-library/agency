@@ -4,7 +4,7 @@
 #include <utility>
 #include <type_traits>
 #include <agency/detail/tuple_utility.hpp>
-#include <coordinate>
+#include <agency/coordinate.hpp>
 
 namespace std
 {
@@ -26,7 +26,7 @@ struct __rebind_point_size_impl<T, N,
   >::type
 >
 {
-  using type = std::point<T,N>;
+  using type = agency::point<T,N>;
 };
 
 

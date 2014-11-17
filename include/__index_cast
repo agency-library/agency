@@ -5,6 +5,7 @@
 #include <__shape_cast>
 #include <__index_tuple>
 #include <agency/detail/tuple_utility.hpp>
+#include <agency/coordinate.hpp>
 
 namespace std
 {
@@ -127,7 +128,7 @@ auto __lift_index(const Index& idx, const Shape& shape)
   // to lift idx into shape,
   // take the last element of idx and divide by the corresponding element of shape
   // replace the last element of idx with the remainder and append the quotient
-  const auto i = __index_size<Index>::value - 1;
+  const auto i = agency::detail::index_size<Index>::value - 1;
 
   auto idx_tuple = __make_tuple_if_not_one_already(idx);
 
@@ -142,7 +143,7 @@ auto __lift_index(const Index& idx, const Shape& shape)
 // when both index types are the same size, __index_cast is the identity operation
 template<class ToIndex, class FromIndex, class FromShape, class ToShape>
 typename std::enable_if<
-  (__index_size<FromIndex>::value == __index_size<ToIndex>::value),
+  (agency::detail::index_size<FromIndex>::value == agency::detail::index_size<ToIndex>::value),
   ToIndex
 >::type
   __index_cast(const FromIndex& from_idx,
@@ -156,7 +157,7 @@ typename std::enable_if<
 // when FromIndex has fewer elements than ToIndex, we lift it and then cast
 template<class ToIndex, class FromIndex, class FromShape, class ToShape>
 typename std::enable_if<
-  (__index_size<FromIndex>::value < __index_size<ToIndex>::value),
+  (agency::detail::index_size<FromIndex>::value < agency::detail::index_size<ToIndex>::value),
   ToIndex
 >::type
   __index_cast(const FromIndex& from_idx,
@@ -170,7 +171,7 @@ typename std::enable_if<
 // when FromIndex has more elements than ToIndex, we project it and then cast
 template<class ToIndex, class FromIndex, class FromShape, class ToShape>
 typename std::enable_if<
-  (__index_size<FromIndex>::value > __index_size<ToIndex>::value),
+  (agency::detail::index_size<FromIndex>::value > agency::detail::index_size<ToIndex>::value),
   ToIndex
 >::type
   __index_cast(const FromIndex& from_idx,

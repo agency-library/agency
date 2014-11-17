@@ -1,7 +1,7 @@
 #pragma once
 
 #include <execution_categories>
-#include <coordinate>
+#include <agency/coordinate.hpp>
 #include <type_traits>
 #include <barrier>
 #include <__type_traits>
@@ -177,7 +177,7 @@ class __basic_execution_agent
       return index_;
     }
 
-    using domain_type = regular_grid<index_type>;
+    using domain_type = agency::regular_grid<index_type>;
 
     const domain_type& domain() const
     {
@@ -468,7 +468,7 @@ class __execution_group
       decltype(&__execution_group::index)(__execution_group)
     >::type;
 
-    using domain_type = std::regular_grid<index_type>;
+    using domain_type = agency::regular_grid<index_type>;
 
     domain_type domain() const
     {

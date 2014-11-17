@@ -1,9 +1,9 @@
 #include <iostream>
 #include <execution_policy>
-#include <coordinate>
+#include <agency/coordinate.hpp>
 
 template<class ExecutionCategory, size_t N>
-using basic_multidimensional_agent = std::__basic_execution_agent<ExecutionCategory, std::point<size_t,N>>;
+using basic_multidimensional_agent = std::__basic_execution_agent<ExecutionCategory, agency::point<size_t,N>>;
 
 using parallel_agent_2d = basic_multidimensional_agent<std::parallel_execution_tag, 2>;
 
