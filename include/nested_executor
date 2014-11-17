@@ -7,7 +7,7 @@
 #include <agency/detail/tuple_utility.hpp>
 #include <__tuple_tail>
 #include <__tuple_of_references>
-#include <__make_tuple_if_not_nested>
+#include <agency/detail/make_tuple_if_not_nested.hpp>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 
 namespace std
@@ -34,12 +34,12 @@ class nested_executor
     static auto make_index(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
       -> decltype(
            std::tuple_cat(
-             __make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-             __make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+             agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+             agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
            )
          )
     {
-      return std::tuple_cat(__make_tuple_if_not_nested<outer_execution_category>(outer_idx), __make_tuple_if_not_nested<inner_execution_category>(inner_idx));
+      return std::tuple_cat(agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx), agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx));
     }
 
     using outer_shape_type = typename outer_traits::shape_type;
@@ -55,8 +55,8 @@ class nested_executor
     // XXX consider adding a public static make_shape() function
     using shape_type = decltype(
       std::tuple_cat(
-        __make_tuple_if_not_nested<outer_execution_category>(std::declval<outer_shape_type>()),
-        __make_tuple_if_not_nested<inner_execution_category>(std::declval<inner_shape_type>())
+        agency::detail::make_tuple_if_not_nested<outer_execution_category>(std::declval<outer_shape_type>()),
+        agency::detail::make_tuple_if_not_nested<inner_execution_category>(std::declval<inner_shape_type>())
       )
     );
 
@@ -124,7 +124,7 @@ class nested_executor
           auto outer_shared_ref_tuple = std::tie(outer_shared_ref);
 
           // if the inner executor isn't nested, we need to tie the inner_shared_ref into a 1-element tuple
-          auto inner_shared_ref_tuple = __tie_if_not_nested<inner_execution_category>(inner_shared_ref);
+          auto inner_shared_ref_tuple = agency::detail::tie_if_not_nested<inner_execution_category>(inner_shared_ref);
 
           // concatenate the outer reference tuple inner tuple of references
           auto full_tuple_of_references = std::tuple_cat(outer_shared_ref_tuple, inner_shared_ref_tuple);

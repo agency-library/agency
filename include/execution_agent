@@ -7,7 +7,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <__tuple_tail>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
-#include <__make_tuple_if_not_nested>
+#include <agency/detail/make_tuple_if_not_nested.hpp>
 #include <agency/detail/index_tuple.hpp>
 
 namespace std
@@ -384,15 +384,15 @@ class __execution_group
       -> decltype(
            __tu::tuple_cat_apply(
              agency::detail::index_tuple_maker{},
-             __make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-             __make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+             agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+             agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
            )
          )
     {
       return __tu::tuple_cat_apply(
         agency::detail::index_tuple_maker{},
-        __make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-        __make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+        agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+        agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
       );
     }
 
@@ -414,10 +414,10 @@ class __execution_group
     static auto make_shared_initializer(const param_type& param)
       -> decltype(
            std::tuple_cat(
-             __make_tuple_if_not_nested<outer_execution_category>(
+             agency::detail::make_tuple_if_not_nested<outer_execution_category>(
                outer_traits::make_shared_initializer(std::get<0>(param))
              ),
-             __make_tuple_if_not_nested<inner_execution_category>(
+             agency::detail::make_tuple_if_not_nested<inner_execution_category>(
                inner_traits::make_shared_initializer(std::get<1>(param))
              )
            )
@@ -426,8 +426,8 @@ class __execution_group
       auto outer_shared_init = outer_traits::make_shared_initializer(std::get<0>(param));
       auto inner_shared_init = inner_traits::make_shared_initializer(std::get<1>(param));
 
-      auto outer_tuple = __make_tuple_if_not_nested<outer_execution_category>(outer_shared_init);
-      auto inner_tuple = __make_tuple_if_not_nested<inner_execution_category>(inner_shared_init);
+      auto outer_tuple = agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_shared_init);
+      auto inner_tuple = agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_shared_init);
 
       return std::tuple_cat(outer_tuple, inner_tuple);
     }

@@ -5,13 +5,15 @@
 #include <utility>
 
 
-namespace std
+namespace agency
+{
+namespace detail
 {
 
 
 // execution is nested, just return x
 template<class ExecutionCategory1, class ExecutionCategory2, class T>
-auto __make_tuple_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
+auto make_tuple_if_not_nested(std::nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
   -> decltype(std::forward<T>(x))
 {
   return std::forward<T>(x);
@@ -20,7 +22,7 @@ auto __make_tuple_if_not_nested(nested_execution_tag<ExecutionCategory1,Executio
 
 // execution is not nested, wrap up x in a tuple
 template<class ExecutionCategory, class T>
-auto __make_tuple_if_not_nested(ExecutionCategory, T&& x)
+auto make_tuple_if_not_nested(ExecutionCategory, T&& x)
   -> decltype(std::make_tuple(std::forward<T>(x)))
 {
   return std::make_tuple(std::forward<T>(x));
@@ -28,15 +30,15 @@ auto __make_tuple_if_not_nested(ExecutionCategory, T&& x)
 
 
 template<class ExecutionCategory, class T>
-auto __make_tuple_if_not_nested(T&& x)
-  -> decltype(__make_tuple_if_not_nested(ExecutionCategory(), std::forward<T>(x)))
+auto make_tuple_if_not_nested(T&& x)
+  -> decltype(make_tuple_if_not_nested(ExecutionCategory(), std::forward<T>(x)))
 {
-  return __make_tuple_if_not_nested(ExecutionCategory(), std::forward<T>(x));
+  return make_tuple_if_not_nested(ExecutionCategory(), std::forward<T>(x));
 }
 
 
 template<class ExecutionCategory1, class ExecutionCategory2, class T>
-auto __tie_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
+auto tie_if_not_nested(std::nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
   -> decltype(std::forward<T>(x))
 {
   return std::forward<T>(x);
@@ -44,7 +46,7 @@ auto __tie_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionCatego
 
 
 template<class ExecutionCategory, class T>
-auto __tie_if_not_nested(ExecutionCategory, T&& x)
+auto tie_if_not_nested(ExecutionCategory, T&& x)
   -> decltype(std::tie(std::forward<T>(x)))
 {
   return std::tie(std::forward<T>(x));
@@ -52,12 +54,13 @@ auto __tie_if_not_nested(ExecutionCategory, T&& x)
 
 
 template<class ExecutionCategory, class T>
-auto __tie_if_not_nested(T&& x)
-  -> decltype(__tie_if_not_nested(ExecutionCategory(), std::forward<T>(x)))
+auto tie_if_not_nested(T&& x)
+  -> decltype(tie_if_not_nested(ExecutionCategory(), std::forward<T>(x)))
 {
-  return __tie_if_not_nested(ExecutionCategory(), std::forward<T>(x));
+  return tie_if_not_nested(ExecutionCategory(), std::forward<T>(x));
 }
 
 
-}
+} // end detail
+} // end agency
 
