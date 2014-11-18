@@ -40,13 +40,15 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
 {
   using execution_agent_type = ExecutionAgent;
   using execution_category = typename execution_agent_type::execution_category;
-  using index_type = decay_t<
+  // XXX drop explicit ns
+  using index_type = agency::detail::decay_t<
     decltype(
       std::declval<execution_agent_type>().index()
     )
   >;
 
-  using size_type = decay_t<
+  // XXX drop explicit ns
+  using size_type = agency::detail::decay_t<
     decltype(
       std::declval<execution_agent_type>().group_size()
     )

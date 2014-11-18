@@ -27,9 +27,9 @@ index_tuple<Indices...> make_index_tuple(const std::tuple<Indices...>& indices)
 }
 
 template<class... Args>
-index_tuple<std::decay_t<Args>...> make_index_tuple(Args&&... args)
+index_tuple<decay_t<Args>...> make_index_tuple(Args&&... args)
 {
-  return index_tuple<std::decay_t<Args>...>(std::forward<Args>(args)...);
+  return index_tuple<decay_t<Args>...>(std::forward<Args>(args)...);
 }
 
 

@@ -11,9 +11,9 @@ namespace detail
 
 
 template<class T>
-std::future<std::decay_t<T>> make_ready_future(T&& value)
+std::future<decay_t<T>> make_ready_future(T&& value)
 {
-  std::promise<std::decay_t<T>> p;
+  std::promise<decay_t<T>> p;
   p.set_value(std::forward<T>(value));
   return p.get_future();
 }

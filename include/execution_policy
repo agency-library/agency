@@ -69,19 +69,22 @@ struct __enable_if_nested_call
 template<class Result, class... Args>
 struct __disable_if_nested_call
   : __disable_if_execution_policy<
-      decay_t<__last_type<Args...>>,
+      // XXX drop explicit ns
+      agency::detail::decay_t<__last_type<Args...>>,
       Result
     >
 {};
 
 
 template<class ExecutionPolicy, class Function, class... Args>
-typename __enable_if_execution_policy<decay_t<ExecutionPolicy>>::type
+// XXX drop explicit ns
+typename __enable_if_execution_policy<agency::detail::decay_t<ExecutionPolicy>>::type
 bulk_invoke(ExecutionPolicy&& exec, Function&& f, Args&&... args);
 
 
 template<class ExecutionPolicy, class Function, class... Args>
-typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::type
+// XXX drop explicit ns
+typename __enable_if_execution_policy<agency::detail::decay_t<ExecutionPolicy>,future<void>>::type
 bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
 
 
@@ -465,21 +468,25 @@ const vector_execution_policy vec{};
 
 
 template<class ExecutionPolicy, class Function, class... Args>
-typename __enable_if_execution_policy<decay_t<ExecutionPolicy>>::type
+// XXX drop explicit ns
+typename __enable_if_execution_policy<agency::detail::decay_t<ExecutionPolicy>>::type
 bulk_invoke(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
   // XXX the execution_category we dispatch on should be the category of the policy's executor
-  using execution_category = typename decay_t<ExecutionPolicy>::execution_category;
+  // XXX drop explicit ns
+  using execution_category = typename agency::detail::decay_t<ExecutionPolicy>::execution_category;
   return __bulk_invoke(execution_category(), exec, std::bind(f, std::placeholders::_1, args...));
 }
 
 
 template<class ExecutionPolicy, class Function, class... Args>
-typename __enable_if_execution_policy<decay_t<ExecutionPolicy>,future<void>>::type
+// XXX drop explicit ns
+typename __enable_if_execution_policy<agency::detail::decay_t<ExecutionPolicy>,future<void>>::type
 bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
   // XXX the execution_category we dispatch on should be the category of the policy's executor
-  using execution_category = typename decay_t<ExecutionPolicy>::execution_category;
+  // XXX drop explicit ns
+  using execution_category = typename agency::detail::decay_t<ExecutionPolicy>::execution_category;
   return __bulk_async(execution_category(), exec, std::bind(f, std::placeholders::_1, args...));
 }
 
