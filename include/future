@@ -2,7 +2,7 @@
 
 #include_next <future>
 #include <type_traits>
-#include <exception_list>
+#include <agency/exception_list.hpp>
 
 namespace std
 {
@@ -37,7 +37,7 @@ inline future<void> make_ready_future()
 template<typename ForwardIterator>
 future<void> when_all(ForwardIterator first, ForwardIterator last)
 {
-  exception_list exceptions = __flatten_into_exception_list(first, last);
+  agency::exception_list exceptions = agency::detail::flatten_into_exception_list(first, last);
 
   promise<void> p;
 

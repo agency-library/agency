@@ -18,9 +18,9 @@ int main()
   {
     f.get();
   }
-  catch(std::exception_list &e)
+  catch(agency::exception_list &e)
   {
-    std::cerr << "caught std::exception_list: " << e.what() << std::endl;
+    std::cerr << "caught exception_list: " << e.what() << std::endl;
     std::terminate();
   }
 
