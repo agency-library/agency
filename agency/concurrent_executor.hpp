@@ -7,15 +7,14 @@
 #include <agency/execution_categories.hpp>
 #include <algorithm>
 
-namespace std
+namespace agency
 {
 
 
 class concurrent_executor
 {
   public:
-    // XXX drop explicit ns
-    using execution_category = agency::concurrent_execution_tag;
+    using execution_category = concurrent_execution_tag;
 
     template<class Function, class T>
     std::future<void> bulk_async(Function f, size_t n, T shared_arg)
@@ -80,5 +79,5 @@ class concurrent_executor
 };
 
 
-}
+} // end agency
 

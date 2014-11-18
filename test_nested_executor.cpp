@@ -1,5 +1,5 @@
 #include <nested_executor>
-#include <concurrent_executor>
+#include <agency/concurrent_executor.hpp>
 #include <agency/sequential_executor.hpp>
 #include <iostream>
 #include <thread>
@@ -8,7 +8,7 @@ std::mutex mut;
 
 int main()
 {
-  std::nested_executor<std::concurrent_executor, agency::sequential_executor> ex;
+  std::nested_executor<agency::concurrent_executor, agency::sequential_executor> ex;
 
   bulk_async(ex, std::make_pair(2,2), [](std::tuple<size_t,size_t> idx)
   {
