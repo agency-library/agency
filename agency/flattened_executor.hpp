@@ -5,7 +5,7 @@
 #include <agency/execution_categories.hpp>
 #include <agency/nested_executor.hpp>
 
-namespace std
+namespace agency
 {
 
 
@@ -13,16 +13,14 @@ template<class Executor>
 class flattened_executor
 {
   // probably shouldn't insist on a nested executor
-  // XXX drop explicit ns
   static_assert(
-    agency::detail::is_nested_execution_category<typename agency::executor_traits<Executor>::execution_category>::value,
+    detail::is_nested_execution_category<typename executor_traits<Executor>::execution_category>::value,
     "Execution category of Executor must be nested."
   );
 
   public:
     // XXX what is the execution category of a flattened executor?
-    // XXX drop explicit ns
-    using execution_category = agency::parallel_execution_tag;
+    using execution_category = parallel_execution_tag;
 
     using base_executor_type = Executor;
 
@@ -58,13 +56,10 @@ class flattened_executor
       auto partitioning = partition(shape);
 
       auto shared_init = std::make_tuple(shared_arg, std::ignore);
-      // XXX drop explicit ns
-      using shared_param_type = typename agency::executor_traits<OtherExecutor>::template shared_param_type<decltype(shared_init)>;
-      // XXX drop explicit ns
-      using index_type = typename agency::executor_traits<OtherExecutor>::index_type;
+      using shared_param_type = typename executor_traits<OtherExecutor>::template shared_param_type<decltype(shared_init)>;
+      using index_type = typename executor_traits<OtherExecutor>::index_type;
 
-      // XXX drop explicit ns
-      return agency::executor_traits<OtherExecutor>::bulk_async(exec, [=](index_type idx, shared_param_type shared_params)
+      return executor_traits<OtherExecutor>::bulk_async(exec, [=](index_type idx, shared_param_type shared_params)
       {
         auto flat_idx = std::get<0>(idx) * std::get<1>(partitioning) + std::get<1>(idx);
 
@@ -80,28 +75,22 @@ class flattened_executor
 
     // we can avoid the if(flat_idx < shape) branch above by providing a specialization for nested_executor
     template<class OuterExecutor, class InnerExecutor, class Function, class T>
-    // XXX drop explicit ns
-    std::future<void> bulk_async_impl(agency::nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, T shared_arg)
+    std::future<void> bulk_async_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, T shared_arg)
     {
       auto partitioning = partition(shape);
 
-      // XXX drop explicit ns
-      using shared_param_type = typename agency::executor_traits<OuterExecutor>::template shared_param_type<T>;
+      using shared_param_type = typename executor_traits<OuterExecutor>::template shared_param_type<T>;
 
-      // XXX drop explicit ns
-      using outer_index_type = typename agency::executor_traits<OuterExecutor>::index_type;
+      using outer_index_type = typename executor_traits<OuterExecutor>::index_type;
     
-      // XXX drop explicit ns
-      return agency::executor_traits<OuterExecutor>::bulk_async(exec.outer_executor(), [=,&exec](outer_index_type outer_idx, shared_param_type shared_arg)
+      return executor_traits<OuterExecutor>::bulk_async(exec.outer_executor(), [=,&exec](outer_index_type outer_idx, shared_param_type shared_arg)
       {
         auto subgroup_begin = outer_idx * std::get<1>(partitioning);
         auto subgroup_end   = std::min(shape, subgroup_begin + std::get<1>(partitioning));
 
-        // XXX drop explicit ns
-        using inner_index_type = typename agency::executor_traits<InnerExecutor>::index_type;
+        using inner_index_type = typename executor_traits<InnerExecutor>::index_type;
 
-        // XXX drop explicit ns
-        agency::executor_traits<InnerExecutor>::bulk_invoke(exec.inner_executor(), [=,&shared_arg](inner_index_type inner_idx)
+        executor_traits<InnerExecutor>::bulk_invoke(exec.inner_executor(), [=,&shared_arg](inner_index_type inner_idx)
         {
           auto index = subgroup_begin + inner_idx;
     
@@ -113,8 +102,7 @@ class flattened_executor
       shared_arg);
     }
 
-    // XXX drop explicit ns
-    using partition_type = typename agency::executor_traits<base_executor_type>::shape_type;
+    using partition_type = typename executor_traits<base_executor_type>::shape_type;
 
     // returns (outer size, inner size)
     partition_type partition(shape_type shape) const
@@ -142,5 +130,5 @@ class flattened_executor
 };
 
 
-}
+} // end agency
 
