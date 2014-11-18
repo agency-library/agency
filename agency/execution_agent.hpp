@@ -9,25 +9,27 @@
 #include <agency/detail/make_tuple_if_not_nested.hpp>
 #include <agency/detail/index_tuple.hpp>
 
-namespace std
+namespace agency
+{
+namespace detail
 {
 
 
-__DEFINE_HAS_NESTED_TYPE(__has_param_type, param_type);
-__DEFINE_HAS_NESTED_TYPE(__has_inner_execution_agent_type, inner_execution_agent_type);
+__DEFINE_HAS_NESTED_TYPE(has_param_type, param_type);
+__DEFINE_HAS_NESTED_TYPE(has_inner_execution_agent_type, inner_execution_agent_type);
 
 
 template<class ExecutionAgent, class Enable = void>
-struct __execution_agent_traits_base
+struct execution_agent_traits_base
 {
 };
 
 
 template<class ExecutionAgent>
-struct __execution_agent_traits_base<
+struct execution_agent_traits_base<
   ExecutionAgent,
   typename std::enable_if<
-    __has_inner_execution_agent_type<ExecutionAgent>::type
+    has_inner_execution_agent_type<ExecutionAgent>::type
   >::type
 >
 {
@@ -35,20 +37,21 @@ struct __execution_agent_traits_base<
 };
 
 
+} // end detail
+
+
 template<class ExecutionAgent>
-struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
+struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAgent>
 {
   using execution_agent_type = ExecutionAgent;
   using execution_category = typename execution_agent_type::execution_category;
-  // XXX drop explicit ns
-  using index_type = agency::detail::decay_t<
+  using index_type = detail::decay_t<
     decltype(
       std::declval<execution_agent_type>().index()
     )
   >;
 
-  // XXX drop explicit ns
-  using size_type = agency::detail::decay_t<
+  using size_type = detail::decay_t<
     decltype(
       std::declval<execution_agent_type>().group_size()
     )
@@ -63,10 +66,10 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
 
   public:
 
-  using param_type = typename agency::detail::lazy_conditional<
-    __has_param_type<execution_agent_type>::value,
+  using param_type = typename detail::lazy_conditional<
+    detail::has_param_type<execution_agent_type>::value,
     execution_agent_param<execution_agent_type>,
-    agency::detail::identity<size_type>
+    detail::identity<size_type>
   >::type;
 
   // XXX what should we do if ExecutionAgent::domain(param) does not exist?
@@ -98,10 +101,10 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
           )
         )
       >
-      static true_type test(int);
+      static std::true_type test(int);
 
       template<class>
-      static false_type test(...);
+      static std::false_type test(...);
 
       using type = decltype(test<ExecutionAgent1>(0));
     };
@@ -164,8 +167,12 @@ struct execution_agent_traits : __execution_agent_traits_base<ExecutionAgent>
 };
 
 
+namespace detail
+{
+
+
 template<class ExecutionCategory, class Index = size_t>
-class __basic_execution_agent
+class basic_execution_agent
 {
   public:
     using execution_category = ExecutionCategory;
@@ -177,7 +184,7 @@ class __basic_execution_agent
       return index_;
     }
 
-    using domain_type = agency::regular_grid<index_type>;
+    using domain_type = regular_grid<index_type>;
 
     const domain_type& domain() const
     {
@@ -230,14 +237,14 @@ class __basic_execution_agent
 
   protected:
     template<class Function>
-    __basic_execution_agent(Function f, const index_type& index, const param_type& param)
+    basic_execution_agent(Function f, const index_type& index, const param_type& param)
       : index_(index),
         domain_(param.domain())
     {
       f(*this);
     }
 
-    friend struct execution_agent_traits<__basic_execution_agent>;
+    friend struct agency::execution_agent_traits<basic_execution_agent>;
 
   private:
     index_type index_;
@@ -245,24 +252,22 @@ class __basic_execution_agent
 };
 
 
-// XXX drop explicit ns
-using sequential_agent = __basic_execution_agent<agency::sequential_execution_tag>;
+} // end detail
 
 
-// XXX drop explicit ns
-using parallel_agent = __basic_execution_agent<agency::parallel_execution_tag>;
+using sequential_agent = detail::basic_execution_agent<sequential_execution_tag>;
 
 
-// XXX drop explicit ns
-using vector_agent = __basic_execution_agent<agency::vector_execution_tag>;
+using parallel_agent = detail::basic_execution_agent<parallel_execution_tag>;
 
 
-// XXX drop explicit ns
-class concurrent_agent : public __basic_execution_agent<agency::concurrent_execution_tag>
+using vector_agent = detail::basic_execution_agent<vector_execution_tag>;
+
+
+class concurrent_agent : public detail::basic_execution_agent<concurrent_execution_tag>
 {
   private:
-    // XXX drop explicit ns
-    using super_t = __basic_execution_agent<agency::concurrent_execution_tag>;
+    using super_t = detail::basic_execution_agent<concurrent_execution_tag>;
 
   public:
     void wait() const
@@ -308,16 +313,20 @@ class concurrent_agent : public __basic_execution_agent<agency::concurrent_execu
     }
 
     // friend execution_agent_traits to give it access to the constructor
-    friend struct execution_agent_traits<concurrent_agent>;
+    friend struct agency::execution_agent_traits<concurrent_agent>;
 };
+
+
+namespace detail
+{
 
 
 // derive from ExecutionAgent to give access to its constructor
 template<class ExecutionAgent>
-struct __agent_access_helper : public ExecutionAgent
+struct agent_access_helper : public ExecutionAgent
 {
   template<class... Args>
-  __agent_access_helper(Args&&... args)
+  agent_access_helper(Args&&... args)
     : ExecutionAgent(std::forward<Args>(args)...)
   {}
 };
@@ -325,54 +334,57 @@ struct __agent_access_helper : public ExecutionAgent
 
 // __make_agent helper function passes a noop functor to the agent's constructor and filters out shared parameters when necessary
 template<class ExecutionAgent>
-ExecutionAgent __make_agent(const typename std::execution_agent_traits<ExecutionAgent>::index_type& index,
-                            const typename std::execution_agent_traits<ExecutionAgent>::param_type& param)
+ExecutionAgent make_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
+                          const typename execution_agent_traits<ExecutionAgent>::param_type& param)
 {
   auto noop = [](ExecutionAgent&){};
-  return __agent_access_helper<ExecutionAgent>(noop, index, param);
+  return agent_access_helper<ExecutionAgent>(noop, index, param);
 }
+
 
 // if an agent does not have a shared parameter, we ignore the last parameter
 template<class ExecutionAgent, class T>
-static ExecutionAgent __make_agent(const typename std::execution_agent_traits<ExecutionAgent>::index_type& index,
-                                   const typename std::execution_agent_traits<ExecutionAgent>::param_type& param,
-                                   T&&,
-                                   typename std::enable_if<
-                                     !std::execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
-                                   >::type* = 0)
+static ExecutionAgent make_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
+                                 const typename execution_agent_traits<ExecutionAgent>::param_type& param,
+                                 T&&,
+                                 typename std::enable_if<
+                                   !execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
+                                 >::type* = 0)
 {
-  return __make_agent<ExecutionAgent>(index, param);
+  return make_agent<ExecutionAgent>(index, param);
 }
+
 
 // tupled shared parameters are recieved by const reference
 template<class ExecutionAgent, class Tuple>
-static ExecutionAgent __make_agent(const typename std::execution_agent_traits<ExecutionAgent>::index_type& index,
-                                   const typename std::execution_agent_traits<ExecutionAgent>::param_type& param,
-                                   const Tuple& shared_param_tuple,
-                                   typename std::enable_if<
-                                     std::execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
-                                   >::type* = 0)
+static ExecutionAgent make_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
+                                 const typename execution_agent_traits<ExecutionAgent>::param_type& param,
+                                 const Tuple& shared_param_tuple,
+                                 typename std::enable_if<
+                                   execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
+                                 >::type* = 0)
 {
   auto noop = [](ExecutionAgent&){};
-  return __agent_access_helper<ExecutionAgent>(noop, index, param, shared_param_tuple);
+  return agent_access_helper<ExecutionAgent>(noop, index, param, shared_param_tuple);
 }
+
 
 // scalar shared parameters are received by mutable reference
 template<class ExecutionAgent, class T>
-static ExecutionAgent __make_agent(const typename std::execution_agent_traits<ExecutionAgent>::index_type& index,
-                                   const typename std::execution_agent_traits<ExecutionAgent>::param_type& param,
-                                   T& shared_param,
-                                   typename std::enable_if<
-                                     std::execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
-                                   >::type* = 0)
+static ExecutionAgent make_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
+                                 const typename execution_agent_traits<ExecutionAgent>::param_type& param,
+                                 T& shared_param,
+                                 typename std::enable_if<
+                                   execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
+                                 >::type* = 0)
 {
   auto noop = [](ExecutionAgent&){};
-  return __agent_access_helper<ExecutionAgent>(noop, index, param, shared_param);
+  return agent_access_helper<ExecutionAgent>(noop, index, param, shared_param);
 }
 
 
 template<class OuterExecutionAgent, class InnerExecutionAgent>
-class __execution_group
+class execution_group
 {
   private:
     using outer_traits = execution_agent_traits<OuterExecutionAgent>;
@@ -381,30 +393,29 @@ class __execution_group
     using outer_execution_category = typename outer_traits::execution_category;
     using inner_execution_category = typename inner_traits::execution_category;
 
-    using outer_index_type = typename std::execution_agent_traits<OuterExecutionAgent>::index_type;
-    using inner_index_type = typename std::execution_agent_traits<InnerExecutionAgent>::index_type;
+    using outer_index_type = typename execution_agent_traits<OuterExecutionAgent>::index_type;
+    using inner_index_type = typename execution_agent_traits<InnerExecutionAgent>::index_type;
 
     // concatenates an outer index with an inner index
     // returns an index_tuple with arithmetic ops (not a std::tuple)
     static auto index_cat(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
       -> decltype(
            __tu::tuple_cat_apply(
-             agency::detail::index_tuple_maker{},
-             agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-             agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+             detail::index_tuple_maker{},
+             detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+             detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
            )
          )
     {
       return __tu::tuple_cat_apply(
-        agency::detail::index_tuple_maker{},
-        agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-        agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+        detail::index_tuple_maker{},
+        detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+        detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
       );
     }
 
   public:
-    // XXX drop explicit ns
-    using execution_category = agency::nested_execution_tag<
+    using execution_category = nested_execution_tag<
       outer_execution_category,
       inner_execution_category
     >;
@@ -421,10 +432,10 @@ class __execution_group
     static auto make_shared_initializer(const param_type& param)
       -> decltype(
            std::tuple_cat(
-             agency::detail::make_tuple_if_not_nested<outer_execution_category>(
+             detail::make_tuple_if_not_nested<outer_execution_category>(
                outer_traits::make_shared_initializer(std::get<0>(param))
              ),
-             agency::detail::make_tuple_if_not_nested<inner_execution_category>(
+             detail::make_tuple_if_not_nested<inner_execution_category>(
                inner_traits::make_shared_initializer(std::get<1>(param))
              )
            )
@@ -433,8 +444,8 @@ class __execution_group
       auto outer_shared_init = outer_traits::make_shared_initializer(std::get<0>(param));
       auto inner_shared_init = inner_traits::make_shared_initializer(std::get<1>(param));
 
-      auto outer_tuple = agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_shared_init);
-      auto inner_tuple = agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_shared_init);
+      auto outer_tuple = detail::make_tuple_if_not_nested<outer_execution_category>(outer_shared_init);
+      auto inner_tuple = detail::make_tuple_if_not_nested<inner_execution_category>(inner_shared_init);
 
       return std::tuple_cat(outer_tuple, inner_tuple);
     }
@@ -462,8 +473,8 @@ class __execution_group
     auto index() const
       -> decltype(
            index_cat(
-             std::declval<__execution_group>().outer().index(),
-             std::declval<__execution_group>().inner().index()
+             std::declval<execution_group>().outer().index(),
+             std::declval<execution_group>().inner().index()
            )
          )
     {
@@ -471,10 +482,10 @@ class __execution_group
     }
 
     using index_type = typename std::result_of<
-      decltype(&__execution_group::index)(__execution_group)
+      decltype(&execution_group::index)(execution_group)
     >::type;
 
-    using domain_type = agency::regular_grid<index_type>;
+    using domain_type = regular_grid<index_type>;
 
     domain_type domain() const
     {
@@ -505,23 +516,23 @@ class __execution_group
 
   protected:
     template<class Function>
-    __execution_group(Function f, const index_type& index, const param_type& param)
-      : outer_agent_(__make_agent<outer_execution_agent_type>(outer_index(index), std::get<0>(param))),
-        inner_agent_(__make_agent<inner_execution_agent_type>(inner_index(index), std::get<1>(param)))
+    execution_group(Function f, const index_type& index, const param_type& param)
+      : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), std::get<0>(param))),
+        inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), std::get<1>(param)))
     {
       f(*this);
     }
 
     template<class Function, class Tuple>
-    __execution_group(Function f, const index_type& index, const param_type& param, Tuple& shared_param)
-      : outer_agent_(__make_agent<outer_execution_agent_type>(outer_index(index), std::get<0>(param), __tu::tuple_head(shared_param))),
-        inner_agent_(__make_agent<inner_execution_agent_type>(inner_index(index), std::get<1>(param), __tu::forward_tuple_tail<Tuple>(shared_param)))
+    execution_group(Function f, const index_type& index, const param_type& param, Tuple& shared_param)
+      : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), std::get<0>(param), __tu::tuple_head(shared_param))),
+        inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), std::get<1>(param), __tu::forward_tuple_tail<Tuple>(shared_param)))
     {
       f(*this);
     }
 
     // friend execution_agent_traits so it has access to the constructors
-    template<class> friend struct execution_agent_traits;
+    template<class> friend struct agency::execution_agent_traits;
 
     static outer_index_type outer_index(const index_type& index)
     {
@@ -530,7 +541,7 @@ class __execution_group
 
     static inner_index_type inner_index(const index_type& index)
     {
-      return agency::detail::unwrap_tuple_if_not_nested<inner_execution_category>(__tu::forward_tuple_tail<const index_type>(index));
+      return detail::unwrap_tuple_if_not_nested<inner_execution_category>(__tu::forward_tuple_tail<const index_type>(index));
     }
 
     outer_execution_agent_type outer_agent_;
@@ -538,18 +549,21 @@ class __execution_group
 };
 
 
-template<class InnerExecutionAgent>
-using sequential_group = __execution_group<sequential_agent, InnerExecutionAgent>;
+} // end detail
 
-template<class InnerExecutionAgent>
-using parallel_group = __execution_group<parallel_agent, InnerExecutionAgent>;
 
 template<class InnerExecutionAgent>
-using concurrent_group = __execution_group<concurrent_agent, InnerExecutionAgent>;
+using sequential_group = detail::execution_group<sequential_agent, InnerExecutionAgent>;
 
 template<class InnerExecutionAgent>
-using vector_group = __execution_group<vector_agent, InnerExecutionAgent>;
+using parallel_group = detail::execution_group<parallel_agent, InnerExecutionAgent>;
+
+template<class InnerExecutionAgent>
+using concurrent_group = detail::execution_group<concurrent_agent, InnerExecutionAgent>;
+
+template<class InnerExecutionAgent>
+using vector_group = detail::execution_group<vector_agent, InnerExecutionAgent>;
 
 
-}
+} // end agency
 

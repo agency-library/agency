@@ -9,7 +9,7 @@ int main()
   std::vector<float> x(n, 1), y(n, 2), z(n);
   float a = 13.;
 
-  std::bulk_invoke(std::par(n), [&](std::parallel_agent &self)
+  std::bulk_invoke(std::par(n), [&](agency::parallel_agent &self)
   {
     int i = self.index();
     z[i] = a * x[i] + y[i];

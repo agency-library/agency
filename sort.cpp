@@ -16,7 +16,7 @@ void parallel_sort_recursive(Iterator first, Iterator last)
     auto num_agents = 2;
     auto partition_size = n / num_agents;
 
-    bulk_invoke(std::par(2), [=](std::parallel_agent& self)
+    bulk_invoke(std::par(2), [=](agency::parallel_agent& self)
     {
       auto begin = std::min(last, first + self.index() * partition_size);
       auto end   = std::min(last, begin + partition_size);
@@ -51,7 +51,7 @@ void parallel_sort_iterative(RandomAccessIterator first, RandomAccessIterator la
   auto partition_size = 32768;
   auto num_partitions = ceil_div(n, partition_size);
 
-  bulk_invoke(std::par(num_partitions), [=](std::parallel_agent& self)
+  bulk_invoke(std::par(num_partitions), [=](agency::parallel_agent& self)
   {
     auto begin = std::min(last, first + self.index() * partition_size);
     auto end   = std::min(last, begin + partition_size);
@@ -63,7 +63,7 @@ void parallel_sort_iterative(RandomAccessIterator first, RandomAccessIterator la
   {
     auto num_partitions = ceil_div(n, partition_size);
 
-    bulk_invoke(std::par(num_partitions / 2), [=](std::parallel_agent& self)
+    bulk_invoke(std::par(num_partitions / 2), [=](agency::parallel_agent& self)
     {
       auto begin = std::min(last, first + 2 * self.index() * partition_size);
       auto mid   = std::min(last, begin + partition_size);

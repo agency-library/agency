@@ -8,26 +8,26 @@ int main()
   using std::par;
   using std::con;
 
-  std::bulk_invoke(seq(4), [&](std::sequential_agent &g)
+  std::bulk_invoke(seq(4), [&](agency::sequential_agent &g)
   {
     std::cout << g.index() << std::endl;
   });
 
-  auto f1 = std::bulk_async(seq(4), [&](std::sequential_agent &g)
+  auto f1 = std::bulk_async(seq(4), [&](agency::sequential_agent &g)
   {
     std::cout << g.index() << std::endl;
   });
 
   f1.wait();
 
-  auto f2 = std::bulk_async(seq(2, seq(1)), [&](std::sequential_group<std::sequential_agent> &self)
+  auto f2 = std::bulk_async(seq(2, seq(1)), [&](agency::sequential_group<agency::sequential_agent> &self)
   {
     std::cout << self.index() << std::endl;
   });
 
   f2.wait();
 
-  auto f3 = std::bulk_async(seq(3, seq(1, seq(4))), [&](std::sequential_group<std::sequential_group<std::sequential_agent>> &self)
+  auto f3 = std::bulk_async(seq(3, seq(1, seq(4))), [&](agency::sequential_group<agency::sequential_group<agency::sequential_agent>> &self)
   {
     std::cout << self.index() << std::endl;
   });

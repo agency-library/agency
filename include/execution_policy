@@ -4,8 +4,8 @@
 #include <utility>
 #include <functional>
 #include <type_traits>
-#include <execution_agent>
-#include <functional>
+#include <agency/execution_agent.hpp>
+#include <functional> // XXX this this header necessary?
 #include <agency/executor_traits.hpp>
 #include <agency/sequential_executor.hpp>
 #include <agency/concurrent_executor.hpp>
@@ -93,7 +93,8 @@ bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
 // ExecutionCategory, Asyncable, ExecutionGroup = __default_execution_group<ExecutionCategory>
 template<class ExecutionAgent,
          class BulkExecutor,
-         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category>
+         // XXX drop explicit ns
+         class ExecutionCategory = typename agency::execution_agent_traits<ExecutionAgent>::execution_category>
 class __basic_execution_policy
 {
   public:
@@ -102,7 +103,8 @@ class __basic_execution_policy
     using execution_category   = ExecutionCategory;
 
   private:
-    using agent_traits         = std::execution_agent_traits<execution_agent_type>;
+    // XXX drop explicit ns
+    using agent_traits         = agency::execution_agent_traits<execution_agent_type>;
 
   public:
     using param_type           = typename agent_traits::param_type;
@@ -165,7 +167,8 @@ void __bulk_invoke(ExecutionCategory1,
                    const __basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2>& exec,
                    Function f)
 {
-  using traits = std::execution_agent_traits<ExecutionAgent>;
+  // XXX drop explicit ns
+  using traits = agency::execution_agent_traits<ExecutionAgent>;
 
   auto param = exec.param();
   auto agent_shape = traits::domain(param).shape();
@@ -205,7 +208,8 @@ std::future<void> __bulk_async(ExecutionCategory1,
                                const __basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2>& exec,
                                Function f)
 {
-  using traits = std::execution_agent_traits<ExecutionAgent>;
+  // XXX drop explicit ns
+  using traits = agency::execution_agent_traits<ExecutionAgent>;
 
   auto param = exec.param();
   auto agent_shape = traits::domain(param).shape();
@@ -240,7 +244,8 @@ std::future<void> __bulk_async(ExecutionCategory1,
 template<class ExecutionPolicy1, class ExecutionPolicy2>
 class __nested_execution_policy
   : public __basic_execution_policy<
-      __execution_group<
+      // XXX drop explicit ns
+      agency::detail::execution_group<
         typename ExecutionPolicy1::execution_agent_type,
         typename ExecutionPolicy2::execution_agent_type
       >,
@@ -257,7 +262,8 @@ class __nested_execution_policy
 {
   private:
     using super_t = __basic_execution_policy<
-      __execution_group<
+      // XXX drop explicit ns
+      agency::detail::execution_group<
         typename ExecutionPolicy1::execution_agent_type,
         typename ExecutionPolicy2::execution_agent_type
       >,
@@ -297,11 +303,11 @@ struct is_execution_policy<__nested_execution_policy<T1,T2>>
 
 
 // XXX drop explicit ns
-class sequential_execution_policy : public __basic_execution_policy<sequential_agent, agency::sequential_executor>
+class sequential_execution_policy : public __basic_execution_policy<agency::sequential_agent, agency::sequential_executor>
 {
   private:
     // XXX drop explicit ns
-    using super_t = __basic_execution_policy<sequential_agent, agency::sequential_executor>;
+    using super_t = __basic_execution_policy<agency::sequential_agent, agency::sequential_executor>;
 
   public:
     using super_t::__basic_execution_policy;
@@ -341,11 +347,11 @@ const sequential_execution_policy seq{};
 
 
 // XXX drop explicit ns
-class concurrent_execution_policy : public __basic_execution_policy<concurrent_agent, agency::concurrent_executor>
+class concurrent_execution_policy : public __basic_execution_policy<agency::concurrent_agent, agency::concurrent_executor>
 {
   private:
     // XXX drop explicit ns
-    using super_t = __basic_execution_policy<concurrent_agent, agency::concurrent_executor>;
+    using super_t = __basic_execution_policy<agency::concurrent_agent, agency::concurrent_executor>;
 
   public:
     using super_t::__basic_execution_policy;
@@ -383,10 +389,12 @@ template<> struct is_execution_policy<concurrent_execution_policy> : std::true_t
 const concurrent_execution_policy con{};
 
 
-class parallel_execution_policy : public __basic_execution_policy<parallel_agent, parallel_executor>
+// XXX drop explicit ns
+class parallel_execution_policy : public __basic_execution_policy<agency::parallel_agent, parallel_executor>
 {
   private:
-    using super_t = __basic_execution_policy<parallel_agent, parallel_executor>;
+    // XXX drop explicit ns
+    using super_t = __basic_execution_policy<agency::parallel_agent, parallel_executor>;
 
   public:
     using super_t::__basic_execution_policy;
@@ -425,11 +433,11 @@ const parallel_execution_policy par{};
 
 
 // XXX drop explicit ns
-class vector_execution_policy : public __basic_execution_policy<vector_agent, agency::vector_executor>
+class vector_execution_policy : public __basic_execution_policy<agency::vector_agent, agency::vector_executor>
 {
   private:
     // XXX drop explicit ns
-    using super_t = __basic_execution_policy<vector_agent, agency::vector_executor>;
+    using super_t = __basic_execution_policy<agency::vector_agent, agency::vector_executor>;
 
   public:
     using super_t::__basic_execution_policy;
