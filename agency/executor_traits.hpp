@@ -198,7 +198,6 @@ struct executor_traits
     // the shared parameter is passed to the lamda
     // as a tuple of references when the executor is nested
     // otherwise, it's just passed as a raw reference
-    // XXX drop explicit ns
     template<class T>
     struct shared_param_type_impl
       : detail::lazy_conditional<
