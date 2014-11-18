@@ -7,7 +7,7 @@
 #include <execution_agent>
 #include <functional>
 #include <executor_traits>
-#include <sequential_executor>
+#include <agency/sequential_executor.hpp>
 #include <concurrent_executor>
 #include <parallel_executor>
 #include <vector_executor>
@@ -281,10 +281,12 @@ struct is_execution_policy<__nested_execution_policy<T1,T2>>
 {};
 
 
-class sequential_execution_policy : public __basic_execution_policy<sequential_agent, sequential_executor>
+// XXX drop explicit ns
+class sequential_execution_policy : public __basic_execution_policy<sequential_agent, agency::sequential_executor>
 {
   private:
-    using super_t = __basic_execution_policy<sequential_agent, sequential_executor>;
+    // XXX drop explicit ns
+    using super_t = __basic_execution_policy<sequential_agent, agency::sequential_executor>;
 
   public:
     using super_t::__basic_execution_policy;

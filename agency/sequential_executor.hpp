@@ -4,15 +4,14 @@
 #include <agency/execution_categories.hpp>
 #include <functional>
 
-namespace std
+namespace agency
 {
 
 
 class sequential_executor
 {
   public:
-    // XXX drop explicit ns
-    using execution_category = agency::sequential_execution_tag;
+    using execution_category = sequential_execution_tag;
 
     template<class Function, class T>
     void bulk_invoke(Function f, size_t n, T shared_arg)
@@ -34,5 +33,5 @@ class sequential_executor
 };
 
 
-}
+} // end agency
 

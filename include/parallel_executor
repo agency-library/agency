@@ -1,7 +1,7 @@
 #pragma once
 
 #include <concurrent_executor>
-#include <sequential_executor>
+#include <agency/sequential_executor.hpp>
 #include <nested_executor>
 #include <flattened_executor>
 
@@ -9,7 +9,8 @@ namespace std
 {
 
 
-using parallel_executor = flattened_executor<nested_executor<concurrent_executor, sequential_executor>>;
+// XXX drop explicit ns
+using parallel_executor = flattened_executor<nested_executor<concurrent_executor, agency::sequential_executor>>;
 
 
 }
