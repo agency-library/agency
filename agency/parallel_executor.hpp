@@ -5,12 +5,12 @@
 #include <agency/nested_executor.hpp>
 #include <agency/flattened_executor.hpp>
 
-namespace std
+namespace agency
 {
 
 
-using parallel_executor = agency::flattened_executor<agency::nested_executor<agency::concurrent_executor, agency::sequential_executor>>;
+using parallel_executor = flattened_executor<nested_executor<concurrent_executor, sequential_executor>>;
 
 
-}
+} // end agency
 

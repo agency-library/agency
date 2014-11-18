@@ -7,7 +7,7 @@ using basic_multidimensional_agent = agency::detail::basic_execution_agent<Execu
 
 using parallel_agent_2d = basic_multidimensional_agent<agency::parallel_execution_tag, 2>;
 
-const std::__basic_execution_policy<parallel_agent_2d, std::parallel_executor> par2d{};
+const std::__basic_execution_policy<parallel_agent_2d, agency::parallel_executor> par2d{};
 
 int main()
 {
