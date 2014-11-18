@@ -3,7 +3,7 @@
 #include <agency/execution_categories.hpp>
 #include <utility>
 #include <future>
-#include <executor_traits>
+#include <agency/executor_traits.hpp>
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/detail/make_tuple_if_not_nested.hpp>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
@@ -20,8 +20,9 @@ class nested_executor
     using inner_executor_type = Executor2;
 
   private:
-    using outer_traits = executor_traits<outer_executor_type>;
-    using inner_traits = executor_traits<inner_executor_type>;
+    // XXX eliminate explicit ns
+    using outer_traits = agency::executor_traits<outer_executor_type>;
+    using inner_traits = agency::executor_traits<inner_executor_type>;
 
     using outer_execution_category = typename outer_traits::execution_category;
     using inner_execution_category = typename inner_traits::execution_category;

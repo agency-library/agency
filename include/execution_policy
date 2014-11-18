@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <execution_agent>
 #include <functional>
-#include <executor_traits>
+#include <agency/executor_traits.hpp>
 #include <agency/sequential_executor.hpp>
 #include <agency/concurrent_executor.hpp>
 #include <parallel_executor>
@@ -168,17 +168,23 @@ void __bulk_invoke(ExecutionCategory1,
   auto agent_shape = traits::domain(param).shape();
   auto shared_init = traits::make_shared_initializer(param);
 
-  using executor_index_type = typename executor_traits<BulkExecutor>::index_type;
-  using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
+  // XXX drop explicit ns
+  using executor_index_type = typename agency::executor_traits<BulkExecutor>::index_type;
+  // XXX drop explicit 
+  using shared_param_type = typename agency::executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
 
   // convert the shape of the agent into the type of the executor's shape
-  using executor_shape_type = typename executor_traits<BulkExecutor>::shape_type;
+  // XXX drop explicit ns
+  using executor_shape_type = typename agency::executor_traits<BulkExecutor>::shape_type;
+  // XXX drop explicit ns
   executor_shape_type executor_shape = agency::detail::shape_cast<executor_shape_type>(agent_shape);
 
-  return executor_traits<BulkExecutor>::bulk_invoke(exec.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
+  // XXX drop explicit ns
+  return agency::executor_traits<BulkExecutor>::bulk_invoke(exec.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
   {
     // convert the index of the executor into the type of the agent's index
     using agent_index_type = typename traits::index_type;
+    // XXX drop explicit ns
     auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
 
     traits::execute(f, agent_idx, param, shared_params);
@@ -202,17 +208,23 @@ std::future<void> __bulk_async(ExecutionCategory1,
   auto agent_shape = traits::domain(param).shape();
   auto shared_init = traits::make_shared_initializer(param);
 
-  using executor_index_type = typename executor_traits<BulkExecutor>::index_type;
-  using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
+  // XXX drop explicit ns
+  using executor_index_type = typename agency::executor_traits<BulkExecutor>::index_type;
+  // XXX drop explicit ns
+  using shared_param_type = typename agency::executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
 
   // convert the shape of the agent into the type of the executor's shape
-  using executor_shape_type = typename executor_traits<BulkExecutor>::shape_type;
+  // XXX drop explicit ns
+  using executor_shape_type = typename agency::executor_traits<BulkExecutor>::shape_type;
+  // XXX drop explicit ns
   executor_shape_type executor_shape = agency::detail::shape_cast<executor_shape_type>(agent_shape);
 
-  return executor_traits<BulkExecutor>::bulk_async(exec.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
+  // XXX drop explicit ns
+  return agency::executor_traits<BulkExecutor>::bulk_async(exec.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
   {
     // convert the index of the executor into the type of the agent's index
     using agent_index_type = typename traits::index_type;
+    // XXX drop explicit ns
     auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
 
     traits::execute(f, agent_idx, param, shared_params);
