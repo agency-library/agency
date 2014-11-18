@@ -3,17 +3,23 @@
 #include <tuple>
 #include <integer_sequence>
 
+namespace agency
+{
+namespace detail
+{
+
+
 template<class Tuple, size_t... I>
-auto __tuple_of_references_impl(Tuple& t, std::index_sequence<I...>)
+auto tuple_of_references_impl(Tuple& t, std::index_sequence<I...>)
   -> decltype(std::tie(std::get<I>(t)...))
 {
   return std::tie(std::get<I>(t)...);
 }
 
 template<class Tuple>
-auto __tuple_of_references(Tuple& t)
+auto tuple_of_references(Tuple& t)
   -> decltype(
-       __tuple_of_references_impl(
+       tuple_of_references_impl(
          t,
          std::make_index_sequence<
            std::tuple_size<
@@ -23,7 +29,7 @@ auto __tuple_of_references(Tuple& t)
        )
      )
 {
-  return __tuple_of_references_impl(
+  return tuple_of_references_impl(
     t,
     std::make_index_sequence<
       std::tuple_size<
@@ -52,4 +58,8 @@ auto __tuple_of_references(Tuple& t)
 //{
 //  return __tuple_map(std::forward<Tuple>(t), __forward());
 //}
+
+
+} // end detail
+} // end agency
 

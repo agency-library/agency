@@ -6,7 +6,6 @@
 #include <executor_traits>
 #include <agency/detail/tuple_utility.hpp>
 #include <__tuple_tail>
-#include <__tuple_of_references>
 #include <agency/detail/make_tuple_if_not_nested.hpp>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 

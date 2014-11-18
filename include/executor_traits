@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/type_traits.hpp>
-#include <__tuple_of_references>
+#include <agency/detail/tuple_of_references.hpp>
 
 
 namespace std
@@ -186,7 +186,7 @@ struct executor_traits
     template<class T>
     struct tuple_of_references_t
     {
-      using type = decltype(__tuple_of_references(*std::declval<T*>()));
+      using type = decltype(agency::detail::tuple_of_references(*std::declval<T*>()));
     };
 
     // the shared parameter is passed to the lamda
