@@ -2,7 +2,6 @@
 
 #include <future>
 #include <utility>
-#include <barrier>
 #include <functional>
 #include <type_traits>
 #include <execution_agent>

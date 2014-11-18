@@ -3,7 +3,7 @@
 #include <execution_categories>
 #include <agency/coordinate.hpp>
 #include <type_traits>
-#include <barrier>
+#include <agency/barrier.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 #include <agency/detail/make_tuple_if_not_nested.hpp>
@@ -276,7 +276,7 @@ class concurrent_agent : public __basic_execution_agent<concurrent_execution_tag
       {}
 
       int count_;
-      std::barrier barrier_;
+      agency::barrier barrier_;
     };
 
     // XXX seems like we either need shared_param_type or make_shared_initializer()
@@ -289,7 +289,7 @@ class concurrent_agent : public __basic_execution_agent<concurrent_execution_tag
     }
 
   private:
-    std::barrier &barrier_;
+    agency::barrier &barrier_;
 
   protected:
     template<class Function>

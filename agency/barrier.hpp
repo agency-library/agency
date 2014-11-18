@@ -6,7 +6,9 @@
 #include <mutex>
 #include <condition_variable>
 
-namespace std
+// XXX probably this needn't be exposed in a public namespace
+
+namespace agency
 {
 
 
@@ -25,7 +27,7 @@ class barrier
       if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
     }
 
-    inline barrier(size_t num_threads, function<size_t()> completion)
+    inline barrier(size_t num_threads, std::function<size_t()> completion)
       : completion_(completion),
         count_(num_threads)
     {
@@ -48,18 +50,23 @@ class barrier
       else
       {
         // sleep until woken
-        std::unique_lock<mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
+
+        // XXX the lambda needs to go inside the wait() invocation
+        //     instead of as an argument the stupid comma operator
+        // XXX unfortunately, the barrier doesn't work when this code is written as intended
+        //     we need to throw out this barrier implementation ASAP and get a better one from Olivier
         cv_.wait(lock), [this](){ this->count_ == 0; };
       }
     }
 
   private:
-    function<size_t()> completion_;
-    atomic_size_t      count_;
-    mutex              mutex_;
-    condition_variable cv_;
+    std::function<size_t()> completion_;
+    std::atomic_size_t      count_;
+    std::mutex              mutex_;
+    std::condition_variable cv_;
 };
 
 
-}
+} // end agency
 
