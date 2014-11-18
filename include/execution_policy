@@ -10,7 +10,7 @@
 #include <agency/sequential_executor.hpp>
 #include <agency/concurrent_executor.hpp>
 #include <parallel_executor>
-#include <vector_executor>
+#include <agency/vector_executor.hpp>
 #include <nested_executor>
 #include <memory>
 #include <tuple>
@@ -421,10 +421,12 @@ template<> struct is_execution_policy<parallel_execution_policy> : std::true_typ
 const parallel_execution_policy par{};
 
 
-class vector_execution_policy : public __basic_execution_policy<vector_agent, vector_executor>
+// XXX drop explicit ns
+class vector_execution_policy : public __basic_execution_policy<vector_agent, agency::vector_executor>
 {
   private:
-    using super_t = __basic_execution_policy<vector_agent, vector_executor>;
+    // XXX drop explicit ns
+    using super_t = __basic_execution_policy<vector_agent, agency::vector_executor>;
 
   public:
     using super_t::__basic_execution_policy;
