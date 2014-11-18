@@ -1,14 +1,14 @@
-#include <execution_policy>
 #include <thread>
 #include <vector>
 #include <algorithm>
 #include <numeric>
 #include <cassert>
 #include <iostream>
+#include <agency/execution_policy.hpp>
 
 
 template<class Iterator, class T, class BinaryFunction>
-T reduce(std::sequential_execution_policy, Iterator first, Iterator last, T init, BinaryFunction binary_op)
+T reduce(agency::sequential_execution_policy, Iterator first, Iterator last, T init, BinaryFunction binary_op)
 {
   return std::accumulate(first, last, init, binary_op);
 }
@@ -24,17 +24,17 @@ T reduce(Iterator first, Iterator last, T init, BinaryFunction binary_op)
   auto num_partitions = (n + partition_size - 1) / partition_size;
   std::vector<T> partial_sums(num_partitions);
 
-  std::bulk_invoke(std::par(num_partitions), [=,&partial_sums](agency::parallel_agent& g)
+  agency::bulk_invoke(agency::par(num_partitions), [=,&partial_sums](agency::parallel_agent& g)
   {
     auto i = g.index();
 
     auto partition_begin = first + partition_size * i;
     auto partition_end   = std::min(last, partition_begin + partition_size);
 
-    partial_sums[i] = reduce(std::seq, partition_begin + 1, partition_end, *partition_begin, binary_op);
+    partial_sums[i] = reduce(agency::seq, partition_begin + 1, partition_end, *partition_begin, binary_op);
   });
 
-  return reduce(std::seq, partial_sums.begin(), partial_sums.end(), init, binary_op);
+  return reduce(agency::seq, partial_sums.begin(), partial_sums.end(), init, binary_op);
 }
 
 

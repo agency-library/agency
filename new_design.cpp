@@ -1,16 +1,14 @@
 #include <iostream>
-#include <execution_policy>
 #include <mutex>
+#include <agency/execution_policy.hpp>
 
 int main()
 {
-  using std::seq;
-  using std::con;
-  using std::par;
+  using namespace agency;
 
   std::cout << "Testing seq" << std::endl << std::endl;
 
-  bulk_async(seq(2), [](agency::sequential_agent &self)
+  bulk_async(seq(2), [](sequential_agent &self)
   {
     int i = self.index();
 
@@ -20,9 +18,9 @@ int main()
   std::cout << std::endl;
 
 
-  std::cout << "Testing std::con" << std::endl << std::endl;
+  std::cout << "Testing con" << std::endl << std::endl;
 
-  bulk_async(con(10), [](agency::concurrent_agent &self)
+  bulk_async(con(10), [](concurrent_agent &self)
   {
     std::cout << "agent " << self.index() << " arriving at barrier" << std::endl;
 
@@ -34,9 +32,9 @@ int main()
   std::cout << std::endl;
 
 
-  std::cout << "Testing std::par" << std::endl << std::endl;
+  std::cout << "Testing par" << std::endl << std::endl;
 
-  bulk_async(par(20), [](agency::parallel_agent &self)
+  bulk_async(par(20), [](parallel_agent &self)
   {
     std::cout << "agent " << self.index() << " in par group" << std::endl;
   }).wait();
@@ -44,10 +42,10 @@ int main()
   std::cout << std::endl;
 
 
-  std::cout << "Testing std::seq(std::seq)" << std::endl << std::endl;
+  std::cout << "Testing seq(seq)" << std::endl << std::endl;
 
   std::mutex mut;
-  auto singly_nested_f = bulk_async(con(2, seq(3)), [&mut](agency::concurrent_group<agency::sequential_agent> &self)
+  auto singly_nested_f = bulk_async(con(2, seq(3)), [&mut](concurrent_group<sequential_agent> &self)
   {
     mut.lock();
     std::cout << "Hello world from con(seq) agent " << self.index() << std::endl;
@@ -70,7 +68,7 @@ int main()
 
   singly_nested_f.wait();
 
-  auto doubly_nested_f = bulk_async(seq(2, par(2, seq(3))), [&mut](agency::sequential_group<agency::parallel_group<agency::sequential_agent>> &self)
+  auto doubly_nested_f = bulk_async(seq(2, par(2, seq(3))), [&mut](sequential_group<parallel_group<sequential_agent>> &self)
   {
     mut.lock();
     std::cout << "Hello world from sequential_agent " << self.inner().inner().index() << " of parallel_group " << self.inner().outer().index() << " of sequential_group " << self.outer().index() << std::endl;
