@@ -5,7 +5,7 @@
 #include <future>
 #include <executor_traits>
 #include <agency/detail/tuple_utility.hpp>
-#include <__tuple_tail>
+#include <agency/detail/tuple_tail_old.hpp>
 #include <agency/detail/make_tuple_if_not_nested.hpp>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 
@@ -106,7 +106,7 @@ class nested_executor
 
       // split the shared argument tuple into the inner & outer portions
       auto outer_shared_arg = __tu::tuple_head(shared_arg_tuple);
-      auto inner_shared_arg_tuple = tuple_tail(shared_arg_tuple);
+      auto inner_shared_arg_tuple = agency::detail::tuple_tail_old(shared_arg_tuple);
 
       // if the inner executor isn't nested, we need to unwrap the tail arguments
       auto inner_shared_arg = agency::detail::unwrap_tuple_if_not_nested<inner_execution_category>(inner_shared_arg_tuple);
@@ -170,7 +170,7 @@ class nested_executor
     {
       // the inner portion is the tail of the tuple, but if the 
       // inner executor is not nested, then the tuple needs to be unwrapped
-      return agency::detail::unwrap_tuple_if_not_nested<inner_execution_category>(tuple_tail(shape));
+      return agency::detail::unwrap_tuple_if_not_nested<inner_execution_category>(agency::detail::tuple_tail_old(shape));
     }
 
     outer_executor_type outer_ex_;
