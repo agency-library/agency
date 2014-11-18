@@ -59,7 +59,7 @@ auto tuple_head(Tuple&& t)
 
 
 template<class... Args>
-auto __tuple_tail_impl_impl(Args&&... args)
+auto __forward_tuple_tail_impl_impl(Args&&... args)
   -> decltype(
        std::forward_as_tuple(args...)
      )
@@ -68,14 +68,59 @@ auto __tuple_tail_impl_impl(Args&&... args)
 }
 
 template<class Tuple, size_t... I>
-auto __tuple_tail_impl(Tuple&& t, __index_sequence<I...>)
+auto __forward_tuple_tail_impl(Tuple&& t, __index_sequence<I...>)
   -> decltype(
-       __tuple_tail_impl_impl(std::get<I>(std::forward<Tuple>(t))...)
+       __forward_tuple_tail_impl_impl(std::get<I>(std::forward<Tuple>(t))...)
      )
 {
-  return __tuple_tail_impl_impl(std::get<I+1>(std::forward<Tuple>(t))...);
+  return __forward_tuple_tail_impl_impl(std::get<I+1>(std::forward<Tuple>(t))...);
 }
 
+
+// forward_tuple_tail() returns t's tail as a tuple of references
+template<class Tuple>
+auto forward_tuple_tail(typename std::remove_reference<Tuple>::type& t)
+  -> decltype(
+       __forward_tuple_tail_impl(
+         std::forward<Tuple>(t),
+         __make_index_sequence<
+           std::tuple_size<
+             typename std::decay<Tuple>::type
+           >::value - 1
+         >()
+       )
+     )
+{
+  using indices = __make_index_sequence<
+    std::tuple_size<
+      typename std::decay<Tuple>::type
+    >::value - 1
+  >;
+  return __forward_tuple_tail_impl(std::forward<Tuple>(t), indices());
+}
+
+
+template<class... Args>
+auto __tuple_tail_impl_impl(Args&&... args)
+  -> decltype(
+       std::make_tuple(args...)
+     )
+{
+  return std::make_tuple(args...);
+}
+
+template<class Tuple, size_t... I>
+auto __tuple_tail_impl(Tuple&& t, __index_sequence<I...>)
+  -> decltype(
+       __tuple_tail_impl(std::get<I>(std::forward<Tuple>(t))...)
+     )
+{
+  return __tuple_tail_impl(std::get<I+1>(std::forward<Tuple>(t))...);
+}
+
+
+// tuple_tail() returns t's tail as a tuple of values
+// i.e., it makes a copy of t's tail
 template<class Tuple>
 auto tuple_tail(Tuple&& t)
   -> decltype(
@@ -287,7 +332,7 @@ T tuple_reduce(Tuple&& t, T init, Function f,
 {
   return f(
     tuple_head(std::forward<Tuple>(t)),
-    tuple_reduce(tuple_tail(std::forward<Tuple>(t)), init, f)
+    tuple_reduce(forward_tuple_tail<Tuple>(t), init, f)
   );
 }
 
@@ -309,7 +354,7 @@ typename std::enable_if<
   tuple_for_each(Function f, Tuple1&& t1, Tuples&&... ts)
 {
   f(tuple_head(std::forward<Tuple1>(t1)), tuple_head(std::forward<Tuples>(ts))...);
-  tuple_for_each(f, tuple_tail(std::forward<Tuple1>(t1)), tuple_tail(std::forward<Tuples>(ts))...);
+  tuple_for_each(f, forward_tuple_tail<Tuple1>(t1), forward_tuple_tail<Tuples>(ts)...);
 }
 
 
@@ -338,7 +383,7 @@ typename std::enable_if<
 {
   os << tuple_head(t) << delimiter;
 
-  tuple_print(tuple_tail(t), os, delimiter);
+  tuple_print(forward_tuple_tail<const Tuple&>(t), os, delimiter);
 }
 
 template<class Tuple>
@@ -377,7 +422,7 @@ typename std::enable_if<
 {
   return (tuple_head(t1) < tuple_head(t2)) ? true :
          (tuple_head(t2) < tuple_head(t1)) ? false :
-         tuple_lexicographical_compare(tuple_tail(t1), tuple_tail(t2));
+         tuple_lexicographical_compare(forward_tuple_tail<const Tuple1>(t1), forward_tuple_tail<const Tuple2>(t2));
 }
 
 

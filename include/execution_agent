@@ -523,7 +523,7 @@ class __execution_group
 
     static inner_index_type inner_index(const index_type& index)
     {
-      return agency::detail::unwrap_tuple_if_not_nested<inner_execution_category>(__tu::tuple_tail(index));
+      return agency::detail::unwrap_tuple_if_not_nested<inner_execution_category>(__tu::forward_tuple_tail<const index_type>(index));
     }
 
     outer_execution_agent_type outer_agent_;
