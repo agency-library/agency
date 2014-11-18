@@ -79,24 +79,6 @@ struct disable_if_nested_call
 {};
 
 
-} // end detail
-
-
-// XXX can't we move these down the file so we don't need to close detail:: ?
-template<class ExecutionPolicy, class Function, class... Args>
-typename detail::enable_if_execution_policy<detail::decay_t<ExecutionPolicy>>::type
-bulk_invoke(ExecutionPolicy&& exec, Function&& f, Args&&... args);
-
-
-template<class ExecutionPolicy, class Function, class... Args>
-typename detail::enable_if_execution_policy<detail::decay_t<ExecutionPolicy>,std::future<void>>::type
-bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args);
-
-
-namespace detail
-{
-
-
 // XXX we should assert that ExecutionCategory is stronger than the category of ExecutionAgent
 // XXX another way to order these parameters would be
 // ExecutionCategory, Asyncable, ExecutionGroup = __default_execution_group<ExecutionCategory>
@@ -160,18 +142,6 @@ class basic_execution_policy
     // * executor.bulk_add() is a non-const member function
     mutable executor_type executor_;
 };
-
-
-} // end detail
-
-
-// XXX move this down the file so we don't have to close detail::
-template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory>
-struct is_execution_policy<detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory>> : std::true_type {};
-
-
-namespace detail
-{
 
 
 // ExecutionCategory1 corresponds to the category of the executor
@@ -291,6 +261,11 @@ class nested_execution_policy
 
 
 } // end detail
+
+
+
+template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory>
+struct is_execution_policy<detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory>> : std::true_type {};
 
 
 template<class T1, class T2>
