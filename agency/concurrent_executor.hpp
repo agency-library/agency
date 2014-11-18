@@ -3,7 +3,7 @@
 #include <thread>
 #include <vector>
 #include <memory>
-#include <future>
+#include <agency/detail/future.hpp>
 #include <agency/execution_categories.hpp>
 #include <algorithm>
 
@@ -19,7 +19,7 @@ class concurrent_executor
     template<class Function, class T>
     std::future<void> bulk_async(Function f, size_t n, T shared_arg)
     {
-      std::future<void> result = std::make_ready_future();
+      std::future<void> result = detail::make_ready_future();
 
       if(n > 0)
       {
@@ -27,13 +27,13 @@ class concurrent_executor
         {
           size_t mid = n / 2;
 
-          std::future<void> left = std::make_ready_future();
+          std::future<void> left = detail::make_ready_future();
           if(0 < mid)
           {
             left = std::move(bulk_async(f, 0, mid, shared_arg));
           }
 
-          std::future<void> right = std::make_ready_future();
+          std::future<void> right = detail::make_ready_future();
           if(mid + 1 < n)
           {
             right = std::move(bulk_async(f, mid + 1, n, shared_arg));
@@ -58,13 +58,13 @@ class concurrent_executor
       {
         size_t mid = (last + first) / 2;
 
-        std::future<void> left = std::make_ready_future();
+        std::future<void> left = detail::make_ready_future();
         if(first < mid)
         {
           left = std::move(bulk_async(f, first, mid, shared_arg));
         }
 
-        std::future<void> right = std::make_ready_future();
+        std::future<void> right = detail::make_ready_future();
         if(mid + 1 < last)
         {
           right = std::move(bulk_async(f, mid + 1, last, shared_arg));
