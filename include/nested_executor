@@ -1,6 +1,6 @@
 #pragma once
 
-#include <execution_categories>
+#include <agency/execution_categories.hpp>
 #include <utility>
 #include <future>
 #include <executor_traits>
@@ -44,8 +44,9 @@ class nested_executor
     using inner_shape_type = typename inner_traits::shape_type;
 
   public:
+    // XXX drop explicit ns
     using execution_category = 
-      nested_execution_tag<
+      agency::nested_execution_tag<
         outer_execution_category,
         inner_execution_category
       >;

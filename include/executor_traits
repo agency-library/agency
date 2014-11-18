@@ -2,6 +2,7 @@
 
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/tuple_of_references.hpp>
+#include <agency/execution_categories.hpp>
 
 
 namespace std
@@ -192,10 +193,11 @@ struct executor_traits
     // the shared parameter is passed to the lamda
     // as a tuple of references when the executor is nested
     // otherwise, it's just passed as a raw reference
+    // XXX drop explicit ns
     template<class T>
     struct shared_param_type_impl
       : agency::detail::lazy_conditional<
-          __is_nested_execution_category<execution_category>::value,
+          agency::detail::is_nested_execution_category<execution_category>::value,
           tuple_of_references_t<T>,
           std::add_lvalue_reference<T>
         >

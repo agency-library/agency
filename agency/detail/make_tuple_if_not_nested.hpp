@@ -1,6 +1,6 @@
 #pragma once
 
-#include <execution_categories>
+#include <agency/execution_categories.hpp>
 #include <tuple>
 #include <utility>
 
@@ -13,7 +13,7 @@ namespace detail
 
 // execution is nested, just return x
 template<class ExecutionCategory1, class ExecutionCategory2, class T>
-auto make_tuple_if_not_nested(std::nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
+auto make_tuple_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
   -> decltype(std::forward<T>(x))
 {
   return std::forward<T>(x);
@@ -38,7 +38,7 @@ auto make_tuple_if_not_nested(T&& x)
 
 
 template<class ExecutionCategory1, class ExecutionCategory2, class T>
-auto tie_if_not_nested(std::nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
+auto tie_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
   -> decltype(std::forward<T>(x))
 {
   return std::forward<T>(x);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <execution_categories>
+#include <agency/execution_categories.hpp>
 #include <tuple>
 #include <utility>
 
@@ -18,7 +18,7 @@ static auto unwrap_tuple_if_not_nested_impl(ExecutionCategory, Tuple&& t)
 }
 
 template<class ExecutionCategory1, class ExecutionCategory2, class Tuple>
-static auto unwrap_tuple_if_not_nested_impl(std::nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, Tuple&& t)
+static auto unwrap_tuple_if_not_nested_impl(nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, Tuple&& t)
   -> decltype(std::forward<Tuple>(t))
 {
   return std::forward<Tuple>(t);

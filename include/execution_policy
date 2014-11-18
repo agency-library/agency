@@ -233,7 +233,8 @@ class __nested_execution_policy
         typename ExecutionPolicy1::executor_type,
         typename ExecutionPolicy2::executor_type
       >,
-      nested_execution_tag<
+      // XXX drop explicit ns
+      agency::nested_execution_tag<
         typename ExecutionPolicy1::execution_category,
         typename ExecutionPolicy2::execution_category
       >
@@ -249,7 +250,8 @@ class __nested_execution_policy
         typename ExecutionPolicy1::executor_type,
         typename ExecutionPolicy2::executor_type
       >,
-      nested_execution_tag<
+      // XXX drop explicit ns
+      agency::nested_execution_tag<
         typename ExecutionPolicy1::execution_category,
         typename ExecutionPolicy2::execution_category
       >
