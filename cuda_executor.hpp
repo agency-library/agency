@@ -21,7 +21,7 @@
 #  define __cuda_lib_has_printf 1
 #endif
 
-#include <execution_categories>
+#include <agency/execution_categories.hpp>
 #include <future>
 #include <memory>
 #include <iostream>
@@ -174,9 +174,9 @@ class cuda_executor
 {
   public:
     using execution_category =
-      std::nested_execution_tag<
-        std::parallel_execution_tag,
-        std::concurrent_execution_tag
+      agency::nested_execution_tag<
+        agency::parallel_execution_tag,
+        agency::concurrent_execution_tag
       >;
 
 

@@ -1,22 +1,32 @@
 #pragma once
 
-// have to declare std::get for __small_vector_facade
-// before deriving from __arithmetic_tuple_facade
+// have to declare std::get for small_vector_facade
+// before deriving from arithmetic_tuple_facade
 // because std::get can't be looked up via ADL
-namespace std
+namespace agency
+{
+namespace detail
 {
 
 
 template<typename Derived, typename T, std::size_t Rank>
-class __small_vector_facade;
+class small_vector_facade;
+
+
+} // end detail
+} // end agency
+
+
+namespace std
+{
 
 
 template<size_t I, class Derived, class T, size_t Rank>
-T& get(__small_vector_facade<Derived,T,Rank>& x);
+T& get(agency::detail::small_vector_facade<Derived,T,Rank>& x);
 
 
 template<size_t I, class Derived, class T, size_t Rank>
-const T& get(const __small_vector_facade<Derived,T,Rank>& x);
+const T& get(const agency::detail::small_vector_facade<Derived,T,Rank>& x);
 
 
 }
@@ -24,31 +34,33 @@ const T& get(const __small_vector_facade<Derived,T,Rank>& x);
 
 #include <type_traits>
 #include <algorithm>
-#include <__operator_traits>
-#include <__arithmetic_tuple_facade>
+#include <agency/detail/operator_traits.hpp>
+#include <agency/detail/arithmetic_tuple_facade.hpp>
 #include <iostream>
 #include <array>
 #include <utility>
 
-namespace std
+namespace agency
+{
+namespace detail
 {
 
 
 template<bool Value1, bool... Values>
-struct __all_of
-  : std::integral_constant<bool, Value1 && __all_of<Values...>::value>
+struct all_of
+  : std::integral_constant<bool, Value1 && all_of<Values...>::value>
 {};
 
 
-template<bool Value1> struct __all_of<Value1>
+template<bool Value1> struct all_of<Value1>
   : std::integral_constant<bool, Value1>
 {};
 
 
 template<typename Derived, typename T, std::size_t Rank>
-  class __small_vector_facade : public __arithmetic_tuple_facade<Derived>
+  class small_vector_facade : public agency::detail::arithmetic_tuple_facade<Derived>
 {
-  static_assert(__has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
+  static_assert(agency::detail::has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
   static_assert(Rank > 0, "Rank must be greater than 0.");
 
   public:
@@ -127,13 +139,13 @@ template<typename Derived, typename T, std::size_t Rank>
       return end();
     }
 
-    bool operator==(const __small_vector_facade& rhs) const
+    bool operator==(const small_vector_facade& rhs) const
     {
       return std::equal(begin(), end(), rhs.begin());
     }
 
 
-    bool operator!=(const __small_vector_facade& rhs) const
+    bool operator!=(const small_vector_facade& rhs) const
     {
       return !(*this == rhs);
     }
@@ -164,8 +176,16 @@ template<typename Derived, typename T, std::size_t Rank>
 };
 
 
+} // end detail
+} // end agency
+
+
+namespace std
+{
+
+
 template<size_t I, class Derived, class T, size_t Rank>
-T& get(__small_vector_facade<Derived,T,Rank>& x)
+T& get(agency::detail::small_vector_facade<Derived,T,Rank>& x)
 {
   static_assert(I < Rank, "I must be less than Rank.");
   return x[I];
@@ -173,20 +193,29 @@ T& get(__small_vector_facade<Derived,T,Rank>& x)
 
 
 template<size_t I, class Derived, class T, size_t Rank>
-const T& get(const __small_vector_facade<Derived,T,Rank>& x)
+const T& get(const agency::detail::small_vector_facade<Derived,T,Rank>& x)
 {
   static_assert(I < Rank, "I must be less than Rank.");
   return x[I];
 }
+
+
+} // end std
+
+
+namespace agency
+{
+namespace detail
+{
 
 
 template<typename Derived, typename Base, typename T, std::size_t Rank>
-  class __small_vector_adaptor : public __small_vector_facade<Derived, T, Rank>
+  class small_vector_adaptor : public small_vector_facade<Derived, T, Rank>
 {
-  static_assert(__has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
+  static_assert(agency::detail::has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
   static_assert(Rank > 0, "Rank must be greater than 0.");
 
-  using super_t = __small_vector_facade<Derived,T,Rank>;
+  using super_t = small_vector_facade<Derived,T,Rank>;
 
   public:
     using typename super_t::value_type;
@@ -196,8 +225,8 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
     using typename super_t::const_pointer;
 
 
-    __small_vector_adaptor()
-      : __small_vector_adaptor(value_type{})
+    small_vector_adaptor()
+      : small_vector_adaptor(value_type{})
     {
       for(size_type i = 0; i != super_t::rank; ++i)
       {
@@ -206,7 +235,7 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
     }
 
 
-    __small_vector_adaptor(const __small_vector_adaptor &other)
+    small_vector_adaptor(const small_vector_adaptor &other)
     {
       for(size_type i = 0; i != super_t::rank; ++i)
       {
@@ -216,14 +245,14 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
 
 
     template<class... OtherT,
-             typename = typename enable_if<
-               __all_of<
-                 is_convertible<OtherT,value_type>::value...
+             typename = typename std::enable_if<
+               all_of<
+                 std::is_convertible<OtherT,value_type>::value...
                >::value &&
                sizeof...(OtherT) == Rank
              >::type>
-    __small_vector_adaptor(OtherT... args)
-      : __small_vector_adaptor{static_cast<value_type>(args)...}
+    small_vector_adaptor(OtherT... args)
+      : small_vector_adaptor{static_cast<value_type>(args)...}
     {}
 
 
@@ -233,7 +262,7 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
              typename = typename std::enable_if<
                std::is_convertible<OtherT,value_type>::value
              >::type>
-    __small_vector_adaptor(std::initializer_list<OtherT> l)
+    small_vector_adaptor(std::initializer_list<OtherT> l)
     {
       std::copy(l.begin(), l.end(), super_t::begin());
     }
@@ -244,7 +273,7 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
              class = typename std::enable_if<
                std::is_convertible<OtherT,value_type>::value
              >::type>
-    __small_vector_adaptor(const __small_vector_facade<OtherDerived,OtherT,Rank>& other)
+    small_vector_adaptor(const small_vector_facade<OtherDerived,OtherT,Rank>& other)
     {
       for(size_type i = 0; i < super_t::size(); ++i)
       {
@@ -260,7 +289,7 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
                std::is_convertible<OtherT,value_type>::value
              >::type
              >
-    __small_vector_adaptor(OtherT val)
+    small_vector_adaptor(OtherT val)
     {
       std::fill(super_t::begin(),super_t::end(),val);
     }
@@ -294,5 +323,6 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
 };
 
 
-}
+} // end detail
+} // end agency
 

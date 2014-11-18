@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-namespace std
+namespace agency
 {
 
 
@@ -40,12 +40,18 @@ struct nested_execution_tag
 // XXX figure out how nested_execution_tag sorts
 
 
+namespace detail
+{
+
+
 template<class ExecutionCategory>
-struct __is_nested_execution_category : std::false_type {};
+struct is_nested_execution_category : std::false_type {};
 
 
 template<class ExecutionCategory1, class ExecutionCategory2>
-struct __is_nested_execution_category<nested_execution_tag<ExecutionCategory1,ExecutionCategory2>> : std::true_type {};
+struct is_nested_execution_category<nested_execution_tag<ExecutionCategory1,ExecutionCategory2>> : std::true_type {};
 
-}
+
+} // end detail
+} // end agency
 

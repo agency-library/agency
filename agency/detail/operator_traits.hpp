@@ -3,9 +3,11 @@
 #include <type_traits>
 #include <utility>
 
-namespace std
+namespace agency
 {
-namespace __operator_traits_namespace
+namespace detail
+{
+namespace operator_traits_namespace
 {
 
 
@@ -282,117 +284,118 @@ struct operator_greater_equal_result<T1,T2, typename std::enable_if<has_operator
 };
 
 
-}
+} // end operator_traits_namespace
 
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_plus : __operator_traits_namespace::has_operator_plus<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_plus : operator_traits_namespace::has_operator_plus<T1,T2,Result> {};
 
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_plus_assign : __operator_traits_namespace::has_operator_plus_assign<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_plus_assign : operator_traits_namespace::has_operator_plus_assign<T1,T2,Result> {};
 
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_minus : __operator_traits_namespace::has_operator_minus<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_minus : operator_traits_namespace::has_operator_minus<T1,T2,Result> {};
 
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_minus_assign : __operator_traits_namespace::has_operator_minus_assign<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_minus_assign : operator_traits_namespace::has_operator_minus_assign<T1,T2,Result> {};
 
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_multiplies : __operator_traits_namespace::has_operator_multiplies<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_multiplies : operator_traits_namespace::has_operator_multiplies<T1,T2,Result> {};
 
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_multiplies_assign : __operator_traits_namespace::has_operator_multiplies_assign<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_multiplies_assign : operator_traits_namespace::has_operator_multiplies_assign<T1,T2,Result> {};
 
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_divides : __operator_traits_namespace::has_operator_divides<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_divides : operator_traits_namespace::has_operator_divides<T1,T2,Result> {};
 
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_divides_assign : __operator_traits_namespace::has_operator_divides_assign<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_divides_assign : operator_traits_namespace::has_operator_divides_assign<T1,T2,Result> {};
 
 
 template<typename T1, typename T2 = T1>
-struct __has_arithmetic_operators : std::integral_constant<
+struct has_arithmetic_operators : std::integral_constant<
   bool,
-  __has_operator_plus<T1,T2,T1&>::value &&
-  __has_operator_plus_assign<T1,T2,T1&>::value &&
-  __has_operator_minus<T1,T2,T1&>::value &&
-  __has_operator_minus_assign<T1,T2,T1&>::value &&
-  __has_operator_multiplies<T1,T2,T1&>::value &&
-  __has_operator_multiplies_assign<T1,T2,T1&>::value &&
-  __has_operator_divides<T1,T2,T1&>::value &&
-  __has_operator_divides_assign<T1,T2,T1&>::value
+  has_operator_plus<T1,T2,T1&>::value &&
+  has_operator_plus_assign<T1,T2,T1&>::value &&
+  has_operator_minus<T1,T2,T1&>::value &&
+  has_operator_minus_assign<T1,T2,T1&>::value &&
+  has_operator_multiplies<T1,T2,T1&>::value &&
+  has_operator_multiplies_assign<T1,T2,T1&>::value &&
+  has_operator_divides<T1,T2,T1&>::value &&
+  has_operator_divides_assign<T1,T2,T1&>::value
 >
 {};
 
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_less : __operator_traits_namespace::has_operator_divides_assign<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_less : operator_traits_namespace::has_operator_divides_assign<T1,T2,Result> {};
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_less_equal : __operator_traits_namespace::has_operator_divides_assign<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_less_equal : operator_traits_namespace::has_operator_divides_assign<T1,T2,Result> {};
 
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_greater : __operator_traits_namespace::has_operator_divides_assign<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_greater : operator_traits_namespace::has_operator_divides_assign<T1,T2,Result> {};
 
-template<typename T1, typename T2 = T1, typename Result = __operator_traits_namespace::ignore>
-struct __has_operator_greater_equal : __operator_traits_namespace::has_operator_divides_assign<T1,T2,Result> {};
+template<typename T1, typename T2 = T1, typename Result = operator_traits_namespace::ignore>
+struct has_operator_greater_equal : operator_traits_namespace::has_operator_divides_assign<T1,T2,Result> {};
 
 
 template<typename T1, typename T2 = T1>
-struct __operator_plus_result : __operator_traits_namespace::operator_plus_result<T1,T2> {};
+struct operator_plus_result : operator_traits_namespace::operator_plus_result<T1,T2> {};
 
 
 template<typename T1, typename T2 = typename std::remove_reference<T1>::type>
-struct __operator_plus_assign_result : __operator_traits_namespace::operator_plus_assign_result<T1,T2> {};
+struct operator_plus_assign_result : operator_traits_namespace::operator_plus_assign_result<T1,T2> {};
 
 
 template<typename T1, typename T2 = T1>
-struct __operator_minus_result : __operator_traits_namespace::operator_minus_result<T1,T2> {};
+struct operator_minus_result : operator_traits_namespace::operator_minus_result<T1,T2> {};
 
 
 template<typename T1, typename T2 = typename std::remove_reference<T1>::type>
-struct __operator_minus_assign_result : __operator_traits_namespace::operator_minus_assign_result<T1,T2> {};
+struct operator_minus_assign_result : operator_traits_namespace::operator_minus_assign_result<T1,T2> {};
 
 
 template<typename T1, typename T2 = T1>
-struct __operator_multiplies_result : __operator_traits_namespace::operator_multiplies_result<T1,T2> {};
+struct operator_multiplies_result : operator_traits_namespace::operator_multiplies_result<T1,T2> {};
 
 
 template<typename T1, typename T2 = typename std::remove_reference<T1>::type>
-struct __operator_multiplies_assign_result : __operator_traits_namespace::operator_multiplies_assign_result<T1,T2> {};
+struct operator_multiplies_assign_result : operator_traits_namespace::operator_multiplies_assign_result<T1,T2> {};
 
 
 template<typename T1, typename T2 = T1>
-struct __operator_divides_result : __operator_traits_namespace::operator_divides_result<T1,T2> {};
+struct operator_divides_result : operator_traits_namespace::operator_divides_result<T1,T2> {};
 
 
 template<typename T1, typename T2 = typename std::remove_reference<T1>::type>
-struct __operator_divides_assign_result : __operator_traits_namespace::operator_divides_assign_result<T1,T2> {};
+struct operator_divides_assign_result : operator_traits_namespace::operator_divides_assign_result<T1,T2> {};
 
 
 template<typename T1, typename T2 = T1>
-struct __operator_less_result : __operator_traits_namespace::operator_less_result<T1,T2> {};
+struct operator_less_result : operator_traits_namespace::operator_less_result<T1,T2> {};
 
 
 template<typename T1, typename T2 = T1>
-struct __operator_less_equal_result : __operator_traits_namespace::operator_less_equal_result<T1,T2> {};
+struct operator_less_equal_result : operator_traits_namespace::operator_less_equal_result<T1,T2> {};
 
 
 template<typename T1, typename T2 = T1>
-struct __operator_greater_result : __operator_traits_namespace::operator_greater_result<T1,T2> {};
+struct operator_greater_result : operator_traits_namespace::operator_greater_result<T1,T2> {};
 
 
 template<typename T1, typename T2 = T1>
-struct __operator_greater_equal_result : __operator_traits_namespace::operator_greater_equal_result<T1,T2> {};
+struct operator_greater_equal_result : operator_traits_namespace::operator_greater_equal_result<T1,T2> {};
 
 
-} // end std
+} // end detail
+} // end agency
 

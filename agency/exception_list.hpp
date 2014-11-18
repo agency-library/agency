@@ -3,23 +3,36 @@
 #include <exception>
 #include <vector>
 #include <iterator>
-#include <string>
 
-namespace std
+namespace agency
 {
 
 
-class exception_list : public exception
+class exception_list;
+
+
+namespace detail
+{
+
+
+inline void add_current_exception(exception_list &exceptions);
+inline void move_exceptions(exception_list &to, exception_list &from);
+
+
+} // end detail
+
+
+class exception_list : public std::exception
 {
   private:
-    typedef std::vector<exception_ptr> impl_type;
+    typedef std::vector<std::exception_ptr> impl_type;
     impl_type exceptions_;
 
-    friend void __add_current_exception(exception_list &);
-    friend void __move_exceptions(exception_list &, exception_list &);
+    friend void detail::add_current_exception(exception_list &);
+    friend void detail::move_exceptions(exception_list &, exception_list &);
 
   public:
-    typedef exception_ptr                                             value_type;
+    typedef std::exception_ptr                                        value_type;
     typedef const value_type&                                         reference;
     typedef const value_type&                                         const_reference;
     typedef typename impl_type::const_iterator                        const_iterator;
@@ -36,20 +49,24 @@ class exception_list : public exception
 };
 
 
-inline void __add_current_exception(exception_list &exceptions)
+namespace detail
+{
+
+
+inline void add_current_exception(exception_list &exceptions)
 {
   exceptions.exceptions_.push_back(std::current_exception());
 }
 
 
-inline void __move_exceptions(exception_list &to, exception_list &from)
+inline void move_exceptions(exception_list &to, exception_list &from)
 {
   to.exceptions_.insert(to.exceptions_.end(), std::make_move_iterator(from.exceptions_.begin()), std::make_move_iterator(from.exceptions_.end()));
 }
 
 
 template<class FutureIterator>
-exception_list __flatten_into_exception_list(FutureIterator first, FutureIterator last)
+exception_list flatten_into_exception_list(FutureIterator first, FutureIterator last)
 {
   exception_list exceptions;
 
@@ -61,11 +78,11 @@ exception_list __flatten_into_exception_list(FutureIterator first, FutureIterato
     }
     catch(exception_list &e)
     {
-      __move_exceptions(exceptions, e);
+      move_exceptions(exceptions, e);
     }
     catch(...)
     {
-      __add_current_exception(exceptions);
+      add_current_exception(exceptions);
     }
   }
   
@@ -74,9 +91,9 @@ exception_list __flatten_into_exception_list(FutureIterator first, FutureIterato
 
 
 template<class FutureIterator>
-void __flatten_and_throw_exceptions(FutureIterator first, FutureIterator last)
+void flatten_and_throw_exceptions(FutureIterator first, FutureIterator last)
 {
-  exception_list exceptions = __flatten_into_exception_list(first, last);
+  exception_list exceptions = flatten_into_exception_list(first, last);
 
   if(exceptions.size() > 0)
   {
@@ -85,5 +102,6 @@ void __flatten_and_throw_exceptions(FutureIterator first, FutureIterator last)
 }
 
 
-}
+} // end detail
+} // end agency
 

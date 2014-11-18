@@ -1,6 +1,6 @@
-#include <nested_executor>
-#include <concurrent_executor>
-#include <sequential_executor>
+#include <agency/nested_executor.hpp>
+#include <agency/concurrent_executor.hpp>
+#include <agency/sequential_executor.hpp>
 #include <iostream>
 #include <thread>
 
@@ -8,7 +8,7 @@ std::mutex mut;
 
 int main()
 {
-  std::nested_executor<std::concurrent_executor, std::sequential_executor> ex;
+  agency::nested_executor<agency::concurrent_executor, agency::sequential_executor> ex;
 
   bulk_async(ex, std::make_pair(2,2), [](std::tuple<size_t,size_t> idx)
   {
@@ -47,7 +47,7 @@ int main()
   std::cout << std::endl;
 
   // test with 3-deep nesting
-  std::nested_executor<std::sequential_executor, std::nested_executor<std::sequential_executor,std::sequential_executor>> ex2;
+  agency::nested_executor<agency::sequential_executor, agency::nested_executor<agency::sequential_executor,agency::sequential_executor>> ex2;
 
   ex2.bulk_async([](std::tuple<size_t,size_t,size_t> idx)
   {

@@ -1,10 +1,11 @@
 #pragma once
 
 #include <type_traits>
-#include <execution_categories>
-#include <nested_executor>
+#include <agency/executor_traits.hpp>
+#include <agency/execution_categories.hpp>
+#include <agency/nested_executor.hpp>
 
-namespace std
+namespace agency
 {
 
 
@@ -13,7 +14,7 @@ class flattened_executor
 {
   // probably shouldn't insist on a nested executor
   static_assert(
-    __is_nested_execution_category<typename executor_traits<Executor>::execution_category>::value,
+    detail::is_nested_execution_category<typename executor_traits<Executor>::execution_category>::value,
     "Execution category of Executor must be nested."
   );
 
@@ -129,5 +130,5 @@ class flattened_executor
 };
 
 
-}
+} // end agency
 

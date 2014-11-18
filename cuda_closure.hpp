@@ -2,12 +2,13 @@
 
 #include <utility>
 #include <thrust/tuple.h>
-#include <integer_sequence>
+#include <agency/detail/integer_sequence.hpp>
+#include <agency/detail/type_traits.hpp>
 
 
 template<typename F, typename Arg1, typename Tuple, size_t... I>
 __host__ __device__
-auto __apply_impl(F&& f, Arg1&& arg1, Tuple&& t, std::index_sequence<I...>)
+auto __apply_impl(F&& f, Arg1&& arg1, Tuple&& t, agency::detail::index_sequence<I...>)
   -> decltype(
        std::forward<F>(f)(
          std::forward<Arg1>(arg1),
@@ -30,11 +31,11 @@ auto __apply(F&& f, Arg1&& arg1, Tuple&& t)
          std::forward<F>(f),
          std::forward<Arg1>(arg1),
          std::forward<Tuple>(t),
-         std::make_index_sequence<thrust::tuple_size<std::decay_t<Tuple>>::value>()
+         agency::detail::make_index_sequence<thrust::tuple_size<agency::detail::decay_t<Tuple>>::value>()
        )
      )
 {
-  using Indices = std::make_index_sequence<thrust::tuple_size<std::decay_t<Tuple>>::value>;
+  using Indices = agency::detail::make_index_sequence<thrust::tuple_size<agency::detail::decay_t<Tuple>>::value>;
   return __apply_impl(
     std::forward<F>(f),
     std::forward<Arg1>(arg1),

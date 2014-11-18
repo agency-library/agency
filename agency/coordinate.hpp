@@ -3,19 +3,19 @@
 #include <array>
 #include <initializer_list>
 #include <type_traits>
-#include <__small_vector_facade>
+#include <agency/detail/small_vector_facade.hpp>
 #include <array>
-#include <__tuple_utility>
+#include <agency/detail/tuple_utility.hpp>
 
-namespace std
+namespace agency
 {
 
 
 // T is any type with operators +, +=, -, -=, *, *=,  /, /=, <
 template<class T, size_t Rank>
-class point : public __small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T, Rank>
+class point : public agency::detail::small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T, Rank>
 {
-  using super_t = __small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T, Rank>;
+  using super_t = agency::detail::small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T, Rank>;
 
   public:
     using super_t::super_t;
@@ -25,8 +25,8 @@ class point : public __small_vector_adaptor<point<T,Rank>, std::array<T,Rank>, T
 // scalar multiply
 // XXX fix return type -- it should be point<common_type,Rank>
 template<class T1, class T2, size_t Rank>
-typename enable_if<
-  (is_arithmetic<T1>::value && __has_operator_multiplies<T1,T2>::value),
+typename std::enable_if<
+  (std::is_arithmetic<T1>::value && agency::detail::has_operator_multiplies<T1,T2>::value),
   point<T2,Rank>
 >::type
   operator*(T1 val, const point<T2,Rank>& p)
@@ -35,25 +35,6 @@ typename enable_if<
 
   return result_type(val) * p;
 }
-
-
-template<size_t I, class Tuple>
-struct tuple_element;
-
-
-template<size_t I, class T, size_t Rank>
-struct tuple_element<I,point<T,Rank>>
-{
-  static_assert(I < Rank, "I must be less than Rank.");
-  using type = T;
-};
-
-
-template<class T, size_t N>
-struct tuple_size<point<T,N>>
-{
-  static const size_t value = N;
-};
 
 
 using int1  = point<int,1>;
@@ -104,47 +85,51 @@ using double9  = point<double,9>;
 using double10 = point<double,10>;
 
 
+namespace detail
+{
+
+
 template<typename T, typename Enable = void>
-struct __index_size : std::tuple_size<T> {};
+struct index_size : std::tuple_size<T> {};
 
 
 template<typename T>
-struct __index_size<T, typename enable_if<is_integral<T>::value>::type>
+struct index_size<T, typename std::enable_if<std::is_integral<T>::value>::type>
 {
   constexpr static size_t value = 1;
 };
 
 
-template<class T> class __grid_iterator;
+template<class T> class grid_iterator;
 
 
 template<typename Array, typename T>
-struct __rebind_array;
+struct rebind_array;
 
 template<template<typename,size_t> class array_template, size_t N, typename OldT, typename NewT>
-struct __rebind_array<array_template<OldT,N>, NewT>
+struct rebind_array<array_template<OldT,N>, NewT>
 {
   using type = array_template<NewT,N>;
 };
 
 
 template<typename Array, typename T>
-using __rebind_array_t = typename __rebind_array<Array,T>::type;
+using rebind_array_t = typename rebind_array<Array,T>::type;
 
-// there are two overloads for __shape_size()
+// there are two overloads for shape_size()
 template<typename Shape>
 typename std::enable_if<
   std::is_integral<Shape>::value,
   size_t
 >::type
-  __shape_size(const Shape& s);
+  shape_size(const Shape& s);
 
 template<typename Shape>
 typename std::enable_if<
   !std::is_integral<Shape>::value,
   size_t
 >::type
-  __shape_size(const Shape& s);
+  shape_size(const Shape& s);
 
 
 // scalar case
@@ -153,17 +138,17 @@ typename std::enable_if<
   std::is_integral<Shape>::value,
   size_t
 >::type
-  __shape_size(const Shape& s)
+  shape_size(const Shape& s)
 {
   return static_cast<size_t>(s);
 }
 
-struct __shape_size_functor
+struct shape_size_functor
 {
   template<typename T>
   size_t operator()(const T& x)
   {
-    return __shape_size(x);
+    return shape_size(x);
   }
 };
 
@@ -173,10 +158,10 @@ typename std::enable_if<
   !std::is_integral<Shape>::value,
   size_t
 >::type
-  __shape_size(const Shape& s)
+  shape_size(const Shape& s)
 {
   // transform s into a tuple of sizes
-  auto tuple_of_sizes = __tu::tuple_map(__shape_size_functor{}, s);
+  auto tuple_of_sizes = __tu::tuple_map(shape_size_functor{}, s);
 
   // reduce the sizes
   return __tu::tuple_reduce(tuple_of_sizes, size_t{1}, [](size_t x, size_t y)
@@ -184,6 +169,9 @@ typename std::enable_if<
     return x * y;
   });
 }
+
+
+} // end detail
 
 
 // this class is a lattice, the points of which take on values which are unit-spaced
@@ -197,13 +185,13 @@ class regular_grid
   public:
     // XXX should pick a different name for rank
     //     or maybe just eliminate it and rely on .size()
-    constexpr static size_t rank = __index_size<T>::value;
+    constexpr static size_t rank = detail::index_size<T>::value;
     using size_type              = size_t;
 
     using value_type             = T;
     using reference              = value_type;
     using const_reference        = reference;
-    using const_iterator         = __grid_iterator<T>;
+    using const_iterator         = detail::grid_iterator<T>;
     using iterator               = const_iterator;
 
     // returns the value of the smallest lattice point
@@ -247,9 +235,9 @@ class regular_grid
     {}
 
     template<class... Size,
-             typename = typename enable_if<
-               __all_of<
-                 is_convertible<Size,size_t>::value...
+             typename = typename std::enable_if<
+               agency::detail::all_of<
+                 std::is_convertible<Size,size_t>::value...
                >::value &&
                sizeof...(Size) == rank
              >::type 
@@ -265,13 +253,13 @@ class regular_grid
     // returns whether or not p is the value of a lattice point
     bool contains(const value_type& p) const
     {
-      return contains(p, is_arithmetic<value_type>());
+      return contains(p, std::is_arithmetic<value_type>());
     }
 
     // returns the number of lattice points
     size_type size() const
     {
-      return __shape_size(shape());
+      return detail::shape_size(shape());
     }
 
     bool empty() const
@@ -305,9 +293,9 @@ class regular_grid
 
     // reshape does not move the origin
     template<class... Size,
-             typename = typename enable_if<
-               __all_of<
-                 is_convertible<Size,size_t>::value...
+             typename = typename std::enable_if<
+               agency::detail::all_of<
+                 std::is_convertible<Size,size_t>::value...
                >::value &&
                sizeof...(Size) == rank
              >::type 
@@ -319,12 +307,12 @@ class regular_grid
 
     const_iterator begin() const
     {
-      return __grid_iterator<value_type>(*this);
+      return detail::grid_iterator<value_type>(*this);
     }
 
     const_iterator end() const
     {
-      return __grid_iterator<value_type>(*this, __grid_iterator<value_type>::past_the_end(*this));
+      return detail::grid_iterator<value_type>(*this, detail::grid_iterator<value_type>::past_the_end(*this));
     }
 
   private:
@@ -352,8 +340,12 @@ class regular_grid
 };
 
 
+namespace detail
+{
+
+
 template<class T>
-class __grid_iterator
+class grid_iterator
   : public std::iterator<
       std::random_access_iterator_tag,
       T,
@@ -378,12 +370,12 @@ class __grid_iterator
     using typename super_t::reference;
     using typename super_t::difference_type;
 
-    explicit __grid_iterator(const regular_grid<T>& grid)
+    explicit grid_iterator(const regular_grid<T>& grid)
       : grid_(grid),
         current_(grid_.min())
     {}
 
-    explicit __grid_iterator(const regular_grid<T>& grid, T current)
+    explicit grid_iterator(const regular_grid<T>& grid, T current)
       : grid_(grid),
         current_(current)
     {}
@@ -393,83 +385,83 @@ class __grid_iterator
       return current_;
     }
 
-    __grid_iterator& operator++()
+    grid_iterator& operator++()
     {
       return increment(std::is_arithmetic<T>());
     }
 
-    __grid_iterator operator++(int)
+    grid_iterator operator++(int)
     {
-      __grid_iterator result = *this;
+      grid_iterator result = *this;
       ++(*this);
       return result;
     }
 
-    __grid_iterator& operator--()
+    grid_iterator& operator--()
     {
       return decrement(std::is_arithmetic<T>());
     }
 
-    __grid_iterator operator--(int)
+    grid_iterator operator--(int)
     {
-      __grid_iterator result = *this;
+      grid_iterator result = *this;
       --(*this);
       return result;
     }
 
-    __grid_iterator operator+(difference_type n) const
+    grid_iterator operator+(difference_type n) const
     {
-      __grid_iterator result{*this};
+      grid_iterator result{*this};
       return result += n;
     }
 
-    __grid_iterator& operator+=(difference_type n)
+    grid_iterator& operator+=(difference_type n)
     {
       return advance(std::is_arithmetic<T>());
     }
 
-    __grid_iterator& operator-=(difference_type n)
+    grid_iterator& operator-=(difference_type n)
     {
       return *this += -n;
     }
 
-    __grid_iterator operator-(difference_type n) const
+    grid_iterator operator-(difference_type n) const
     {
-      __grid_iterator result{*this};
+      grid_iterator result{*this};
       return result -= n;
     }
 
-    difference_type operator-(const __grid_iterator& rhs) const
+    difference_type operator-(const grid_iterator& rhs) const
     {
       return linearize() - rhs.linearize();
     }
 
-    bool operator==(const __grid_iterator& rhs) const
+    bool operator==(const grid_iterator& rhs) const
     {
       return current_ == rhs.current_;
     }
 
-    bool operator!=(const __grid_iterator& rhs) const
+    bool operator!=(const grid_iterator& rhs) const
     {
       return !(*this == rhs);
     }
 
-    bool operator<(const __grid_iterator& rhs) const
+    bool operator<(const grid_iterator& rhs) const
     {
       return current_ < rhs.current_;
     }
 
-    bool operator<=(const __grid_iterator& rhs) const
+    bool operator<=(const grid_iterator& rhs) const
     {
       return !(rhs < *this);
     }
 
-    bool operator>(const __grid_iterator& rhs) const
+    bool operator>(const grid_iterator& rhs) const
     {
       return rhs < *this;
     }
 
-    bool operator>=(const __grid_iterator &rhs) const
+    bool operator>=(const grid_iterator &rhs) const
     {
       return !(rhs > *this);
     }
@@ -481,7 +473,7 @@ class __grid_iterator
 
   private:
     // point-like case
-    __grid_iterator& increment(std::false_type)
+    grid_iterator& increment(std::false_type)
     {
       T min = grid_.min();
       T max = grid_.max();
@@ -505,14 +497,14 @@ class __grid_iterator
     }
 
     // scalar case
-    __grid_iterator& increment(std::true_type)
+    grid_iterator& increment(std::true_type)
     {
       ++current_;
       return *this;
     }
 
     // point-like case
-    __grid_iterator& decrement(std::false_type)
+    grid_iterator& decrement(std::false_type)
     {
       T min = grid_.min();
       T max = grid_.max();
@@ -535,14 +527,14 @@ class __grid_iterator
     }
 
     // scalar case
-    __grid_iterator& decrement(std::true_type)
+    grid_iterator& decrement(std::true_type)
     {
       --current_;
       return *this;
     }
 
     // point-like case
-    __grid_iterator& advance(difference_type n, std::false_type)
+    grid_iterator& advance(difference_type n, std::false_type)
     {
       difference_type idx = linearize() + n;
 
@@ -558,7 +550,7 @@ class __grid_iterator
     }
 
     // scalar case
-    __grid_iterator& advance(difference_type n, std::true_type)
+    grid_iterator& advance(difference_type n, std::true_type)
     {
       current_ += n;
       return *this;
@@ -636,5 +628,33 @@ class __grid_iterator
     T current_;
 };
 
-}
+} // end detail
+} // end agency
+
+
+// specialize Tuple-like interface for agency::point
+namespace std
+{
+
+
+template<size_t I, class Tuple>
+struct tuple_element;
+
+
+template<size_t I, class T, size_t Rank>
+struct tuple_element<I,agency::point<T,Rank>>
+{
+  static_assert(I < Rank, "I must be less than Rank.");
+  using type = T;
+};
+
+
+template<class T, size_t N>
+struct tuple_size<agency::point<T,N>>
+{
+  static const size_t value = N;
+};
+
+
+} // end std
 

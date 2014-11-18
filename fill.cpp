@@ -1,14 +1,16 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <execution_policy>
+#include <agency/execution_policy.hpp>
 
 int main()
 {
+  using namespace agency;
+
   size_t n = 1 << 16;
   std::vector<int> x(n);
 
-  auto f = std::bulk_async(std::par(n), [&](std::parallel_agent &self)
+  auto f = bulk_async(par(n), [&](parallel_agent &self)
   {
     int i = self.index();
     x[i] = 13;
@@ -18,9 +20,9 @@ int main()
   {
     f.get();
   }
-  catch(std::exception_list &e)
+  catch(exception_list &e)
   {
-    std::cerr << "caught std::exception_list: " << e.what() << std::endl;
+    std::cerr << "caught exception_list: " << e.what() << std::endl;
     std::terminate();
   }
 

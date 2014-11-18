@@ -1,17 +1,14 @@
 #pragma once
 
-#include <execution_categories>
 #include <utility>
 #include <future>
-#include <executor_traits>
-#include <__tuple_head>
-#include <__tuple_tail>
-#include <__tuple_of_references>
-#include <__make_tuple_if_not_nested>
-#include <__unwrap_tuple_if_not_nested>
-#include <__type_traits>
+#include <agency/execution_categories.hpp>
+#include <agency/executor_traits.hpp>
+#include <agency/detail/tuple_utility.hpp>
+#include <agency/detail/make_tuple_if_not_nested.hpp>
+#include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 
-namespace std
+namespace agency
 {
 
 
@@ -35,12 +32,15 @@ class nested_executor
     static auto make_index(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
       -> decltype(
            std::tuple_cat(
-             __make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-             __make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+             detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+             detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
            )
          )
     {
-      return std::tuple_cat(__make_tuple_if_not_nested<outer_execution_category>(outer_idx), __make_tuple_if_not_nested<inner_execution_category>(inner_idx));
+      return std::tuple_cat(
+        detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+        detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+      );
     }
 
     using outer_shape_type = typename outer_traits::shape_type;
@@ -56,8 +56,8 @@ class nested_executor
     // XXX consider adding a public static make_shape() function
     using shape_type = decltype(
       std::tuple_cat(
-        __make_tuple_if_not_nested<outer_execution_category>(std::declval<outer_shape_type>()),
-        __make_tuple_if_not_nested<inner_execution_category>(std::declval<inner_shape_type>())
+        detail::make_tuple_if_not_nested<outer_execution_category>(std::declval<outer_shape_type>()),
+        detail::make_tuple_if_not_nested<inner_execution_category>(std::declval<inner_shape_type>())
       )
     );
 
@@ -107,11 +107,11 @@ class nested_executor
       auto inner_shape = this->inner_shape(shape);
 
       // split the shared argument tuple into the inner & outer portions
-      auto outer_shared_arg = tuple_head(shared_arg_tuple);
-      auto inner_shared_arg_tuple = tuple_tail(shared_arg_tuple);
+      auto outer_shared_arg = __tu::tuple_head(shared_arg_tuple);
+      auto inner_shared_arg_tuple = __tu::forward_tuple_tail<Tuple>(shared_arg_tuple);
 
       // if the inner executor isn't nested, we need to unwrap the tail arguments
-      auto inner_shared_arg = __unwrap_tuple_if_not_nested<inner_execution_category>(inner_shared_arg_tuple);
+      auto inner_shared_arg = detail::unwrap_tuple_if_not_nested<inner_execution_category>(inner_shared_arg_tuple);
 
       // figure out what the type of the shared argument to the lambdas need to be 
       using outer_shared_ref_type = typename outer_traits::template shared_param_type<decltype(outer_shared_arg)>;
@@ -125,7 +125,7 @@ class nested_executor
           auto outer_shared_ref_tuple = std::tie(outer_shared_ref);
 
           // if the inner executor isn't nested, we need to tie the inner_shared_ref into a 1-element tuple
-          auto inner_shared_ref_tuple = __tie_if_not_nested<inner_execution_category>(inner_shared_ref);
+          auto inner_shared_ref_tuple = detail::tie_if_not_nested<inner_execution_category>(inner_shared_ref);
 
           // concatenate the outer reference tuple inner tuple of references
           auto full_tuple_of_references = std::tuple_cat(outer_shared_ref_tuple, inner_shared_ref_tuple);
@@ -165,14 +165,14 @@ class nested_executor
     static outer_shape_type outer_shape(const shape_type& shape)
     {
       // the outer portion is always the head of the tuple
-      return tuple_head(shape);
+      return __tu::tuple_head(shape);
     }
 
     static inner_shape_type inner_shape(const shape_type& shape)
     {
       // the inner portion is the tail of the tuple, but if the 
       // inner executor is not nested, then the tuple needs to be unwrapped
-      return __unwrap_tuple_if_not_nested<inner_execution_category>(tuple_tail(shape));
+      return detail::unwrap_tuple_if_not_nested<inner_execution_category>(__tu::forward_tuple_tail<const shape_type>(shape));
     }
 
     outer_executor_type outer_ex_;
@@ -180,5 +180,5 @@ class nested_executor
 };
 
 
-}
+} // end agency
 
