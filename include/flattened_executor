@@ -3,7 +3,7 @@
 #include <type_traits>
 #include <agency/executor_traits.hpp>
 #include <agency/execution_categories.hpp>
-#include <nested_executor>
+#include <agency/nested_executor.hpp>
 
 namespace std
 {
@@ -80,7 +80,8 @@ class flattened_executor
 
     // we can avoid the if(flat_idx < shape) branch above by providing a specialization for nested_executor
     template<class OuterExecutor, class InnerExecutor, class Function, class T>
-    std::future<void> bulk_async_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, T shared_arg)
+    // XXX drop explicit ns
+    std::future<void> bulk_async_impl(agency::nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, T shared_arg)
     {
       auto partitioning = partition(shape);
 

@@ -2,7 +2,7 @@
 
 #include <agency/concurrent_executor.hpp>
 #include <agency/sequential_executor.hpp>
-#include <nested_executor>
+#include <agency/nested_executor.hpp>
 #include <flattened_executor>
 
 namespace std
@@ -10,7 +10,7 @@ namespace std
 
 
 // XXX drop explicit ns
-using parallel_executor = flattened_executor<nested_executor<agency::concurrent_executor, agency::sequential_executor>>;
+using parallel_executor = flattened_executor<agency::nested_executor<agency::concurrent_executor, agency::sequential_executor>>;
 
 
 }

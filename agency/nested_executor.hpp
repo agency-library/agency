@@ -1,14 +1,14 @@
 #pragma once
 
-#include <agency/execution_categories.hpp>
 #include <utility>
 #include <future>
+#include <agency/execution_categories.hpp>
 #include <agency/executor_traits.hpp>
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/detail/make_tuple_if_not_nested.hpp>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 
-namespace std
+namespace agency
 {
 
 
@@ -20,9 +20,8 @@ class nested_executor
     using inner_executor_type = Executor2;
 
   private:
-    // XXX eliminate explicit ns
-    using outer_traits = agency::executor_traits<outer_executor_type>;
-    using inner_traits = agency::executor_traits<inner_executor_type>;
+    using outer_traits = executor_traits<outer_executor_type>;
+    using inner_traits = executor_traits<inner_executor_type>;
 
     using outer_execution_category = typename outer_traits::execution_category;
     using inner_execution_category = typename inner_traits::execution_category;
@@ -33,21 +32,23 @@ class nested_executor
     static auto make_index(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
       -> decltype(
            std::tuple_cat(
-             agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-             agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+             detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+             detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
            )
          )
     {
-      return std::tuple_cat(agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx), agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx));
+      return std::tuple_cat(
+        detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+        detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+      );
     }
 
     using outer_shape_type = typename outer_traits::shape_type;
     using inner_shape_type = typename inner_traits::shape_type;
 
   public:
-    // XXX drop explicit ns
     using execution_category = 
-      agency::nested_execution_tag<
+      nested_execution_tag<
         outer_execution_category,
         inner_execution_category
       >;
@@ -55,8 +56,8 @@ class nested_executor
     // XXX consider adding a public static make_shape() function
     using shape_type = decltype(
       std::tuple_cat(
-        agency::detail::make_tuple_if_not_nested<outer_execution_category>(std::declval<outer_shape_type>()),
-        agency::detail::make_tuple_if_not_nested<inner_execution_category>(std::declval<inner_shape_type>())
+        detail::make_tuple_if_not_nested<outer_execution_category>(std::declval<outer_shape_type>()),
+        detail::make_tuple_if_not_nested<inner_execution_category>(std::declval<inner_shape_type>())
       )
     );
 
@@ -179,5 +180,5 @@ class nested_executor
 };
 
 
-}
+} // end agency
 

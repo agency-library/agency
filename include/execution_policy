@@ -11,7 +11,7 @@
 #include <agency/concurrent_executor.hpp>
 #include <parallel_executor>
 #include <agency/vector_executor.hpp>
-#include <nested_executor>
+#include <agency/nested_executor.hpp>
 #include <memory>
 #include <tuple>
 #include <initializer_list>
@@ -249,7 +249,8 @@ class __nested_execution_policy
         typename ExecutionPolicy1::execution_agent_type,
         typename ExecutionPolicy2::execution_agent_type
       >,
-      nested_executor<
+      // XXX drop explicit ns
+      agency::nested_executor<
         typename ExecutionPolicy1::executor_type,
         typename ExecutionPolicy2::executor_type
       >,
@@ -267,7 +268,8 @@ class __nested_execution_policy
         typename ExecutionPolicy1::execution_agent_type,
         typename ExecutionPolicy2::execution_agent_type
       >,
-      nested_executor<
+      // XXX drop explicit ns
+      agency::nested_executor<
         typename ExecutionPolicy1::executor_type,
         typename ExecutionPolicy2::executor_type
       >,
