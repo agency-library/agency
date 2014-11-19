@@ -33,7 +33,7 @@ int main()
     raw_pointer_cast(z.data())
   };
 
-  std::bulk_invoke(std::par(n).on(gpu), f);
+  agency::bulk_invoke(agency::par(n).on(gpu), f);
 
   float expected  = a * 1. + 2.;
   assert(thrust::all_of(z.begin(), z.end(), thrust::placeholders::_1 == expected));

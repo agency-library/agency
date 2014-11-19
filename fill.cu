@@ -30,7 +30,7 @@ int main()
 
   fill_functor func(raw_pointer_cast(x.data()));
 
-  std::bulk_invoke(cuda::par(n), func);
+  agency::bulk_invoke(cuda::par(n), func);
 
   assert(thrust::all_of(x.begin(), x.end(), thrust::placeholders::_1 == 13));
 

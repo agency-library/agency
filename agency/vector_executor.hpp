@@ -1,17 +1,17 @@
 #pragma once
 
 #include <future>
-#include <execution_categories>
+#include <agency/execution_categories.hpp>
 #include <functional>
 
-namespace std
+namespace agency
 {
 
 
 class vector_executor
 {
   public:
-    using execution_category = std::vector_execution_tag;
+    using execution_category = vector_execution_tag;
 
     template<class Function, class T>
     void bulk_invoke(Function f, size_t n, T shared_arg)
@@ -37,5 +37,5 @@ class vector_executor
 };
 
 
-}
+} // end agency
 

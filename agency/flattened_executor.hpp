@@ -1,10 +1,11 @@
 #pragma once
 
 #include <type_traits>
-#include <execution_categories>
-#include <nested_executor>
+#include <agency/executor_traits.hpp>
+#include <agency/execution_categories.hpp>
+#include <agency/nested_executor.hpp>
 
-namespace std
+namespace agency
 {
 
 
@@ -13,7 +14,7 @@ class flattened_executor
 {
   // probably shouldn't insist on a nested executor
   static_assert(
-    __is_nested_execution_category<typename executor_traits<Executor>::execution_category>::value,
+    detail::is_nested_execution_category<typename executor_traits<Executor>::execution_category>::value,
     "Execution category of Executor must be nested."
   );
 
@@ -60,11 +61,11 @@ class flattened_executor
 
       return executor_traits<OtherExecutor>::bulk_async(exec, [=](index_type idx, shared_param_type shared_params)
       {
-        auto flat_idx = get<0>(idx) * get<1>(partitioning) + get<1>(idx);
+        auto flat_idx = std::get<0>(idx) * std::get<1>(partitioning) + std::get<1>(idx);
 
         if(flat_idx < shape)
         {
-          f(flat_idx, get<0>(shared_params));
+          f(flat_idx, std::get<0>(shared_params));
         }
       },
       partitioning,
@@ -135,5 +136,5 @@ class flattened_executor
 };
 
 
-}
+} // end agency
 

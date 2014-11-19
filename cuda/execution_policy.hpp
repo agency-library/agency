@@ -1,7 +1,7 @@
 #pragma once
 
-#include <execution_policy>
-#include <flattened_executor>
+#include <agency/execution_policy.hpp>
+#include <agency/flattened_executor.hpp>
 #include <type_traits>
 #include "execution_agent.hpp"
 #include "grid_executor.hpp"
@@ -87,7 +87,7 @@ template<class ExecutionPolicy, class Function>
 void bulk_invoke(const ExecutionPolicy& exec, Function&& f)
 {
   using execution_agent_type = typename ExecutionPolicy::execution_agent_type;
-  using traits = std::execution_agent_traits<execution_agent_type>;
+  using traits = agency::execution_agent_traits<execution_agent_type>;
 
   auto param = exec.param();
   auto execute_me = make_execute_agent_functor<traits>(f, param);
@@ -96,24 +96,24 @@ void bulk_invoke(const ExecutionPolicy& exec, Function&& f)
 
   using executor_type = typename ExecutionPolicy::executor_type;
 
-  return std::executor_traits<executor_type>::bulk_invoke(exec.executor(), execute_me, shape, shared_init);
+  return agency::executor_traits<executor_type>::bulk_invoke(exec.executor(), execute_me, shape, shared_init);
 }
 
 
 } // end detail
 
 
-class parallel_execution_policy : public std::__basic_execution_policy<cuda::parallel_agent, std::flattened_executor<cuda::grid_executor>>
+class parallel_execution_policy : public agency::detail::basic_execution_policy<cuda::parallel_agent, agency::flattened_executor<cuda::grid_executor>>
 {
   private:
-    using super_t = std::__basic_execution_policy<cuda::parallel_agent, std::flattened_executor<cuda::grid_executor>>;
+    using super_t = agency::detail::basic_execution_policy<cuda::parallel_agent, agency::flattened_executor<cuda::grid_executor>>;
 
   public:
     using execution_agent_type = super_t::execution_agent_type;
     using executor_type = super_t::executor_type;
     using param_type = execution_agent_type::param_type;
 
-    using super_t::__basic_execution_policy;
+    using super_t::basic_execution_policy;
 
     // XXX we shouldn't have to include either of these constructors due to the
     // using above
@@ -126,7 +126,7 @@ class parallel_execution_policy : public std::__basic_execution_policy<cuda::par
       : super_t(param, executor)
     {}
 
-    parallel_execution_policy(const std::parallel_execution_policy::param_type& param,
+    parallel_execution_policy(const agency::parallel_execution_policy::param_type& param,
                               const executor_type& executor = executor_type())
       : parallel_execution_policy(param_type(param.domain().min(), param.domain().max()),
                                   executor)
@@ -143,23 +143,23 @@ class parallel_execution_policy : public std::__basic_execution_policy<cuda::par
 const parallel_execution_policy par{};
 
 
-class concurrent_execution_policy : public std::__basic_execution_policy<cuda::concurrent_agent, cuda::block_executor>
+class concurrent_execution_policy : public agency::detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor>
 {
   private:
-    using super_t = std::__basic_execution_policy<cuda::concurrent_agent, cuda::block_executor>;
+    using super_t = agency::detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor>;
 
   public:
     using execution_agent_type = super_t::execution_agent_type;
     using executor_type = super_t::executor_type;
     using param_type = execution_agent_type::param_type;
 
-    using super_t::__basic_execution_policy;
+    using super_t::basic_execution_policy;
 
     concurrent_execution_policy(const param_type& param, const executor_type& executor = executor_type())
       : super_t(param, executor)
     {}
 
-    concurrent_execution_policy(const std::concurrent_execution_policy::param_type& param,
+    concurrent_execution_policy(const agency::concurrent_execution_policy::param_type& param,
                                 const executor_type& executor = executor_type())
       : concurrent_execution_policy(param_type(param.domain().min(), param.domain().max()),
                                     executor)
@@ -179,7 +179,7 @@ template<class Function, class... Args>
 std::future<void> bulk_async(const parallel_execution_policy& exec, Function&& f, Args&&... args)
 {
   std::cout << "cuda::bulk_async(cuda::parallel_execution_policy)" << std::endl;
-  return std::make_ready_future();
+  return agency::detail::make_ready_future();
 }
 
 
@@ -195,7 +195,7 @@ template<class Function, class... Args>
 std::future<void> bulk_async(const concurrent_execution_policy& exec, Function&& f, Args&&... args)
 {
   std::cout << "cuda::bulk_async(cuda::concurrent_execution_policy)" << std::endl;
-  return std::make_ready_future();
+  return agency::detail::make_ready_future();
 }
 
 
@@ -214,7 +214,7 @@ struct rebind_executor_impl<
   typename std::enable_if<
     std::is_same<
       typename ExecutionPolicy::execution_category,
-      std::parallel_execution_tag
+      agency::parallel_execution_tag
     >::value
   >::type
 >
@@ -230,7 +230,7 @@ struct rebind_executor_impl<
   typename std::enable_if<
     std::is_same<
       typename ExecutionPolicy::execution_category,
-      std::concurrent_execution_tag
+      agency::concurrent_execution_tag
     >::value
   >::type
 >
@@ -243,7 +243,7 @@ struct rebind_executor_impl<
 } // end cuda
 
 
-namespace std
+namespace agency
 {
 
 
@@ -339,5 +339,5 @@ std::future<void> bulk_async(const cuda::concurrent_execution_policy& exec, Func
 }
 
 
-} // end std
+} // end agency
 

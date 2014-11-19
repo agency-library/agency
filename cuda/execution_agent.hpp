@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstddef>
-#include <execution_agent>
+#include <agency/execution_agent.hpp>
 
 namespace cuda
 {
@@ -66,7 +66,7 @@ struct domain
 
 // XXX provide a base class for __basic_execution_agent
 //     so that we can use it to derive specializations
-//     of std::execution_agent_traits
+//     of agency::execution_agent_traits
 template<class ExecutionCategory>
 class basic_execution_agent_base
 {
@@ -162,7 +162,7 @@ class basic_execution_agent : public basic_execution_agent_base<ExecutionCategor
     using typename super_t::index_type;
     using param_type = typename super_t::param_type;
 
-    friend struct std::execution_agent_traits<basic_execution_agent>;
+    friend struct agency::execution_agent_traits<basic_execution_agent>;
 
     struct noop
     {
@@ -185,13 +185,13 @@ class basic_execution_agent : public basic_execution_agent_base<ExecutionCategor
 } // end detail
 
 
-using parallel_agent = detail::basic_execution_agent<std::parallel_execution_tag>;
+using parallel_agent = detail::basic_execution_agent<agency::parallel_execution_tag>;
 
 
-class concurrent_agent : public detail::basic_execution_agent<std::concurrent_execution_tag>
+class concurrent_agent : public detail::basic_execution_agent<agency::concurrent_execution_tag>
 {
   private:
-    using super_t = detail::basic_execution_agent<std::concurrent_execution_tag>;
+    using super_t = detail::basic_execution_agent<agency::concurrent_execution_tag>;
 
   public:
     __host__ __device__
@@ -221,7 +221,7 @@ class concurrent_agent : public detail::basic_execution_agent<std::concurrent_ex
       {}
 
       int count_;
-//      std::barrier barrier_;
+//      agency::barrier barrier_;
     };
 
     __host__ __device__
@@ -231,7 +231,7 @@ class concurrent_agent : public detail::basic_execution_agent<std::concurrent_ex
     }
 
   private:
-//    std::barrier &barrier_;
+//    agency::barrier &barrier_;
 //
 
     struct noop
@@ -250,8 +250,8 @@ class concurrent_agent : public detail::basic_execution_agent<std::concurrent_ex
       f(*this);
     }
 
-    // friend std::execution_agent_traits to give it access to the constructor
-    friend struct std::execution_agent_traits<concurrent_agent>;
+    // friend agency::execution_agent_traits to give it access to the constructor
+    friend struct agency::execution_agent_traits<concurrent_agent>;
 };
 
 
@@ -259,13 +259,13 @@ class concurrent_agent : public detail::basic_execution_agent<std::concurrent_ex
 
 
 // specialize execution_traits on cuda::parallel_agent
-namespace std
+namespace agency
 {
 
 
 template<>
 struct execution_agent_traits<cuda::parallel_agent>
-  : std::execution_agent_traits<cuda::detail::basic_execution_agent_base<std::parallel_execution_tag>>
+  : agency::execution_agent_traits<cuda::detail::basic_execution_agent_base<agency::parallel_execution_tag>>
 {
   template<class Function>
   __host__ __device__
@@ -278,7 +278,7 @@ struct execution_agent_traits<cuda::parallel_agent>
 
 template<>
 struct execution_agent_traits<cuda::concurrent_agent>
-  : std::execution_agent_traits<cuda::detail::basic_execution_agent_base<std::concurrent_execution_tag>>
+  : agency::execution_agent_traits<cuda::detail::basic_execution_agent_base<agency::concurrent_execution_tag>>
 {
   template<class Function, class Tuple>
   __host__ __device__
@@ -297,5 +297,5 @@ struct execution_agent_traits<cuda::concurrent_agent>
 };
 
 
-} // end std
+} // end agency
 

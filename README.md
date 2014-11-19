@@ -8,6 +8,7 @@ The `bulk_invoke` function creates groups of execution agents which all invoke a
     template<class Iterator, class T, class BinaryFunction>
     T reduce(Iterator first, Iterator last, T init, BinaryFunction binary_op)
     {
+      using namespace agency;
       auto n = std::distance(first, last);
 
       // chop up data into partitions
@@ -15,17 +16,17 @@ The `bulk_invoke` function creates groups of execution agents which all invoke a
       auto num_partitions = (n + partition_size - 1) / partition_size;
       std::vector<T> partial_sums(num_partitions);
 
-      std::bulk_invoke(std::par(num_partitions), [=,&partial_sums](std::parallel_agent& g)
+      bulk_invoke(par(num_partitions), [=,&partial_sums](parallel_agent& g)
       {
         auto i = g.index();
 
         auto partition_begin = first + partition_size * i;
         auto partition_end   = std::min(last, partition_begin + partition_size);
 
-        partial_sums[i] = reduce(std::seq, partition_begin + 1, partition_end, *partition_begin, binary_op);
+        partial_sums[i] = reduce(seq, partition_begin + 1, partition_end, *partition_begin, binary_op);
       });
 
-      return reduce(std::seq, partial_sums.begin(), partial_sums.end(), init, binary_op);
+      return reduce(seq, partial_sums.begin(), partial_sums.end(), init, binary_op);
     }
 
 # Design Goals
@@ -44,8 +45,12 @@ The design of the library is intended to achieve the following goals:
 
 Programs with filenames ending in the `.cpp` extension are compilable with a C++11 compiler, e.g.:
 
-    $ g++ -std=c++11 -Iinclude -pthread example.cpp
+    $ g++ -std=c++11 -I. -pthread example.cpp
+
+or
+
+    $ clang -std=c++11 -I. -pthread -lstdc++ example.cpp
     
 Programs with filenames ending in the `.cu` extension are compilable with the NVIDIA compiler, e.g.:
 
-    $ nvcc -std=c++11 -Iinclude example.cu
+    $ nvcc -std=c++11 -I. example.cu

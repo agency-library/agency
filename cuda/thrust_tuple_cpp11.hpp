@@ -2,7 +2,7 @@
 
 #include <thrust/tuple.h>
 #include <type_traits>
-#include <integer_sequence>
+#include <agency/detail/integer_sequence.hpp>
 #include <cstddef>
 #include <tuple>
 
@@ -487,7 +487,7 @@ template<class, class> struct __thrust_tuple_of_references_impl;
 
 
 template<class Tuple, size_t... I>
-struct __thrust_tuple_of_references_impl<Tuple,std::index_sequence<I...>>
+struct __thrust_tuple_of_references_impl<Tuple,agency::detail::index_sequence<I...>>
 {
   using type = thrust::experimental::cpp11::tuple<
     typename std::tuple_element<I,Tuple>::type...
@@ -499,6 +499,6 @@ template<class Tuple>
 using __thrust_tuple_of_references_t =
   typename __thrust_tuple_of_references_impl<
     Tuple,
-    std::make_index_sequence<std::tuple_size<Tuple>::value>
+    agency::detail::make_index_sequence<std::tuple_size<Tuple>::value>
   >::type;
 

@@ -1,5 +1,5 @@
 #include <iostream>
-#include <execution_policy>
+#include <agency/execution_policy.hpp>
 #include "cuda/execution_policy.hpp"
 
 struct functor
@@ -19,7 +19,7 @@ int main()
 {
   cuda::block_executor gpu;
   
-  std::bulk_invoke(std::con(10).on(gpu), functor());
+  agency::bulk_invoke(agency::con(10).on(gpu), functor());
 
   return 0;
 }

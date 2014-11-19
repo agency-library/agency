@@ -1,15 +1,17 @@
-#include <execution_policy>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <agency/execution_policy.hpp>
 
 int main()
 {
+  using namespace agency;
+
   size_t n = 1 << 16;
   std::vector<float> x(n, 1), y(n, 2), z(n);
   float a = 13.;
 
-  std::bulk_invoke(std::vec(n), [&](std::vector_agent &self)
+  bulk_invoke(vec(n), [&](vector_agent &self)
   {
     int i = self.index();
     z[i] = a * x[i] + y[i];

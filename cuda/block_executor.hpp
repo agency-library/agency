@@ -36,9 +36,10 @@ class block_executor : private grid_executor
 {
   private:
     using super_t = grid_executor;
+    using traits = agency::executor_traits<super_t>;
 
   public:
-    using execution_category = std::concurrent_execution_tag;
+    using execution_category = agency::concurrent_execution_tag;
 
     // XXX probably should be int
     using shape_type = unsigned int;
@@ -62,7 +63,6 @@ class block_executor : private grid_executor
     std::future<void> bulk_async(Function f, shape_type shape)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      using traits = std::executor_traits<super_t>;
       return traits::bulk_async(g, super_t::shape_type{1,shape});
     }
 
@@ -70,7 +70,6 @@ class block_executor : private grid_executor
     void bulk_invoke(Function f, shape_type shape)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      using traits = std::executor_traits<super_t>;
       traits::bulk_invoke(g, super_t::shape_type{1,shape});
     }
 
@@ -78,7 +77,6 @@ class block_executor : private grid_executor
     std::future<void> bulk_async(Function f, shape_type shape, T shared_arg)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      using traits = std::executor_traits<super_t>;
       return traits::bulk_async(*this, g, super_t::shape_type{1,shape}, thrust::make_tuple(std::ignore, shared_arg));
     }
 
@@ -86,7 +84,6 @@ class block_executor : private grid_executor
     void bulk_invoke(Function f, shape_type shape, T shared_arg)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      using traits = std::executor_traits<super_t>;
       traits::bulk_invoke(*this, g, super_t::shape_type{1,shape}, thrust::make_tuple(std::ignore, shared_arg));
     }
 };

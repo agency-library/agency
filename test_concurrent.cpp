@@ -1,9 +1,11 @@
 #include <iostream>
-#include <execution_policy>
+#include <agency/execution_policy.hpp>
 
 int main()
 {
-  std::bulk_async(std::con(10), [](std::concurrent_agent &g)
+  using namespace agency;
+
+  bulk_async(con(10), [](concurrent_agent &g)
   {
     std::cout << "agent " << g.index() << " arriving at barrier" << std::endl;
 

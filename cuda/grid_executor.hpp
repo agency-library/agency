@@ -1,6 +1,6 @@
 #pragma once
 
-#include <execution_categories>
+#include <agency/execution_categories.hpp>
 #include <future>
 #include <memory>
 #include <iostream>
@@ -10,7 +10,7 @@
 #include <cassert>
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
-#include <flattened_executor>
+#include <agency/flattened_executor.hpp>
 #include <thrust/detail/minmax.h>
 #include "thrust_tuple_cpp11.hpp"
 #include "feature_test.hpp"
@@ -23,11 +23,15 @@
 #include "detail/workaround_unused_variable_warning.hpp"
 
 
+namespace std
+{
+
+
 // give CUDA built-in vector types Tuple-like access
 template<std::size_t i>
 __host__ __device__
 unsigned int&
-  get(uint2& x)
+  get(::uint2& x)
 {
   return reinterpret_cast<unsigned int*>(&x)[i];
 }
@@ -36,22 +40,18 @@ unsigned int&
 template<std::size_t i>
 __host__ __device__
 const unsigned int&
-  get(const uint2& x)
+  get(const ::uint2& x)
 {
   return reinterpret_cast<const unsigned int*>(&x)[i];
 }
 
 
-namespace std
-{
-
-
 template<>
-struct tuple_size<uint2> : integral_constant<size_t,2> {};
+struct tuple_size<::uint2> : integral_constant<size_t,2> {};
 
 
 template<size_t i>
-struct tuple_element<i,uint2>
+struct tuple_element<i,::uint2>
 {
   using type = unsigned int;
 };
@@ -153,9 +153,9 @@ class grid_executor
 {
   public:
     using execution_category =
-      std::nested_execution_tag<
-        std::parallel_execution_tag,
-        std::concurrent_execution_tag
+      agency::nested_execution_tag<
+        agency::parallel_execution_tag,
+        agency::concurrent_execution_tag
       >;
 
 
@@ -163,7 +163,7 @@ class grid_executor
     //     shape_type is a Tuple-like collection of size_types
     //     the value of each each element specifies the size of a node in the execution hierarchy
     //     the tuple_size<shape_type> must be the same as the nesting depth of execution_category
-    //using shape_type = std::uint2;
+    //using shape_type = agency::uint2;
     // XXX for cuda, maybe this should be int2?
     using shape_type = uint2;
 
@@ -171,7 +171,7 @@ class grid_executor
     // this is the type of the parameter handed to functions invoked through bulk_add()
     // XXX threadIdx.x is actually an int
     //     maybe we need to make this int2
-    //using index_type = std::uint2;
+    //using index_type = agency::uint2;
     using index_type = uint2;
 
     template<class Tuple>
@@ -278,8 +278,8 @@ class grid_executor
     template<class Function, class Tuple>
     std::future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
-      auto outer_shared_arg = get<0>(shared_arg_tuple);
-      auto inner_shared_arg = get<1>(shared_arg_tuple);
+      auto outer_shared_arg = std::get<0>(shared_arg_tuple);
+      auto inner_shared_arg = std::get<1>(shared_arg_tuple);
 
       using outer_shared_type = decltype(outer_shared_arg);
       using inner_shared_type = decltype(inner_shared_arg);
@@ -323,8 +323,8 @@ class grid_executor
     __host__ __device__
     void bulk_invoke(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
-      auto outer_shared_arg = get<0>(shared_arg_tuple);
-      auto inner_shared_arg = get<1>(shared_arg_tuple);
+      auto outer_shared_arg = std::get<0>(shared_arg_tuple);
+      auto inner_shared_arg = std::get<1>(shared_arg_tuple);
 
       using outer_shared_type = decltype(outer_shared_arg);
       using inner_shared_type = decltype(inner_shared_arg);
@@ -421,18 +421,18 @@ struct flattened_grid_executor_functor
   __device__
   void operator()(cuda::grid_executor::index_type idx, T&& shared_params)
   {
-    auto flat_idx = get<0>(idx) * get<1>(partitioning_) + get<1>(idx);
+    auto flat_idx = std::get<0>(idx) * std::get<1>(partitioning_) + std::get<1>(idx);
 
     if(flat_idx < shape_)
     {
-      f_(flat_idx, get<0>(shared_params));
+      f_(flat_idx, std::get<0>(shared_params));
     }
   }
 
   inline __device__
   void operator()(cuda::grid_executor::index_type idx)
   {
-    auto flat_idx = get<0>(idx) * get<1>(partitioning_) + get<1>(idx);
+    auto flat_idx = std::get<0>(idx) * std::get<1>(partitioning_) + std::get<1>(idx);
 
     if(flat_idx < shape_)
     {
@@ -446,9 +446,9 @@ struct flattened_grid_executor_functor
 } // end cuda
 
 
-// specialize std::flattened_executor<grid_executor>
+// specialize agency::flattened_executor<grid_executor>
 // to add __host__ __device__ to its functions and avoid lambdas
-namespace std
+namespace agency
 {
 
 
@@ -530,11 +530,11 @@ class flattened_executor<cuda::grid_executor>
       auto max_shape = base_executor().max_shape(f);
 
       // make the inner groups as large as possible
-      inner_shape_type inner_size = get<1>(max_shape);
+      inner_shape_type inner_size = std::get<1>(max_shape);
 
       outer_shape_type outer_size = (shape + inner_size - 1) / inner_size;
 
-      assert(outer_size <= get<0>(max_shape));
+      assert(outer_size <= std::get<0>(max_shape));
 
       return partition_type{outer_size, inner_size};
     }

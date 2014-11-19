@@ -3,7 +3,7 @@
 #include <memory>
 #include <thrust/system/cuda/memory.h>
 #include <thrust/detail/swap.h>
-#include <type_traits>
+#include <agency/detail/type_traits.hpp>
 #include "terminate.hpp"
 #include "detail/launch_kernel.hpp"
 #include "detail/workaround_unused_variable_warning.hpp"
@@ -73,7 +73,7 @@ template<class T>
 class unique_ptr
 {
   public:
-    using element_type = std::decay_t<T>;
+    using element_type = agency::detail::decay_t<T>;
     using pointer      = element_type*;
     using deleter_type = default_delete<element_type>;
 
@@ -146,7 +146,7 @@ unique_ptr<T> make_unique(cudaStream_t s, Args&&... args)
   auto deleter = default_delete<T>(s);
   unique_ptr<T> result(thrust::cuda::malloc<T>(1), deleter);
 
-  auto kernel = detail::construct_kernel<T,std::decay_t<Args>...>;
+  auto kernel = detail::construct_kernel<T,agency::detail::decay_t<Args>...>;
   detail::workaround_unused_variable_warning(kernel);
 
 #ifndef __CUDA_ARCH__

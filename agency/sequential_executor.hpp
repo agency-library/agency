@@ -1,17 +1,17 @@
 #pragma once
 
 #include <future>
-#include <execution_categories>
+#include <agency/execution_categories.hpp>
 #include <functional>
 
-namespace std
+namespace agency
 {
 
 
 class sequential_executor
 {
   public:
-    using execution_category = std::sequential_execution_tag;
+    using execution_category = sequential_execution_tag;
 
     template<class Function, class T>
     void bulk_invoke(Function f, size_t n, T shared_arg)
@@ -33,5 +33,5 @@ class sequential_executor
 };
 
 
-}
+} // end agency
 

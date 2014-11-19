@@ -1,15 +1,21 @@
 #pragma once
 
-#include <__type_traits>
-#include <__tuple_of_references>
+#include <agency/detail/type_traits.hpp>
+#include <agency/detail/tuple_of_references.hpp>
+#include <agency/execution_categories.hpp>
 
 
-namespace std
+namespace agency
+{
+namespace detail
 {
 
 
-__DEFINE_HAS_NESTED_TYPE(__has_index_type, index_type);
-__DEFINE_HAS_NESTED_TYPE(__has_shape_type, shape_type);
+__DEFINE_HAS_NESTED_TYPE(has_index_type, index_type);
+__DEFINE_HAS_NESTED_TYPE(has_shape_type, shape_type);
+
+
+} // end detail
 
 
 template<class Executor>
@@ -33,16 +39,16 @@ struct executor_traits
 
     using execution_category = typename Executor::execution_category;
 
-    using index_type = typename __lazy_conditional<
-      __has_index_type<executor_type>::value,
+    using index_type = typename detail::lazy_conditional<
+      detail::has_index_type<executor_type>::value,
       executor_index<executor_type>,
-      __identity<size_t>
+      detail::identity<size_t>
     >::type;
 
-    using shape_type = typename __lazy_conditional<
-      __has_shape_type<executor_type>::value,
+    using shape_type = typename detail::lazy_conditional<
+      detail::has_shape_type<executor_type>::value,
       executor_shape<executor_type>,
-      __identity<index_type>
+      detail::identity<index_type>
     >::type;
 
 
@@ -65,10 +71,10 @@ struct executor_traits
         std::declval<Function>(),
         std::declval<shape_type>()))
       >
-      static true_type test(int);
+      static std::true_type test(int);
 
       template<class>
-      static false_type test(...);
+      static std::false_type test(...);
 
       using type = decltype(test<executor_type>(0));
     };
@@ -111,10 +117,10 @@ struct executor_traits
         std::declval<shape_type>(),
         std::declval<T>()))
       >
-      static true_type test(int);
+      static std::true_type test(int);
 
       template<class>
-      static false_type test(...);
+      static std::false_type test(...);
 
       using type = decltype(test<executor_type>(0));
     };
@@ -123,13 +129,13 @@ struct executor_traits
     using has_bulk_invoke_with_shared_arg = typename test_for_bulk_invoke_with_shared_arg<Function,T>::type;
 
     template<class Function, class T>
-    static void bulk_invoke_with_shared_arg_impl(executor_type& ex, Function f, shape_type shape, T shared_arg, true_type)
+    static void bulk_invoke_with_shared_arg_impl(executor_type& ex, Function f, shape_type shape, T shared_arg, std::true_type)
     {
       ex.bulk_invoke(f, shape, shared_arg);
     }
 
     template<class Function, class T>
-    static void bulk_invoke_with_shared_arg_impl(executor_type& ex, Function f, shape_type shape, T shared_arg, false_type)
+    static void bulk_invoke_with_shared_arg_impl(executor_type& ex, Function f, shape_type shape, T shared_arg, std::false_type)
     {
       bulk_async(ex, f, shape, shared_arg).wait();
     }
@@ -152,10 +158,10 @@ struct executor_traits
         std::declval<Function2>(),
         std::declval<shape_type>()))
       >
-      static true_type test(int);
+      static std::true_type test(int);
 
       template<class,class>
-      static false_type test(...);
+      static std::false_type test(...);
 
       using type = decltype(test<executor_type,Function>(0));
     };
@@ -164,13 +170,13 @@ struct executor_traits
     using has_bulk_invoke = typename test_for_bulk_invoke<Function>::type;
 
     template<class Function>
-    static void bulk_invoke_impl(executor_type& ex, Function f, shape_type shape, true_type)
+    static void bulk_invoke_impl(executor_type& ex, Function f, shape_type shape, std::true_type)
     {
       ex.bulk_invoke(f, shape);
     }
 
     template<class Function>
-    static void bulk_invoke_impl(executor_type& ex, Function f, shape_type shape, false_type)
+    static void bulk_invoke_impl(executor_type& ex, Function f, shape_type shape, std::false_type)
     {
       bulk_async(ex, f, shape).wait();
     }
@@ -190,10 +196,10 @@ struct executor_traits
         class Executor2,
         class T2
       >
-      static true_type test(typename Executor2::template shared_param_type<T2>*);
+      static std::true_type test(typename Executor2::template shared_param_type<T2>*);
 
       template<class,class>
-      static false_type test(...);
+      static std::false_type test(...);
 
       using type = decltype(test<Executor1,T1>(0));
     };
@@ -204,7 +210,7 @@ struct executor_traits
     template<class T>
     struct tuple_of_references_t
     {
-      using type = decltype(__tuple_of_references(*std::declval<T*>()));
+      using type = decltype(detail::tuple_of_references(*std::declval<T*>()));
     };
 
     template<class Executor1, class T>
@@ -220,11 +226,11 @@ struct executor_traits
     // else, the shared param type is just a reference to T
     template<class T>
     struct shared_param_type_impl
-      : __lazy_conditional<
+      : detail::lazy_conditional<
           has_shared_param_type<T>::value,
           executor_shared_param_type<executor_type,T>,         
-          __lazy_conditional<
-            __is_nested_execution_category<execution_category>::value,
+          detail::lazy_conditional<
+            detail::is_nested_execution_category<execution_category>::value,
             tuple_of_references_t<T>,
             std::add_lvalue_reference<T>
           >
@@ -260,5 +266,5 @@ void bulk_invoke(Executor& ex,
 }
 
 
-}
+} // end agency
 
