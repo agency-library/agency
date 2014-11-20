@@ -1,8 +1,9 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
+#include <agency/detail/tuple_utility.hpp>
 #include <tuple>
 #include <type_traits>
-#include <agency/detail/tuple_utility.hpp>
 #include <iostream>
 
 namespace agency
@@ -15,10 +16,21 @@ template<typename Derived>
   class arithmetic_tuple_facade
 {
   private:
+    struct assign
+    {
+      template<typename T1, typename T2>
+      __AGENCY_ANNOTATION
+      T1& operator()(T1 &lhs, const T2& rhs) const
+      {
+        return lhs = rhs;
+      }
+    };
+
     struct plus_assign
     {
       template<typename T1, typename T2>
-      constexpr T1& operator()(T1 &lhs, const T2& rhs) const
+      __AGENCY_ANNOTATION
+      T1& operator()(T1 &lhs, const T2& rhs) const
       {
         return lhs += rhs;
       }
@@ -27,7 +39,8 @@ template<typename Derived>
     struct minus_assign
     {
       template<typename T1, typename T2>
-      constexpr T1& operator()(T1 &lhs, const T2& rhs) const
+      __AGENCY_ANNOTATION
+      T1& operator()(T1 &lhs, const T2& rhs) const
       {
         return lhs -= rhs;
       }
@@ -36,9 +49,23 @@ template<typename Derived>
     struct multiplies_assign
     {
       template<typename T1, typename T2>
-      constexpr T1& operator()(T1 &lhs, const T2& rhs) const
+      __AGENCY_ANNOTATION
+      T1& operator()(T1 &lhs, const T2& rhs) const
       {
         return lhs *= rhs;
+      }
+    };
+
+    template<typename T>
+    struct assign_constant
+    {
+      T c;
+
+      template<typename U>
+      __AGENCY_ANNOTATION
+      U& operator()(U& x) const
+      {
+        return x = c;
       }
     };
 
@@ -48,7 +75,8 @@ template<typename Derived>
       T c;
 
       template<typename U>
-      constexpr U& operator()(U& x) const
+      __AGENCY_ANNOTATION
+      U& operator()(U& x) const
       {
         return x *= c;
       }
@@ -57,7 +85,8 @@ template<typename Derived>
     struct divides_assign
     {
       template<typename T1, typename T2>
-      constexpr T1& operator()(T1 &lhs, const T2& rhs) const
+      __AGENCY_ANNOTATION
+      T1& operator()(T1 &lhs, const T2& rhs) const
       {
         return lhs /= rhs;
       }
@@ -69,7 +98,8 @@ template<typename Derived>
       T c;
 
       template<typename U>
-      constexpr U& operator()(U& x) const
+      __AGENCY_ANNOTATION
+      U& operator()(U& x) const
       {
         return x /= c;
       }
@@ -78,20 +108,42 @@ template<typename Derived>
     struct make_derived
     {
       template<class... Args>
-      constexpr Derived operator()(Args&&... args) const
+      __AGENCY_ANNOTATION
+      Derived operator()(Args&&... args) const
       {
         return Derived{std::forward<Args>(args)...};
       }
     };
 
-    Derived& derived()
+    __AGENCY_ANNOTATION Derived& derived()
     {
       return static_cast<Derived&>(*this);
     }
 
-    const Derived& derived() const
+    __AGENCY_ANNOTATION const Derived& derived() const
     {
       return static_cast<const Derived&>(*this);
+    }
+
+  protected:
+    template<class Arithmetic>
+    __AGENCY_ANNOTATION
+    typename std::enable_if<
+      std::is_arithmetic<Arithmetic>::value
+    >::type
+      fill(const Arithmetic& val)
+    {
+      return __tu::tuple_for_each(assign_constant<Arithmetic>{val}, derived());
+    }
+
+    template<class ArithmeticTuple,
+             class = typename std::enable_if<
+               std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    void copy(const ArithmeticTuple& src)
+    {
+      return __tu::tuple_for_each(assign{}, derived(), src);
     }
 
   public:
@@ -101,7 +153,7 @@ template<typename Derived>
            class = typename std::enable_if<
              std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
            >::type>
-  Derived& operator*=(const ArithmeticTuple& rhs)
+  __AGENCY_ANNOTATION Derived& operator*=(const ArithmeticTuple& rhs)
   {
     __tu::tuple_for_each(multiplies_assign{}, derived(), rhs);
     return derived();
@@ -111,7 +163,7 @@ template<typename Derived>
            class = typename std::enable_if<
              std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
            >::type>
-  Derived& operator/=(const ArithmeticTuple& rhs)
+  __AGENCY_ANNOTATION Derived& operator/=(const ArithmeticTuple& rhs)
   {
     __tu::tuple_for_each(divides_assign{}, derived(), rhs);
     return derived();
@@ -121,7 +173,7 @@ template<typename Derived>
            class = typename std::enable_if<
              std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
            >::type>
-  Derived& operator+=(const ArithmeticTuple& rhs)
+  __AGENCY_ANNOTATION Derived& operator+=(const ArithmeticTuple& rhs)
   {
     __tu::tuple_for_each(plus_assign{}, derived(), rhs);
     return derived();
@@ -131,7 +183,7 @@ template<typename Derived>
            class = typename std::enable_if<
              std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
            >::type>
-  Derived& operator-=(const ArithmeticTuple& rhs)
+  __AGENCY_ANNOTATION Derived& operator-=(const ArithmeticTuple& rhs)
   {
     __tu::tuple_for_each(minus_assign{}, derived(), rhs);
     return derived();
@@ -140,6 +192,7 @@ template<typename Derived>
 
   // multiply by scalar
   template<class Arithmetic>
+  __AGENCY_ANNOTATION
   typename std::enable_if<
     std::is_arithmetic<Arithmetic>::value,
     Derived&
@@ -152,6 +205,7 @@ template<typename Derived>
 
   // divide by scalar
   template<class Arithmetic>
+  __AGENCY_ANNOTATION
   typename std::enable_if<
     std::is_arithmetic<Arithmetic>::value,
     Derived&
@@ -168,6 +222,7 @@ template<typename Derived>
            class = typename std::enable_if<
              std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
            >::type>
+  __AGENCY_ANNOTATION
   Derived operator+(const ArithmeticTuple& rhs) const
   {
     Derived result = derived();
@@ -179,6 +234,7 @@ template<typename Derived>
            class = typename std::enable_if<
              std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
            >::type>
+  __AGENCY_ANNOTATION
   Derived operator-(const ArithmeticTuple& rhs) const
   {
     Derived result = derived();
@@ -190,6 +246,7 @@ template<typename Derived>
            class = typename std::enable_if<
              std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
            >::type>
+  __AGENCY_ANNOTATION
   Derived operator*(const ArithmeticTuple& rhs) const
   {
     Derived result = derived();
@@ -201,6 +258,7 @@ template<typename Derived>
            class = typename std::enable_if<
              std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
            >::type>
+  __AGENCY_ANNOTATION
   Derived operator/(const ArithmeticTuple& rhs) const
   {
     Derived result = derived();
@@ -212,24 +270,28 @@ template<typename Derived>
   // relational ops
 
   template<class ArithmeticTuple>
+  __AGENCY_ANNOTATION
   bool operator<(const ArithmeticTuple& rhs) const
   {
     return __tu::tuple_lexicographical_compare(derived(), rhs);
   }
 
   template<class ArithmeticTuple>
+  __AGENCY_ANNOTATION
   bool operator>(const ArithmeticTuple& rhs) const
   {
     return __tu::tuple_lexicographical_compare(rhs, derived());
   }
 
   template<class ArithmeticTuple>
+  __AGENCY_ANNOTATION
   bool operator<=(const ArithmeticTuple& rhs) const
   {
     return !operator>(rhs);
   }
 
   template<class ArithmeticTuple>
+  __AGENCY_ANNOTATION
   bool operator>=(const ArithmeticTuple& rhs) const
   {
     return !operator<(rhs);
