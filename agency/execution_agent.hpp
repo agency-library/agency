@@ -75,6 +75,8 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
   // XXX what should we do if ExecutionAgent::domain(param) does not exist?
   //     default should be regular_grid<index_type>, but by what process should we eventually
   //     arrive at that default?
+  __agency_hd_warning_disable__
+  __AGENCY_ANNOTATION
   static auto domain(const param_type& param)
     -> decltype(ExecutionAgent::domain(param))
   {
@@ -84,6 +86,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
   using domain_type = decltype(domain(std::declval<param_type>()));
 
   template<class Function>
+  __AGENCY_ANNOTATION
   static void execute(Function f, const index_type& index, const param_type& param)
   {
     ExecutionAgent agent(f, index, param);
@@ -145,12 +148,14 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
 
   private:
     template<class Function, class Tuple>
+    __AGENCY_ANNOTATION
     static void execute_with_shared_params_impl(Function f, const index_type& index, const param_type& param, Tuple&, std::false_type)
     {
       ExecutionAgent agent(f, index, param);
     }
 
     template<class Function, class Tuple>
+    __AGENCY_ANNOTATION
     static void execute_with_shared_params_impl(Function f, const index_type& index, const param_type& param, Tuple& shared_params, std::true_type)
     {
       ExecutionAgent agent(f, index, param, shared_params);
@@ -160,6 +165,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
   public:
 
   template<class Function, class Tuple>
+  __AGENCY_ANNOTATION
   static void execute(Function f, const index_type& index, const param_type& param, Tuple& shared_params)
   {
     execute_with_shared_params_impl(f, index, param, shared_params, has_make_shared_initializer());

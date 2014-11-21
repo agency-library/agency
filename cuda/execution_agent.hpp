@@ -185,32 +185,7 @@ class basic_execution_agent : public basic_execution_agent_base<ExecutionCategor
 } // end detail
 
 
-// XXX we can't make parallel_agent an alias of agency::parallel_agent (yet)
-//     because we need to specialize execution_agent_traits<cuda::parallel_agent> below
-//     if we annotated execution_agent_traits we could probably get by with an alias
-class parallel_agent : public agency::parallel_agent
-{
-  public:
-    using index_type = agency::parallel_agent::index_type;
-    using param_type = agency::parallel_agent::param_type;
-
-  protected:
-    struct noop
-    {
-      template<class T>
-      __host__ __device__ void operator()(const T&) {}
-    };
-
-    template<class Function>
-    __host__ __device__
-    parallel_agent(Function f, const index_type& index, const param_type& param)
-      : agency::parallel_agent(noop(), index, param)
-    {
-      f(*this);
-    }
-
-    friend struct agency::execution_agent_traits<parallel_agent>;
-}; 
+using parallel_agent = agency::parallel_agent;
 
 
 class concurrent_agent : public detail::basic_execution_agent<agency::concurrent_execution_tag>
@@ -282,22 +257,9 @@ class concurrent_agent : public detail::basic_execution_agent<agency::concurrent
 } // end cuda
 
 
-// specialize execution_traits on cuda::parallel_agent
+// specialize execution_traits on cuda::concurrent_agent
 namespace agency
 {
-
-
-template<>
-struct execution_agent_traits<cuda::parallel_agent>
-  : agency::execution_agent_traits<agency::parallel_agent>
-{
-  template<class Function>
-  __host__ __device__
-  static void execute(Function f, const index_type& index, const param_type& param)
-  {
-    cuda::parallel_agent agent(f, index, param);
-  }
-};
 
 
 template<>
