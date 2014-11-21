@@ -78,32 +78,3 @@ class concurrent_agent : public agency::detail::basic_execution_agent<agency::co
 
 } // end cuda
 
-
-// specialize execution_traits on cuda::concurrent_agent
-namespace agency
-{
-
-
-template<>
-struct execution_agent_traits<cuda::concurrent_agent>
-  : agency::execution_agent_traits<agency::detail::basic_execution_agent<agency::concurrent_execution_tag>>
-{
-  template<class Function, class Tuple>
-  __host__ __device__
-  static void execute(Function f, const index_type& index, const param_type& param, Tuple& shared_params)
-  {
-    cuda::concurrent_agent agent(f, index, param, shared_params);
-  }
-
-  using has_make_shared_initializer = std::true_type;
-
-  __host__ __device__
-  static cuda::concurrent_agent::shared_param_type make_shared_initializer(const cuda::concurrent_agent::param_type& param)
-  {
-    return cuda::concurrent_agent::make_shared_initializer(param);
-  }
-};
-
-
-} // end agency
-

@@ -116,12 +116,15 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
     // XXX this should only be enabled for flat execution_agents
     //     nested agents should return a tuple of shared initializers
     template<class ExecutionAgent1>
+    __AGENCY_ANNOTATION
     static decltype(agency::detail::ignore) make_shared_initializer(const param_type&, std::false_type)
     {
       return agency::detail::ignore;
     }
 
+    __agency_hd_warning_disable__
     template<class ExecutionAgent1>
+    __AGENCY_ANNOTATION
     static auto make_shared_initializer(const param_type& param, std::true_type)
       -> decltype(
            ExecutionAgent1::make_shared_initializer(param)
@@ -134,6 +137,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
 
   using has_make_shared_initializer = typename test_for_make_shared_initializer<execution_agent_type>::type;
 
+  __AGENCY_ANNOTATION
   static auto make_shared_initializer(const param_type& param)
     -> decltype(
          make_shared_initializer<execution_agent_type>(param, has_make_shared_initializer())
