@@ -113,7 +113,7 @@ class parallel_execution_policy : public agency::detail::basic_execution_policy<
   public:
     using super_t::basic_execution_policy;
 
-    // XXX we shouldn't have to include either of these constructors due to the
+    // XXX it seems like we shouldn't have to include either of these constructors due to the
     // using above
     parallel_execution_policy() = default;
     parallel_execution_policy(const super_t& other)
@@ -137,20 +137,13 @@ class concurrent_execution_policy : public agency::detail::basic_execution_polic
     using super_t = agency::detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor>;
 
   public:
-    using execution_agent_type = super_t::execution_agent_type;
-    using executor_type = super_t::executor_type;
-    using param_type = execution_agent_type::param_type;
-
     using super_t::basic_execution_policy;
 
-    concurrent_execution_policy(const param_type& param, const executor_type& executor = executor_type())
-      : super_t(param, executor)
-    {}
-
-    concurrent_execution_policy(const agency::concurrent_execution_policy::param_type& param,
-                                const executor_type& executor = executor_type())
-      : concurrent_execution_policy(param_type(param.domain().min(), param.domain().max()),
-                                    executor)
+    // XXX it seems like we shouldn't have to include either of these constructors due to the
+    // using above
+    concurrent_execution_policy() = default;
+    concurrent_execution_policy(const super_t& other)
+      : super_t(other)
     {}
 };
 
@@ -250,6 +243,9 @@ struct rebind_executor<ExecutionPolicy, cuda::block_executor>
 
 
 // overload bulk_invoke & bulk_async on cuda's execution policies
+// XXX the reason we do this is to workaround agency::bulk_invoke
+// et al's use of lambdas, which do not currently compose with CUDA
+// __global__ functions
 
 template<class Function, class... Args>
 void bulk_invoke(cuda::parallel_execution_policy&& exec, Function&& f, Args&&... args)
