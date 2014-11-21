@@ -8,6 +8,7 @@
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 #include <agency/detail/make_tuple_if_not_nested.hpp>
 #include <agency/detail/index_tuple.hpp>
+#include <agency/detail/ignore.hpp>
 
 namespace agency
 {
@@ -115,9 +116,9 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
     // XXX this should only be enabled for flat execution_agents
     //     nested agents should return a tuple of shared initializers
     template<class ExecutionAgent1>
-    static decltype(std::ignore) make_shared_initializer(const param_type&, std::false_type)
+    static decltype(agency::detail::ignore) make_shared_initializer(const param_type&, std::false_type)
     {
-      return std::ignore;
+      return agency::detail::ignore;
     }
 
     template<class ExecutionAgent1>

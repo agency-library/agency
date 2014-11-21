@@ -11,6 +11,7 @@
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
 #include <agency/flattened_executor.hpp>
+#include <agency/detail/ignore.hpp>
 #include <thrust/detail/minmax.h>
 #include "thrust_tuple_cpp11.hpp"
 #include "feature_test.hpp"
@@ -289,7 +290,7 @@ class grid_executor
 
       // copy construct the outer shared arg
       // XXX do this asynchronously
-      //     don't do this if outer_shared_type is std::ignore
+      //     don't do this if outer_shared_type is agency::detail::ignore
       bulk_invoke(detail::copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg_ptr.get(), outer_shared_arg), shape_type{1,1});
 
       // wrap up f in a thing that will marshal the shared arguments to it
@@ -333,7 +334,7 @@ class grid_executor
       auto outer_shared_arg_ptr = cuda::make_unique<outer_shared_type>(stream(), outer_shared_arg);
 
       // copy construct the outer shared arg
-      // XXX don't do this if outer_shared_type is std::ignore
+      // XXX don't do this if outer_shared_type is agency::detail::ignore
       bulk_invoke(detail::copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg_ptr.get(), outer_shared_arg), shape_type{1,1});
 
       // wrap up f in a thing that will marshal the shared arguments to it
@@ -494,7 +495,7 @@ class flattened_executor<cuda::grid_executor>
       auto partitioning = partition(dummy_function, shape);
 
       // create a shared initializer
-      auto shared_init = std::make_tuple(shared_arg, std::ignore);
+      auto shared_init = std::make_tuple(shared_arg, agency::detail::ignore);
       using shared_param_type = typename executor_traits<base_executor_type>::template shared_param_type<decltype(shared_init)>;
 
       // create a function to execute

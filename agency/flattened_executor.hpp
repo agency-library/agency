@@ -4,6 +4,7 @@
 #include <agency/executor_traits.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/nested_executor.hpp>
+#include <agency/detail/ignore.hpp>
 
 namespace agency
 {
@@ -55,7 +56,7 @@ class flattened_executor
     {
       auto partitioning = partition(shape);
 
-      auto shared_init = std::make_tuple(shared_arg, std::ignore);
+      auto shared_init = std::make_tuple(shared_arg, agency::detail::ignore);
       using shared_param_type = typename executor_traits<OtherExecutor>::template shared_param_type<decltype(shared_init)>;
       using index_type = typename executor_traits<OtherExecutor>::index_type;
 

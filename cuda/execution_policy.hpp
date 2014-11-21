@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution_policy.hpp>
 #include <agency/flattened_executor.hpp>
+#include <agency/detail/ignore.hpp>
 #include <type_traits>
 #include "execution_agent.hpp"
 #include "grid_executor.hpp"
@@ -44,14 +45,14 @@ struct execute_agent_functor
 
   template<class ExecutorIndex>
   __device__
-  void operator()(ExecutorIndex agent_idx, decltype(std::ignore)) const
+  void operator()(ExecutorIndex agent_idx, decltype(agency::detail::ignore)) const
   {
     ExecutionAgentTraits::execute(f_, agent_idx, param_);
   }
 
   template<class ExecutorIndex>
   __device__
-  void operator()(ExecutorIndex agent_idx, decltype(std::ignore))
+  void operator()(ExecutorIndex agent_idx, decltype(agency::detail::ignore))
   {
     ExecutionAgentTraits::execute(f_, agent_idx, param_);
   }

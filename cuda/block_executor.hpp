@@ -2,6 +2,7 @@
 
 #include "grid_executor.hpp"
 #include "bind.hpp"
+#include <agency/detail/ignore.hpp>
 
 namespace cuda
 {
@@ -77,14 +78,14 @@ class block_executor : private grid_executor
     std::future<void> bulk_async(Function f, shape_type shape, T shared_arg)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      return traits::bulk_async(*this, g, super_t::shape_type{1,shape}, thrust::make_tuple(std::ignore, shared_arg));
+      return traits::bulk_async(*this, g, super_t::shape_type{1,shape}, thrust::make_tuple(agency::detail::ignore, shared_arg));
     }
 
     template<class Function, class T>
     void bulk_invoke(Function f, shape_type shape, T shared_arg)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      traits::bulk_invoke(*this, g, super_t::shape_type{1,shape}, thrust::make_tuple(std::ignore, shared_arg));
+      traits::bulk_invoke(*this, g, super_t::shape_type{1,shape}, thrust::make_tuple(agency::detail::ignore, shared_arg));
     }
 };
 
