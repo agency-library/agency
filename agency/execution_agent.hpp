@@ -179,6 +179,7 @@ class basic_execution_agent
 
     using index_type = Index;
 
+    __AGENCY_ANNOTATION
     index_type index() const
     {
       return index_;
@@ -186,17 +187,20 @@ class basic_execution_agent
 
     using domain_type = regular_grid<index_type>;
 
+    __AGENCY_ANNOTATION
     const domain_type& domain() const
     {
       return domain_;
     }
 
+    __AGENCY_ANNOTATION
     auto group_size() const
       -> decltype(this->domain().size())
     {
       return domain().size();
     }
 
+    __AGENCY_ANNOTATION
     auto group_shape() const
       -> decltype(this->domain().shape())
     {
@@ -206,20 +210,25 @@ class basic_execution_agent
     class param_type
     {
       public:
+        __AGENCY_ANNOTATION
         param_type() = default;
 
+        __AGENCY_ANNOTATION
         param_type(const param_type& other)
           : domain_(other.domain_)
         {}
 
+        __AGENCY_ANNOTATION
         param_type(const domain_type& d)
           : domain_(d)
         {}
 
+        __AGENCY_ANNOTATION
         param_type(const index_type& min, const index_type& max)
           : param_type(domain_type(min,max))
         {}
 
+        __AGENCY_ANNOTATION
         const domain_type& domain() const
         {
           return domain_;
@@ -229,6 +238,7 @@ class basic_execution_agent
         domain_type domain_;
     };
 
+    __AGENCY_ANNOTATION
     static domain_type domain(const param_type& p)
     {
       return p.domain();
@@ -236,7 +246,9 @@ class basic_execution_agent
 
 
   protected:
+    __agency_hd_warning_disable__
     template<class Function>
+    __AGENCY_ANNOTATION
     basic_execution_agent(Function f, const index_type& index, const param_type& param)
       : index_(index),
         domain_(param.domain())

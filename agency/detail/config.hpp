@@ -12,3 +12,12 @@
 #  define __AGENCY_ANNOTATION __AGENCY_CONSTEXPR_AFTER_CXX11
 #endif // __AGENCY_ANNOTATION
 
+#if defined(__CUDACC__)
+#  ifndef __agency_hd_warning_disable__
+#    define __agency_hd_warning_disable__ \
+#    pragma hd_warning_disable
+#  endif // __agency_hd_warning_disable__
+#else
+#  define __agency_hd_warning_disable__
+#endif // __agency_hd_warning_disable__
+

@@ -274,7 +274,6 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
     small_vector_adaptor(OtherT... args)
       : base_{static_cast<value_type>(args)...}
     {
-      printf("variadic constructor\n");
     }
 
 

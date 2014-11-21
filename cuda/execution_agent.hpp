@@ -185,7 +185,32 @@ class basic_execution_agent : public basic_execution_agent_base<ExecutionCategor
 } // end detail
 
 
-using parallel_agent = detail::basic_execution_agent<agency::parallel_execution_tag>;
+// XXX we can't make parallel_agent an alias of agency::parallel_agent (yet)
+//     because we need to specialize execution_agent_traits<cuda::parallel_agent> below
+//     if we annotated execution_agent_traits we could probably get by with an alias
+class parallel_agent : public agency::parallel_agent
+{
+  public:
+    using index_type = agency::parallel_agent::index_type;
+    using param_type = agency::parallel_agent::param_type;
+
+  protected:
+    struct noop
+    {
+      template<class T>
+      __host__ __device__ void operator()(const T&) {}
+    };
+
+    template<class Function>
+    __host__ __device__
+    parallel_agent(Function f, const index_type& index, const param_type& param)
+      : agency::parallel_agent(noop(), index, param)
+    {
+      f(*this);
+    }
+
+    friend struct agency::execution_agent_traits<parallel_agent>;
+}; 
 
 
 class concurrent_agent : public detail::basic_execution_agent<agency::concurrent_execution_tag>
@@ -207,8 +232,7 @@ class concurrent_agent : public detail::basic_execution_agent<agency::concurrent
     struct shared_param_type
     {
       __host__ __device__
-      shared_param_type(const typename super_t::param_type& param)
- //       : count_(param.domain().size()),
+      shared_param_type(const typename super_t::param_type& param) //       : count_(param.domain().size()),
  //         barrier_(count_)
         : count_(param.domain().size())
       {}
@@ -265,7 +289,7 @@ namespace agency
 
 template<>
 struct execution_agent_traits<cuda::parallel_agent>
-  : agency::execution_agent_traits<cuda::detail::basic_execution_agent_base<agency::parallel_execution_tag>>
+  : agency::execution_agent_traits<agency::parallel_agent>
 {
   template<class Function>
   __host__ __device__

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
 #include <agency/execution_policy.hpp>
 #include <agency/flattened_executor.hpp>
 #include <type_traits>
@@ -18,6 +19,7 @@ namespace detail
 template<class Function, class ExecutionAgentTraits>
 struct execute_agent_functor
 {
+  __agency_hd_warning_disable__
   __host__ __device__
   execute_agent_functor(const Function& f,
                         const typename ExecutionAgentTraits::param_type& param)
@@ -109,10 +111,6 @@ class parallel_execution_policy : public agency::detail::basic_execution_policy<
     using super_t = agency::detail::basic_execution_policy<cuda::parallel_agent, agency::flattened_executor<cuda::grid_executor>>;
 
   public:
-    using execution_agent_type = super_t::execution_agent_type;
-    using executor_type = super_t::executor_type;
-    using param_type = execution_agent_type::param_type;
-
     using super_t::basic_execution_policy;
 
     // XXX we shouldn't have to include either of these constructors due to the
@@ -120,16 +118,6 @@ class parallel_execution_policy : public agency::detail::basic_execution_policy<
     parallel_execution_policy() = default;
     parallel_execution_policy(const super_t& other)
       : super_t(other)
-    {}
-
-    parallel_execution_policy(const param_type& param, const executor_type& executor = executor_type())
-      : super_t(param, executor)
-    {}
-
-    parallel_execution_policy(const agency::parallel_execution_policy::param_type& param,
-                              const executor_type& executor = executor_type())
-      : parallel_execution_policy(param_type(param.domain().min(), param.domain().max()),
-                                  executor)
     {}
 
     template<class Arg1, class... Args>
