@@ -106,46 +106,26 @@ void bulk_invoke(const ExecutionPolicy& exec, Function&& f)
 } // end detail
 
 
-class parallel_execution_policy : public agency::detail::basic_execution_policy<cuda::parallel_agent, agency::flattened_executor<cuda::grid_executor>>
+class parallel_execution_policy : public agency::detail::basic_execution_policy<cuda::parallel_agent, agency::flattened_executor<cuda::grid_executor>, agency::parallel_execution_tag, parallel_execution_policy>
 {
   private:
-    using super_t = agency::detail::basic_execution_policy<cuda::parallel_agent, agency::flattened_executor<cuda::grid_executor>>;
+    using super_t = agency::detail::basic_execution_policy<cuda::parallel_agent, agency::flattened_executor<cuda::grid_executor>, agency::parallel_execution_tag, parallel_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
-
-    // XXX it seems like we shouldn't have to include either of these constructors due to the
-    // using above
-    parallel_execution_policy() = default;
-    parallel_execution_policy(const super_t& other)
-      : super_t(other)
-    {}
-
-    template<class Arg1, class... Args>
-    parallel_execution_policy operator()(Arg1&& arg1, Args&&... args) const
-    {
-      return super_t::operator()(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
-    }
 };
 
 
 const parallel_execution_policy par{};
 
 
-class concurrent_execution_policy : public agency::detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor>
+class concurrent_execution_policy : public agency::detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor, agency::concurrent_execution_tag, concurrent_execution_policy>
 {
   private:
-    using super_t = agency::detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor>;
+    using super_t = agency::detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor, agency::concurrent_execution_tag, concurrent_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
-
-    // XXX it seems like we shouldn't have to include either of these constructors due to the
-    // using above
-    concurrent_execution_policy() = default;
-    concurrent_execution_policy(const super_t& other)
-      : super_t(other)
-    {}
 };
 
 
