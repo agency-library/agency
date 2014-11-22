@@ -89,12 +89,18 @@ struct disable_if_nested_call
 {};
 
 
+// declare nested_execution_policy for basic_execution_policy's use below
+template<class ExecutionPolicy1, class ExecutionPolicy2>
+class nested_execution_policy;
+
+
 // XXX we should assert that ExecutionCategory is stronger than the category of ExecutionAgent
 // XXX another way to order these parameters would be
-// ExecutionCategory, BulkExecutor, ExecutionAgent = __default_execution_agent<ExecutionAgent>
+// ExecutionCategory, BulkExecutor, ExecutionAgent = __default_execution_agent<ExecutionAgent>, DerivedExecutionPolicy
 template<class ExecutionAgent,
          class BulkExecutor,
-         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category>
+         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category,
+         class DerivedExecutionPolicy = void>
 class basic_execution_policy
 {
   public:
@@ -103,6 +109,12 @@ class basic_execution_policy
     using execution_category   = ExecutionCategory;
 
   private:
+    using derived_type         = typename std::conditional<
+      std::is_same<DerivedExecutionPolicy,void>::value,
+      basic_execution_policy,
+      DerivedExecutionPolicy
+    >::type;
+
     using agent_traits         = execution_agent_traits<execution_agent_type>;
 
   public:
@@ -126,22 +138,32 @@ class basic_execution_policy
     }
 
     template<class OtherExecutor>
-    rebind_executor_t<basic_execution_policy,OtherExecutor> on(const OtherExecutor& executor) const
+    rebind_executor_t<derived_type,OtherExecutor> on(const OtherExecutor& executor) const
     {
-      return rebind_executor_t<basic_execution_policy,OtherExecutor>(param(), executor);
+      return rebind_executor_t<derived_type,OtherExecutor>(param(), executor);
     }
 
+    // this is the flat form of operator()
     template<class Arg1, class... Args>
-    typename detail::disable_if_nested_call<basic_execution_policy, Arg1, Args...>::type
+    typename detail::disable_if_nested_call<derived_type, Arg1, Args...>::type
       operator()(Arg1&& arg1, Args&&... args) const
     {
-      return basic_execution_policy{param_type{std::forward<Arg1>(arg1), std::forward<Args>(args)...}, executor()};
+      return derived_type{param_type{std::forward<Arg1>(arg1), std::forward<Args>(args)...}, executor()};
+    }
+
+    // this is the nested form of operator()
+    // XXX generalize the first argument to Args&&...
+    template<class OtherExecutionPolicy>
+    detail::nested_execution_policy<derived_type, OtherExecutionPolicy>
+      operator()(size_t n, const OtherExecutionPolicy &exec) const
+    {
+      return detail::nested_execution_policy<derived_type,OtherExecutionPolicy>(operator()(n), exec);
     }
 
     template<class Arg1, class... Args>
-    basic_execution_policy operator()(std::initializer_list<Arg1> arg1, std::initializer_list<Args>... args) const
+    derived_type operator()(std::initializer_list<Arg1> arg1, std::initializer_list<Args>... args) const
     {
-      return basic_execution_policy{param_type{std::move(arg1), std::move(args)...}, executor()};
+      return derived_type{param_type{std::move(arg1), std::move(args)...}, executor()};
     }
 
   protected:
@@ -157,9 +179,9 @@ class basic_execution_policy
 // ExecutionCategory1 corresponds to the category of the executor
 // XXX ExecutionCategory2 corresponds to the category of the policy
 // XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
-template<class ExecutionCategory1, class ExecutionAgent, class BulkExecutor, class ExecutionCategory2, class Function>
+template<class ExecutionCategory1, class ExecutionAgent, class BulkExecutor, class ExecutionCategory2, class DerivedExecutionPolicy, class Function>
 void bulk_invoke(ExecutionCategory1,
-                 const basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2>& exec,
+                 const basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2,DerivedExecutionPolicy>& exec,
                  Function f)
 {
   using traits = execution_agent_traits<ExecutionAgent>;
@@ -191,9 +213,9 @@ void bulk_invoke(ExecutionCategory1,
 // ExecutionCategory1 corresponds to the category of the executor
 // XXX ExecutionCategory2 corresponds to the category of the policy
 // XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
-template<class ExecutionCategory1, class ExecutionAgent, class BulkExecutor, class ExecutionCategory2, class Function>
+template<class ExecutionCategory1, class ExecutionAgent, class BulkExecutor, class ExecutionCategory2, class DerivedExecutionPolicy, class Function>
 std::future<void> bulk_async(ExecutionCategory1,
-                             const basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2>& exec,
+                             const basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2,DerivedExecutionPolicy>& exec,
                              Function f)
 {
   using traits = execution_agent_traits<ExecutionAgent>;
@@ -236,7 +258,8 @@ class nested_execution_policy
       nested_execution_tag<
         typename ExecutionPolicy1::execution_category,
         typename ExecutionPolicy2::execution_category
-      >
+      >,
+      nested_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
     >
 {
   private:
@@ -252,7 +275,8 @@ class nested_execution_policy
       nested_execution_tag<
         typename ExecutionPolicy1::execution_category,
         typename ExecutionPolicy2::execution_category
-      >
+      >,
+      nested_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
     >;
 
 
@@ -274,8 +298,8 @@ class nested_execution_policy
 
 
 
-template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory>
-struct is_execution_policy<detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory>> : std::true_type {};
+template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory, class DerivedExecutionPolicy>
+struct is_execution_policy<detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>> : std::true_type {};
 
 
 template<class T1, class T2>
@@ -297,39 +321,13 @@ struct rebind_executor
 };
 
 
-class sequential_execution_policy : public detail::basic_execution_policy<sequential_agent, sequential_executor>
+class sequential_execution_policy : public detail::basic_execution_policy<sequential_agent, sequential_executor, sequential_execution_tag, sequential_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<sequential_agent, sequential_executor>;
+    using super_t = detail::basic_execution_policy<sequential_agent, sequential_executor, sequential_execution_tag, sequential_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
-
-    // XXX we shouldn't have to include either of these constructors due to the
-    // using above
-    sequential_execution_policy() = default;
-    sequential_execution_policy(const super_t& other)
-      : super_t(other)
-    {}
-
-    // this is the nested form of operator()
-    // XXX we should try to move the implementation of this into the base class
-    template<class OtherExecutionPolicy>
-    detail::nested_execution_policy<sequential_execution_policy, OtherExecutionPolicy>
-      operator()(size_t n, const OtherExecutionPolicy &exec) const
-    {
-      return detail::nested_execution_policy<sequential_execution_policy,OtherExecutionPolicy>(operator()(n), exec);
-    }
-
-    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
-    // this is the flat form of operator()
-    template<class Arg1, class... Args>
-    typename detail::disable_if_nested_call<sequential_execution_policy, Arg1, Args...>::type
-      operator()(Arg1&& arg1, Args&&... args) const
-    {
-      // note we convert the result of super_t::operator() to sequential_execution_policy
-      return super_t::operator()(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
-    }
 };
 
 
@@ -339,38 +337,13 @@ template<> struct is_execution_policy<sequential_execution_policy> : std::true_t
 const sequential_execution_policy seq{};
 
 
-class concurrent_execution_policy : public detail::basic_execution_policy<concurrent_agent, concurrent_executor>
+class concurrent_execution_policy : public detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<concurrent_agent, concurrent_executor>;
+    using super_t = detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
-
-    // XXX we shouldn't have to include either of these constructors due to the
-    // using above
-    concurrent_execution_policy() = default;
-    concurrent_execution_policy(const super_t& other)
-      : super_t(other)
-    {}
-
-    // this is the nested form of operator()
-    // XXX we should try to move the implementation of this into the base class
-    template<class OtherExecutionPolicy>
-    detail::nested_execution_policy<concurrent_execution_policy, OtherExecutionPolicy>
-      operator()(size_t n, const OtherExecutionPolicy &exec) const
-    {
-      return detail::nested_execution_policy<concurrent_execution_policy,OtherExecutionPolicy>(operator()(n), exec);
-    }
-
-    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
-    // this is the flat form of operator()
-    template<class Arg1, class... Args>
-    typename detail::disable_if_nested_call<concurrent_execution_policy, Arg1, Args...>::type
-      operator()(Arg1&& arg1, Args&&... args) const
-    {
-      return super_t::operator()(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
-    }
 };
 
 
@@ -380,38 +353,13 @@ template<> struct is_execution_policy<concurrent_execution_policy> : std::true_t
 const concurrent_execution_policy con{};
 
 
-class parallel_execution_policy : public detail::basic_execution_policy<parallel_agent, parallel_executor>
+class parallel_execution_policy : public detail::basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_tag, parallel_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<parallel_agent, parallel_executor>;
+    using super_t = detail::basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_tag, parallel_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
-
-    // XXX we shouldn't have to include either of these constructors due to the
-    // using above
-    parallel_execution_policy() = default;
-    parallel_execution_policy(const super_t& other)
-      : super_t(other)
-    {}
-
-    // this is the nested form of operator()
-    // XXX we should try to move the implementation of this into the base class
-    template<class OtherExecutionPolicy>
-    detail::nested_execution_policy<parallel_execution_policy, OtherExecutionPolicy>
-      operator()(size_t n, const OtherExecutionPolicy &exec) const
-    {
-      return detail::nested_execution_policy<parallel_execution_policy,OtherExecutionPolicy>(operator()(n), exec);
-    }
-
-    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
-    // this is the flat form of operator()
-    template<class Arg1, class... Args>
-    typename detail::disable_if_nested_call<parallel_execution_policy, Arg1, Args...>::type
-      operator()(Arg1&& arg1, Args&&... args) const
-    {
-      return super_t::operator()(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
-    }
 };
 
 
@@ -421,38 +369,13 @@ template<> struct is_execution_policy<parallel_execution_policy> : std::true_typ
 const parallel_execution_policy par{};
 
 
-class vector_execution_policy : public detail::basic_execution_policy<vector_agent, vector_executor>
+class vector_execution_policy : public detail::basic_execution_policy<vector_agent, vector_executor, vector_execution_tag, vector_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<vector_agent, vector_executor>;
+    using super_t = detail::basic_execution_policy<vector_agent, vector_executor, vector_execution_tag, vector_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
-
-    // XXX we shouldn't have to include either of these constructors due to the
-    // using above
-    vector_execution_policy() = default;
-    vector_execution_policy(const super_t& other)
-      : super_t(other)
-    {}
-
-    // this is the nested form of operator()
-    // XXX we should try to move the implementation of this into the base class
-    template<class OtherExecutionPolicy>
-    detail::nested_execution_policy<vector_execution_policy, OtherExecutionPolicy>
-      operator()(size_t n, const OtherExecutionPolicy &exec) const
-    {
-      return detail::nested_execution_policy<vector_execution_policy,OtherExecutionPolicy>(operator()(n), exec);
-    }
-
-    // only enable this operator() if the last parameter in (Arg1, Args...) is not an execution policy
-    // this is the flat form of operator()
-    template<class Arg1, class... Args>
-    typename detail::disable_if_nested_call<vector_execution_policy, Arg1, Args...>::type
-      operator()(Arg1&& arg1, Args&&... args) const
-    {
-      return super_t::operator()(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
-    }
 };
 
 
