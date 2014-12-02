@@ -5,7 +5,7 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <thrust/functional.h>
-#include "../thrust_tuple_cpp11.hpp"
+#include "tuple.hpp"
 
 
 namespace cuda
@@ -55,11 +55,11 @@ auto apply(F&& f, Tuple&& t)
        apply_impl(
          std::forward<F>(f),
          std::forward<Tuple>(t),
-         agency::detail::make_index_sequence<thrust::tuple_size<decay_t<Tuple>>::value>()
+         agency::detail::make_index_sequence<std::tuple_size<decay_t<Tuple>>::value>()
        )
      )
 {
-  using Indices = agency::detail::make_index_sequence<thrust::tuple_size<decay_t<Tuple>>::value>;
+  using Indices = agency::detail::make_index_sequence<std::tuple_size<decay_t<Tuple>>::value>;
   return apply_impl(
     std::forward<F>(f),
     std::forward<Tuple>(t),
@@ -127,15 +127,11 @@ auto substitute_arg(ArgTuple&& arg_tuple, const BoundArg&,
 }
 
 
-template<class... T>
-using tuple = thrust::experimental::cpp11::tuple<T...>;
-
-
 template<class ArgTuple, class BoundArgTuple, size_t... I>
 __host__ __device__
 auto substitute_impl(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple, agency::detail::index_sequence<I...>)
   -> decltype(
-       thrust::experimental::cpp11::forward_as_tuple(
+       detail::forward_as_tuple(
          substitute_arg(
            std::forward<ArgTuple>(arg_tuple),
            thrust::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
@@ -143,7 +139,7 @@ auto substitute_impl(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple, agen
        )
      )
 {
-  return thrust::experimental::cpp11::forward_as_tuple(
+  return detail::forward_as_tuple(
     substitute_arg(
       std::forward<ArgTuple>(arg_tuple),
       thrust::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
@@ -159,11 +155,11 @@ auto substitute(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple)
        substitute_impl(
          std::forward<ArgTuple>(arg_tuple),
          std::forward<BoundArgTuple>(bound_arg_tuple),
-         agency::detail::make_index_sequence<thrust::tuple_size<decay_t<BoundArgTuple>>::value>()
+         agency::detail::make_index_sequence<std::tuple_size<decay_t<BoundArgTuple>>::value>()
        )
      )
 {
-  using Indices = agency::detail::make_index_sequence<thrust::tuple_size<decay_t<BoundArgTuple>>::value>;
+  using Indices = agency::detail::make_index_sequence<std::tuple_size<decay_t<BoundArgTuple>>::value>;
   return substitute_impl(std::forward<ArgTuple>(arg_tuple), std::forward<BoundArgTuple>(bound_arg_tuple), Indices());
 }
 
@@ -185,7 +181,7 @@ class bind_expression
            apply(
              *std::declval<const F*>(),
              substitute(
-               thrust::experimental::cpp11::forward_as_tuple(std::forward<OtherArgs>(args)...),
+               detail::forward_as_tuple(std::forward<OtherArgs>(args)...),
                *std::declval<const tuple<BoundArgs...>*>()
              )
            )
@@ -194,7 +190,7 @@ class bind_expression
       return apply(
         fun_,
         substitute(
-          thrust::experimental::cpp11::forward_as_tuple(std::forward<OtherArgs>(args)...),
+          detail::forward_as_tuple(std::forward<OtherArgs>(args)...),
           bound_args_
         )
       );
@@ -207,7 +203,7 @@ class bind_expression
            apply(
              *std::declval<F*>(),
              substitute(
-               thrust::experimental::cpp11::forward_as_tuple(std::forward<OtherArgs>(args)...),
+               detail::forward_as_tuple(std::forward<OtherArgs>(args)...),
                *std::declval<tuple<BoundArgs...>*>()
              )
            )
@@ -216,7 +212,7 @@ class bind_expression
       return apply(
         fun_,
         substitute(
-          thrust::experimental::cpp11::forward_as_tuple(std::forward<OtherArgs>(args)...),
+          detail::forward_as_tuple(std::forward<OtherArgs>(args)...),
           bound_args_
         )
       );

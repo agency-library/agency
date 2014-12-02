@@ -13,7 +13,7 @@
 #include <agency/flattened_executor.hpp>
 #include <agency/detail/ignore.hpp>
 #include <thrust/detail/minmax.h>
-#include "thrust_tuple_cpp11.hpp"
+#include "detail/tuple.hpp"
 #include "detail/feature_test.hpp"
 #include "gpu.hpp"
 #include "detail/bind.hpp"
@@ -91,7 +91,7 @@ struct function_with_shared_arguments
     }
     __syncthreads();
 
-    thrust::tuple<OuterSharedType&,InnerSharedType&> shared_params(*outer_ptr_, inner_param);
+    tuple<OuterSharedType&,InnerSharedType&> shared_params(*outer_ptr_, inner_param);
 
     f_(agent, shared_params);
 
@@ -176,7 +176,7 @@ class grid_executor
     using index_type = uint2;
 
     template<class Tuple>
-    using shared_param_type = __thrust_tuple_of_references_t<Tuple>;
+    using shared_param_type = detail::tuple_of_references_t<Tuple>;
 
 
     __host__ __device__

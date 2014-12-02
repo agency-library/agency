@@ -6,13 +6,11 @@
 #include <cstddef>
 #include <tuple>
 
-namespace thrust
-{
-namespace experimental
-{
-namespace cpp11
+namespace cuda
 {
 namespace detail
+{
+namespace tuple_detail
 {
 
 // XXX WAR nvbug 1527140
@@ -86,11 +84,11 @@ struct tuple_war_1527140<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>
   using type = thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>;
 };
 
-} // end detail
+} // end tuple_detail
 
 
 template<class... T>
-using tuple = typename detail::tuple_war_1527140<T...>::type;
+using tuple = typename tuple_detail::tuple_war_1527140<T...>::type;
 
 
 // XXX replace this with the variadic forward_as_tuple() when thrust::tuple's constructor can receive && references
@@ -214,10 +212,28 @@ tuple<const T1&,const T2&,const T3&> forward_as_tuple(const T1& arg1, const T2& 
 
 
 
+template<class, class> struct tuple_of_references_impl;
 
-} // end cpp11
-} // end experimental
-} // end thrust
+
+template<class Tuple, size_t... I>
+struct tuple_of_references_impl<Tuple,agency::detail::index_sequence<I...>>
+{
+  using type = tuple<
+    typename std::tuple_element<I,Tuple>::type...
+  >;
+};
+
+
+template<class Tuple>
+using tuple_of_references_t =
+  typename tuple_of_references_impl<
+    Tuple,
+    agency::detail::make_index_sequence<std::tuple_size<Tuple>::value>
+  >::type;
+
+
+} // end detail
+} // end cuda
 
 
 namespace std
@@ -225,6 +241,7 @@ namespace std
 
 
 // implement the std tuple interface for thrust::tuple
+// XXX we'd specialize these for cuda::detail::tuple, but we can't specialize on template using
 
 
 template<class T1>
@@ -480,25 +497,5 @@ auto get(const thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>& t)
 }
 
 
-}
-
-
-template<class, class> struct __thrust_tuple_of_references_impl;
-
-
-template<class Tuple, size_t... I>
-struct __thrust_tuple_of_references_impl<Tuple,agency::detail::index_sequence<I...>>
-{
-  using type = thrust::experimental::cpp11::tuple<
-    typename std::tuple_element<I,Tuple>::type...
-  >;
-};
-
-
-template<class Tuple>
-using __thrust_tuple_of_references_t =
-  typename __thrust_tuple_of_references_impl<
-    Tuple,
-    agency::detail::make_index_sequence<std::tuple_size<Tuple>::value>
-  >::type;
+} // end std
 
