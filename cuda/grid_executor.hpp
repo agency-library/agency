@@ -16,7 +16,7 @@
 #include "thrust_tuple_cpp11.hpp"
 #include "detail/feature_test.hpp"
 #include "gpu.hpp"
-#include "bind.hpp"
+#include "thrust_bind_cpp11.hpp"
 #include "detail/unique_ptr.hpp"
 #include "detail/terminate.hpp"
 #include "detail/uninitialized.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "grid_executor.hpp"
-#include "bind.hpp"
+#include "thrust_bind_cpp11.hpp"
 #include <agency/detail/ignore.hpp>
 
 namespace cuda
