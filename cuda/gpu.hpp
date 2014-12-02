@@ -1,7 +1,7 @@
 #pragma once
 
 #include "detail/feature_test.hpp"
-#include "terminate.hpp"
+#include "detail/terminate.hpp"
 
 namespace cuda
 {
@@ -86,7 +86,7 @@ gpu_id current_gpu()
   int result = -1;
 
 #if __cuda_lib_has_cudart
-  __throw_on_error(cudaGetDevice(&result), "cuda::detail::current_gpu(): cudaGetDevice()");
+  throw_on_error(cudaGetDevice(&result), "cuda::detail::current_gpu(): cudaGetDevice()");
 #endif
 
   return gpu_id(result);

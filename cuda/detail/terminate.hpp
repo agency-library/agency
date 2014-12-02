@@ -2,11 +2,17 @@
 
 #include <exception>
 #include <cstdio>
-#include "detail/feature_test.hpp"
+#include "feature_test.hpp"
+
+
+namespace cuda
+{
+namespace detail
+{
 
 
 __host__ __device__
-inline void __terminate()
+inline void terminate()
 {
 #ifdef __CUDA_ARCH__
   asm("trap;");
@@ -17,29 +23,29 @@ inline void __terminate()
 
 
 __host__ __device__
-inline void __terminate_with_message(const char* message)
+inline void terminate_with_message(const char* message)
 {
   printf("%s\n", message);
 
-  __terminate();
+  terminate();
 }
 
 
 __host__ __device__
-inline void __terminate_on_error(cudaError_t e, const char* message)
+inline void terminate_on_error(cudaError_t e, const char* message)
 {
   if(e)
   {
 #if __cuda_lib_has_cudart
     printf("Error after: %s: %s\n", message, cudaGetErrorString(e));
 #endif
-    __terminate();
+    terminate();
   }
 }
 
 
 inline __host__ __device__
-void __throw_on_error(cudaError_t e, const char* message)
+void throw_on_error(cudaError_t e, const char* message)
 {
   if(e)
   {
@@ -51,10 +57,12 @@ void __throw_on_error(cudaError_t e, const char* message)
 #  elif __cuda_lib_has_printf
     printf("Error: %s\n", message);
 #  endif
-    __terminate();
+    terminate();
 #endif
   }
 }
 
 
+} // end detail
+} // cuda
 

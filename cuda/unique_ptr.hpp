@@ -1,12 +1,13 @@
 #pragma once
 
 #include <memory>
-#include <thrust/system/cuda/memory.h>
-#include <thrust/detail/swap.h>
 #include <agency/detail/type_traits.hpp>
-#include "terminate.hpp"
 #include "detail/launch_kernel.hpp"
 #include "detail/workaround_unused_variable_warning.hpp"
+
+// XXX should eliminate this dependency on Thrust
+#include <thrust/system/cuda/memory.h>
+#include <thrust/detail/swap.h>
 
 
 namespace cuda

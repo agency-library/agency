@@ -1,7 +1,7 @@
 #pragma once
 
 #include "feature_test.hpp"
-#include "../terminate.hpp"
+#include "terminate.hpp"
 #include "workaround_unused_variable_warning.hpp"
 
 namespace cuda
@@ -125,7 +125,7 @@ void checked_launch_kernel(void* kernel, uint2 shape, int shared_memory_size, cu
 #endif
   ;
 
-  __throw_on_error(launch_kernel(kernel, shape, shared_memory_size, stream, args...), error_message);
+  throw_on_error(launch_kernel(kernel, shape, shared_memory_size, stream, args...), error_message);
 }
 
 
@@ -136,13 +136,13 @@ void checked_launch_kernel_on_device(void* kernel, uint2 shape, int shared_memor
 #if __cuda_lib_has_cudart
   // record the current device
   int current_device = 0;
-  __throw_on_error(cudaGetDevice(&current_device), "cuda::detail::checked_launch_kernel_on_device(): cudaGetDevice()");
+  throw_on_error(cudaGetDevice(&current_device), "cuda::detail::checked_launch_kernel_on_device(): cudaGetDevice()");
   if(current_device != device)
   {
 #  ifndef __CUDA_ARCH__
-    __throw_on_error(cudaSetDevice(device), "cuda::detail::checked_launch_kernel_on_device(): cudaSetDevice()");
+    throw_on_error(cudaSetDevice(device), "cuda::detail::checked_launch_kernel_on_device(): cudaSetDevice()");
 #  else
-    __throw_on_error(cudaErrorNotSupported, "cuda::detail::checked_launch_kernel_on_device(): CUDA kernel launch only allowed on the current device in __device__ code");
+    throw_on_error(cudaErrorNotSupported, "cuda::detail::checked_launch_kernel_on_device(): CUDA kernel launch only allowed on the current device in __device__ code");
 #  endif // __CUDA_ARCH__
   }
 #else
@@ -154,7 +154,7 @@ void checked_launch_kernel_on_device(void* kernel, uint2 shape, int shared_memor
      "cuda::detail::checked_launch_kernel_on_device(): CUDA kernel launch from device requires arch=sm_35 or better and rdc=true"
 #  endif
   ;
-  __throw_on_error(cudaErrorNotSupported, error_message);
+  throw_on_error(cudaErrorNotSupported, error_message);
 #endif // __cuda_lib_has_cudart
 
   checked_launch_kernel(kernel, shape, shared_memory_size, stream, args...);
@@ -164,11 +164,11 @@ void checked_launch_kernel_on_device(void* kernel, uint2 shape, int shared_memor
 #  ifndef __CUDA_ARCH__
   if(current_device != device)
   {
-    __throw_on_error(cudaSetDevice(current_device), "cuda::detail::checked_launch_kernel_on_device: cudaSetDevice()");
+    throw_on_error(cudaSetDevice(current_device), "cuda::detail::checked_launch_kernel_on_device: cudaSetDevice()");
   }
 #  endif // __CUDA_ARCH__
 #else
-  __throw_on_error(cudaErrorNotSupported, "cuda::detail::checked_launch_kernel_on_device(): cudaSetDevice requires CUDART");
+  throw_on_error(cudaErrorNotSupported, "cuda::detail::checked_launch_kernel_on_device(): cudaSetDevice requires CUDART");
 #endif // __cuda_lib_has_cudart
 }
 

@@ -18,7 +18,7 @@
 #include "gpu.hpp"
 #include "bind.hpp"
 #include "unique_ptr.hpp"
-#include "terminate.hpp"
+#include "detail/terminate.hpp"
 #include "uninitialized.hpp"
 #include "detail/launch_kernel.hpp"
 #include "detail/workaround_unused_variable_warning.hpp"
@@ -220,31 +220,31 @@ class grid_executor
 #if __cuda_lib_has_cudart
       // record the current device
       int current_device = 0;
-      __throw_on_error(cudaGetDevice(&current_device), "cuda::grid_executor::max_shape(): cudaGetDevice()");
+      detail::throw_on_error(cudaGetDevice(&current_device), "cuda::grid_executor::max_shape(): cudaGetDevice()");
       if(current_device != gpu().native_handle())
       {
 #  ifndef __CUDA_ARCH__
-        __throw_on_error(cudaSetDevice(gpu().native_handle()), "cuda::grid_executor::max_shape(): cudaSetDevice()");
+        detail::throw_on_error(cudaSetDevice(gpu().native_handle()), "cuda::grid_executor::max_shape(): cudaSetDevice()");
 #  else
-        __throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
+        detail::throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
 #  endif // __CUDA_ARCH__
       }
 
       int max_block_dimension_x = 0;
-      __throw_on_error(cudaDeviceGetAttribute(&max_block_dimension_x, cudaDevAttrMaxBlockDimX, gpu().native_handle()),
-                       "cuda::grid_executor::max_shape(): cudaDeviceGetAttribute");
+      detail::throw_on_error(cudaDeviceGetAttribute(&max_block_dimension_x, cudaDevAttrMaxBlockDimX, gpu().native_handle()),
+                             "cuda::grid_executor::max_shape(): cudaDeviceGetAttribute");
 
       cudaFuncAttributes attr{};
-      __throw_on_error(cudaFuncGetAttributes(&attr, fun_ptr),
-                       "cuda::grid_executor::max_shape(): cudaFuncGetAttributes");
+      detail::throw_on_error(cudaFuncGetAttributes(&attr, fun_ptr),
+                             "cuda::grid_executor::max_shape(): cudaFuncGetAttributes");
 
       // restore current device
       if(current_device != gpu().native_handle())
       {
 #  ifndef __CUDA_ARCH__
-        __throw_on_error(cudaSetDevice(current_device), "cuda::grid_executor::max_shape(): cudaSetDevice()");
+        detail::throw_on_error(cudaSetDevice(current_device), "cuda::grid_executor::max_shape(): cudaSetDevice()");
 #  else
-        __throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
+        detail::throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
 #  endif // __CUDA_ARCH__
       }
 
@@ -269,8 +269,8 @@ class grid_executor
     
       // call __notify when kernel is finished
       // XXX cudaStreamAddCallback probably isn't valid in __device__ code
-      __throw_on_error(cudaStreamAddCallback(stream(), detail::grid_executor_notify, promise.release(), 0),
-                       "cuda::grid_executor::bulk_async(): cudaStreamAddCallback");
+      detail::throw_on_error(cudaStreamAddCallback(stream(), detail::grid_executor_notify, promise.release(), 0),
+                             "cuda::grid_executor::bulk_async(): cudaStreamAddCallback");
     
       return result;
     }
@@ -314,7 +314,7 @@ class grid_executor
       launch(f, shape);
 
 #  if __cuda_lib_has_cudart
-      __throw_on_error(cudaDeviceSynchronize(), "cuda::grid_executor::bulk_invoke(): cudaDeviceSynchronize");
+      detail::throw_on_error(cudaDeviceSynchronize(), "cuda::grid_executor::bulk_invoke(): cudaDeviceSynchronize");
 #  endif
 #endif
     }
