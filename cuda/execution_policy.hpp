@@ -18,72 +18,97 @@ namespace detail
 {
 
 
-template<class Function, class ExecutionAgentTraits>
+template<class Function, class ExecutionAgentTraits, class ExecutorShape, class AgentShape>
 struct execute_agent_functor
 {
   __agency_hd_warning_disable__
   __host__ __device__
   execute_agent_functor(const Function& f,
-                        const typename ExecutionAgentTraits::param_type& param)
+                        const typename ExecutionAgentTraits::param_type& param,
+                        const ExecutorShape& executor_shape,
+                        const AgentShape& agent_shape)
     : f_(f),
-      param_(param)
+      param_(param),
+      executor_shape_(executor_shape),
+      agent_shape_(agent_shape)
   {}
 
   template<class ExecutorIndex, class SharedParam>
   __device__
-  void operator()(ExecutorIndex agent_idx, SharedParam&& shared_params) const
+  void operator()(ExecutorIndex executor_idx, SharedParam&& shared_params) const
   {
+    using agent_index_type = typename ExecutionAgentTraits::index_type;
+    auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape_, agent_shape_);
+
     ExecutionAgentTraits::execute(f_, agent_idx, param_, shared_params);
   }
 
   template<class ExecutorIndex, class SharedParam>
   __device__
-  void operator()(ExecutorIndex agent_idx, SharedParam&& shared_params)
+  void operator()(ExecutorIndex executor_idx, SharedParam&& shared_params)
   {
+    using agent_index_type = typename ExecutionAgentTraits::index_type;
+    auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape_, agent_shape_);
+
     ExecutionAgentTraits::execute(f_, agent_idx, param_, shared_params);
   }
 
 
   template<class ExecutorIndex>
   __device__
-  void operator()(ExecutorIndex agent_idx, decltype(agency::detail::ignore)) const
+  void operator()(ExecutorIndex executor_idx, decltype(agency::detail::ignore)) const
   {
+    using agent_index_type = typename ExecutionAgentTraits::index_type;
+    auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape_, agent_shape_);
+
     ExecutionAgentTraits::execute(f_, agent_idx, param_);
   }
 
   template<class ExecutorIndex>
   __device__
-  void operator()(ExecutorIndex agent_idx, decltype(agency::detail::ignore))
+  void operator()(ExecutorIndex executor_idx, decltype(agency::detail::ignore))
   {
+    using agent_index_type = typename ExecutionAgentTraits::index_type;
+    auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape_, agent_shape_);
+
     ExecutionAgentTraits::execute(f_, agent_idx, param_);
   }
 
 
   template<class ExecutorIndex>
   __device__
-  void operator()(ExecutorIndex agent_idx) const
+  void operator()(ExecutorIndex executor_idx) const
   {
+    using agent_index_type = typename ExecutionAgentTraits::index_type;
+    auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape_, agent_shape_);
+
     ExecutionAgentTraits::execute(f_, agent_idx, param_);
   }
 
   template<class ExecutorIndex>
   __device__
-  void operator()(ExecutorIndex agent_idx)
+  void operator()(ExecutorIndex executor_idx)
   {
+    using agent_index_type = typename ExecutionAgentTraits::index_type;
+    auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape_, agent_shape_);
+
     ExecutionAgentTraits::execute(f_, agent_idx, param_);
   }
 
   Function f_;
   typename ExecutionAgentTraits::param_type param_;
+  ExecutorShape executor_shape_;
+  AgentShape agent_shape_;
 };
 
 
-template<class ExecutionAgentTraits, class Function>
+template<class ExecutionAgentTraits, class Function, class ExecutorShape, class AgentShape>
 __host__ __device__
-execute_agent_functor<Function, ExecutionAgentTraits>
-  make_execute_agent_functor(const Function& f,const typename ExecutionAgentTraits::param_type& param)
+execute_agent_functor<Function, ExecutionAgentTraits, ExecutorShape, AgentShape>
+  make_execute_agent_functor(const Function& f,const typename ExecutionAgentTraits::param_type& param, 
+                             const ExecutorShape& executor_shape, const AgentShape& agent_shape)
 {
-  return execute_agent_functor<Function,ExecutionAgentTraits>(f,param);
+  return execute_agent_functor<Function,ExecutionAgentTraits,ExecutorShape,AgentShape>(f,param,executor_shape,agent_shape);
 }
 
 
@@ -94,13 +119,19 @@ void bulk_invoke(const ExecutionPolicy& exec, Function&& f)
   using traits = agency::execution_agent_traits<execution_agent_type>;
 
   auto param = exec.param();
-  auto execute_me = make_execute_agent_functor<traits>(f, param);
-  auto shape = traits::domain(param).shape();
+  auto agent_shape = traits::domain(param).shape();
   auto shared_init = traits::make_shared_initializer(param);
 
   using executor_type = typename ExecutionPolicy::executor_type;
+  using executor_index_type = typename agency::executor_traits<executor_type>::index_type;
 
-  return agency::executor_traits<executor_type>::bulk_invoke(exec.executor(), execute_me, shape, shared_init);
+  // convert the shape of the agent into the type of the executor's shape
+  using executor_shape_type = typename agency::executor_traits<executor_type>::shape_type;
+  executor_shape_type executor_shape = agency::detail::shape_cast<executor_shape_type>(agent_shape);
+
+  auto execute_me = make_execute_agent_functor<traits>(f, param, executor_shape, agent_shape);
+
+  return agency::executor_traits<executor_type>::bulk_invoke(exec.executor(), execute_me, executor_shape, shared_init);
 }
 
 
@@ -119,10 +150,10 @@ class basic_execution_policy : public agency::detail::basic_execution_policy<Exe
 } // end detail
 
 
-class parallel_execution_policy : public detail::basic_execution_policy<cuda::parallel_agent, agency::parallel_executor, agency::parallel_execution_tag, parallel_execution_policy>
+class parallel_execution_policy : public detail::basic_execution_policy<cuda::parallel_agent, cuda::parallel_executor, agency::parallel_execution_tag, parallel_execution_policy>
 {
   public:
-    using detail::basic_execution_policy<cuda::parallel_agent, agency::parallel_executor, agency::parallel_execution_tag, parallel_execution_policy>::basic_execution_policy;
+    using detail::basic_execution_policy<cuda::parallel_agent, cuda::parallel_executor, agency::parallel_execution_tag, parallel_execution_policy>::basic_execution_policy;
 };
 
 

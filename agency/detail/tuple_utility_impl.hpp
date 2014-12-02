@@ -185,27 +185,63 @@ auto tuple_tail(Tuple&& t)
 }
 
 
-template<size_t... I, class Tuple>
+template<class Tuple, class Function, size_t... I>
 TUPLE_UTILITY_ANNOTATION
-auto __tuple_take_impl(Tuple&& t, __index_sequence<I...>)
+auto __tuple_take_invoke_impl(Tuple&& t, Function f, __index_sequence<I...>)
   -> decltype(
-       std::make_tuple(
+       f(
          std::get<I>(std::forward<Tuple>(t))...
        )
      )
 {
-  return std::make_tuple(std::get<I>(std::forward<Tuple>(t))...);
+  return f(std::get<I>(std::forward<Tuple>(t))...);
 }
+
+
+template<size_t N, class Tuple, class Function>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_take_invoke(Tuple&& t, Function f)
+  -> decltype(
+       __tuple_take_invoke_impl(std::forward<Tuple>(t), f, __make_index_sequence<N>())
+     )
+{
+  return __tuple_take_invoke_impl(std::forward<Tuple>(t), f, __make_index_sequence<N>());
+}
+
+
+struct __std_tuple_maker
+{
+  template<class... T>
+  TUPLE_UTILITY_ANNOTATION
+  auto operator()(T&&... args)
+    -> decltype(
+         std::make_tuple(std::forward<T>(args)...)
+       )
+  {
+    return std::make_tuple(std::forward<T>(args)...);
+  }
+};
 
 
 template<size_t N, class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_take(Tuple&& t)
   -> decltype(
-       __tuple_take_impl(std::forward<Tuple>(t), __make_index_sequence<N>())
+       tuple_take_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker())
      )
 {
-  return __tuple_take_impl(std::forward<Tuple>(t), __make_index_sequence<N>());
+  return tuple_take_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker());
+}
+
+
+template<size_t N, class Tuple, class Function>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_drop_invoke(Tuple&& t, Function f)
+  -> decltype(
+       tuple_take_invoke<std::tuple_size<typename std::decay<Tuple>::type>::value - N>(std::forward<Tuple>(t), f)
+     )
+{
+  return tuple_take_invoke<std::tuple_size<typename std::decay<Tuple>::type>::value - N>(std::forward<Tuple>(t), f);
 }
 
 
@@ -213,10 +249,10 @@ template<size_t N, class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_drop(Tuple&& t)
   -> decltype(
-       tuple_take<std::tuple_size<typename std::decay<Tuple>::type>::value - N>(std::forward<Tuple>(t))
+       tuple_drop_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker())
      )
 {
-  return tuple_take<std::tuple_size<typename std::decay<Tuple>::type>::value - N>(std::forward<Tuple>(t));
+  return tuple_drop_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker());
 }
 
 
@@ -247,24 +283,25 @@ auto tuple_last(Tuple&& t)
 }
 
 
-template<class Tuple, class T, size_t... I>
+template<class Tuple, class T, class Function, size_t... I>
 TUPLE_UTILITY_ANNOTATION
-auto __tuple_append_impl(Tuple&& t, T&& x, __index_sequence<I...>)
+auto __tuple_append_invoke_impl(Tuple&& t, T&& x, Function f, __index_sequence<I...>)
   -> decltype(
-       std::make_tuple(std::get<I>(std::forward<Tuple>(t))..., std::forward<T>(x))
+       f(std::get<I>(std::forward<Tuple>(t))..., std::forward<T>(x))
      )
 {
-  return std::make_tuple(std::get<I>(std::forward<Tuple>(t))..., std::forward<T>(x));
+  return f(std::get<I>(std::forward<Tuple>(t))..., std::forward<T>(x));
 }
 
 
-template<class Tuple, class T>
+template<class Tuple, class T, class Function>
 TUPLE_UTILITY_ANNOTATION
-auto tuple_append(Tuple&& t, T&& x)
+auto tuple_append_invoke(Tuple&& t, T&& x, Function f)
   -> decltype(
-       __tuple_append_impl(
+       __tuple_append_invoke_impl(
          std::forward<Tuple>(t),
          std::forward<T>(x),
+         f,
          __make_index_sequence<
            std::tuple_size<
              typename std::decay<Tuple>::type
@@ -276,7 +313,18 @@ auto tuple_append(Tuple&& t, T&& x)
   using indices = __make_index_sequence<
     std::tuple_size<typename std::decay<Tuple>::type>::value
   >;
-  return __tuple_append_impl(std::forward<Tuple>(t), std::forward<T>(x), indices());
+  return __tuple_append_invoke_impl(std::forward<Tuple>(t), std::forward<T>(x), f, indices());
+}
+
+
+template<class Tuple, class T>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_append(Tuple&& t, T&& x)
+  -> decltype(
+       tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(x), __std_tuple_maker())
+     )
+{
+  return tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(x), __std_tuple_maker());
 }
 
 
@@ -332,20 +380,6 @@ auto tuple_map_with_make(Function1 f, Function2 make, Tuple&& t, Tuples&&... ts)
     std::forward<Tuples>(ts)...
   );
 }
-
-
-struct __std_tuple_maker
-{
-  template<class... T>
-  TUPLE_UTILITY_ANNOTATION
-  auto operator()(T&&... args)
-    -> decltype(
-         std::make_tuple(std::forward<T>(args)...)
-       )
-  {
-    return std::make_tuple(std::forward<T>(args)...);
-  }
-};
 
 
 template<typename Function, typename Tuple, typename... Tuples>

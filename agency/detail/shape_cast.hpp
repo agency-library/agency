@@ -3,58 +3,31 @@
 #include <tuple>
 #include <utility>
 #include <type_traits>
-#include <agency/detail/tuple_utility.hpp>
 #include <agency/coordinate.hpp>
+#include <agency/detail/tuple_utility.hpp>
+#include <agency/detail/point_size.hpp>
 
 namespace agency
 {
 namespace detail
 {
-
-
-template<class T, size_t N, class Enable = void> struct rebind_point_size_impl;
-
-template<template<class,size_t> class point, class T, size_t N, size_t M>
-struct rebind_point_size_impl<point<T,N>, M>
+namespace shape_cast_detail
 {
-  using type = point<T,M>;
-};
-
-
-template<class T, size_t N>
-struct rebind_point_size_impl<T, N,
-  typename std::enable_if<
-    std::is_arithmetic<T>::value
-  >::type
->
-{
-  using type = agency::point<T,N>;
-};
-
-
-template<class T, size_t N>
-struct rebind_point_size
-{
-  using type = typename rebind_point_size_impl<T,N>::type;
-};
-
-template<class T, size_t N>
-using rebind_point_size_t = typename rebind_point_size<T,N>::type;
-
-
-template<class T, class Enable = void>
-struct point_size : std::tuple_size<T> {};
 
 
 template<class T>
-struct point_size<
-  T,
-  typename std::enable_if<
-    std::is_arithmetic<T>::value
-  >::type
->
-  : std::integral_constant<std::size_t, 1>
-{};
+struct make
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  T operator()(Args&&... args) const
+  {
+    return T{std::forward<Args>(args)...};
+  }
+};
+
+
+} // end shape_cast_detail
 
 
 // reduces the dimensionality of x by eliding the last dimension
@@ -69,7 +42,9 @@ rebind_point_size_t<
 
   auto last = std::get<std::tuple_size<result_type>::value>(x);
 
-  auto result = __tu::make_from_tuple<result_type>(__tu::tuple_drop<1>(x));
+  // XXX WAR nvcc 7's issue with tuple_drop_invoke
+  //auto result = __tu::tuple_drop_invoke<1>(x, shape_cast_detail::make<result_type>());
+  auto result = __tu::tuple_take_invoke<std::tuple_size<Point>::value - 1>(x, shape_cast_detail::make<result_type>());
 
   std::get<std::tuple_size<result_type>::value-1>(result) *= last;
 
@@ -91,7 +66,7 @@ rebind_point_size_t<
 
   using result_type = rebind_point_size_t<Point,point_size<Point>::value + 1>;
 
-  return __tu::make_from_tuple<result_type>(__tu::tuple_append(intermediate, 1));
+  return __tu::tuple_append_invoke(intermediate, 1, shape_cast_detail::make<result_type>());
 }
 
 
@@ -166,17 +141,6 @@ struct shape_cast_functor
 };
 
 
-template<class T>
-struct make
-{
-  template<class... Args>
-  T operator()(Args&&... args)
-  {
-    return T{std::forward<Args>(args)...};
-  }
-};
-
-
 // recursive case for casting to a shape of equal size
 template<class ToShape, class FromShape>
 typename std::enable_if<
@@ -186,7 +150,7 @@ typename std::enable_if<
 >::type
   shape_cast(const FromShape& x)
 {
-  return __tu::tuple_map_with_make(shape_cast_functor{}, make<ToShape>{}, ToShape{}, x);
+  return __tu::tuple_map_with_make(shape_cast_functor{}, shape_cast_detail::make<ToShape>{}, ToShape{}, x);
 }
 
 
