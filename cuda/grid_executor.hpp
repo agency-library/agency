@@ -19,7 +19,7 @@
 #include "bind.hpp"
 #include "detail/unique_ptr.hpp"
 #include "detail/terminate.hpp"
-#include "uninitialized.hpp"
+#include "detail/uninitialized.hpp"
 #include "detail/launch_kernel.hpp"
 #include "detail/workaround_unused_variable_warning.hpp"
 
@@ -82,7 +82,7 @@ struct function_with_shared_arguments
   void operator()(Agent& agent)
   {
     // XXX can't rely on a default constructor
-    __shared__ cuda::uninitialized<InnerSharedType> inner_param;
+    __shared__ uninitialized<InnerSharedType> inner_param;
 
     // initialize the inner shared parameter
     if(agent.y == 0)

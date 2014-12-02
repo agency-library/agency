@@ -23,6 +23,8 @@
 
 namespace cuda
 {
+namespace detail
+{
 
 
 template<typename T>
@@ -98,5 +100,6 @@ template<typename T>
 };
 
 
+} // end detail
 } // end cuda
 
