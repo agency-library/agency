@@ -2,7 +2,7 @@
 
 #include <exception>
 #include <cstdio>
-#include "feature_test.hpp"
+#include "detail/feature_test.hpp"
 
 
 __host__ __device__

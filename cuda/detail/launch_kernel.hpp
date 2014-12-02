@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../feature_test.hpp"
+#include "feature_test.hpp"
 #include "../terminate.hpp"
 #include "workaround_unused_variable_warning.hpp"
 

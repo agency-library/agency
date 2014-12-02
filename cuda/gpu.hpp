@@ -1,6 +1,6 @@
 #pragma once
 
-#include "feature_test.hpp"
+#include "detail/feature_test.hpp"
 #include "terminate.hpp"
 
 namespace cuda

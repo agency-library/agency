@@ -14,7 +14,7 @@
 #include <agency/detail/ignore.hpp>
 #include <thrust/detail/minmax.h>
 #include "thrust_tuple_cpp11.hpp"
-#include "feature_test.hpp"
+#include "detail/feature_test.hpp"
 #include "gpu.hpp"
 #include "bind.hpp"
 #include "unique_ptr.hpp"
