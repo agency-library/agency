@@ -2,8 +2,8 @@
 
 #include <memory>
 #include <agency/detail/type_traits.hpp>
-#include "detail/launch_kernel.hpp"
-#include "detail/workaround_unused_variable_warning.hpp"
+#include "launch_kernel.hpp"
+#include "workaround_unused_variable_warning.hpp"
 
 // XXX should eliminate this dependency on Thrust
 #include <thrust/system/cuda/memory.h>
@@ -26,9 +26,6 @@ template<class T, class... Args>
 __global__ void construct_kernel(T* ptr, Args... args)
 {
   ::new(ptr) T(args...);
-}
-
-
 }
 
 
@@ -162,5 +159,6 @@ unique_ptr<T> make_unique(cudaStream_t s, Args&&... args)
 }
 
 
+} // end detail
 } // end cuda
 

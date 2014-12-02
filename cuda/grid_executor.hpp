@@ -17,7 +17,7 @@
 #include "detail/feature_test.hpp"
 #include "gpu.hpp"
 #include "bind.hpp"
-#include "unique_ptr.hpp"
+#include "detail/unique_ptr.hpp"
 #include "detail/terminate.hpp"
 #include "uninitialized.hpp"
 #include "detail/launch_kernel.hpp"
@@ -286,7 +286,7 @@ class grid_executor
       using inner_shared_type = decltype(inner_shared_arg);
 
       // allocate outer shared argument
-      auto outer_shared_arg_ptr = cuda::make_unique<outer_shared_type>(stream(), outer_shared_arg);
+      auto outer_shared_arg_ptr = detail::make_unique<outer_shared_type>(stream(), outer_shared_arg);
 
       // copy construct the outer shared arg
       // XXX do this asynchronously
@@ -331,7 +331,7 @@ class grid_executor
       using inner_shared_type = decltype(inner_shared_arg);
 
       // allocate outer shared argument
-      auto outer_shared_arg_ptr = cuda::make_unique<outer_shared_type>(stream(), outer_shared_arg);
+      auto outer_shared_arg_ptr = detail::make_unique<outer_shared_type>(stream(), outer_shared_arg);
 
       // copy construct the outer shared arg
       // XXX don't do this if outer_shared_type is agency::detail::ignore
