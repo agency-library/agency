@@ -1,7 +1,7 @@
 #pragma once
 
 #include "grid_executor.hpp"
-#include "thrust_bind_cpp11.hpp"
+#include "detail/bind.hpp"
 #include <agency/detail/ignore.hpp>
 
 namespace cuda
@@ -94,7 +94,7 @@ template<class Function, class... Args>
 __host__ __device__
 void bulk_invoke(block_executor& ex, typename grid_executor::shape_type shape, Function&& f, Args&&... args)
 {
-  auto g = thrust::experimental::bind(std::forward<Function>(f), thrust::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::bind(std::forward<Function>(f), thrust::placeholders::_1, std::forward<Args>(args)...);
   ex.bulk_invoke(g, shape);
 }
 

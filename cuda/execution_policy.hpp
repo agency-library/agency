@@ -9,7 +9,7 @@
 #include "grid_executor.hpp"
 #include "block_executor.hpp"
 #include "parallel_executor.hpp"
-#include "bind.hpp"
+#include "detail/bind.hpp"
 
 
 namespace cuda
@@ -173,7 +173,7 @@ const concurrent_execution_policy con{};
 template<class ExecutionPolicy, class Function, class... Args>
 void bulk_invoke(const ExecutionPolicy& exec, Function&& f, Args&&... args)
 {
-  auto g = thrust::experimental::bind(f, thrust::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::bind(f, thrust::placeholders::_1, std::forward<Args>(args)...);
   detail::bulk_invoke(exec, g);
 }
 

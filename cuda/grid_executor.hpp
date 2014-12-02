@@ -16,7 +16,7 @@
 #include "thrust_tuple_cpp11.hpp"
 #include "detail/feature_test.hpp"
 #include "gpu.hpp"
-#include "thrust_bind_cpp11.hpp"
+#include "detail/bind.hpp"
 #include "detail/unique_ptr.hpp"
 #include "detail/terminate.hpp"
 #include "detail/uninitialized.hpp"
@@ -395,7 +395,7 @@ template<class Function, class... Args>
 __host__ __device__
 void bulk_invoke(grid_executor& ex, typename grid_executor::shape_type shape, Function&& f, Args&&... args)
 {
-  auto g = thrust::experimental::bind(std::forward<Function>(f), thrust::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::bind(std::forward<Function>(f), thrust::placeholders::_1, std::forward<Args>(args)...);
   ex.bulk_invoke(g, shape);
 }
 
