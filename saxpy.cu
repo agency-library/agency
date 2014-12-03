@@ -1,4 +1,4 @@
-#include "cuda/execution_policy.hpp"
+#include <agency/cuda/execution_policy.hpp>
 #include <thrust/device_vector.h>
 #include <thrust/logical.h>
 #include <thrust/functional.h>
@@ -11,7 +11,7 @@ struct saxpy_functor
   float *x, *y, *z;
 
   __device__
-  void operator()(cuda::parallel_agent& self)
+  void operator()(agency::cuda::parallel_agent& self)
   {
     int i = self.index();
     z[i] = a * x[i] + y[i];
@@ -24,7 +24,7 @@ int main()
   thrust::device_vector<float> x(n, 1), y(n, 2), z(n);
   float a = 13.;
 
-  auto gpu = cuda::grid_executor();
+  auto gpu = agency::cuda::grid_executor();
 
   auto f = saxpy_functor{
     a,

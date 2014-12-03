@@ -1,9 +1,11 @@
 #pragma once
 
-#include "grid_executor.hpp"
-#include "detail/bind.hpp"
+#include <agency/cuda/grid_executor.hpp>
+#include <agency/cuda/detail/bind.hpp>
 #include <agency/detail/ignore.hpp>
 
+namespace agency
+{
 namespace cuda
 {
 namespace detail
@@ -37,10 +39,10 @@ class block_executor : private grid_executor
 {
   private:
     using super_t = grid_executor;
-    using traits = agency::executor_traits<super_t>;
+    using traits = executor_traits<super_t>;
 
   public:
-    using execution_category = agency::concurrent_execution_tag;
+    using execution_category = concurrent_execution_tag;
 
     // XXX probably should be int
     using shape_type = unsigned int;
@@ -100,4 +102,5 @@ void bulk_invoke(block_executor& ex, typename grid_executor::shape_type shape, F
 
 
 } // end cuda
+} // end agency
 

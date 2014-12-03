@@ -3,17 +3,19 @@
 #include <cstddef>
 #include <agency/execution_agent.hpp>
 
+namespace agency
+{
 namespace cuda
 {
 
 
-using parallel_agent = agency::parallel_agent;
+using parallel_agent = parallel_agent;
 
 
-class concurrent_agent : public agency::detail::basic_execution_agent<agency::concurrent_execution_tag>
+class concurrent_agent : public agency::detail::basic_execution_agent<concurrent_execution_tag>
 {
   private:
-    using super_t = agency::detail::basic_execution_agent<agency::concurrent_execution_tag>;
+    using super_t = agency::detail::basic_execution_agent<concurrent_execution_tag>;
 
   public:
     __host__ __device__
@@ -72,9 +74,10 @@ class concurrent_agent : public agency::detail::basic_execution_agent<agency::co
     }
 
     // friend agency::execution_agent_traits to give it access to the constructor
-    friend struct agency::execution_agent_traits<concurrent_agent>;
+    friend struct execution_agent_traits<concurrent_agent>;
 };
 
 
 } // end cuda
+} // end agency
 

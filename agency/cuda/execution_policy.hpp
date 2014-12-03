@@ -5,13 +5,15 @@
 #include <agency/flattened_executor.hpp>
 #include <agency/detail/ignore.hpp>
 #include <type_traits>
-#include "execution_agent.hpp"
-#include "grid_executor.hpp"
-#include "block_executor.hpp"
-#include "parallel_executor.hpp"
-#include "detail/bind.hpp"
+#include <agency/cuda/execution_agent.hpp>
+#include <agency/cuda/grid_executor.hpp>
+#include <agency/cuda/block_executor.hpp>
+#include <agency/cuda/parallel_executor.hpp>
+#include <agency/cuda/detail/bind.hpp>
 
 
+namespace agency
+{
 namespace cuda
 {
 namespace detail
@@ -116,29 +118,29 @@ template<class ExecutionPolicy, class Function>
 void bulk_invoke(const ExecutionPolicy& exec, Function&& f)
 {
   using execution_agent_type = typename ExecutionPolicy::execution_agent_type;
-  using traits = agency::execution_agent_traits<execution_agent_type>;
+  using traits = execution_agent_traits<execution_agent_type>;
 
   auto param = exec.param();
   auto agent_shape = traits::domain(param).shape();
   auto shared_init = traits::make_shared_initializer(param);
 
   using executor_type = typename ExecutionPolicy::executor_type;
-  using executor_index_type = typename agency::executor_traits<executor_type>::index_type;
+  using executor_index_type = typename executor_traits<executor_type>::index_type;
 
   // convert the shape of the agent into the type of the executor's shape
-  using executor_shape_type = typename agency::executor_traits<executor_type>::shape_type;
+  using executor_shape_type = typename executor_traits<executor_type>::shape_type;
   executor_shape_type executor_shape = agency::detail::shape_cast<executor_shape_type>(agent_shape);
 
   auto execute_me = make_execute_agent_functor<traits>(f, param, executor_shape, agent_shape);
 
-  return agency::executor_traits<executor_type>::bulk_invoke(exec.executor(), execute_me, executor_shape, shared_init);
+  return executor_traits<executor_type>::bulk_invoke(exec.executor(), execute_me, executor_shape, shared_init);
 }
 
 
 // add basic_execution_policy to allow us to catch its derivations as overloads of bulk_invoke, etc.
 template<class ExecutionAgent,
          class BulkExecutor,
-         class ExecutionCategory = typename agency::execution_agent_traits<ExecutionAgent>::execution_category,
+         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category,
          class DerivedExecutionPolicy = void>
 class basic_execution_policy : public agency::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>
 {
@@ -150,20 +152,20 @@ class basic_execution_policy : public agency::detail::basic_execution_policy<Exe
 } // end detail
 
 
-class parallel_execution_policy : public detail::basic_execution_policy<cuda::parallel_agent, cuda::parallel_executor, agency::parallel_execution_tag, parallel_execution_policy>
+class parallel_execution_policy : public detail::basic_execution_policy<cuda::parallel_agent, cuda::parallel_executor, parallel_execution_tag, parallel_execution_policy>
 {
   public:
-    using detail::basic_execution_policy<cuda::parallel_agent, cuda::parallel_executor, agency::parallel_execution_tag, parallel_execution_policy>::basic_execution_policy;
+    using detail::basic_execution_policy<cuda::parallel_agent, cuda::parallel_executor, parallel_execution_tag, parallel_execution_policy>::basic_execution_policy;
 };
 
 
 const parallel_execution_policy par{};
 
 
-class concurrent_execution_policy : public detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor, agency::concurrent_execution_tag, concurrent_execution_policy>
+class concurrent_execution_policy : public detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor, concurrent_execution_tag, concurrent_execution_policy>
 {
   public:
-    using detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor, agency::concurrent_execution_tag, concurrent_execution_policy>::basic_execution_policy;
+    using detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor, concurrent_execution_tag, concurrent_execution_policy>::basic_execution_policy;
 };
 
 
@@ -201,7 +203,7 @@ struct rebind_executor_impl<
   typename std::enable_if<
     std::is_same<
       typename ExecutionPolicy::execution_category,
-      agency::parallel_execution_tag
+      parallel_execution_tag
     >::value
   >::type
 >
@@ -217,7 +219,7 @@ struct rebind_executor_impl<
   typename std::enable_if<
     std::is_same<
       typename ExecutionPolicy::execution_category,
-      agency::concurrent_execution_tag
+      concurrent_execution_tag
     >::value
   >::type
 >
@@ -228,10 +230,6 @@ struct rebind_executor_impl<
 
 } // end detail
 } // end cuda
-
-
-namespace agency
-{
 
 
 template<class ExecutionPolicy>

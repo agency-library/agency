@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <tuple>
 
+namespace agency
+{
 namespace cuda
 {
 namespace detail
@@ -234,6 +236,7 @@ using tuple_of_references_t =
 
 } // end detail
 } // end cuda
+} // end agency
 
 
 namespace std

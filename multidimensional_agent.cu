@@ -1,14 +1,14 @@
 #include <iostream>
 #include <agency/execution_policy.hpp>
 #include <agency/coordinate.hpp>
-#include "cuda/execution_policy.hpp"
+#include <agency/cuda/execution_policy.hpp>
 
 template<class ExecutionCategory, size_t N>
 using basic_multidimensional_agent = agency::detail::basic_execution_agent<ExecutionCategory, agency::point<size_t,N>>;
 
 using parallel_agent_2d = basic_multidimensional_agent<agency::parallel_execution_tag, 2>;
 
-const cuda::detail::basic_execution_policy<parallel_agent_2d, cuda::parallel_executor> par2d{};
+const agency::cuda::detail::basic_execution_policy<parallel_agent_2d, agency::cuda::parallel_executor> par2d{};
 
 struct functor
 {
@@ -23,7 +23,7 @@ int main()
 {
   auto exec = par2d({0,0}, {2,2});
 
-  cuda::bulk_invoke(exec, functor());
+  agency::cuda::bulk_invoke(exec, functor());
 
   cudaError_t error = cudaDeviceSynchronize();
 

@@ -1,9 +1,11 @@
 #pragma once
 
-#include "feature_test.hpp"
-#include "terminate.hpp"
-#include "workaround_unused_variable_warning.hpp"
+#include <agency/cuda/detail/feature_test.hpp>
+#include <agency/cuda/detail/terminate.hpp>
+#include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 
+namespace agency
+{
 namespace cuda
 {
 namespace detail
@@ -175,4 +177,5 @@ void checked_launch_kernel_on_device(void* kernel, uint2 shape, int shared_memor
 
 } // end detail
 } // end cuda
+} // end agency
 

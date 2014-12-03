@@ -2,7 +2,7 @@
 #include <cassert>
 #include <thrust/device_vector.h>
 #include <thrust/logical.h>
-#include "cuda/execution_policy.hpp"
+#include <agency/cuda/execution_policy.hpp>
 
 
 struct fill_functor
@@ -15,7 +15,7 @@ struct fill_functor
   {}
 
   __device__
-  void operator()(cuda::parallel_agent& self)
+  void operator()(agency::cuda::parallel_agent& self)
   {
     int i = self.index();
     x[i] = 13;
@@ -30,7 +30,7 @@ int main()
 
   fill_functor func(raw_pointer_cast(x.data()));
 
-  agency::bulk_invoke(cuda::par(n), func);
+  agency::bulk_invoke(agency::cuda::par(n), func);
 
   assert(thrust::all_of(x.begin(), x.end(), thrust::placeholders::_1 == 13));
 

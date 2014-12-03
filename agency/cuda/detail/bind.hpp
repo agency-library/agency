@@ -5,15 +5,21 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <thrust/functional.h>
-#include "tuple.hpp"
+#include <agency/cuda/detail/tuple.hpp>
 
 
+namespace agency
+{
 namespace cuda
 {
 namespace detail
 {
 namespace bind_detail
 {
+
+
+template<class T>
+using decay_t = agency::detail::decay_t<T>;
 
 
 template<class T>
@@ -26,10 +32,6 @@ struct is_placeholder<
     thrust::detail::functional::argument<i>
   >
 > : std::true_type {};
-
-
-template<class T>
-using decay_t = agency::detail::decay_t<T>;
 
 
 __thrust_hd_warning_disable__
@@ -241,4 +243,5 @@ detail::bind_detail::bind_expression<
 
 } // end detail
 } // end cuda
+} // end agency
 

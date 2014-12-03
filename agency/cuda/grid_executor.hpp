@@ -13,15 +13,15 @@
 #include <agency/flattened_executor.hpp>
 #include <agency/detail/ignore.hpp>
 #include <thrust/detail/minmax.h>
-#include "detail/tuple.hpp"
-#include "detail/feature_test.hpp"
-#include "gpu.hpp"
-#include "detail/bind.hpp"
-#include "detail/unique_ptr.hpp"
-#include "detail/terminate.hpp"
-#include "detail/uninitialized.hpp"
-#include "detail/launch_kernel.hpp"
-#include "detail/workaround_unused_variable_warning.hpp"
+#include <agency/cuda/detail/tuple.hpp>
+#include <agency/cuda/detail/feature_test.hpp>
+#include <agency/cuda/gpu.hpp>
+#include <agency/cuda/detail/bind.hpp>
+#include <agency/cuda/detail/unique_ptr.hpp>
+#include <agency/cuda/detail/terminate.hpp>
+#include <agency/cuda/detail/uninitialized.hpp>
+#include <agency/cuda/detail/launch_kernel.hpp>
+#include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 
 
 namespace std
@@ -61,6 +61,8 @@ struct tuple_element<i,::uint2>
 } // end std
 
 
+namespace agency
+{
 namespace cuda
 {
 namespace detail
@@ -154,9 +156,9 @@ class grid_executor
 {
   public:
     using execution_category =
-      agency::nested_execution_tag<
-        agency::parallel_execution_tag,
-        agency::concurrent_execution_tag
+      nested_execution_tag<
+        parallel_execution_tag,
+        concurrent_execution_tag
       >;
 
 
@@ -449,10 +451,6 @@ struct flattened_grid_executor_functor
 
 // specialize agency::flattened_executor<grid_executor>
 // to add __host__ __device__ to its functions and avoid lambdas
-namespace agency
-{
-
-
 template<>
 class flattened_executor<cuda::grid_executor>
 {
@@ -517,7 +515,6 @@ class flattened_executor<cuda::grid_executor>
     }
 
   private:
-
     using partition_type = typename executor_traits<base_executor_type>::shape_type;
 
     // returns (outer size, inner size)
@@ -546,5 +543,5 @@ class flattened_executor<cuda::grid_executor>
 };
 
 
-} // end std
+} // end agency
 

@@ -2,9 +2,11 @@
 
 #include <exception>
 #include <cstdio>
-#include "feature_test.hpp"
+#include <agency/cuda/detail/feature_test.hpp>
 
 
+namespace agency
+{
 namespace cuda
 {
 namespace detail
@@ -65,4 +67,5 @@ void throw_on_error(cudaError_t e, const char* message)
 
 } // end detail
 } // cuda
+} // end agency
 

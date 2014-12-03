@@ -1,11 +1,11 @@
 #include <iostream>
 #include <agency/execution_policy.hpp>
-#include "cuda/execution_policy.hpp"
+#include <agency/cuda/execution_policy.hpp>
 
 struct functor
 {
   __host__ __device__
-  void operator()(cuda::concurrent_agent& self)
+  void operator()(agency::cuda::concurrent_agent& self)
   {
     printf("agent %d arriving at barrier\n", (int)self.index());
 
@@ -17,7 +17,7 @@ struct functor
 
 int main()
 {
-  cuda::block_executor gpu;
+  agency::cuda::block_executor gpu;
   
   agency::bulk_invoke(agency::con(10).on(gpu), functor());
 

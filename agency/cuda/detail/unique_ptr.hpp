@@ -2,14 +2,16 @@
 
 #include <memory>
 #include <agency/detail/type_traits.hpp>
-#include "launch_kernel.hpp"
-#include "workaround_unused_variable_warning.hpp"
+#include <agency/cuda/detail/launch_kernel.hpp>
+#include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 
 // XXX should eliminate this dependency on Thrust
 #include <thrust/system/cuda/memory.h>
 #include <thrust/detail/swap.h>
 
 
+namespace agency
+{
 namespace cuda
 {
 namespace detail
@@ -161,4 +163,5 @@ unique_ptr<T> make_unique(cudaStream_t s, Args&&... args)
 
 } // end detail
 } // end cuda
+} // end agency
 

@@ -21,6 +21,8 @@
 #include <utility>
 
 
+namespace agency
+{
 namespace cuda
 {
 namespace detail
@@ -102,4 +104,5 @@ template<typename T>
 
 } // end detail
 } // end cuda
+} // end agency
 

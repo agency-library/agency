@@ -1,8 +1,10 @@
 #pragma once
 
-#include "detail/feature_test.hpp"
-#include "detail/terminate.hpp"
+#include <agency/cuda/detail/feature_test.hpp>
+#include <agency/cuda/detail/terminate.hpp>
 
+namespace agency
+{
 namespace cuda
 {
 
@@ -95,4 +97,5 @@ gpu_id current_gpu()
 
 } // end detail
 } // end cuda
+} // end agency
 
