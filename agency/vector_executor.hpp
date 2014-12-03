@@ -17,7 +17,7 @@ class vector_executor
     void bulk_invoke(Function f, size_t n, T shared_arg)
     {
       // ivdep requires gcc 4.9+
-#if (__GNUC__ >= 4) && (__GNUC_MINOR__ >= 9)
+#if !defined(__NVCC__) && (__GNUC__ >= 4) && (__GNUC_MINOR__ >= 9)
       #pragma GCC ivdep
 #endif
       for(size_t i = 0; i < n; ++i)

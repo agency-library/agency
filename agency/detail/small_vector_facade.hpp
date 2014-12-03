@@ -1,5 +1,7 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
+
 // have to declare std::get for small_vector_facade
 // before deriving from arithmetic_tuple_facade
 // because std::get can't be looked up via ADL
@@ -22,10 +24,12 @@ namespace std
 
 
 template<size_t I, class Derived, class T, size_t Rank>
+__AGENCY_ANNOTATION
 T& get(agency::detail::small_vector_facade<Derived,T,Rank>& x);
 
 
 template<size_t I, class Derived, class T, size_t Rank>
+__AGENCY_ANNOTATION
 const T& get(const agency::detail::small_vector_facade<Derived,T,Rank>& x);
 
 
@@ -33,11 +37,9 @@ const T& get(const agency::detail::small_vector_facade<Derived,T,Rank>& x);
 
 
 #include <type_traits>
-#include <algorithm>
 #include <agency/detail/operator_traits.hpp>
 #include <agency/detail/arithmetic_tuple_facade.hpp>
 #include <iostream>
-#include <array>
 #include <utility>
 
 namespace agency
@@ -74,89 +76,107 @@ template<typename Derived, typename T, std::size_t Rank>
     using const_iterator            = const_pointer;
     static constexpr size_type rank = Rank;
 
-    constexpr size_type size() const
+    __AGENCY_ANNOTATION
+    size_type size() const
     {
       return rank;
     }
 
+    __AGENCY_ANNOTATION
     reference front()
     {
       return *begin();
     }
 
+    __AGENCY_ANNOTATION
     const_reference front() const
     {
       return *begin();
     }
 
+    __AGENCY_ANNOTATION
     reference back()
     {
       return *(end() - 1);
     }
 
+    __AGENCY_ANNOTATION
     const_reference back() const
     {
       return *(end() - 1);
     }
 
+    __AGENCY_ANNOTATION
     pointer data()
     {
       return derived();
     }
 
+    __AGENCY_ANNOTATION
     const_pointer data() const
     {
       return derived();
     }
 
+    __AGENCY_ANNOTATION
     iterator begin()
     {
       return data();
     }
 
+    __AGENCY_ANNOTATION
     iterator end()
     {
       return data() + size();
     }
 
+    __AGENCY_ANNOTATION
     const_iterator begin() const
     {
       return data();
     }
 
+    __AGENCY_ANNOTATION
     const_iterator end() const
     {
       return data() + size();
     }
 
+    __AGENCY_ANNOTATION
     const_iterator cbegin() const
     {
       return begin();
     }
 
+    __AGENCY_ANNOTATION
     const_iterator cend() const
     {
       return end();
     }
 
+
+    __AGENCY_ANNOTATION
     bool operator==(const small_vector_facade& rhs) const
     {
       return std::equal(begin(), end(), rhs.begin());
     }
 
 
+    __AGENCY_ANNOTATION
     bool operator!=(const small_vector_facade& rhs) const
     {
       return !(*this == rhs);
     }
 
 
+    __AGENCY_ANNOTATION
     reference operator[](size_type i)
     {
       return begin()[i];
     }
 
 
+    __AGENCY_ANNOTATION
     const_reference operator[](size_type i) const
     {
       return begin()[i];
@@ -164,11 +184,13 @@ template<typename Derived, typename T, std::size_t Rank>
 
 
   private:
+    __AGENCY_ANNOTATION
     inline Derived &derived()
     {
       return static_cast<Derived&>(*this);
     }
 
+    __AGENCY_ANNOTATION
     inline const Derived &derived() const
     {
       return static_cast<const Derived&>(*this);
@@ -185,6 +207,7 @@ namespace std
 
 
 template<size_t I, class Derived, class T, size_t Rank>
+__AGENCY_ANNOTATION
 T& get(agency::detail::small_vector_facade<Derived,T,Rank>& x)
 {
   static_assert(I < Rank, "I must be less than Rank.");
@@ -193,6 +216,7 @@ T& get(agency::detail::small_vector_facade<Derived,T,Rank>& x)
 
 
 template<size_t I, class Derived, class T, size_t Rank>
+__AGENCY_ANNOTATION
 const T& get(const agency::detail::small_vector_facade<Derived,T,Rank>& x)
 {
   static_assert(I < Rank, "I must be less than Rank.");
@@ -225,22 +249,17 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
     using typename super_t::const_pointer;
 
 
+    __AGENCY_ANNOTATION
     small_vector_adaptor()
-      : small_vector_adaptor(value_type{})
     {
-      for(size_type i = 0; i != super_t::rank; ++i)
-      {
-        base()[i] = value_type{};
-      }
+      super_t::fill(value_type{});
     }
 
 
+    __AGENCY_ANNOTATION
     small_vector_adaptor(const small_vector_adaptor &other)
+      : base_(other.base_)
     {
-      for(size_type i = 0; i != super_t::rank; ++i)
-      {
-        base()[i] = other[i];
-      }
     }
 
 
@@ -251,9 +270,11 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
                >::value &&
                sizeof...(OtherT) == Rank
              >::type>
+    __AGENCY_ANNOTATION
     small_vector_adaptor(OtherT... args)
-      : small_vector_adaptor{static_cast<value_type>(args)...}
-    {}
+      : base_{static_cast<value_type>(args)...}
+    {
+    }
 
 
     // XXX need to only enable this if the initializer_list is the right size
@@ -262,9 +283,15 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
              typename = typename std::enable_if<
                std::is_convertible<OtherT,value_type>::value
              >::type>
+    __AGENCY_ANNOTATION
     small_vector_adaptor(std::initializer_list<OtherT> l)
     {
-      std::copy(l.begin(), l.end(), super_t::begin());
+      // XXX should try to use base_'s constructor with l instead of this for loop
+      auto src = l.begin();
+      for(auto dst = super_t::begin(); dst != super_t::end(); ++src, ++dst)
+      {
+        *dst = *src;
+      }
     }
 
 
@@ -273,12 +300,10 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
              class = typename std::enable_if<
                std::is_convertible<OtherT,value_type>::value
              >::type>
+    __AGENCY_ANNOTATION
     small_vector_adaptor(const small_vector_facade<OtherDerived,OtherT,Rank>& other)
     {
-      for(size_type i = 0; i < super_t::size(); ++i)
-      {
-        super_t::operator[](i) = other[i];
-      }
+      super_t::copy(other);
     }
 
 
@@ -289,33 +314,24 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
                std::is_convertible<OtherT,value_type>::value
              >::type
              >
+    __AGENCY_ANNOTATION
     small_vector_adaptor(OtherT val)
     {
-      std::fill(super_t::begin(),super_t::end(),val);
+      super_t::fill(val);
     }
 
 
+    __AGENCY_ANNOTATION
     operator pointer ()
     {
-      return base().data();
+      return base_.data();
     }
 
 
+    __AGENCY_ANNOTATION
     operator const_pointer () const
     {
-      return base().data();
-    }
-
-
-  protected:
-    Base& base()
-    {
-      return base_;
-    }
-
-    const Base& base() const
-    {
-      return base_;
+      return base_.data();
     }
 
   private:

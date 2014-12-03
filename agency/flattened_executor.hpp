@@ -4,6 +4,7 @@
 #include <agency/executor_traits.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/nested_executor.hpp>
+#include <agency/detail/ignore.hpp>
 
 namespace agency
 {
@@ -55,7 +56,7 @@ class flattened_executor
     {
       auto partitioning = partition(shape);
 
-      auto shared_init = std::make_tuple(shared_arg, std::ignore);
+      auto shared_init = std::make_tuple(shared_arg, agency::detail::ignore);
       using shared_param_type = typename executor_traits<OtherExecutor>::template shared_param_type<decltype(shared_init)>;
       using index_type = typename executor_traits<OtherExecutor>::index_type;
 
@@ -107,12 +108,18 @@ class flattened_executor
     // returns (outer size, inner size)
     partition_type partition(shape_type shape) const
     {
-      if(shape <= 0) return partition_type{0,0};
+      // avoid division by zero below
+      // XXX implement me!
+//      if(is_empty(shape)) return partition_type{};
 
-      size_t outer_size = (shape + min_inner_size_ - 1) / min_inner_size_;
+      using outer_shape_type = typename std::tuple_element<0,partition_type>::type;
+      using inner_shape_type = typename std::tuple_element<1,partition_type>::type;
+
+      outer_shape_type outer_size = (shape + min_inner_size_ - 1) / min_inner_size_;
+
       outer_size = std::min<size_t>(outer_subscription_ * std::thread::hardware_concurrency(), outer_size);
 
-      size_t inner_size = (shape + outer_size - 1) / outer_size;
+      inner_shape_type inner_size = (shape + outer_size - 1) / outer_size;
 
       return partition_type{outer_size, inner_size};
     }

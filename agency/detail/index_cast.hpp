@@ -3,8 +3,9 @@
 #include <type_traits>
 #include <tuple>
 #include <agency/detail/shape_cast.hpp>
-#include <agency/detail/tuple_utility.hpp>
 #include <agency/coordinate.hpp>
+#include <agency/detail/tuple_utility.hpp>
+#include <agency/detail/point_size.hpp>
 
 namespace agency
 {
@@ -97,7 +98,8 @@ template<class Tuple,
               typename std::decay<Tuple>::type
             >::value
          >::type>
-auto make_tuple_if_not_one_already(Tuple&& t)
+__AGENCY_ANNOTATION
+auto wrap_scalar(Tuple&& t)
   -> decltype(std::forward<Tuple>(t))
 {
   return std::forward<Tuple>(t);
@@ -110,39 +112,86 @@ template<class T,
              typename std::decay<T>::type
            >::value
          >::type>
-auto make_tuple_if_not_one_already(T&& x)
+__AGENCY_ANNOTATION
+auto wrap_scalar(T&& x)
   -> decltype(
-       std::make_tuple(std::forward<T>(x))
+       rebind_point_size_t<
+         typename std::decay<T>::type,
+         1
+       >{std::forward<T>(x)}
      )
 {
-  return std::make_tuple(std::forward<T>(x));
+  return rebind_point_size_t<
+    typename std::decay<T>::type,
+    1
+  >{std::forward<T>(x)};
 }
 
 
-// lifts idx one dimension toward the dimension of shape
+namespace index_cast_detail
+{
+
+
+// to lift a point-like type, add a dimension
+template<class Index>
+struct lift_index_t_impl
+{
+  using type = rebind_point_size_t<Index, point_size<Index>::value + 1>;
+};
+
+
+// to lift a heterogeneous Tuple-like type, repeat the type of the last element
+template<template<class...> class tuple, class T, class... Types>
+struct lift_index_t_impl<tuple<T,Types...>>
+{
+  using last_type = typename std::tuple_element<sizeof...(Types)-1, std::tuple<Types...>>::type;
+  using type = tuple<T,Types...,last_type>;
+};
+
+
+template<class T>
+struct make
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  T operator()(Args&&... args) const
+  {
+    return T{std::forward<Args>(args)...};
+  }
+};
+
+
+} // end index_cast_detail
+
+
+template<class Index>
+using lift_index_t = typename index_cast_detail::lift_index_t_impl<Index>::type;
+
+
 template<class Index, class Shape>
-auto lift_index(const Index& idx, const Shape& shape)
-  -> decltype(
-       __tu::tuple_append(make_tuple_if_not_one_already(idx), __tu::tuple_head(shape))
-     )
+__AGENCY_ANNOTATION
+lift_index_t<Index> lift_index(const Index& idx, const Shape& shape)
 {
   // to lift idx into shape,
   // take the last element of idx and divide by the corresponding element of shape
   // replace the last element of idx with the remainder and append the quotient
   const auto i = index_size<Index>::value - 1;
 
-  auto idx_tuple = make_tuple_if_not_one_already(idx);
+  auto idx_tuple = wrap_scalar(idx);
 
   auto intermediate_result = idx_tuple;
   __tu::tuple_last(intermediate_result) %= std::get<i>(shape);
 
-  return __tu::tuple_append(intermediate_result, __tu::tuple_last(idx_tuple) / std::get<i>(shape));
+  auto make_result = index_cast_detail::make<lift_index_t<Index>>{};
+
+  return __tu::tuple_append_invoke(intermediate_result, __tu::tuple_last(idx_tuple) / std::get<i>(shape), make_result);
 }
 
 
 
 // when both index types are the same size, index_cast is the identity operation
 template<class ToIndex, class FromIndex, class FromShape, class ToShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (index_size<FromIndex>::value == index_size<ToIndex>::value),
   ToIndex
@@ -151,12 +200,13 @@ typename std::enable_if<
              const FromShape&,
              const ToShape&)
 {
-  return __tu::make_from_tuple<ToIndex>(make_tuple_if_not_one_already(from_idx));
+  return __tu::make_from_tuple<ToIndex>(wrap_scalar(from_idx));
 }
 
 
 // when FromIndex has fewer elements than ToIndex, we lift it and then cast
 template<class ToIndex, class FromIndex, class FromShape, class ToShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (index_size<FromIndex>::value < index_size<ToIndex>::value),
   ToIndex

@@ -47,14 +47,14 @@ class concurrent_executor
       }
 
       return result;
-    };
+    }
 
   private:
     // first must be less than last
     template<class Function, class T>
     std::future<void> bulk_async(Function f, size_t first, size_t last, T& shared_arg)
     {
-      return std::async(std::launch::async, [=,&shared_arg]
+      return std::async(std::launch::async, [=,&shared_arg]() mutable
       {
         size_t mid = (last + first) / 2;
 

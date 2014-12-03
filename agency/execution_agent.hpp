@@ -8,6 +8,7 @@
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 #include <agency/detail/make_tuple_if_not_nested.hpp>
 #include <agency/detail/index_tuple.hpp>
+#include <agency/detail/ignore.hpp>
 
 namespace agency
 {
@@ -75,6 +76,8 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
   // XXX what should we do if ExecutionAgent::domain(param) does not exist?
   //     default should be regular_grid<index_type>, but by what process should we eventually
   //     arrive at that default?
+  __agency_hd_warning_disable__
+  __AGENCY_ANNOTATION
   static auto domain(const param_type& param)
     -> decltype(ExecutionAgent::domain(param))
   {
@@ -84,6 +87,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
   using domain_type = decltype(domain(std::declval<param_type>()));
 
   template<class Function>
+  __AGENCY_ANNOTATION
   static void execute(Function f, const index_type& index, const param_type& param)
   {
     ExecutionAgent agent(f, index, param);
@@ -112,12 +116,15 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
     // XXX this should only be enabled for flat execution_agents
     //     nested agents should return a tuple of shared initializers
     template<class ExecutionAgent1>
-    static decltype(std::ignore) make_shared_initializer(const param_type&, std::false_type)
+    __AGENCY_ANNOTATION
+    static decltype(agency::detail::ignore) make_shared_initializer(const param_type&, std::false_type)
     {
-      return std::ignore;
+      return agency::detail::ignore;
     }
 
+    __agency_hd_warning_disable__
     template<class ExecutionAgent1>
+    __AGENCY_ANNOTATION
     static auto make_shared_initializer(const param_type& param, std::true_type)
       -> decltype(
            ExecutionAgent1::make_shared_initializer(param)
@@ -130,6 +137,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
 
   using has_make_shared_initializer = typename test_for_make_shared_initializer<execution_agent_type>::type;
 
+  __AGENCY_ANNOTATION
   static auto make_shared_initializer(const param_type& param)
     -> decltype(
          make_shared_initializer<execution_agent_type>(param, has_make_shared_initializer())
@@ -145,12 +153,14 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
 
   private:
     template<class Function, class Tuple>
+    __AGENCY_ANNOTATION
     static void execute_with_shared_params_impl(Function f, const index_type& index, const param_type& param, Tuple&, std::false_type)
     {
       ExecutionAgent agent(f, index, param);
     }
 
     template<class Function, class Tuple>
+    __AGENCY_ANNOTATION
     static void execute_with_shared_params_impl(Function f, const index_type& index, const param_type& param, Tuple& shared_params, std::true_type)
     {
       ExecutionAgent agent(f, index, param, shared_params);
@@ -160,6 +170,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
   public:
 
   template<class Function, class Tuple>
+  __AGENCY_ANNOTATION
   static void execute(Function f, const index_type& index, const param_type& param, Tuple& shared_params)
   {
     execute_with_shared_params_impl(f, index, param, shared_params, has_make_shared_initializer());
@@ -179,6 +190,7 @@ class basic_execution_agent
 
     using index_type = Index;
 
+    __AGENCY_ANNOTATION
     index_type index() const
     {
       return index_;
@@ -186,17 +198,20 @@ class basic_execution_agent
 
     using domain_type = regular_grid<index_type>;
 
+    __AGENCY_ANNOTATION
     const domain_type& domain() const
     {
       return domain_;
     }
 
+    __AGENCY_ANNOTATION
     auto group_size() const
       -> decltype(this->domain().size())
     {
       return domain().size();
     }
 
+    __AGENCY_ANNOTATION
     auto group_shape() const
       -> decltype(this->domain().shape())
     {
@@ -206,20 +221,25 @@ class basic_execution_agent
     class param_type
     {
       public:
+        __AGENCY_ANNOTATION
         param_type() = default;
 
+        __AGENCY_ANNOTATION
         param_type(const param_type& other)
           : domain_(other.domain_)
         {}
 
+        __AGENCY_ANNOTATION
         param_type(const domain_type& d)
           : domain_(d)
         {}
 
+        __AGENCY_ANNOTATION
         param_type(const index_type& min, const index_type& max)
           : param_type(domain_type(min,max))
         {}
 
+        __AGENCY_ANNOTATION
         const domain_type& domain() const
         {
           return domain_;
@@ -229,6 +249,7 @@ class basic_execution_agent
         domain_type domain_;
     };
 
+    __AGENCY_ANNOTATION
     static domain_type domain(const param_type& p)
     {
       return p.domain();
@@ -236,7 +257,9 @@ class basic_execution_agent
 
 
   protected:
+    __agency_hd_warning_disable__
     template<class Function>
+    __AGENCY_ANNOTATION
     basic_execution_agent(Function f, const index_type& index, const param_type& param)
       : index_(index),
         domain_(param.domain())

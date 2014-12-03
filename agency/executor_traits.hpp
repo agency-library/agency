@@ -91,7 +91,7 @@ struct executor_traits
     template<class Function>
     static std::future<void> bulk_async_impl(executor_type& ex, Function f, shape_type shape, std::false_type)
     {
-      return bulk_async(ex, [=](index_type index, const shape_type&)
+      return bulk_async(ex, [=](index_type index, const shape_type&) mutable
       {
         f(index);
       },
@@ -189,21 +189,51 @@ struct executor_traits
     }
 
   private:
+    template<class Executor1, class T1>
+    struct test_for_shared_param_type
+    {
+      template<
+        class Executor2,
+        class T2
+      >
+      static std::true_type test(typename Executor2::template shared_param_type<T2>*);
+
+      template<class,class>
+      static std::false_type test(...);
+
+      using type = decltype(test<Executor1,T1>(0));
+    };
+
+    template<class T>
+    using has_shared_param_type = typename test_for_shared_param_type<executor_type,T>::type;
+
     template<class T>
     struct tuple_of_references_t
     {
       using type = decltype(detail::tuple_of_references(*std::declval<T*>()));
     };
 
-    // the shared parameter is passed to the lamda
-    // as a tuple of references when the executor is nested
-    // otherwise, it's just passed as a raw reference
+    template<class Executor1, class T>
+    struct executor_shared_param_type
+    {
+      using type = typename Executor1::template shared_param_type<T>;
+    };
+
+    // check if executor_type has a declared shared_param_type for T
+    // if so, use it
+    // else, check if execution_category is nested
+    // if so, interpret T as a tuple and the shared param type is a tuple of references to T's elements
+    // else, the shared param type is just a reference to T
     template<class T>
     struct shared_param_type_impl
       : detail::lazy_conditional<
-          detail::is_nested_execution_category<execution_category>::value,
-          tuple_of_references_t<T>,
-          std::add_lvalue_reference<T>
+          has_shared_param_type<T>::value,
+          executor_shared_param_type<executor_type,T>,         
+          detail::lazy_conditional<
+            detail::is_nested_execution_category<execution_category>::value,
+            tuple_of_references_t<T>,
+            std::add_lvalue_reference<T>
+          >
         >
     {
     };
