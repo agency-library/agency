@@ -54,3 +54,5 @@ or
 Programs with filenames ending in the `.cu` extension are compilable with the NVIDIA compiler, e.g.:
 
     $ nvcc -std=c++11 -I. example.cu
+    
+These programs are known to compile with `g++` v4.8, `clang` v3.5, and `nvcc` v7.0.
