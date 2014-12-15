@@ -547,6 +547,124 @@ typename std::enable_if<
 }
 
 
+template<bool b, class True, class False>
+struct __lazy_conditional
+{
+  using type = typename True::type;
+};
+
+
+template<class True, class False>
+struct __lazy_conditional<false, True, False>
+{
+  using type = typename False::type;
+};
+
+
+template<size_t I, class Tuple1, class... Tuples>
+struct __tuple_cat_get_result
+{
+  using tuple1_type = typename std::decay<Tuple1>::type;
+  static const size_t size1 = std::tuple_size<typename std::decay<Tuple1>::type>::value;
+
+  using type = typename __lazy_conditional<
+    (I < size1),
+    std::tuple_element<I,tuple1_type>,
+    __tuple_cat_get_result<I - size1, Tuples...>
+  >::type;
+};
+
+
+template<size_t I, class Tuple1>
+struct __tuple_cat_get_result<I,Tuple1>
+  : std::tuple_element<I, typename std::decay<Tuple1>::type>
+{};
+
+
+template<size_t I, class Tuple1, class... Tuples>
+TUPLE_UTILITY_ANNOTATION
+typename __tuple_cat_get_result<I,Tuple1,Tuples...>::type
+  __tuple_cat_get(Tuple1&& t, Tuples&&... ts);
+
+
+template<size_t I, class Tuple1, class... Tuples>
+TUPLE_UTILITY_ANNOTATION
+typename __tuple_cat_get_result<I,Tuple1,Tuples...>::type
+  __tuple_cat_get_impl(std::false_type, Tuple1&& t, Tuples&&...)
+{
+  return std::get<I>(std::forward<Tuple1>(t));
+}
+
+
+template<size_t I, class Tuple1, class... Tuples>
+TUPLE_UTILITY_ANNOTATION
+typename __tuple_cat_get_result<I,Tuple1,Tuples...>::type
+  __tuple_cat_get_impl(std::true_type, Tuple1&&, Tuples&&... ts)
+{
+  const size_t J = I - std::tuple_size<typename std::decay<Tuple1>::type>::value;
+  return __tuple_cat_get<J>(std::forward<Tuples>(ts)...);
+}
+
+
+template<size_t I, class Tuple1, class... Tuples>
+TUPLE_UTILITY_ANNOTATION
+typename __tuple_cat_get_result<I,Tuple1,Tuples...>::type
+  __tuple_cat_get(Tuple1&& t, Tuples&&... ts)
+{
+  auto recurse = typename std::conditional<
+    I < std::tuple_size<typename std::decay<Tuple1>::type>::value,
+    std::false_type,
+    std::true_type
+  >::type();
+
+  return __tuple_cat_get_impl<I>(recurse, std::forward<Tuple1>(t), std::forward<Tuples>(ts)...);
+}
+
+
+template<size_t... I, class Function, class... Tuples>
+TUPLE_UTILITY_ANNOTATION
+auto __tuple_cat_apply_impl(__index_sequence<I...>, Function f, Tuples&&... ts)
+  -> decltype(
+       f(__tuple_cat_get<I>(std::forward<Tuples>(ts)...)...)
+     )
+{
+  return f(__tuple_cat_get<I>(std::forward<Tuples>(ts)...)...);
+}
+
+
+template<size_t Size, size_t... Sizes>
+struct __sum
+  : std::integral_constant<
+      size_t,
+      Size + __sum<Sizes...>::value
+    >
+{};
+
+
+template<size_t Size> struct __sum<Size> : std::integral_constant<size_t, Size> {};
+
+
+template<class Function, class... Tuples>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_cat_apply(Function f, Tuples&&... ts)
+  -> decltype(
+       __tuple_cat_apply_impl(
+         __make_index_sequence<
+           __sum<
+             0u,
+             std::tuple_size<typename std::decay<Tuples>::type>::value...
+           >::value
+         >(),
+         f,
+         std::forward<Tuples>(ts)...
+       )
+     )
+{
+  const size_t N = __sum<0u, std::tuple_size<typename std::decay<Tuples>::type>::value...>::value;
+  return __tuple_cat_apply_impl(__make_index_sequence<N>(), f, std::forward<Tuples>(ts)...);
+}
+
+
 template<class Function, class Tuple, size_t... I>
 TUPLE_UTILITY_ANNOTATION
 auto __tuple_apply_impl(Function f, Tuple&& t, __index_sequence<I...>)
@@ -563,39 +681,10 @@ template<class Function, class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_apply(Function f, Tuple&& t)
   -> decltype(
-       __tuple_apply_impl(
-         f,
-         std::forward<Tuple>(t),
-         __make_index_sequence<std::tuple_size<__decay_t<Tuple>>::value>()
-       )
+       tuple_cat_apply(f, std::forward<Tuple>(t))
      )
 {
-  using indices = __make_index_sequence<std::tuple_size<__decay_t<Tuple>>::value>;
-  return __tuple_apply_impl(f, std::forward<Tuple>(t), indices());
-}
-
-
-template<class Function, class... StdTuples>
-TUPLE_UTILITY_ANNOTATION
-auto __tuple_cat_apply_impl(Function f, StdTuples&&... tuples)
-  -> decltype(
-       tuple_apply(f, std::tuple_cat(std::forward<StdTuples>(tuples)...))
-     )
-{
-  return tuple_apply(f, std::tuple_cat(std::forward<StdTuples>(tuples)...));
-}
-
-
-template<class Function, class... Tuples>
-TUPLE_UTILITY_ANNOTATION
-auto tuple_cat_apply(Function f, Tuples&&... tuples)
-  -> decltype(
-       __tuple_cat_apply_impl(f, tuple_apply(__std_tuple_maker{}, std::forward<Tuples>(tuples))...)
-     )
-{
-  // transform each tuple into a std::tuple with tuple_apply
-  // then call __tuple_cat_apply_impl
-  return __tuple_cat_apply_impl(f, tuple_apply(__std_tuple_maker{}, std::forward<Tuples>(tuples))...);
+  return tuple_cat_apply(f, std::forward<Tuple>(t));
 }
 
 
