@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/execution_categories.hpp>
-#include <tuple>
+#include <agency/detail/tuple.hpp>
 #include <utility>
 
 
@@ -23,9 +23,9 @@ auto make_tuple_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionC
 // execution is not nested, wrap up x in a tuple
 template<class ExecutionCategory, class T>
 auto make_tuple_if_not_nested(ExecutionCategory, T&& x)
-  -> decltype(std::make_tuple(std::forward<T>(x)))
+  -> decltype(agency::detail::make_tuple(std::forward<T>(x)))
 {
-  return std::make_tuple(std::forward<T>(x));
+  return agency::detail::make_tuple(std::forward<T>(x));
 }
 
 
@@ -47,9 +47,9 @@ auto tie_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionCategory
 
 template<class ExecutionCategory, class T>
 auto tie_if_not_nested(ExecutionCategory, T&& x)
-  -> decltype(std::tie(std::forward<T>(x)))
+  -> decltype(agency::detail::tie(std::forward<T>(x)))
 {
-  return std::tie(std::forward<T>(x));
+  return agency::detail::tie(std::forward<T>(x));
 }
 
 

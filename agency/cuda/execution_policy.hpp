@@ -232,6 +232,15 @@ struct rebind_executor_impl<
 } // end cuda
 
 
+// specialize is_execution_policy
+template<>
+struct is_execution_policy<cuda::parallel_execution_policy> : std::true_type {};
+
+
+template<>
+struct is_execution_policy<cuda::concurrent_execution_policy> : std::true_type {};
+
+
 template<class ExecutionPolicy>
 struct rebind_executor<ExecutionPolicy, cuda::grid_executor>
 {
@@ -275,6 +284,56 @@ void bulk_invoke(const cuda::detail::basic_execution_policy<ExecutionAgent,BulkE
 }
 
 
+template<class Function, class... Args>
+void bulk_invoke(cuda::parallel_execution_policy&& exec,
+                 Function&& f,
+                 Args&&... args)
+{
+  return cuda::bulk_invoke(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+template<class Function, class... Args>
+void bulk_invoke(cuda::parallel_execution_policy& exec,
+                 Function&& f,
+                 Args&&... args)
+{
+  return cuda::bulk_invoke(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+template<class Function, class... Args>
+void bulk_invoke(const cuda::parallel_execution_policy& exec,
+                 Function&& f,
+                 Args&&... args)
+{
+  return cuda::bulk_invoke(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+
+template<class Function, class... Args>
+void bulk_invoke(cuda::concurrent_execution_policy&& exec,
+                 Function&& f,
+                 Args&&... args)
+{
+  return cuda::bulk_invoke(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+template<class Function, class... Args>
+void bulk_invoke(cuda::concurrent_execution_policy& exec,
+                 Function&& f,
+                 Args&&... args)
+{
+  return cuda::bulk_invoke(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+template<class Function, class... Args>
+void bulk_invoke(const cuda::concurrent_execution_policy& exec,
+                 Function&& f,
+                 Args&&... args)
+{
+  return cuda::bulk_invoke(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+
 template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory, class DerivedExecutionPolicy, class Function, class... Args>
 std::future<void> bulk_async(cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>&& exec, Function&& f, Args&&... args)
 {
@@ -289,6 +348,56 @@ std::future<void> bulk_async(cuda::detail::basic_execution_policy<ExecutionAgent
 
 template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory, class DerivedExecutionPolicy, class Function, class... Args>
 std::future<void> bulk_async(const cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>& exec, Function&& f, Args&&... args)
+{
+  return cuda::bulk_async(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+
+template<class Function, class... Args>
+void bulk_async(cuda::parallel_execution_policy&& exec,
+                 Function&& f,
+                 Args&&... args)
+{
+  return cuda::bulk_async(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+template<class Function, class... Args>
+void bulk_async(cuda::parallel_execution_policy& exec,
+                 Function&& f,
+                 Args&&... args)
+{
+  return cuda::bulk_async(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+template<class Function, class... Args>
+void bulk_async(const cuda::parallel_execution_policy& exec,
+                 Function&& f,
+                 Args&&... args)
+{
+  return cuda::bulk_async(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+
+template<class Function, class... Args>
+void bulk_async(cuda::concurrent_execution_policy&& exec,
+                 Function&& f,
+                 Args&&... args)
+{
+  return cuda::bulk_async(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+template<class Function, class... Args>
+void bulk_async(cuda::concurrent_execution_policy& exec,
+                 Function&& f,
+                 Args&&... args)
+{
+  return cuda::bulk_async(exec, std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+template<class Function, class... Args>
+void bulk_async(const cuda::concurrent_execution_policy& exec,
+                 Function&& f,
+                 Args&&... args)
 {
   return cuda::bulk_async(exec, std::forward<Function>(f), std::forward<Args>(args)...);
 }

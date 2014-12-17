@@ -1,14 +1,15 @@
 #pragma once
 
 #include <agency/execution_categories.hpp>
-#include <agency/coordinate.hpp>
-#include <type_traits>
 #include <agency/barrier.hpp>
+#include <agency/detail/tuple.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/index_tuple.hpp>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 #include <agency/detail/make_tuple_if_not_nested.hpp>
-#include <agency/detail/index_tuple.hpp>
 #include <agency/detail/ignore.hpp>
+#include <agency/coordinate.hpp>
+#include <type_traits>
 
 namespace agency
 {
@@ -421,6 +422,7 @@ class execution_group
 
     // concatenates an outer index with an inner index
     // returns an index_tuple with arithmetic ops (not a std::tuple)
+    // XXX move this into index_tuple.hpp?
     static auto index_cat(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
       -> decltype(
            __tu::tuple_cat_apply(
@@ -446,7 +448,7 @@ class execution_group
     using outer_execution_agent_type = OuterExecutionAgent;
     using inner_execution_agent_type = InnerExecutionAgent;
 
-    using param_type = std::tuple<
+    using param_type = detail::tuple<
       typename outer_traits::param_type,
       typename inner_traits::param_type
     >;
@@ -454,7 +456,7 @@ class execution_group
     // XXX move this into execution_agent_traits
     static auto make_shared_initializer(const param_type& param)
       -> decltype(
-           std::tuple_cat(
+           agency::detail::tuple_cat(
              detail::make_tuple_if_not_nested<outer_execution_category>(
                outer_traits::make_shared_initializer(std::get<0>(param))
              ),
@@ -470,7 +472,7 @@ class execution_group
       auto outer_tuple = detail::make_tuple_if_not_nested<outer_execution_category>(outer_shared_init);
       auto inner_tuple = detail::make_tuple_if_not_nested<inner_execution_category>(inner_shared_init);
 
-      return std::tuple_cat(outer_tuple, inner_tuple);
+      return agency::detail::tuple_cat(outer_tuple, inner_tuple);
     }
 
     outer_execution_agent_type& outer()
@@ -562,9 +564,10 @@ class execution_group
       return __tu::tuple_head(index);
     }
 
+
     static inner_index_type inner_index(const index_type& index)
     {
-      return detail::unwrap_tuple_if_not_nested<inner_execution_category>(__tu::forward_tuple_tail<const index_type>(index));
+      return detail::unwrap_tuple_if_not_nested<inner_execution_category>(detail::forward_tail(index));
     }
 
     outer_execution_agent_type outer_agent_;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <future>
-#include <type_traits>
+#include <agency/detail/type_traits.hpp>
 #include <agency/exception_list.hpp>
 
 namespace agency

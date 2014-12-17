@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/execution_categories.hpp>
-#include <tuple>
+#include <agency/detail/tuple.hpp>
 #include <utility>
 
 namespace agency
@@ -12,9 +12,9 @@ namespace detail
 
 template<class ExecutionCategory, class Tuple>
 static auto unwrap_tuple_if_not_nested_impl(ExecutionCategory, Tuple&& t)
-  -> decltype(std::get<0>(std::forward<Tuple>(t)))
+  -> decltype(detail::get<0>(std::forward<Tuple>(t)))
 {
-  return std::get<0>(std::forward<Tuple>(t));
+  return detail::get<0>(std::forward<Tuple>(t));
 }
 
 template<class ExecutionCategory1, class ExecutionCategory2, class Tuple>

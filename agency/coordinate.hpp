@@ -46,6 +46,30 @@ class point : public agency::detail::small_vector_adaptor<point<T,Rank>, detail:
 };
 
 
+template<size_t i, class T, size_t Rank>
+__AGENCY_ANNOTATION
+T& get(point<T,Rank>& p)
+{
+  return p[i];
+}
+
+
+template<size_t i, class T, size_t Rank>
+__AGENCY_ANNOTATION
+const T& get(const point<T,Rank>& p)
+{
+  return p[i];
+}
+
+
+template<size_t i, class T, size_t Rank>
+__AGENCY_ANNOTATION
+T&& get(point<T,Rank>&& p)
+{
+  return std::move(agency::get<i>(p));
+}
+
+
 // scalar multiply
 // XXX fix return type -- it should be point<common_type,Rank>
 template<class T1, class T2, size_t Rank>
@@ -713,6 +737,38 @@ class grid_iterator
 } // end agency
 
 
+namespace __tu
+{
+
+// tuple_traits specializations
+
+template<class T, size_t Rank>
+struct tuple_traits<agency::point<T,Rank>>
+{
+  static const size_t size = Rank;
+
+  template<size_t i, class Enable = typename std::enable_if<(i < Rank)>::type>
+  using element_type = T;
+
+  template<size_t I>
+  __AGENCY_ANNOTATION
+  static T& get(agency::point<T,Rank>& x)
+  {
+    return x[I];
+  } // end get()
+
+  template<size_t I>
+  __AGENCY_ANNOTATION
+  static const T& get(const agency::point<T,Rank>& x)
+  {
+    return x[I];
+  } // end get()
+}; // end tuple_traits
+
+
+} // end __tu
+
+
 // specialize Tuple-like interface for agency::point
 namespace std
 {
@@ -725,15 +781,14 @@ struct tuple_element;
 template<size_t I, class T, size_t Rank>
 struct tuple_element<I,agency::point<T,Rank>>
 {
-  static_assert(I < Rank, "I must be less than Rank.");
-  using type = T;
+  using type = typename __tu::tuple_traits<agency::point<T,Rank>>::template element_type<I>;
 };
 
 
-template<class T, size_t N>
-struct tuple_size<agency::point<T,N>>
+template<class T, size_t Rank>
+struct tuple_size<agency::point<T,Rank>>
 {
-  static const size_t value = N;
+  static const size_t value = __tu::tuple_traits<agency::point<T,Rank>>::size;
 };
 
 

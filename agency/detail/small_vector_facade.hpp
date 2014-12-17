@@ -1,46 +1,12 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-
-// have to declare std::get for small_vector_facade
-// before deriving from arithmetic_tuple_facade
-// because std::get can't be looked up via ADL
-namespace agency
-{
-namespace detail
-{
-
-
-template<typename Derived, typename T, std::size_t Rank>
-class small_vector_facade;
-
-
-} // end detail
-} // end agency
-
-
-namespace std
-{
-
-
-template<size_t I, class Derived, class T, size_t Rank>
-__AGENCY_ANNOTATION
-T& get(agency::detail::small_vector_facade<Derived,T,Rank>& x);
-
-
-template<size_t I, class Derived, class T, size_t Rank>
-__AGENCY_ANNOTATION
-const T& get(const agency::detail::small_vector_facade<Derived,T,Rank>& x);
-
-
-}
-
-
-#include <type_traits>
 #include <agency/detail/operator_traits.hpp>
 #include <agency/detail/arithmetic_tuple_facade.hpp>
 #include <iostream>
 #include <utility>
+#include <type_traits>
+
 
 namespace agency
 {
@@ -198,41 +164,6 @@ template<typename Derived, typename T, std::size_t Rank>
 };
 
 
-} // end detail
-} // end agency
-
-
-namespace std
-{
-
-
-template<size_t I, class Derived, class T, size_t Rank>
-__AGENCY_ANNOTATION
-T& get(agency::detail::small_vector_facade<Derived,T,Rank>& x)
-{
-  static_assert(I < Rank, "I must be less than Rank.");
-  return x[I];
-}
-
-
-template<size_t I, class Derived, class T, size_t Rank>
-__AGENCY_ANNOTATION
-const T& get(const agency::detail::small_vector_facade<Derived,T,Rank>& x)
-{
-  static_assert(I < Rank, "I must be less than Rank.");
-  return x[I];
-}
-
-
-} // end std
-
-
-namespace agency
-{
-namespace detail
-{
-
-
 template<typename Derived, typename Base, typename T, std::size_t Rank>
   class small_vector_adaptor : public small_vector_facade<Derived, T, Rank>
 {
@@ -341,4 +272,32 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
 
 } // end detail
 } // end agency
+
+
+namespace __tu
+{
+
+
+// tuple_traits specializations
+
+template<class Derived, class T, size_t Rank>
+struct tuple_traits<agency::detail::small_vector_facade<Derived,T,Rank>>
+{
+  template<size_t I>
+  __AGENCY_ANNOTATION
+  static T& get(agency::detail::small_vector_facade<Derived,T,Rank>& x)
+  {
+    return x[I];
+  } // end get()
+
+  template<size_t I>
+  __AGENCY_ANNOTATION
+  static const T& get(const agency::detail::small_vector_facade<Derived,T,Rank>& x)
+  {
+    return x[I];
+  } // end get()
+}; // end tuple_traits
+
+
+} // end std
 

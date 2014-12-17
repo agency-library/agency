@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <agency/detail/tuple.hpp>
 #include <agency/executor_traits.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/nested_executor.hpp>
@@ -56,17 +57,17 @@ class flattened_executor
     {
       auto partitioning = partition(shape);
 
-      auto shared_init = std::make_tuple(shared_arg, agency::detail::ignore);
+      auto shared_init = detail::make_tuple(shared_arg, agency::detail::ignore);
       using shared_param_type = typename executor_traits<OtherExecutor>::template shared_param_type<decltype(shared_init)>;
       using index_type = typename executor_traits<OtherExecutor>::index_type;
 
       return executor_traits<OtherExecutor>::bulk_async(exec, [=](index_type idx, shared_param_type shared_params)
       {
-        auto flat_idx = std::get<0>(idx) * std::get<1>(partitioning) + std::get<1>(idx);
+        auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning) + agency::detail::get<1>(idx);
 
         if(flat_idx < shape)
         {
-          f(flat_idx, std::get<0>(shared_params));
+          f(flat_idx, agency::detail::get<0>(shared_params));
         }
       },
       partitioning,
@@ -86,8 +87,8 @@ class flattened_executor
     
       return executor_traits<OuterExecutor>::bulk_async(exec.outer_executor(), [=,&exec](outer_index_type outer_idx, shared_param_type shared_arg)
       {
-        auto subgroup_begin = outer_idx * std::get<1>(partitioning);
-        auto subgroup_end   = std::min(shape, subgroup_begin + std::get<1>(partitioning));
+        auto subgroup_begin = outer_idx * agency::detail::get<1>(partitioning);
+        auto subgroup_end   = std::min(shape, subgroup_begin + agency::detail::get<1>(partitioning));
 
         using inner_index_type = typename executor_traits<InnerExecutor>::index_type;
 
@@ -99,7 +100,7 @@ class flattened_executor
         },
         subgroup_end - subgroup_begin);
       },
-      std::get<0>(partitioning),
+      agency::detail::get<0>(partitioning),
       shared_arg);
     }
 

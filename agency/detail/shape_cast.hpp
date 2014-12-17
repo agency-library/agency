@@ -6,6 +6,7 @@
 #include <agency/coordinate.hpp>
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/detail/point_size.hpp>
+#include <agency/detail/tuple.hpp>
 
 namespace agency
 {
@@ -40,13 +41,13 @@ rebind_point_size_t<
 {
   using result_type = rebind_point_size_t<Point,std::tuple_size<Point>::value-1>;
 
-  auto last = std::get<std::tuple_size<result_type>::value>(x);
+  auto last = __tu::tuple_last(x);
 
   // XXX WAR nvcc 7's issue with tuple_drop_invoke
   //auto result = __tu::tuple_drop_invoke<1>(x, shape_cast_detail::make<result_type>());
   auto result = __tu::tuple_take_invoke<std::tuple_size<Point>::value - 1>(x, shape_cast_detail::make<result_type>());
 
-  std::get<std::tuple_size<result_type>::value-1>(result) *= last;
+  __tu::tuple_last(result) *= last;
 
   return result;
 }
@@ -125,7 +126,7 @@ typename std::enable_if<
 {
   // x might not be a tuple, but instead a scalar type
   // to ensure we can get the 0th value from x in a uniform way, lift it first
-  return ToShape{std::get<0>(lift_shape(x))};
+  return ToShape{agency::detail::get<0>(lift_shape(x))};
 }
 
 struct shape_cast_functor

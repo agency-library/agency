@@ -4,6 +4,7 @@
 #include <future>
 #include <agency/execution_categories.hpp>
 #include <agency/executor_traits.hpp>
+#include <agency/detail/index_tuple.hpp>
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/detail/make_tuple_if_not_nested.hpp>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
@@ -29,15 +30,18 @@ class nested_executor
     using outer_index_type = typename outer_traits::index_type;
     using inner_index_type = typename inner_traits::index_type;
 
-    static auto make_index(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
+    // XXX move this into index_tuple.hpp?
+    static auto index_cat(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
       -> decltype(
-           std::tuple_cat(
+           __tu::tuple_cat_apply(
+             detail::index_tuple_maker{},
              detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
              detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
            )
          )
     {
-      return std::tuple_cat(
+      return __tu::tuple_cat_apply(
+        detail::index_tuple_maker{},
         detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
         detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
       );
@@ -55,14 +59,14 @@ class nested_executor
 
     // XXX consider adding a public static make_shape() function
     using shape_type = decltype(
-      std::tuple_cat(
+      detail::tuple_cat(
         detail::make_tuple_if_not_nested<outer_execution_category>(std::declval<outer_shape_type>()),
         detail::make_tuple_if_not_nested<inner_execution_category>(std::declval<inner_shape_type>())
       )
     );
 
     using index_type = decltype(
-      make_index(
+      index_cat(
         std::declval<outer_index_type>(), 
         std::declval<inner_shape_type>()
       )
@@ -88,7 +92,7 @@ class nested_executor
       {
         inner_traits::bulk_invoke(inner_executor(), [=](inner_index_type inner_idx)
         {
-          f(make_index(outer_idx, inner_idx));
+          f(index_cat(outer_idx, inner_idx));
         },
         inner_shape
         );
@@ -122,15 +126,15 @@ class nested_executor
         inner_traits::bulk_invoke(inner_executor(), [=,&outer_shared_ref](inner_index_type inner_idx, inner_shared_ref_type inner_shared_ref)
         {
           // create a 1-tuple of just a reference to the outer shared argument
-          auto outer_shared_ref_tuple = std::tie(outer_shared_ref);
+          auto outer_shared_ref_tuple = detail::tie(outer_shared_ref);
 
           // if the inner executor isn't nested, we need to tie the inner_shared_ref into a 1-element tuple
           auto inner_shared_ref_tuple = detail::tie_if_not_nested<inner_execution_category>(inner_shared_ref);
 
           // concatenate the outer reference tuple inner tuple of references
-          auto full_tuple_of_references = std::tuple_cat(outer_shared_ref_tuple, inner_shared_ref_tuple);
+          auto full_tuple_of_references = detail::tuple_cat(outer_shared_ref_tuple, inner_shared_ref_tuple);
 
-          f(make_index(outer_idx, inner_idx), full_tuple_of_references);
+          f(index_cat(outer_idx, inner_idx), full_tuple_of_references);
         },
         inner_shape,
         inner_shared_arg
@@ -172,7 +176,7 @@ class nested_executor
     {
       // the inner portion is the tail of the tuple, but if the 
       // inner executor is not nested, then the tuple needs to be unwrapped
-      return detail::unwrap_tuple_if_not_nested<inner_execution_category>(__tu::forward_tuple_tail<const shape_type>(shape));
+      return detail::unwrap_tuple_if_not_nested<inner_execution_category>(detail::forward_tail(shape));
     }
 
     outer_executor_type outer_ex_;

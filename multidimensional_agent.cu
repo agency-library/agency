@@ -15,7 +15,7 @@ struct functor
   __device__
   void operator()(parallel_agent_2d& self)
   {
-    printf("Hello world from agent {%d, %d}\n", std::get<0>(self.index()), std::get<1>(self.index()));
+    printf("Hello world from agent {%d, %d}\n", agency::get<0>(self.index()), agency::get<1>(self.index()));
   }
 };
 

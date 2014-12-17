@@ -1,6 +1,6 @@
 #pragma once
 
-#include <tuple>
+#include <agency/detail/tuple.hpp>
 #include <agency/detail/integer_sequence.hpp>
 
 namespace agency
@@ -11,9 +11,9 @@ namespace detail
 
 template<class Tuple, size_t... I>
 auto tuple_of_references_impl(Tuple& t, agency::detail::index_sequence<I...>)
-  -> decltype(std::tie(std::get<I>(t)...))
+  -> decltype(detail::tie(std::get<I>(t)...))
 {
-  return std::tie(std::get<I>(t)...);
+  return detail::tie(detail::get<I>(t)...);
 }
 
 template<class Tuple>

@@ -2,6 +2,7 @@
 
 #include <type_traits>
 #include <tuple>
+#include <agency/detail/tuple.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/detail/tuple_utility.hpp>
@@ -61,7 +62,7 @@ auto project_index_helper(const Index& idx, Size size_of_second_to_last_dimensio
 template<class Index, class Shape>
 auto project_index(const Index& idx, const Shape& shape)
   -> decltype(
-       std::make_tuple(
+       detail::make_tuple(
          project_index_helper(idx, __tu::tuple_last(shape)),
          project_shape(shape)
        )
@@ -88,7 +89,7 @@ auto project_index(const Index& idx, const Shape& shape)
   // a 1D shape of 20
   auto projected_shape = project_shape(shape);
 
-  return std::make_tuple(projected_index, projected_shape);
+  return detail::make_tuple(projected_index, projected_shape);
 }
 
 
@@ -180,11 +181,11 @@ lift_index_t<Index> lift_index(const Index& idx, const Shape& shape)
   auto idx_tuple = wrap_scalar(idx);
 
   auto intermediate_result = idx_tuple;
-  __tu::tuple_last(intermediate_result) %= std::get<i>(shape);
+  __tu::tuple_last(intermediate_result) %= detail::get<i>(shape);
 
   auto make_result = index_cast_detail::make<lift_index_t<Index>>{};
 
-  return __tu::tuple_append_invoke(intermediate_result, __tu::tuple_last(idx_tuple) / std::get<i>(shape), make_result);
+  return __tu::tuple_append_invoke(intermediate_result, __tu::tuple_last(idx_tuple) / detail::get<i>(shape), make_result);
 }
 
 
