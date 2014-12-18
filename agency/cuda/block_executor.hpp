@@ -20,14 +20,14 @@ struct block_executor_helper_functor
   __device__
   void operator()(grid_executor::index_type idx)
   {
-    f_(idx.y);
+    f_(agency::detail::get<1>(idx));
   }
 
   template<class Tuple>
   __device__
   void operator()(grid_executor::index_type idx, Tuple&& shared_params)
   {
-    f_(idx.y, thrust::get<1>(shared_params));
+    f_(agency::detail::get<1>(idx), thrust::get<1>(shared_params));
   }
 };
 

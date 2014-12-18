@@ -22,43 +22,7 @@
 #include <agency/cuda/detail/uninitialized.hpp>
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
-
-
-namespace std
-{
-
-
-// give CUDA built-in vector types Tuple-like access
-template<std::size_t i>
-__host__ __device__
-unsigned int&
-  get(::uint2& x)
-{
-  return reinterpret_cast<unsigned int*>(&x)[i];
-}
-
-
-template<std::size_t i>
-__host__ __device__
-const unsigned int&
-  get(const ::uint2& x)
-{
-  return reinterpret_cast<const unsigned int*>(&x)[i];
-}
-
-
-template<>
-struct tuple_size<::uint2> : integral_constant<size_t,2> {};
-
-
-template<size_t i>
-struct tuple_element<i,::uint2>
-{
-  using type = unsigned int;
-};
-
-
-} // end std
+#include <agency/coordinate.hpp>
 
 
 namespace agency
@@ -79,15 +43,14 @@ struct function_with_shared_arguments
       inner_shared_init_(inner_shared_init)
   {}
 
-  template<class Agent>
   __device__
-  void operator()(Agent& agent)
+  void operator()(const agency::uint2 idx)
   {
     // XXX can't rely on a default constructor
     __shared__ uninitialized<InnerSharedType> inner_param;
 
     // initialize the inner shared parameter
-    if(agent.y == 0)
+    if(idx[1] == 0)
     {
       inner_param.construct(inner_shared_init_);
     }
@@ -95,12 +58,12 @@ struct function_with_shared_arguments
 
     tuple<OuterSharedType&,InnerSharedType&> shared_params(*outer_ptr_, inner_param);
 
-    f_(agent, shared_params);
+    f_(idx, shared_params);
 
     __syncthreads();
 
     // destroy the inner shared parameter
-    if(agent.y == 0)
+    if(idx[1] == 0)
     {
       inner_param.destroy();
     }
@@ -122,7 +85,7 @@ struct copy_outer_shared_parameter
   {}
 
   __device__
-  void operator()(uint2)
+  void operator()(agency::uint2)
   {
     new (outer_shared_ptr_) OuterSharedType(outer_shared_init_);
   }
@@ -135,7 +98,7 @@ struct copy_outer_shared_parameter
 template<class Function>
 __global__ void grid_executor_kernel(Function f)
 {
-  uint2 idx = make_uint2(blockIdx.x, threadIdx.x);
+  agency::uint2 idx{blockIdx.x, threadIdx.x};
   f(idx);
 }
 
@@ -166,16 +129,13 @@ class grid_executor
     //     shape_type is a Tuple-like collection of size_types
     //     the value of each each element specifies the size of a node in the execution hierarchy
     //     the tuple_size<shape_type> must be the same as the nesting depth of execution_category
-    //using shape_type = agency::uint2;
-    // XXX for cuda, maybe this should be int2?
-    using shape_type = uint2;
+    using shape_type = agency::uint2;
 
 
     // this is the type of the parameter handed to functions invoked through bulk_add()
     // XXX threadIdx.x is actually an int
     //     maybe we need to make this int2
-    //using index_type = agency::uint2;
-    using index_type = uint2;
+    using index_type = agency::uint2;
 
     template<class Tuple>
     using shared_param_type = detail::tuple_of_references_t<Tuple>;
@@ -281,8 +241,8 @@ class grid_executor
     template<class Function, class Tuple>
     std::future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
-      auto outer_shared_arg = std::get<0>(shared_arg_tuple);
-      auto inner_shared_arg = std::get<1>(shared_arg_tuple);
+      auto outer_shared_arg = agency::detail::get<0>(shared_arg_tuple);
+      auto inner_shared_arg = agency::detail::get<1>(shared_arg_tuple);
 
       using outer_shared_type = decltype(outer_shared_arg);
       using inner_shared_type = decltype(inner_shared_arg);
@@ -326,8 +286,8 @@ class grid_executor
     __host__ __device__
     void bulk_invoke(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
-      auto outer_shared_arg = std::get<0>(shared_arg_tuple);
-      auto inner_shared_arg = std::get<1>(shared_arg_tuple);
+      auto outer_shared_arg = agency::detail::get<0>(shared_arg_tuple);
+      auto inner_shared_arg = agency::detail::get<1>(shared_arg_tuple);
 
       using outer_shared_type = decltype(outer_shared_arg);
       using inner_shared_type = decltype(inner_shared_arg);
@@ -384,7 +344,9 @@ class grid_executor
     {
       void* kernel = reinterpret_cast<void*>(global_function_pointer<Function>());
 
-      detail::checked_launch_kernel_on_device(kernel, shape, shared_memory_size, stream, gpu.native_handle(), f);
+      ::uint2 cuda_shape = ::make_uint2(agency::detail::get<0>(shape), agency::detail::get<1>(shape));
+
+      detail::checked_launch_kernel_on_device(kernel, cuda_shape, shared_memory_size, stream, gpu.native_handle(), f);
     }
 
     int shared_memory_size_;
@@ -424,18 +386,18 @@ struct flattened_grid_executor_functor
   __device__
   void operator()(cuda::grid_executor::index_type idx, T&& shared_params)
   {
-    auto flat_idx = std::get<0>(idx) * std::get<1>(partitioning_) + std::get<1>(idx);
+    auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning_) + agency::detail::get<1>(idx);
 
     if(flat_idx < shape_)
     {
-      f_(flat_idx, std::get<0>(shared_params));
+      f_(flat_idx, agency::detail::get<0>(shared_params));
     }
   }
 
   inline __device__
   void operator()(cuda::grid_executor::index_type idx)
   {
-    auto flat_idx = std::get<0>(idx) * std::get<1>(partitioning_) + std::get<1>(idx);
+    auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning_) + agency::detail::get<1>(idx);
 
     if(flat_idx < shape_)
     {
@@ -493,7 +455,7 @@ class flattened_executor<cuda::grid_executor>
       auto partitioning = partition(dummy_function, shape);
 
       // create a shared initializer
-      auto shared_init = std::make_tuple(shared_arg, agency::detail::ignore);
+      auto shared_init = agency::detail::make_tuple(shared_arg, agency::detail::ignore);
       using shared_param_type = typename executor_traits<base_executor_type>::template shared_param_type<decltype(shared_init)>;
 
       // create a function to execute
@@ -528,11 +490,11 @@ class flattened_executor<cuda::grid_executor>
       auto max_shape = base_executor().max_shape(f);
 
       // make the inner groups as large as possible
-      inner_shape_type inner_size = std::get<1>(max_shape);
+      inner_shape_type inner_size = agency::detail::get<1>(max_shape);
 
       outer_shape_type outer_size = (shape + inner_size - 1) / inner_size;
 
-      assert(outer_size <= std::get<0>(max_shape));
+      assert(outer_size <= agency::detail::get<0>(max_shape));
 
       return partition_type{outer_size, inner_size};
     }

@@ -34,6 +34,7 @@ struct make
 // reduces the dimensionality of x by eliding the last dimension
 // and multiplying the second-to-last dimension by the last 
 template<class Point>
+__AGENCY_ANNOTATION
 rebind_point_size_t<
   Point,
   point_size<Point>::value - 1

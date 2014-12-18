@@ -247,258 +247,50 @@ namespace std
 // XXX we'd specialize these for cuda::detail::tuple, but we can't specialize on template using
 
 
-template<class T1>
-struct tuple_size<thrust::tuple<T1>> : std::integral_constant<size_t, 1> {};
-
-template<class T1, class T2>
-struct tuple_size<thrust::tuple<T1,T2>> : std::integral_constant<size_t, 2> {};
-
-template<class T1, class T2, class T3>
-struct tuple_size<thrust::tuple<T1,T2,T3>> : std::integral_constant<size_t, 3> {};
-
-template<class T1, class T2, class T3, class T4>
-struct tuple_size<thrust::tuple<T1,T2,T3,T4>> : std::integral_constant<size_t, 4> {};
-
-template<class T1, class T2, class T3, class T4, class T5>
-struct tuple_size<thrust::tuple<T1,T2,T3,T4,T5>> : std::integral_constant<size_t, 5> {};
-
-template<class T1, class T2, class T3, class T4, class T5, class T6>
-struct tuple_size<thrust::tuple<T1,T2,T3,T4,T5,T6>> : std::integral_constant<size_t, 6> {};
-
-template<class T1, class T2, class T3, class T4, class T5, class T6, class T7>
-struct tuple_size<thrust::tuple<T1,T2,T3,T4,T5,T6,T7>> : std::integral_constant<size_t, 7> {};
-
-template<class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8>
-struct tuple_size<thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8>> : std::integral_constant<size_t, 8> {};
-
-template<class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9>
-struct tuple_size<thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9>> : std::integral_constant<size_t, 9> {};
-
-template<class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10>
-struct tuple_size<thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>> : std::integral_constant<size_t, 10> {};
+template<class Type1, class... Types>
+struct tuple_size<thrust::tuple<Type1,Types...>> : thrust::tuple_size<thrust::tuple<Type1,Types...>> {};
 
 
-template<size_t i, class T1>
-struct tuple_element<i,thrust::tuple<T1>>
-{
-  using type = typename thrust::tuple_element<i,thrust::tuple<T1>>::type;
-};
-
-template<size_t i, class T1, class T2>
-struct tuple_element<i,thrust::tuple<T1,T2>>
-{
-  using type = typename thrust::tuple_element<i,thrust::tuple<T1,T2>>::type;
-};
-
-template<size_t i, class T1, class T2, class T3>
-struct tuple_element<i,thrust::tuple<T1,T2,T3>>
-{
-  using type = typename thrust::tuple_element<i,thrust::tuple<T1,T2,T3>>::type;
-};
-
-template<size_t i, class T1, class T2, class T3, class T4>
-struct tuple_element<i,thrust::tuple<T1,T2,T3,T4>>
-{
-  using type = typename thrust::tuple_element<i,thrust::tuple<T1,T2,T3,T4>>::type;
-};
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5>
-struct tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5>>
-{
-  using type = typename thrust::tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5>>::type;
-};
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6>
-struct tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5,T6>>
-{
-  using type = typename thrust::tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5,T6>>::type;
-};
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
-struct tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5,T6,T7>>
-{
-  using type = typename thrust::tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5,T6,T7>>::type;
-};
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8>
-struct tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8>>
-{
-  using type = typename thrust::tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8>>::type;
-};
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9>
-struct tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9>>
-{
-  using type = typename thrust::tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9>>::type;
-};
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10>
-struct tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>>
-{
-  using type = typename thrust::tuple_element<i,thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>>::type;
-};
-
-
-template<size_t i, class T1>
-__host__ __device__
-auto get(thrust::tuple<T1>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1>
-__host__ __device__
-auto get(const thrust::tuple<T1>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2>
-__host__ __device__
-auto get(thrust::tuple<T1,T2>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2>
-__host__ __device__
-auto get(const thrust::tuple<T1,T2>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3>
-__host__ __device__
-auto get(thrust::tuple<T1,T2,T3>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3>
-__host__ __device__
-auto get(const thrust::tuple<T1,T2,T3>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4>
-__host__ __device__
-auto get(thrust::tuple<T1,T2,T3,T4>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4>
-__host__ __device__
-auto get(const thrust::tuple<T1,T2,T3,T4>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5>
-__host__ __device__
-auto get(thrust::tuple<T1,T2,T3,T4,T5>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5>
-__host__ __device__
-auto get(const thrust::tuple<T1,T2,T3,T4,T5>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6>
-__host__ __device__
-auto get(thrust::tuple<T1,T2,T3,T4,T5,T6>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6>
-__host__ __device__
-auto get(const thrust::tuple<T1,T2,T3,T4,T5,T6>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
-__host__ __device__
-auto get(thrust::tuple<T1,T2,T3,T4,T5,T6,T7>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
-__host__ __device__
-auto get(const thrust::tuple<T1,T2,T3,T4,T5,T6,T7>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8>
-__host__ __device__
-auto get(thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8>
-__host__ __device__
-auto get(const thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9>
-__host__ __device__
-auto get(thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9>
-__host__ __device__
-auto get(const thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10>
-__host__ __device__
-auto get(thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
-
-template<size_t i, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10>
-__host__ __device__
-auto get(const thrust::tuple<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>& t)
-  -> decltype(thrust::get<i>(t))
-{
-  return thrust::get<i>(t);
-}
+template<size_t i, class Type1, class... Types>
+struct tuple_element<i,thrust::tuple<Type1,Types...>> : thrust::tuple_element<i,thrust::tuple<Type1,Types...>> {};
 
 
 } // end std
+
+
+namespace __tu
+{
+
+
+// tuple_traits specialization
+
+template<class Type1, class... Types>
+struct tuple_traits<thrust::tuple<Type1,Types...>>
+{
+  using tuple_type = thrust::tuple<Type1,Types...>;
+
+  static const size_t size = thrust::tuple_size<tuple_type>::value;
+
+  template<size_t i>
+  using element_type = typename thrust::tuple_element<i,tuple_type>::type;
+
+  template<size_t i>
+  __AGENCY_ANNOTATION
+  static element_type<i>& get(tuple_type& t)
+  {
+    return thrust::get<i>(t);
+  } // end get()
+
+  template<size_t i>
+  __AGENCY_ANNOTATION
+  static const element_type<i>& get(const tuple_type& t)
+  {
+    return thrust::get<i>(t);
+  } // end get()
+}; // end tuple_traits
+
+
+} // end __tu
+
+
 

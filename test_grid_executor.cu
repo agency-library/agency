@@ -3,9 +3,9 @@
 struct hello_world
 {
   __device__
-  void operator()(uint2 index)
+  void operator()(agency::uint2 index)
   {
-    printf("Hello world from block %d, thread %d\n", index.x, index.y);
+    printf("Hello world from block %d, thread %d\n", index[0], index[1]);
   }
 };
 
@@ -13,7 +13,7 @@ struct hello_world
 struct with_shared_arg
 {
   __device__
-  void operator()(uint2 index, thrust::tuple<int&,int&> shared_arg)
+  void operator()(agency::uint2 index, thrust::tuple<int&,int&> shared_arg)
   {
     int& outer_shared = thrust::get<0>(shared_arg);
     int& inner_shared = thrust::get<1>(shared_arg);
@@ -23,7 +23,7 @@ struct with_shared_arg
 
     __syncthreads();
 
-    if(index.y == 0)
+    if(index[1] == 0)
     {
       printf("outer_shared: %d\n", outer_shared);
       printf("inner_shared: %d\n", inner_shared);
@@ -36,7 +36,7 @@ __host__ __device__
 void launch_nested_kernel()
 {
   agency::cuda::grid_executor ex;
-  bulk_invoke(ex, make_uint2(2,2), hello_world());
+  bulk_invoke(ex, agency::uint2{2,2}, hello_world());
 }
 
 
@@ -70,11 +70,11 @@ int main()
   agency::cuda::grid_executor ex;
 
   std::cout << "Testing bulk_invoke on host" << std::endl;
-  bulk_invoke(ex, make_uint2(2,2), hello_world());
+  bulk_invoke(ex, agency::uint2{2,2}, hello_world());
   cudaDeviceSynchronize();
 
   std::cout << "Testing bulk_invoke with shared arg on host" << std::endl;
-  ex.bulk_invoke(with_shared_arg(), make_uint2(2,2), thrust::make_tuple(7,13));
+  ex.bulk_invoke(with_shared_arg(), agency::uint2{2,2}, thrust::make_tuple(7,13));
   cudaDeviceSynchronize();
 
   std::cout << "Testing bulk_invoke() on device" << std::endl;
