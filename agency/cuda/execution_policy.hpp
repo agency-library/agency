@@ -9,6 +9,7 @@
 #include <agency/cuda/grid_executor.hpp>
 #include <agency/cuda/block_executor.hpp>
 #include <agency/cuda/parallel_executor.hpp>
+#include <agency/cuda/nested_executor.hpp>
 #include <agency/cuda/detail/bind.hpp>
 
 
