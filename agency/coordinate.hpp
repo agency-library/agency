@@ -98,6 +98,18 @@ using int9  = point<int,9>;
 using int10 = point<int,10>;
 
 
+using uint1  = point<int,1>;
+using uint2  = point<int,2>;
+using uint3  = point<int,3>;
+using uint4  = point<int,4>;
+using uint5  = point<int,5>;
+using uint6  = point<int,6>;
+using uint7  = point<int,7>;
+using uint8  = point<int,8>;
+using uint9  = point<int,9>;
+using uint10 = point<int,10>;
+
+
 using size1  = point<size_t,1>;
 using size2  = point<size_t,2>;
 using size3  = point<size_t,3>;
