@@ -13,6 +13,7 @@ namespace detail
 
 // execution is nested, just return x
 template<class ExecutionCategory1, class ExecutionCategory2, class T>
+__AGENCY_ANNOTATION
 auto make_tuple_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
   -> decltype(std::forward<T>(x))
 {
@@ -22,6 +23,7 @@ auto make_tuple_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionC
 
 // execution is not nested, wrap up x in a tuple
 template<class ExecutionCategory, class T>
+__AGENCY_ANNOTATION
 auto make_tuple_if_not_nested(ExecutionCategory, T&& x)
   -> decltype(agency::detail::make_tuple(std::forward<T>(x)))
 {
@@ -30,6 +32,7 @@ auto make_tuple_if_not_nested(ExecutionCategory, T&& x)
 
 
 template<class ExecutionCategory, class T>
+__AGENCY_ANNOTATION
 auto make_tuple_if_not_nested(T&& x)
   -> decltype(make_tuple_if_not_nested(ExecutionCategory(), std::forward<T>(x)))
 {
@@ -38,6 +41,7 @@ auto make_tuple_if_not_nested(T&& x)
 
 
 template<class ExecutionCategory1, class ExecutionCategory2, class T>
+__AGENCY_ANNOTATION
 auto tie_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, T&& x)
   -> decltype(std::forward<T>(x))
 {
@@ -46,6 +50,7 @@ auto tie_if_not_nested(nested_execution_tag<ExecutionCategory1,ExecutionCategory
 
 
 template<class ExecutionCategory, class T>
+__AGENCY_ANNOTATION
 auto tie_if_not_nested(ExecutionCategory, T&& x)
   -> decltype(agency::detail::tie(std::forward<T>(x)))
 {
@@ -54,6 +59,7 @@ auto tie_if_not_nested(ExecutionCategory, T&& x)
 
 
 template<class ExecutionCategory, class T>
+__AGENCY_ANNOTATION
 auto tie_if_not_nested(T&& x)
   -> decltype(tie_if_not_nested(ExecutionCategory(), std::forward<T>(x)))
 {

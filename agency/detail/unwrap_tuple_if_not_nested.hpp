@@ -11,6 +11,7 @@ namespace detail
 
 
 template<class ExecutionCategory, class Tuple>
+__AGENCY_ANNOTATION
 static auto unwrap_tuple_if_not_nested_impl(ExecutionCategory, Tuple&& t)
   -> decltype(detail::get<0>(std::forward<Tuple>(t)))
 {
@@ -18,6 +19,7 @@ static auto unwrap_tuple_if_not_nested_impl(ExecutionCategory, Tuple&& t)
 }
 
 template<class ExecutionCategory1, class ExecutionCategory2, class Tuple>
+__AGENCY_ANNOTATION
 static auto unwrap_tuple_if_not_nested_impl(nested_execution_tag<ExecutionCategory1,ExecutionCategory2>, Tuple&& t)
   -> decltype(std::forward<Tuple>(t))
 {
@@ -26,6 +28,7 @@ static auto unwrap_tuple_if_not_nested_impl(nested_execution_tag<ExecutionCatego
 
 
 template<class ExecutionCategory, class Tuple>
+__AGENCY_ANNOTATION
 auto unwrap_tuple_if_not_nested(Tuple&& t)
   -> decltype(
        unwrap_tuple_if_not_nested_impl(ExecutionCategory(), std::forward<Tuple>(t))
