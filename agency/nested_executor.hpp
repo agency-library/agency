@@ -112,7 +112,7 @@ class nested_executor
 
       // split the shared argument tuple into the inner & outer portions
       auto outer_shared_arg = __tu::tuple_head(shared_arg_tuple);
-      auto inner_shared_arg_tuple = __tu::forward_tuple_tail<Tuple>(shared_arg_tuple);
+      auto inner_shared_arg_tuple = detail::forward_tail(shared_arg_tuple);
 
       // if the inner executor isn't nested, we need to unwrap the tail arguments
       auto inner_shared_arg = detail::unwrap_tuple_if_not_nested<inner_execution_category>(inner_shared_arg_tuple);
