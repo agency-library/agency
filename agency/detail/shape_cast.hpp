@@ -56,6 +56,7 @@ rebind_point_size_t<
 // increases the dimensionality of x
 // by appending a dimension (and setting it to 1)
 template<class Point>
+__AGENCY_ANNOTATION
 rebind_point_size_t<
   Point,
   point_size<Point>::value + 1
@@ -76,6 +77,7 @@ rebind_point_size_t<
 
 // Scalar -> Scalar (base case)
 template<class ToShape, class FromShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (point_size<ToShape>::value == point_size<FromShape>::value) &&
   (point_size<ToShape>::value == 1),
@@ -86,6 +88,7 @@ typename std::enable_if<
 
 // recursive case for casting two shapes of equal size (recursive case)
 template<class ToShape, class FromShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (point_size<ToShape>::value == point_size<FromShape>::value) &&
   (point_size<ToShape>::value > 1),
@@ -96,6 +99,7 @@ typename std::enable_if<
 
 // downcast (recursive)
 template<class ToShape, class FromShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (point_size<ToShape>::value < point_size<FromShape>::value),
   ToShape
@@ -105,6 +109,7 @@ typename std::enable_if<
 
 // upcast (recursive)
 template<class ToShape, class FromShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (point_size<ToShape>::value > point_size<FromShape>::value),
   ToShape
@@ -117,6 +122,7 @@ typename std::enable_if<
 
 // terminal case for casting shapes of size 1
 template<class ToShape, class FromShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (point_size<ToShape>::value == point_size<FromShape>::value) &&
   (point_size<ToShape>::value == 1),
@@ -132,6 +138,7 @@ typename std::enable_if<
 struct shape_cast_functor
 {
   template<class ToShape, class FromShape>
+  __AGENCY_ANNOTATION
   auto operator()(const ToShape&, const FromShape& x)
     -> decltype(
          shape_cast<ToShape>(x)
@@ -144,6 +151,7 @@ struct shape_cast_functor
 
 // recursive case for casting to a shape of equal size
 template<class ToShape, class FromShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (point_size<ToShape>::value == point_size<FromShape>::value) &&
   (point_size<ToShape>::value > 1),
@@ -157,6 +165,7 @@ typename std::enable_if<
 
 // recursive case for casting to a lower dimensional shape
 template<class ToShape, class FromShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (point_size<ToShape>::value < point_size<FromShape>::value),
   ToShape
@@ -169,6 +178,7 @@ typename std::enable_if<
 
 // recursive case for casting to a higher dimensional shape
 template<class ToShape, class FromShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (point_size<ToShape>::value > point_size<FromShape>::value),
   ToShape
