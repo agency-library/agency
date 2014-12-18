@@ -36,10 +36,10 @@ template<class Tuple,
         >
 auto unwrap_single_element_tuple(const Tuple& t)
   -> decltype(
-       std::get<0>(t)
+       detail::get<0>(t)
      )
 {
-  return std::get<0>(t);
+  return detail::get<0>(t);
 }
 
 
@@ -231,7 +231,7 @@ typename std::enable_if<
              const ToShape& to_shape)
 {
   auto projected_idx_and_shape = project_index(from_idx, from_shape);
-  return index_cast<ToIndex>(std::get<0>(projected_idx_and_shape), std::get<1>(projected_idx_and_shape), to_shape);
+  return index_cast<ToIndex>(detail::get<0>(projected_idx_and_shape), detail::get<1>(projected_idx_and_shape), to_shape);
 }
 
                      

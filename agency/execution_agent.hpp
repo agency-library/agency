@@ -458,16 +458,16 @@ class execution_group
       -> decltype(
            agency::detail::tuple_cat(
              detail::make_tuple_if_not_nested<outer_execution_category>(
-               outer_traits::make_shared_initializer(std::get<0>(param))
+               outer_traits::make_shared_initializer(detail::get<0>(param))
              ),
              detail::make_tuple_if_not_nested<inner_execution_category>(
-               inner_traits::make_shared_initializer(std::get<1>(param))
+               inner_traits::make_shared_initializer(detail::get<1>(param))
              )
            )
          )
     {
-      auto outer_shared_init = outer_traits::make_shared_initializer(std::get<0>(param));
-      auto inner_shared_init = inner_traits::make_shared_initializer(std::get<1>(param));
+      auto outer_shared_init = outer_traits::make_shared_initializer(detail::get<0>(param));
+      auto inner_shared_init = inner_traits::make_shared_initializer(detail::get<1>(param));
 
       auto outer_tuple = detail::make_tuple_if_not_nested<outer_execution_category>(outer_shared_init);
       auto inner_tuple = detail::make_tuple_if_not_nested<inner_execution_category>(inner_shared_init);
@@ -525,8 +525,8 @@ class execution_group
 
     static domain_type domain(const param_type& param)
     {
-      auto outer_domain = outer_traits::domain(std::get<0>(param));
-      auto inner_domain = inner_traits::domain(std::get<1>(param));
+      auto outer_domain = outer_traits::domain(detail::get<0>(param));
+      auto inner_domain = inner_traits::domain(detail::get<1>(param));
 
       auto min = index_cat(outer_domain.min(), inner_domain.min());
       auto max = index_cat(outer_domain.max(), inner_domain.max());
@@ -542,16 +542,16 @@ class execution_group
   protected:
     template<class Function>
     execution_group(Function f, const index_type& index, const param_type& param)
-      : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), std::get<0>(param))),
-        inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), std::get<1>(param)))
+      : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), detail::get<0>(param))),
+        inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), detail::get<1>(param)))
     {
       f(*this);
     }
 
     template<class Function, class Tuple>
     execution_group(Function f, const index_type& index, const param_type& param, Tuple& shared_param)
-      : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), std::get<0>(param), __tu::tuple_head(shared_param))),
-        inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), std::get<1>(param), __tu::forward_tuple_tail<Tuple>(shared_param)))
+      : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), detail::get<0>(param), __tu::tuple_head(shared_param))),
+        inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), detail::get<1>(param), detail::forward_tail(shared_param)))
     {
       f(*this);
     }
