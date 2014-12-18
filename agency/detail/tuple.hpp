@@ -87,6 +87,7 @@ auto get(Tuple&& t)
 
 
 template<class... Args>
+__AGENCY_ANNOTATION
 tuple<Args&&...> forward_as_tuple(Args&&... args)
 {
   return detail::tuple<Args&&...>{std::forward<Args>(args)...};
