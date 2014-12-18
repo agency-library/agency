@@ -349,25 +349,32 @@ namespace detail
 template<class ExecutionAgent>
 struct agent_access_helper : public ExecutionAgent
 {
+  struct noop
+  {
+    __AGENCY_ANNOTATION void operator()(ExecutionAgent&) {}
+  };
+
   template<class... Args>
+  __AGENCY_ANNOTATION
   agent_access_helper(Args&&... args)
-    : ExecutionAgent(std::forward<Args>(args)...)
+    : ExecutionAgent(noop(), std::forward<Args>(args)...)
   {}
 };
 
 
 // __make_agent helper function passes a noop functor to the agent's constructor and filters out shared parameters when necessary
 template<class ExecutionAgent>
+__AGENCY_ANNOTATION
 ExecutionAgent make_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
                           const typename execution_agent_traits<ExecutionAgent>::param_type& param)
 {
-  auto noop = [](ExecutionAgent&){};
-  return agent_access_helper<ExecutionAgent>(noop, index, param);
+  return agent_access_helper<ExecutionAgent>(index, param);
 }
 
 
 // if an agent does not have a shared parameter, we ignore the last parameter
 template<class ExecutionAgent, class T>
+__AGENCY_ANNOTATION
 static ExecutionAgent make_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
                                  const typename execution_agent_traits<ExecutionAgent>::param_type& param,
                                  T&&,
@@ -381,6 +388,7 @@ static ExecutionAgent make_agent(const typename execution_agent_traits<Execution
 
 // tupled shared parameters are recieved by const reference
 template<class ExecutionAgent, class Tuple>
+__AGENCY_ANNOTATION
 static ExecutionAgent make_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
                                  const typename execution_agent_traits<ExecutionAgent>::param_type& param,
                                  const Tuple& shared_param_tuple,
@@ -388,13 +396,13 @@ static ExecutionAgent make_agent(const typename execution_agent_traits<Execution
                                    execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
                                  >::type* = 0)
 {
-  auto noop = [](ExecutionAgent&){};
-  return agent_access_helper<ExecutionAgent>(noop, index, param, shared_param_tuple);
+  return agent_access_helper<ExecutionAgent>(index, param, shared_param_tuple);
 }
 
 
 // scalar shared parameters are received by mutable reference
 template<class ExecutionAgent, class T>
+__AGENCY_ANNOTATION
 static ExecutionAgent make_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
                                  const typename execution_agent_traits<ExecutionAgent>::param_type& param,
                                  T& shared_param,
@@ -402,8 +410,7 @@ static ExecutionAgent make_agent(const typename execution_agent_traits<Execution
                                    execution_agent_traits<ExecutionAgent>::has_make_shared_initializer::value
                                  >::type* = 0)
 {
-  auto noop = [](ExecutionAgent&){};
-  return agent_access_helper<ExecutionAgent>(noop, index, param, shared_param);
+  return agent_access_helper<ExecutionAgent>(index, param, shared_param);
 }
 
 
@@ -423,6 +430,7 @@ class execution_group
     // concatenates an outer index with an inner index
     // returns an index_tuple with arithmetic ops (not a std::tuple)
     // XXX move this into index_tuple.hpp?
+    __AGENCY_ANNOTATION
     static auto index_cat(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
       -> decltype(
            __tu::tuple_cat_apply(
@@ -475,26 +483,31 @@ class execution_group
       return agency::detail::tuple_cat(outer_tuple, inner_tuple);
     }
 
+    __AGENCY_ANNOTATION
     outer_execution_agent_type& outer()
     {
       return outer_agent_;
     }
 
+    __AGENCY_ANNOTATION
     const outer_execution_agent_type& outer() const
     {
       return outer_agent_;
     }
 
+    __AGENCY_ANNOTATION
     inner_execution_agent_type& inner()
     {
       return inner_agent_;
     }
 
+    __AGENCY_ANNOTATION
     const inner_execution_agent_type& inner() const
     {
       return inner_agent_;
     }
 
+    __AGENCY_ANNOTATION
     auto index() const
       -> decltype(
            index_cat(
@@ -512,6 +525,7 @@ class execution_group
 
     using domain_type = regular_grid<index_type>;
 
+    __AGENCY_ANNOTATION
     domain_type domain() const
     {
       auto outer_domain = outer().domain();
@@ -523,6 +537,7 @@ class execution_group
       return domain_type{min,max};
     }
 
+    __AGENCY_ANNOTATION
     static domain_type domain(const param_type& param)
     {
       auto outer_domain = outer_traits::domain(detail::get<0>(param));
@@ -534,13 +549,16 @@ class execution_group
       return domain_type{min,max};
     }
 
+    __AGENCY_ANNOTATION
     size_t group_size() const
     {
       return outer().group_size();
     }
 
   protected:
+    __agency_hd_warning_disable__
     template<class Function>
+    __AGENCY_ANNOTATION
     execution_group(Function f, const index_type& index, const param_type& param)
       : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), detail::get<0>(param))),
         inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), detail::get<1>(param)))
@@ -548,10 +566,12 @@ class execution_group
       f(*this);
     }
 
+    __agency_hd_warning_disable__
     template<class Function, class Tuple>
+    __AGENCY_ANNOTATION
     execution_group(Function f, const index_type& index, const param_type& param, Tuple& shared_param)
-      : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), detail::get<0>(param), __tu::tuple_head(shared_param))),
-        inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), detail::get<1>(param), detail::forward_tail(shared_param)))
+      : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), detail::get<0>(param), detail::get<0>(shared_param))),
+        inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), detail::get<1>(param), detail::unwrap_tuple_if_not_nested<inner_execution_category>(detail::forward_tail(shared_param))))
     {
       f(*this);
     }
@@ -559,12 +579,14 @@ class execution_group
     // friend execution_agent_traits so it has access to the constructors
     template<class> friend struct agency::execution_agent_traits;
 
+    __AGENCY_ANNOTATION
     static outer_index_type outer_index(const index_type& index)
     {
       return __tu::tuple_head(index);
     }
 
 
+    __AGENCY_ANNOTATION
     static inner_index_type inner_index(const index_type& index)
     {
       return detail::unwrap_tuple_if_not_nested<inner_execution_category>(detail::forward_tail(index));
