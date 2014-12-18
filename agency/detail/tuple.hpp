@@ -86,31 +86,6 @@ auto get(Tuple&& t)
 }
 
 
-//struct tier
-//{
-//  template<class... Args>
-//  __AGENCY_ANNOTATION
-//  auto operator()(Args&&... args)
-//    -> decltype(
-//         detail::tie(std::forward<Args>(args)...)
-//       )
-//  {
-//    return detail::tie(std::forward<Args>(args)...);
-//  }
-//};
-//
-//
-//template<class Tuple>
-//__AGENCY_ANNOTATION
-//auto tie_tuple_tail(Tuple&& t)
-//  -> decltype(
-//       __tu::tuple_tail_invoke(std::forward<Tuple>(t), tier{})
-//     )
-//{
-//  return __tu::tuple_tail_invoke(std::forward<Tuple>(t), tier{});
-//}
-
-
 template<class... Args>
 tuple<Args&&...> forward_as_tuple(Args&&... args)
 {
