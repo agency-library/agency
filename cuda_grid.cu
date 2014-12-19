@@ -12,11 +12,19 @@ struct kernel
   }
 };
 
+
+auto grid(size_t num_blocks, size_t num_threads)
+  -> decltype(
+       agency::cuda::par(num_blocks, agency::cuda::con(num_threads))
+     )
+{
+  return agency::cuda::par(num_blocks, agency::cuda::con(num_threads));
+}
+
+
 int main()
 {
-  using namespace agency::cuda;
-
-  bulk_invoke(par(2,con(32)), kernel());
+  bulk_invoke(grid(2,32), kernel());
 
   return 0;
 }
