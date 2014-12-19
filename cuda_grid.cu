@@ -1,6 +1,5 @@
 #include <agency/cuda/execution_policy.hpp>
-#include <iostream>
-#include <typeinfo>
+#include <cstdio>
 
 struct kernel
 {
