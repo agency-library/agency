@@ -133,7 +133,7 @@ typename std::enable_if<
 {
   // x might not be a tuple, but instead a scalar type
   // to ensure we can get the 0th value from x in a uniform way, lift it first
-  return ToShape{agency::detail::get<0>(lift_shape(x))};
+  return static_cast<ToShape>(detail::get<0>(lift_shape(x)));
 }
 
 struct shape_cast_functor
