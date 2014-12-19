@@ -1,5 +1,4 @@
 #include <agency/cuda/execution_policy.hpp>
-#include <agency/execution_policy.hpp>
 #include <iostream>
 #include <typeinfo>
 
