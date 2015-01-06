@@ -9,6 +9,7 @@
 #include <agency/detail/tuple_impl.hpp>
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/detail/integer_sequence.hpp>
+#include <agency/detail/host_device_cast.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -116,6 +117,53 @@ auto forward_tail(Tuple&& t)
      )
 {
   return __tu::tuple_tail_invoke(std::forward<Tuple>(t), forwarder{});
+}
+
+
+struct agency_tuple_maker
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  auto operator()(Args&&... args)
+    -> decltype(
+         agency::detail::make_tuple(std::forward<Args>(args)...)
+       )
+  {
+    return agency::detail::make_tuple(std::forward<Args>(args)...);
+  }
+};
+
+
+template<size_t N, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_drop(Tuple&& t)
+  -> decltype(
+       __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_drop_last(Tuple&& t)
+  -> decltype(
+       agency::detail::tuple_drop<1>(std::forward<Tuple>(t))
+     )
+{
+  return agency::detail::tuple_drop<1>(std::forward<Tuple>(t));
+}
+
+
+template<class Function, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_apply(Function f, Tuple&& t)
+  -> decltype(
+       __tu::tuple_apply(agency::detail::host_device_cast(f), std::forward<Tuple>(t))
+     )
+{
+  return __tu::tuple_apply(agency::detail::host_device_cast(f), std::forward<Tuple>(t));
 }
 
 

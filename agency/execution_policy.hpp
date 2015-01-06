@@ -15,6 +15,7 @@
 #include <memory>
 #include <tuple>
 #include <initializer_list>
+#include <agency/detail/tuple.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_cast.hpp>
 
@@ -152,12 +153,30 @@ class basic_execution_policy
     }
 
     // this is the nested form of operator()
-    // XXX generalize the first argument to Args&&...
-    template<class OtherExecutionPolicy>
-    detail::nested_execution_policy<derived_type, OtherExecutionPolicy>
-      operator()(size_t n, const OtherExecutionPolicy &exec) const
+    template<class Arg1, class... Args>
+    typename detail::enable_if_nested_call<
+      detail::nested_execution_policy<
+        derived_type,
+        decay_t<last_type<Arg1,Args...>>
+      >,
+      Arg1, Args...
+    >::type
+      operator()(Arg1&& arg1, Args&&... args) const
     {
-      return detail::nested_execution_policy<derived_type,OtherExecutionPolicy>(operator()(n), exec);
+      // wrap the args in a tuple so we can manipulate them easier
+      auto arg_tuple = detail::forward_as_tuple(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+
+      // get the arguments to the outer execution policy
+      auto outer_args = detail::tuple_drop_last(arg_tuple);
+
+      // create the outer execution policy
+      auto outer = detail::tuple_apply(*this, outer_args);
+
+      // get the inner execution policy
+      auto inner = __tu::tuple_last(arg_tuple);
+
+      // return the nesting of the two policies
+      return detail::nested_execution_policy<derived_type,decltype(inner)>(outer, inner);
     }
 
     template<class Arg1, class... Args>
