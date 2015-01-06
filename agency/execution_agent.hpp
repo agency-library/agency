@@ -280,18 +280,30 @@ class basic_execution_agent
 
 
 using sequential_agent = detail::basic_execution_agent<sequential_execution_tag>;
+using sequential_agent_1d = sequential_agent;
+using sequential_agent_2d = detail::basic_execution_agent<sequential_execution_tag, size2>;
 
 
 using parallel_agent = detail::basic_execution_agent<parallel_execution_tag>;
+using parallel_agent_1d = parallel_agent;
+using parallel_agent_2d = detail::basic_execution_agent<parallel_execution_tag, size2>;
 
 
 using vector_agent = detail::basic_execution_agent<vector_execution_tag>;
+using vector_agent_1d = vector_agent;
+using vector_agent_2d = detail::basic_execution_agent<vector_execution_tag, size2>;
 
 
-class concurrent_agent : public detail::basic_execution_agent<concurrent_execution_tag>
+namespace detail
+{
+
+
+
+template<class Index>
+class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_execution_tag, Index>
 {
   private:
-    using super_t = detail::basic_execution_agent<concurrent_execution_tag>;
+    using super_t = detail::basic_execution_agent<concurrent_execution_tag, Index>;
 
   public:
     void wait() const
@@ -319,7 +331,7 @@ class concurrent_agent : public detail::basic_execution_agent<concurrent_executi
     //     but not both
     //     if execution_agent_traits checks for the existence of shared_param_type,
     //     can't it just call its constructor?
-    static shared_param_type make_shared_initializer(const param_type& param)
+    static shared_param_type make_shared_initializer(const typename super_t::param_type& param)
     {
       return shared_param_type(param);
     }
@@ -329,7 +341,7 @@ class concurrent_agent : public detail::basic_execution_agent<concurrent_executi
 
   protected:
     template<class Function>
-    concurrent_agent(Function f, const typename super_t::index_type& index, const param_type& param, shared_param_type& shared_param)
+    basic_concurrent_agent(Function f, const typename super_t::index_type& index, const typename super_t::param_type& param, shared_param_type& shared_param)
       : super_t([](super_t&){}, index, param),
         barrier_(shared_param.barrier_)
     {
@@ -337,8 +349,16 @@ class concurrent_agent : public detail::basic_execution_agent<concurrent_executi
     }
 
     // friend execution_agent_traits to give it access to the constructor
-    friend struct agency::execution_agent_traits<concurrent_agent>;
+    friend struct agency::execution_agent_traits<basic_concurrent_agent>;
 };
+
+
+} // end detail
+
+
+using concurrent_agent = detail::basic_concurrent_agent<size_t>;
+using concurrent_agent_1d = concurrent_agent;
+using concurrent_agent_2d = detail::basic_concurrent_agent<size2>;
 
 
 namespace detail
@@ -602,15 +622,31 @@ class execution_group
 
 template<class InnerExecutionAgent>
 using sequential_group = detail::execution_group<sequential_agent, InnerExecutionAgent>;
+template<class InnerExecutionAgent>
+using sequential_group_1d = detail::execution_group<sequential_agent_1d, InnerExecutionAgent>;
+template<class InnerExecutionAgent>
+using sequential_group_2d = detail::execution_group<sequential_agent_2d, InnerExecutionAgent>;
 
 template<class InnerExecutionAgent>
 using parallel_group = detail::execution_group<parallel_agent, InnerExecutionAgent>;
+template<class InnerExecutionAgent>
+using parallel_group_1d = detail::execution_group<parallel_agent_1d, InnerExecutionAgent>;
+template<class InnerExecutionAgent>
+using parallel_group_2d = detail::execution_group<parallel_agent_2d, InnerExecutionAgent>;
 
 template<class InnerExecutionAgent>
 using concurrent_group = detail::execution_group<concurrent_agent, InnerExecutionAgent>;
+template<class InnerExecutionAgent>
+using concurrent_group_1d = detail::execution_group<concurrent_agent_1d, InnerExecutionAgent>;
+template<class InnerExecutionAgent>
+using concurrent_group_2d = detail::execution_group<concurrent_agent_2d, InnerExecutionAgent>;
 
 template<class InnerExecutionAgent>
 using vector_group = detail::execution_group<vector_agent, InnerExecutionAgent>;
+template<class InnerExecutionAgent>
+using vector_group_1d = detail::execution_group<vector_agent_1d, InnerExecutionAgent>;
+template<class InnerExecutionAgent>
+using vector_group_2d = detail::execution_group<vector_agent_2d, InnerExecutionAgent>;
 
 
 } // end agency
