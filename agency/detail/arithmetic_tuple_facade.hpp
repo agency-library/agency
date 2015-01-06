@@ -267,6 +267,23 @@ template<typename Derived>
   }
 
 
+  // equality
+  template<class ArithmeticTuple>
+  __AGENCY_ANNOTATION
+  bool operator==(const ArithmeticTuple& rhs) const
+  {
+    return __tu::tuple_equal(derived(), rhs);
+  }
+
+
+  template<class ArithmeticTuple>
+  __AGENCY_ANNOTATION
+  bool operator!=(const ArithmeticTuple& rhs) const
+  {
+    return !operator==(rhs);
+  }
+
+
   // relational ops
 
   template<class ArithmeticTuple>

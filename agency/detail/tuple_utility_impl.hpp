@@ -577,6 +577,43 @@ void tuple_print(const Tuple& t, std::ostream& os = std::cout)
 template<class Tuple1, class Tuple2>
 TUPLE_UTILITY_ANNOTATION
 typename std::enable_if<
+  std::tuple_size<Tuple1>::value != std::tuple_size<Tuple1>::value,
+  bool
+>::type
+  tuple_equal(const Tuple1&, const Tuple2&)
+{
+  return false;
+}
+
+
+template<class Tuple1, class Tuple2>
+TUPLE_UTILITY_ANNOTATION
+typename std::enable_if<
+  std::tuple_size<Tuple1>::value == 0,
+  bool
+>::type
+  tuple_equal(const Tuple1&, const Tuple2&)
+{
+  return true;
+}
+
+
+template<class Tuple1, class Tuple2>
+TUPLE_UTILITY_ANNOTATION
+typename std::enable_if<
+  (std::tuple_size<Tuple1>::value > 0),
+  bool
+>::type
+  tuple_equal(const Tuple1& t1, const Tuple2& t2)
+{
+  return (tuple_head(t1) != tuple_head(t2)) ? false :
+         tuple_equal(forward_tuple_tail<const Tuple1>(t1), forward_tuple_tail<const Tuple2>(t2));
+}
+
+
+template<class Tuple1, class Tuple2>
+TUPLE_UTILITY_ANNOTATION
+typename std::enable_if<
   std::tuple_size<Tuple2>::value == 0,
   bool
 >::type
