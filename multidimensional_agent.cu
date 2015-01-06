@@ -3,17 +3,12 @@
 #include <agency/coordinate.hpp>
 #include <agency/cuda/execution_policy.hpp>
 
-template<class ExecutionCategory, size_t N>
-using basic_multidimensional_agent = agency::detail::basic_execution_agent<ExecutionCategory, agency::point<size_t,N>>;
-
-using parallel_agent_2d = basic_multidimensional_agent<agency::parallel_execution_tag, 2>;
-
-const agency::cuda::detail::basic_execution_policy<parallel_agent_2d, agency::cuda::parallel_executor> par2d{};
+const agency::cuda::detail::basic_execution_policy<agency::cuda::parallel_agent_2d, agency::cuda::parallel_executor> par2d{};
 
 struct functor
 {
   __device__
-  void operator()(parallel_agent_2d& self)
+  void operator()(agency::cuda::parallel_agent_2d& self)
   {
     printf("Hello world from agent {%d, %d}\n", agency::get<0>(self.index()), agency::get<1>(self.index()));
   }
