@@ -134,6 +134,17 @@ struct agency_tuple_maker
 };
 
 
+template<typename Function, typename Tuple, typename... Tuples>
+__AGENCY_ANNOTATION
+auto tuple_map(Function f, Tuple&& t, Tuples&&... ts)
+  -> decltype(
+       __tu::tuple_map_with_make(f, agency_tuple_maker(), std::forward<Tuple>(t), std::forward<Tuples>(ts)...)
+     )
+{
+  return __tu::tuple_map_with_make(f, agency_tuple_maker(), std::forward<Tuple>(t), std::forward<Tuples>(ts)...);
+}
+
+
 template<size_t N, class Tuple>
 __AGENCY_ANNOTATION
 auto tuple_drop(Tuple&& t)
