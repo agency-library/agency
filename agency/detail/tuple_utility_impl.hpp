@@ -474,32 +474,43 @@ T make_from_tuple(const Tuple& t)
 }
 
 
-template<class Tuple, class T, class Function,
-         class = typename std::enable_if<
-           (std::tuple_size<
-             typename std::decay<Tuple>::type
-           >::value == 0)
-         >::type>
+template<size_t i, class Tuple, class T, class Function>
 TUPLE_UTILITY_ANNOTATION
-T tuple_reduce(Tuple&&, T init, Function)
+typename std::enable_if<
+  (i >= std::tuple_size<
+     typename std::decay<Tuple>::type
+   >::value),
+   T
+>::type
+  __tuple_reduce_impl(Tuple&&, T init, Function)
 {
   return init;
 }
 
 
-template<class Tuple, class T, class Function>
+
+template<size_t i, class Tuple, class T, class Function>
 TUPLE_UTILITY_ANNOTATION
-T tuple_reduce(Tuple&& t, T init, Function f,
-               typename std::enable_if<
-                 (std::tuple_size<
-                   typename std::decay<Tuple>::type
-                 >::value > 0)
-               >::type* = 0)
+typename std::enable_if<
+  (i < std::tuple_size<
+     typename std::decay<Tuple>::type
+   >::value),
+   T
+>::type
+  __tuple_reduce_impl(Tuple&& t, T init, Function f)
 {
   return f(
-    tuple_head(std::forward<Tuple>(t)),
-    tuple_reduce(forward_tuple_tail<Tuple>(t), init, f)
+    __get<i>(std::forward<Tuple>(t)),
+    __tuple_reduce_impl<i+1>(std::forward<Tuple>(t), init, f)
   );
+}
+
+
+template<class Tuple, class T, class Function>
+TUPLE_UTILITY_ANNOTATION
+T tuple_reduce(Tuple&& t, T init, Function f)
+{
+  return __tuple_reduce_impl<0>(std::forward<Tuple>(t), init, f);
 }
 
 
