@@ -2,7 +2,7 @@
 
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/arithmetic_tuple_facade.hpp>
-#include <type_traits>
+#include <agency/detail/type_traits.hpp>
 
 namespace agency
 {
