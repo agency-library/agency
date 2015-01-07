@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <agency/detail/small_vector_facade.hpp>
 #include <array>
-#include <agency/detail/tuple_utility.hpp>
+#include <agency/detail/tuple.hpp>
 
 namespace agency
 {
@@ -227,7 +227,7 @@ typename std::enable_if<
   shape_size(const Shape& s)
 {
   // transform s into a tuple of sizes
-  auto tuple_of_sizes = __tu::tuple_map(shape_size_functor{}, s);
+  auto tuple_of_sizes = detail::tuple_map(shape_size_functor{}, s);
 
   // reduce the sizes
   return __tu::tuple_reduce(tuple_of_sizes, size_t{1}, [](size_t x, size_t y)
@@ -322,6 +322,16 @@ class regular_grid
     __AGENCY_ANNOTATION
     regular_grid(const index_type& dimensions)
       : regular_grid(index_type{}, dimensions)
+    {}
+
+    // XXX upon c++14, assert that the intializer_list is of the correct size
+    template<class Size,
+             class = typename std::enable_if<
+               std::is_constructible<index_type, std::initializer_list<Size>>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    regular_grid(std::initializer_list<Size> dimensions)
+      : regular_grid(index_type{dimensions})
     {}
 
     // returns whether or not p is the value of a lattice point
