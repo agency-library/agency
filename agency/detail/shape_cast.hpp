@@ -73,7 +73,7 @@ rebind_point_size_t<
 }
 
 
-// __shape_cast is recursive and has various overloads
+// shape_cast is recursive and has various overloads
 // declare them here before their definitions
 
 // Scalar -> Scalar (base case)
@@ -87,7 +87,7 @@ typename std::enable_if<
   shape_cast(const FromShape& x);
 
 
-// recursive case for casting two shapes of equal size (recursive case)
+// case for casting two shapes of equal size (recursive case)
 template<class ToShape, class FromShape>
 __AGENCY_ANNOTATION
 typename std::enable_if<
@@ -118,7 +118,7 @@ typename std::enable_if<
   shape_cast(const FromShape& x);
 
 
-// definitions of __shape_cast follow
+// definitions of shape_cast follow
 
 
 // terminal case for casting shapes of size 1
