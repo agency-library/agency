@@ -285,9 +285,11 @@ class regular_grid
       return max() - min();
     }
 
-    using index_type = typename std::result_of<
-      decltype(&regular_grid::shape)(regular_grid)
-    >::type;
+    // XXX WAR cudafe perf issue
+    //using index_type = typename std::result_of<
+    //  decltype(&regular_grid::shape)(regular_grid)
+    //>::type;
+    using index_type = decltype(value_type{} - value_type{});
 
     // XXX should create a grid empty of points
     __AGENCY_ANNOTATION
