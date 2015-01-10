@@ -47,11 +47,16 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
 {
   using execution_agent_type = ExecutionAgent;
   using execution_category = typename execution_agent_type::execution_category;
-  using index_type = detail::decay_t<
-    decltype(
-      std::declval<execution_agent_type>().index()
-    )
-  >;
+
+  // XXX we should probably use execution_agent_type::index_type if it exists,
+  //     if not, use the type of the result of .index()
+  // XXX WAR cudafe performance issue
+  //using index_type = detail::decay_t<
+  //  decltype(
+  //    std::declval<execution_agent_type>().index()
+  //  )
+  //>;
+  using index_type = typename execution_agent_type::index_type;
 
   using size_type = detail::decay_t<
     decltype(
