@@ -79,8 +79,7 @@ int main()
 {
   bulk_invoke(grid(2,32), kernel());
 
-  // XXX this takes too long to compile
-  //agency::cuda::bulk_invoke(grid({1,2}, {1,32}), kernel());
+  agency::cuda::bulk_invoke(grid({1,2}, {1,32}), kernel());
 
   return 0;
 }
