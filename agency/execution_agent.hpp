@@ -449,26 +449,29 @@ class execution_group
     using outer_execution_category = typename outer_traits::execution_category;
     using inner_execution_category = typename inner_traits::execution_category;
 
-    using outer_index_type = typename execution_agent_traits<OuterExecutionAgent>::index_type;
-    using inner_index_type = typename execution_agent_traits<InnerExecutionAgent>::index_type;
+    using outer_index_type = typename outer_traits::index_type;
+    using inner_index_type = typename inner_traits::index_type;
 
+  public:
+    using index_type = decltype(
+      __tu::tuple_cat_apply(
+        agency::detail::index_tuple_maker{},
+        agency::detail::make_tuple_if_not_nested<outer_execution_category>(std::declval<outer_index_type>()),
+        agency::detail::make_tuple_if_not_nested<inner_execution_category>(std::declval<inner_index_type>())
+      )
+    );
+
+  private:
     // concatenates an outer index with an inner index
     // returns an index_tuple with arithmetic ops (not a std::tuple)
     // XXX move this into index_tuple.hpp?
     __AGENCY_ANNOTATION
-    static auto index_cat(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
-      -> decltype(
-           __tu::tuple_cat_apply(
-             detail::index_tuple_maker{},
-             detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-             detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
-           )
-         )
+    static index_type index_cat(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
     {
       return __tu::tuple_cat_apply(
-        detail::index_tuple_maker{},
-        detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-        detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+        agency::detail::index_tuple_maker{},
+        agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
+        agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
       );
     }
 
@@ -533,20 +536,10 @@ class execution_group
     }
 
     __AGENCY_ANNOTATION
-    auto index() const
-      -> decltype(
-           index_cat(
-             std::declval<execution_group>().outer().index(),
-             std::declval<execution_group>().inner().index()
-           )
-         )
+    index_type index() const
     {
       return index_cat(this->outer().index(), this->inner().index());
     }
-
-    using index_type = typename std::result_of<
-      decltype(&execution_group::index)(execution_group)
-    >::type;
 
     using domain_type = regular_grid<index_type>;
 
