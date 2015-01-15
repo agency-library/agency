@@ -75,17 +75,26 @@ template<class... Types>
 using last_type = typename last_type_impl<Types...>::type;
 
 
-template<class Result, class... Args>
-struct enable_if_nested_call
-  : enable_if_execution_policy<last_type<Args...>, Result>
+template<class ParamType, class... Args>
+struct is_nested_call
+  : std::integral_constant<
+      bool,
+      is_execution_policy<last_type<Args...>>::value &&
+      is_constructible_from_type_list<
+        ParamType,
+        type_list_drop_last<
+          type_list<Args...>
+        >
+      >::value
+    >
 {};
 
 
-template<class Result, class... Args>
-struct disable_if_nested_call
-  : disable_if_execution_policy<
-      decay_t<last_type<Args...>>,
-      Result
+template<class ParamType, class... Args>
+struct is_flat_call
+  : std::integral_constant<
+      bool,
+      is_constructible_from_type_list<ParamType, type_list<Args...>>::value
     >
 {};
 
@@ -146,7 +155,10 @@ class basic_execution_policy
 
     // this is the flat form of operator()
     template<class Arg1, class... Args>
-    typename detail::disable_if_nested_call<derived_type, Arg1, Args...>::type
+    typename std::enable_if<
+      detail::is_flat_call<param_type, Arg1, Args...>::value,
+      derived_type
+    >::type
       operator()(Arg1&& arg1, Args&&... args) const
     {
       return derived_type{param_type{std::forward<Arg1>(arg1), std::forward<Args>(args)...}, executor()};
@@ -154,12 +166,12 @@ class basic_execution_policy
 
     // this is the nested form of operator()
     template<class Arg1, class... Args>
-    typename detail::enable_if_nested_call<
+    typename std::enable_if<
+      detail::is_nested_call<param_type, Arg1, Args...>::value,
       detail::nested_execution_policy<
         derived_type,
         decay_t<last_type<Arg1,Args...>>
-      >,
-      Arg1, Args...
+      >
     >::type
       operator()(Arg1&& arg1, Args&&... args) const
     {
