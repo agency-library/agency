@@ -175,8 +175,36 @@ class basic_execution_policy :
 
 class parallel_execution_policy : public detail::basic_execution_policy<cuda::parallel_agent, cuda::parallel_executor, parallel_execution_tag, parallel_execution_policy>
 {
+  private:
+    using super_t = detail::basic_execution_policy<cuda::parallel_agent, cuda::parallel_executor, parallel_execution_tag, parallel_execution_policy>;
+
+    using par2d_t = detail::basic_execution_policy<cuda::parallel_agent_2d, cuda::parallel_executor, parallel_execution_tag>;
+
   public:
-    using detail::basic_execution_policy<cuda::parallel_agent, cuda::parallel_executor, parallel_execution_tag, parallel_execution_policy>::basic_execution_policy;
+    using super_t::basic_execution_policy;
+
+    using super_t::operator();
+
+    // XXX consider whether we really want this functionality a member of parallel_execution_policy
+    inline par2d_t operator()(agency::size2 shape) const
+    {
+      par2d_t par2d;
+
+      return par2d(shape);
+    }
+
+    // XXX consider whether we really want this functionality a member of parallel_execution_policy
+    template<class ExecutionPolicy>
+    agency::detail::nested_execution_policy<
+      par2d_t,
+      agency::detail::decay_t<ExecutionPolicy>
+    >
+      operator()(agency::size2 domain, ExecutionPolicy&& exec) const
+    {
+      par2d_t par2d;
+
+      return par2d(domain, std::forward<ExecutionPolicy>(exec));
+    }
 };
 
 
@@ -185,8 +213,36 @@ const parallel_execution_policy par{};
 
 class concurrent_execution_policy : public detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor, concurrent_execution_tag, concurrent_execution_policy>
 {
+  private:
+    using super_t = detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor, concurrent_execution_tag, concurrent_execution_policy>;
+
+    using con2d_t = detail::basic_execution_policy<cuda::concurrent_agent_2d, cuda::block_executor, concurrent_execution_tag>;
+
   public:
-    using detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor, concurrent_execution_tag, concurrent_execution_policy>::basic_execution_policy;
+    using super_t::basic_execution_policy;
+
+    using super_t::operator();
+
+    // XXX consider whether we really want this functionality a member of concurrent_execution_policy
+    inline con2d_t operator()(agency::size2 shape) const
+    {
+      con2d_t con2d;
+
+      return con2d(shape);
+    }
+
+    // XXX consider whether we really want this functionality a member of concurrent_execution_policy
+    template<class ExecutionPolicy>
+    agency::detail::nested_execution_policy<
+      con2d_t,
+      agency::detail::decay_t<ExecutionPolicy>
+    >
+      operator()(agency::size2 domain, ExecutionPolicy&& exec) const
+    {
+      con2d_t con2d;
+
+      return con2d(domain, std::forward<ExecutionPolicy>(exec));
+    }
 };
 
 
@@ -254,6 +310,13 @@ struct rebind_executor_impl<
 
 
 // specialize is_execution_policy
+template<class ExecutionAgent,
+         class BulkExecutor,
+         class ExecutionCategory,
+         class DerivedExecutionPolicy>
+struct is_execution_policy<cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>> : std::true_type {};
+
+
 template<>
 struct is_execution_policy<cuda::parallel_execution_policy> : std::true_type {};
 
