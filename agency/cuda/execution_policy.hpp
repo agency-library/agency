@@ -7,8 +7,8 @@
 #include <type_traits>
 #include <agency/cuda/execution_agent.hpp>
 #include <agency/cuda/grid_executor.hpp>
-#include <agency/cuda/block_executor.hpp>
 #include <agency/cuda/parallel_executor.hpp>
+#include <agency/cuda/concurrent_executor.hpp>
 #include <agency/cuda/nested_executor.hpp>
 #include <agency/cuda/detail/bind.hpp>
 
@@ -211,12 +211,12 @@ class parallel_execution_policy : public detail::basic_execution_policy<cuda::pa
 const parallel_execution_policy par{};
 
 
-class concurrent_execution_policy : public detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor, concurrent_execution_tag, concurrent_execution_policy>
+class concurrent_execution_policy : public detail::basic_execution_policy<cuda::concurrent_agent, cuda::concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<cuda::concurrent_agent, cuda::block_executor, concurrent_execution_tag, concurrent_execution_policy>;
+    using super_t = detail::basic_execution_policy<cuda::concurrent_agent, cuda::concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>;
 
-    using con2d_t = detail::basic_execution_policy<cuda::concurrent_agent_2d, cuda::block_executor, concurrent_execution_tag>;
+    using con2d_t = detail::basic_execution_policy<cuda::concurrent_agent_2d, cuda::concurrent_executor, concurrent_execution_tag>;
 
   public:
     using super_t::basic_execution_policy;
@@ -289,7 +289,7 @@ struct rebind_executor_impl<
 };
 
 
-// specialize rebind_executor for cuda::block_executor
+// specialize rebind_executor for cuda::concurrent_executor
 template<class ExecutionPolicy>
 struct rebind_executor_impl<
   ExecutionPolicy,
@@ -333,7 +333,7 @@ struct rebind_executor<ExecutionPolicy, cuda::grid_executor>
 
 
 template<class ExecutionPolicy>
-struct rebind_executor<ExecutionPolicy, cuda::block_executor>
+struct rebind_executor<ExecutionPolicy, cuda::concurrent_executor>
 {
   using type = typename cuda::detail::rebind_executor_impl<ExecutionPolicy>::type;
 };
