@@ -54,7 +54,7 @@ class default_delete
 
 #ifndef __CUDA_ARCH__
       // we're executing on the host; launch a kernel to call the destructor
-      detail::launch_kernel(reinterpret_cast<void*>(kernel), ::uint2{1,1}, 0, stream(), ptr);
+      detail::launch_kernel(reinterpret_cast<void*>(kernel), ::dim3{1,1,1}, ::dim3{1,1,1}, 0, stream(), ptr);
 #else
       // we're executing on the device; just call the destructor directly
       ptr->~T();
@@ -151,7 +151,7 @@ unique_ptr<T> make_unique(cudaStream_t s, Args&&... args)
 
 #ifndef __CUDA_ARCH__
   // we're executing on the host; launch a kernel to call the destructor
-  detail::checked_launch_kernel(reinterpret_cast<void*>(kernel), ::uint2{1,1}, 0, s, result.get(), std::forward<Args>(args)...);
+  detail::checked_launch_kernel(reinterpret_cast<void*>(kernel), ::dim3{1,1,1}, ::dim3{1,1,1}, 0, s, result.get(), std::forward<Args>(args)...);
 #else
   // we're executing on the device; just placement new directly
   ::new(result.get()) T(std::forward<Args>(args)...);

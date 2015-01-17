@@ -40,14 +40,14 @@ auto first_parameter(Arg1&& arg1, Args&&... args)
 
 template<typename... Args>
 __host__ __device__
-cudaError_t triple_chevrons(void* kernel, ::uint2 shape, int shared_memory_size, cudaStream_t stream, const Args&... args)
+cudaError_t triple_chevrons(void* kernel, ::dim3 grid_dim, ::dim3 block_dim, int shared_memory_size, cudaStream_t stream, const Args&... args)
 {
   // reference the kernel to encourage the compiler not to optimize it away
   workaround_unused_variable_warning(kernel);
 
 #if __cuda_lib_has_cudart
 #  ifndef __CUDA_ARCH__
-  cudaConfigureCall(dim3(shape.x), dim3(shape.y), shared_memory_size, stream);
+  cudaConfigureCall(grid_dim, block_dim, shared_memory_size, stream);
   setup_kernel_arguments(0, args...);
   return cudaLaunch(kernel);
 #  else
@@ -61,7 +61,7 @@ cudaError_t triple_chevrons(void* kernel, ::uint2 shape, int shared_memory_size,
 
   void *param_buffer = cudaGetParameterBuffer(std::alignment_of<Arg>::value, sizeof(Arg));
   std::memcpy(param_buffer, &first_parameter(args...), sizeof(Arg));
-  return cudaLaunchDevice(kernel, param_buffer, dim3(shape.x), dim3(shape.y), shared_memory_size, stream);
+  return cudaLaunchDevice(kernel, param_buffer, grid_dim, block_dim, shared_memory_size, stream);
 #  endif // __CUDA_ARCH__
 #else // __cuda_lib_has_cudart
   return cudaErrorNotSupported;
@@ -71,21 +71,21 @@ cudaError_t triple_chevrons(void* kernel, ::uint2 shape, int shared_memory_size,
 
 template<class... Args>
 __host__ __device__
-cudaError_t launch_kernel(void* kernel, ::uint2 shape, int shared_memory_size, cudaStream_t stream, const Args&... args)
+cudaError_t launch_kernel(void* kernel, ::dim3 grid_dim, ::dim3 block_dim, int shared_memory_size, cudaStream_t stream, const Args&... args)
 {
   struct workaround
   {
     __host__ __device__
-    static cudaError_t supported_path(void* kernel, ::uint2 shape, int shared_memory_size, cudaStream_t stream, const Args&... args)
+    static cudaError_t supported_path(void* kernel, ::dim3 grid_dim, ::dim3 block_dim, int shared_memory_size, cudaStream_t stream, const Args&... args)
     {
       // reference the kernel to encourage the compiler not to optimize it away
       workaround_unused_variable_warning(kernel);
 
-      return triple_chevrons(kernel, shape, shared_memory_size, stream, args...);
+      return triple_chevrons(kernel, grid_dim, block_dim, shared_memory_size, stream, args...);
     }
 
     __host__ __device__
-    static cudaError_t unsupported_path(void* kernel, ::uint2, int, cudaStream_t, const Args&...)
+    static cudaError_t unsupported_path(void* kernel, ::dim3, ::dim3, int, cudaStream_t, const Args&...)
     {
       // reference the kernel to encourage the compiler not to optimize it away
       workaround_unused_variable_warning(kernel);
@@ -95,9 +95,9 @@ cudaError_t launch_kernel(void* kernel, ::uint2 shape, int shared_memory_size, c
   };
 
 #if __cuda_lib_has_cudart
-  cudaError_t result = workaround::supported_path(kernel, shape, shared_memory_size, stream, args...);
+  cudaError_t result = workaround::supported_path(kernel, grid_dim, block_dim, shared_memory_size, stream, args...);
 #else
-  cudaError_t result = workaround::unsupported_path(kernel, shape, shared_memory_size, stream, args...);
+  cudaError_t result = workaround::unsupported_path(kernel, grid_dim, block_dim, shared_memory_size, stream, args...);
 #endif
 
   return result;
@@ -106,7 +106,7 @@ cudaError_t launch_kernel(void* kernel, ::uint2 shape, int shared_memory_size, c
 
 template<class... Args>
 __host__ __device__
-void checked_launch_kernel(void* kernel, ::uint2 shape, int shared_memory_size, cudaStream_t stream, const Args&... args)
+void checked_launch_kernel(void* kernel, ::dim3 grid_dim, ::dim3 block_dim, int shared_memory_size, cudaStream_t stream, const Args&... args)
 {
   // the error message we return depends on how the program was compiled
   const char* error_message = 
@@ -127,13 +127,13 @@ void checked_launch_kernel(void* kernel, ::uint2 shape, int shared_memory_size, 
 #endif
   ;
 
-  throw_on_error(launch_kernel(kernel, shape, shared_memory_size, stream, args...), error_message);
+  throw_on_error(launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream, args...), error_message);
 }
 
 
 template<class... Args>
 __host__ __device__
-void checked_launch_kernel_on_device(void* kernel, ::uint2 shape, int shared_memory_size, cudaStream_t stream, int device, const Args&... args)
+void checked_launch_kernel_on_device(void* kernel, ::dim3 grid_dim, ::dim3 block_dim, int shared_memory_size, cudaStream_t stream, int device, const Args&... args)
 {
 #if __cuda_lib_has_cudart
   // record the current device
@@ -159,7 +159,7 @@ void checked_launch_kernel_on_device(void* kernel, ::uint2 shape, int shared_mem
   throw_on_error(cudaErrorNotSupported, error_message);
 #endif // __cuda_lib_has_cudart
 
-  checked_launch_kernel(kernel, shape, shared_memory_size, stream, args...);
+  checked_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream, args...);
 
 #if __cuda_lib_has_cudart
   // restore the device

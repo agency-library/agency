@@ -23,6 +23,8 @@
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/coordinate.hpp>
+#include <agency/detail/shape_cast.hpp>
+#include <agency/detail/index_tuple.hpp>
 
 
 namespace agency
@@ -95,11 +97,10 @@ struct copy_outer_shared_parameter
 };
 
 
-template<class Function>
+template<class ThisIndexFunction, class Function>
 __global__ void grid_executor_kernel(Function f)
 {
-  agency::uint2 idx{blockIdx.x, threadIdx.x};
-  f(idx);
+  f(ThisIndexFunction{}());
 }
 
 
@@ -111,11 +112,8 @@ void grid_executor_notify(cudaStream_t stream, cudaError_t status, void* data)
 }
 
 
-} // end detail
-
-
-// grid_executor is a BulkExecutor implemented with CUDA kernel launch
-class grid_executor
+template<class Shape, class Index, class ThisIndexFunction>
+class basic_grid_executor
 {
   public:
     using execution_category =
@@ -125,24 +123,18 @@ class grid_executor
       >;
 
 
-    // XXX shape_type might not be the right name
-    //     shape_type is a Tuple-like collection of size_types
-    //     the value of each each element specifies the size of a node in the execution hierarchy
-    //     the tuple_size<shape_type> must be the same as the nesting depth of execution_category
-    using shape_type = agency::uint2;
+    using shape_type = Shape;
 
 
-    // this is the type of the parameter handed to functions invoked through bulk_add()
-    // XXX threadIdx.x is actually an int
-    //     maybe we need to make this int2
-    using index_type = agency::uint2;
+    using index_type = Index;
+
 
     template<class Tuple>
     using shared_param_type = detail::tuple_of_references_t<Tuple>;
 
 
     __host__ __device__
-    explicit grid_executor(int shared_memory_size = 0, cudaStream_t stream = 0, gpu_id gpu = detail::current_gpu())
+    explicit basic_grid_executor(int shared_memory_size = 0, cudaStream_t stream = 0, gpu_id gpu = detail::current_gpu())
       : shared_memory_size_(shared_memory_size),
         stream_(stream),
         gpu_(gpu)
@@ -167,53 +159,6 @@ class grid_executor
     gpu_id gpu() const
     {
       return gpu_;
-    }
-
-
-    template<class Function>
-    __host__ __device__
-    shape_type max_shape(Function) const
-    {
-      shape_type result = {0,0};
-
-      auto fun_ptr = global_function_pointer<Function>();
-      detail::workaround_unused_variable_warning(fun_ptr);
-
-#if __cuda_lib_has_cudart
-      // record the current device
-      int current_device = 0;
-      detail::throw_on_error(cudaGetDevice(&current_device), "cuda::grid_executor::max_shape(): cudaGetDevice()");
-      if(current_device != gpu().native_handle())
-      {
-#  ifndef __CUDA_ARCH__
-        detail::throw_on_error(cudaSetDevice(gpu().native_handle()), "cuda::grid_executor::max_shape(): cudaSetDevice()");
-#  else
-        detail::throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
-#  endif // __CUDA_ARCH__
-      }
-
-      int max_block_dimension_x = 0;
-      detail::throw_on_error(cudaDeviceGetAttribute(&max_block_dimension_x, cudaDevAttrMaxBlockDimX, gpu().native_handle()),
-                             "cuda::grid_executor::max_shape(): cudaDeviceGetAttribute");
-
-      cudaFuncAttributes attr{};
-      detail::throw_on_error(cudaFuncGetAttributes(&attr, fun_ptr),
-                             "cuda::grid_executor::max_shape(): cudaFuncGetAttributes");
-
-      // restore current device
-      if(current_device != gpu().native_handle())
-      {
-#  ifndef __CUDA_ARCH__
-        detail::throw_on_error(cudaSetDevice(current_device), "cuda::grid_executor::max_shape(): cudaSetDevice()");
-#  else
-        detail::throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
-#  endif // __CUDA_ARCH__
-      }
-
-      result = shape_type{static_cast<unsigned int>(max_block_dimension_x), static_cast<unsigned int>(attr.maxThreadsPerBlock)};
-#endif // __cuda_lib_has_cudart
-
-      return result;
     }
 
 
@@ -253,7 +198,7 @@ class grid_executor
       // copy construct the outer shared arg
       // XXX do this asynchronously
       //     don't do this if outer_shared_type is agency::detail::ignore
-      bulk_invoke(detail::copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg_ptr.get(), outer_shared_arg), shape_type{1,1});
+      bulk_invoke(detail::copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg_ptr.get(), outer_shared_arg), agency::detail::shape_cast<shape_type>(1));
 
       // wrap up f in a thing that will marshal the shared arguments to it
       // note the .release()
@@ -305,14 +250,13 @@ class grid_executor
       return bulk_invoke(g, shape);
     }
 
-
     // this is exposed because it's necessary if a client wants to compute occupancy
     // alternatively, cuda_executor could report occupancy of a Function for a given block size
     template<class Function>
     __host__ __device__
-    static decltype(&detail::grid_executor_kernel<Function>) global_function_pointer()
+    static decltype(&detail::grid_executor_kernel<ThisIndexFunction,Function>) global_function_pointer()
     {
-      return &detail::grid_executor_kernel<Function>;
+      return &detail::grid_executor_kernel<ThisIndexFunction, Function>;
     }
 
 
@@ -344,9 +288,13 @@ class grid_executor
     {
       void* kernel = reinterpret_cast<void*>(global_function_pointer<Function>());
 
-      ::uint2 cuda_shape = ::make_uint2(agency::detail::get<0>(shape), agency::detail::get<1>(shape));
+      uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
+      uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
 
-      detail::checked_launch_kernel_on_device(kernel, cuda_shape, shared_memory_size, stream, gpu.native_handle(), f);
+      ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
+      ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
+
+      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, stream, gpu.native_handle(), f);
     }
 
     int shared_memory_size_;
@@ -355,9 +303,113 @@ class grid_executor
 };
 
 
+struct this_index_1d
+{
+  __device__
+  agency::uint2 operator()() const
+  {
+    return agency::uint2{blockIdx.x, threadIdx.x};
+  }
+};
+
+
+struct this_index_2d
+{
+  __device__
+  agency::point<agency::uint2,2> operator()() const
+  {
+    auto block = agency::uint2{blockIdx.x, blockIdx.y};
+    auto thread = agency::uint2{threadIdx.x, threadIdx.y};
+    return agency::point<agency::uint2,2>{block, thread};
+  }
+};
+
+
+} // end detail
+
+
+class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::uint2, detail::this_index_1d>
+{
+  public:
+    using detail::basic_grid_executor<agency::uint2, agency::uint2, detail::this_index_1d>::basic_grid_executor;
+
+    template<class Function>
+    __host__ __device__
+    shape_type max_shape(Function) const
+    {
+      shape_type result = {0,0};
+
+      auto fun_ptr = global_function_pointer<Function>();
+      detail::workaround_unused_variable_warning(fun_ptr);
+
+#if __cuda_lib_has_cudart
+      // record the current device
+      int current_device = 0;
+      detail::throw_on_error(cudaGetDevice(&current_device), "cuda::grid_executor::max_shape(): cudaGetDevice()");
+      if(current_device != gpu().native_handle())
+      {
+#  ifndef __CUDA_ARCH__
+        detail::throw_on_error(cudaSetDevice(gpu().native_handle()), "cuda::grid_executor::max_shape(): cudaSetDevice()");
+#  else
+        detail::throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
+#  endif // __CUDA_ARCH__
+      }
+
+      int max_block_dimension_x = 0;
+      detail::throw_on_error(cudaDeviceGetAttribute(&max_block_dimension_x, cudaDevAttrMaxBlockDimX, gpu().native_handle()),
+                             "cuda::grid_executor::max_shape(): cudaDeviceGetAttribute");
+
+      cudaFuncAttributes attr{};
+      detail::throw_on_error(cudaFuncGetAttributes(&attr, fun_ptr),
+                             "cuda::grid_executor::max_shape(): cudaFuncGetAttributes");
+
+      // restore current device
+      if(current_device != gpu().native_handle())
+      {
+#  ifndef __CUDA_ARCH__
+        detail::throw_on_error(cudaSetDevice(current_device), "cuda::grid_executor::max_shape(): cudaSetDevice()");
+#  else
+        detail::throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
+#  endif // __CUDA_ARCH__
+      }
+
+      result = shape_type{static_cast<unsigned int>(max_block_dimension_x), static_cast<unsigned int>(attr.maxThreadsPerBlock)};
+#endif // __cuda_lib_has_cudart
+
+      return result;
+    }
+};
+
+
 template<class Function, class... Args>
 __host__ __device__
 void bulk_invoke(grid_executor& ex, typename grid_executor::shape_type shape, Function&& f, Args&&... args)
+{
+  auto g = detail::bind(std::forward<Function>(f), thrust::placeholders::_1, std::forward<Args>(args)...);
+  ex.bulk_invoke(g, shape);
+}
+
+
+class grid_executor_2d : public detail::basic_grid_executor<
+  point<agency::uint2,2>,
+  point<agency::uint2,2>,
+  detail::this_index_2d
+>
+{
+  public:
+    using detail::basic_grid_executor<
+      point<agency::uint2,2>,
+      point<agency::uint2,2>,
+      detail::this_index_2d
+    >::basic_grid_executor;
+
+    // XXX implement max_shape()
+};
+
+
+template<class Function, class... Args>
+__host__ __device__
+void bulk_invoke(grid_executor_2d& ex, typename grid_executor_2d::shape_type shape, Function&& f, Args&&... args)
 {
   auto g = detail::bind(std::forward<Function>(f), thrust::placeholders::_1, std::forward<Args>(args)...);
   ex.bulk_invoke(g, shape);
