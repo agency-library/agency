@@ -98,16 +98,16 @@ using int9  = point<int,9>;
 using int10 = point<int,10>;
 
 
-using uint1  = point<int,1>;
-using uint2  = point<int,2>;
-using uint3  = point<int,3>;
-using uint4  = point<int,4>;
-using uint5  = point<int,5>;
-using uint6  = point<int,6>;
-using uint7  = point<int,7>;
-using uint8  = point<int,8>;
-using uint9  = point<int,9>;
-using uint10 = point<int,10>;
+using uint1  = point<unsigned int,1>;
+using uint2  = point<unsigned int,2>;
+using uint3  = point<unsigned int,3>;
+using uint4  = point<unsigned int,4>;
+using uint5  = point<unsigned int,5>;
+using uint6  = point<unsigned int,6>;
+using uint7  = point<unsigned int,7>;
+using uint8  = point<unsigned int,8>;
+using uint9  = point<unsigned int,9>;
+using uint10 = point<unsigned int,10>;
 
 
 using size1  = point<size_t,1>;
