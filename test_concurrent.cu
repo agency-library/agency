@@ -17,7 +17,7 @@ struct functor
 
 int main()
 {
-  agency::cuda::block_executor gpu;
+  agency::cuda::concurrent_executor gpu;
   
   agency::bulk_invoke(agency::con(10).on(gpu), functor());
 
