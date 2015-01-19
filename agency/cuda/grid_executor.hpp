@@ -77,23 +77,67 @@ struct function_with_shared_arguments
 };
 
 
-template<class OuterSharedType>
-struct copy_outer_shared_parameter
+template<class Function, class InnerSharedType>
+struct function_with_shared_arguments<Function,agency::detail::ignore_t,InnerSharedType>
 {
   __host__ __device__
-  copy_outer_shared_parameter(OuterSharedType* outer_shared_ptr, const OuterSharedType& outer_shared_init)
-    : outer_shared_ptr_(outer_shared_ptr),
-      outer_shared_init_(outer_shared_init)
+  function_with_shared_arguments(Function f, agency::detail::ignore_t, InnerSharedType inner_shared_init)
+    : f_(f),
+      inner_shared_init_(inner_shared_init)
   {}
 
   __device__
-  void operator()(agency::uint2)
+  void operator()(const agency::uint2 idx)
   {
-    new (outer_shared_ptr_) OuterSharedType(outer_shared_init_);
+    // XXX can't rely on a default constructor
+    __shared__ uninitialized<InnerSharedType> inner_param;
+
+    // initialize the inner shared parameter
+    if(idx[1] == 0)
+    {
+      inner_param.construct(inner_shared_init_);
+    }
+    __syncthreads();
+
+    agency::detail::ignore_t ignore;
+    tuple<agency::detail::ignore_t&,InnerSharedType&> shared_params(ignore, inner_param);
+
+    f_(idx, shared_params);
+
+    __syncthreads();
+
+    // destroy the inner shared parameter
+    if(idx[1] == 0)
+    {
+      inner_param.destroy();
+    }
   }
 
-  OuterSharedType* outer_shared_ptr_;
-  OuterSharedType  outer_shared_init_;
+  Function         f_;
+  InnerSharedType  inner_shared_init_;
+};
+
+
+template<class Function, class OuterSharedType>
+struct function_with_shared_arguments<Function,OuterSharedType,agency::detail::ignore_t>
+{
+  __host__ __device__
+  function_with_shared_arguments(Function f, OuterSharedType* outer_ptr, agency::detail::ignore_t)
+    : f_(f),
+      outer_ptr_(outer_ptr)
+  {}
+
+  __device__
+  void operator()(const agency::uint2 idx)
+  {
+    agency::detail::ignore_t ignore;
+    tuple<OuterSharedType&,agency::detail::ignore_t&> shared_params(*outer_ptr_, ignore);
+
+    f_(idx, shared_params);
+  }
+
+  Function         f_;
+  OuterSharedType* outer_ptr_;
 };
 
 
@@ -182,27 +226,17 @@ class basic_grid_executor
       return result;
     }
 
-
-    template<class Function, class Tuple>
-    std::future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
+  private:
+    // case where we have actual inner & outer shared parameters 
+    template<class Function, class T1, class T2>
+    std::future<void> bulk_async_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg)
     {
-      auto outer_shared_arg = agency::detail::get<0>(shared_arg_tuple);
-      auto inner_shared_arg = agency::detail::get<1>(shared_arg_tuple);
-
-      using outer_shared_type = decltype(outer_shared_arg);
-      using inner_shared_type = decltype(inner_shared_arg);
-
-      // allocate outer shared argument
-      auto outer_shared_arg_ptr = detail::make_unique<outer_shared_type>(stream(), outer_shared_arg);
-
-      // copy construct the outer shared arg
-      // XXX do this asynchronously
-      //     don't do this if outer_shared_type is agency::detail::ignore
-      bulk_invoke(detail::copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg_ptr.get(), outer_shared_arg), agency::detail::shape_cast<shape_type>(1));
+      // make outer shared argument
+      auto outer_shared_arg_ptr = detail::make_unique<T1>(stream(), outer_shared_arg);
 
       // wrap up f in a thing that will marshal the shared arguments to it
       // note the .release()
-      auto g = detail::function_with_shared_arguments<Function, outer_shared_type, inner_shared_type>(f, outer_shared_arg_ptr.release(), inner_shared_arg);
+      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_arg_ptr.release(), inner_shared_arg);
 
       // XXX to deallocate & destroy the outer_shared_arg, we need to do a bulk_async(...).then(...)
       //     for now it just leaks :(
@@ -210,11 +244,57 @@ class basic_grid_executor
       return bulk_async(g, shape);
     }
 
+    // case where we have only inner shared parameter
+    template<class Function, class T>
+    std::future<void> bulk_async_with_shared_args(Function f, shape_type shape, agency::detail::ignore_t ignore, const T& inner_shared_arg)
+    {
+      // wrap up f in a thing that will marshal the shared arguments to it
+      auto g = detail::function_with_shared_arguments<Function, agency::detail::ignore_t, T>(f, ignore, inner_shared_arg);
+
+      return bulk_async(g, shape);
+    }
+
+    // case where we have only outer shared parameter
+    template<class Function, class T>
+    std::future<void> bulk_async_with_shared_args(Function f, shape_type shape, const T& outer_shared_arg, agency::detail::ignore_t ignore)
+    {
+      // make outer shared argument
+      auto outer_shared_arg_ptr = detail::make_unique<T>(stream(), outer_shared_arg);
+
+      // wrap up f in a thing that will marshal the shared arguments to it
+      // note the .release()
+      auto g = detail::function_with_shared_arguments<Function, T, agency::detail::ignore_t>(f, outer_shared_arg_ptr.release(), ignore);
+
+      // XXX to deallocate & destroy the outer_shared_arg, we need to do a bulk_async(...).then(...)
+      //     for now it just leaks :(
+
+      return bulk_async(g, shape);
+    }
+
+    // case where we have no actual shared parameters
+    template<class Function>
+    std::future<void> bulk_async_with_shared_args(Function f, shape_type shape, agency::detail::ignore_t, agency::detail::ignore_t)
+    {
+      return bulk_async(f, shape);
+    }
+
+  public:
+    template<class Function, class Tuple>
+    std::future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
+    {
+      auto outer_shared_arg = agency::detail::get<0>(shared_arg_tuple);
+      auto inner_shared_arg = agency::detail::get<1>(shared_arg_tuple);
+
+      return bulk_async_with_shared_args(f, shape, outer_shared_arg, inner_shared_arg);
+    }
+
 
     template<class Function>
     __host__ __device__
     void bulk_invoke(Function f, shape_type shape)
     {
+      // XXX bulk_invoke() needs to be implemented with a lowering to bulk_async
+      //     do this when we switch to executor-specific futures instead of std::future
 #ifndef __CUDA_ARCH__
       bulk_async(f, shape).wait();
 #else
@@ -227,27 +307,67 @@ class basic_grid_executor
     }
 
 
+  private:
+    // case where we have actual inner & outer shared parameters 
+    template<class Function, class T1, class T2>
+    __host__ __device__
+    void bulk_invoke_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg)
+    {
+      // make outer shared argument
+      auto outer_shared_arg_ptr = detail::make_unique<T1>(stream(), outer_shared_arg);
+
+      // wrap up f in a thing that will marshal the shared arguments to it
+      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_arg_ptr.get(), inner_shared_arg);
+
+      return bulk_invoke(g, shape);
+    }
+
+    // case where we have only inner shared parameter
+    template<class Function, class T>
+    __host__ __device__
+    void bulk_invoke_with_shared_args(Function f, shape_type shape, agency::detail::ignore_t ignore, const T& inner_shared_arg)
+    {
+      // wrap up f in a thing that will marshal the shared arguments to it
+      auto g = detail::function_with_shared_arguments<Function, agency::detail::ignore_t, T>(f, ignore, inner_shared_arg);
+
+      return bulk_invoke(g, shape);
+    }
+
+    // case where we have only outer shared parameter
+    template<class Function, class T>
+    __host__ __device__
+    void bulk_invoke_with_shared_args(Function f, shape_type shape, const T& outer_shared_arg, agency::detail::ignore_t ignore)
+    {
+      // make outer shared argument
+      auto outer_shared_arg_ptr = detail::make_unique<T>(stream(), outer_shared_arg);
+
+      // wrap up f in a thing that will marshal the shared arguments to it
+      auto g = detail::function_with_shared_arguments<Function, T, agency::detail::ignore_t>(f, outer_shared_arg_ptr.get(), ignore);
+
+      return bulk_invoke(g, shape);
+    }
+
+    // case where we have no actual shared parameters
+    template<class Function>
+    __host__ __device__
+    void bulk_invoke_with_shared_args(Function f, shape_type shape, agency::detail::ignore_t, agency::detail::ignore_t)
+    {
+      return bulk_invoke(f, shape);
+    }
+
+
+  public:
     template<class Function, class Tuple>
     __host__ __device__
     void bulk_invoke(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
+      // XXX bulk_invoke() needs to be implemented with a lowering to bulk_async
+      //     do this when we switch to executor-specific futures instead of std::future
+
       auto outer_shared_arg = agency::detail::get<0>(shared_arg_tuple);
       auto inner_shared_arg = agency::detail::get<1>(shared_arg_tuple);
 
-      using outer_shared_type = decltype(outer_shared_arg);
-      using inner_shared_type = decltype(inner_shared_arg);
-
-      // allocate outer shared argument
-      auto outer_shared_arg_ptr = detail::make_unique<outer_shared_type>(stream(), outer_shared_arg);
-
-      // copy construct the outer shared arg
-      // XXX don't do this if outer_shared_type is agency::detail::ignore
-      bulk_invoke(detail::copy_outer_shared_parameter<outer_shared_type>(outer_shared_arg_ptr.get(), outer_shared_arg), shape_type{1,1});
-
-      // wrap up f in a thing that will marshal the shared arguments to it
-      auto g = detail::function_with_shared_arguments<Function, outer_shared_type, inner_shared_type>(f, outer_shared_arg_ptr.get(), inner_shared_arg);
-
-      return bulk_invoke(g, shape);
+      return bulk_invoke_with_shared_args(f, shape, outer_shared_arg, inner_shared_arg);
     }
 
     // this is exposed because it's necessary if a client wants to compute occupancy
