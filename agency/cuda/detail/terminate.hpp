@@ -3,6 +3,8 @@
 #include <exception>
 #include <cstdio>
 #include <agency/cuda/detail/feature_test.hpp>
+#include <thrust/system_error.h>
+#include <thrust/system/cuda/error.h>
 
 
 namespace agency
