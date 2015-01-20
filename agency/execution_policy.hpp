@@ -1,6 +1,5 @@
 #pragma once
 
-#include <future>
 #include <utility>
 #include <functional>
 #include <type_traits>
@@ -241,13 +240,24 @@ void bulk_invoke_impl(ExecutionCategory1,
 }
 
 
+// gets the type of future bulk_async() returns
+template<class ExecutionPolicy, class T>
+using future = typename executor_traits<
+  typename ExecutionPolicy::executor_type
+>::template future<T>;
+
+
 // ExecutionCategory1 corresponds to the category of the executor
 // XXX ExecutionCategory2 corresponds to the category of the policy
 // XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
 template<class ExecutionCategory1, class ExecutionAgent, class BulkExecutor, class ExecutionCategory2, class DerivedExecutionPolicy, class Function>
-std::future<void> bulk_async_impl(ExecutionCategory1,
-                                  const basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2,DerivedExecutionPolicy>& exec,
-                                  Function f)
+future<
+  basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2,DerivedExecutionPolicy>,
+  void
+>
+  bulk_async_impl(ExecutionCategory1,
+                  const basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2,DerivedExecutionPolicy>& exec,
+                  Function f)
 {
   using traits = execution_agent_traits<ExecutionAgent>;
 
@@ -427,7 +437,13 @@ bulk_invoke(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 
 
 template<class ExecutionPolicy, class Function, class... Args>
-typename detail::enable_if_execution_policy<detail::decay_t<ExecutionPolicy>,std::future<void>>::type
+typename detail::enable_if_execution_policy<
+  detail::decay_t<ExecutionPolicy>,
+  detail::future<
+    detail::decay_t<ExecutionPolicy>,
+    void
+  >
+>::type
 bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
 {
   // XXX the execution_category we dispatch on should be the category of the policy's executor

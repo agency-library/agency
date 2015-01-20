@@ -1,5 +1,6 @@
 #pragma once
 
+#include <future>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/tuple_of_references.hpp>
 #include <agency/execution_categories.hpp>
@@ -51,12 +52,40 @@ struct executor_traits
       detail::identity<index_type>
     >::type;
 
+  private:
+    template<class T, class U>
+    struct has_future_impl
+    {
+      template<class> static std::false_type test(...);
+      template<class X> static std::true_type  test(typename X::template future<U>* = 0);
+
+      using type = decltype(test<T>(0));
+    };
+    
+    template<class T, class U>
+    struct has_future : has_future_impl<T,U>::type {};
+
+    template<class T, class U, bool = has_future<T,U>::value>
+    struct executor_future
+    {
+      using type = typename T::template future<U>;
+    };
+
+    template<class T, class U>
+    struct executor_future<T,U,false>
+    {
+      using type = std::future<U>;
+    };
+
+  public:
+    template<class T>
+    using future = typename executor_future<executor_type,T>::type;
 
     // XXX we could make .bulk_async(f, shape, shared_arg) optional
     //     the default implementation could create a launcher agent to own the shared arg and wait for the
     //     workers
     template<class Function, class T>
-    static std::future<void> bulk_async(executor_type& ex, Function f, shape_type shape, T shared_arg)
+    static future<void> bulk_async(executor_type& ex, Function f, shape_type shape, T shared_arg)
     {
       return ex.bulk_async(f, shape, shared_arg);
     }
@@ -83,13 +112,13 @@ struct executor_traits
     using has_bulk_async = typename test_for_bulk_async<Function>::type;
 
     template<class Function>
-    static std::future<void> bulk_async_impl(executor_type& ex, Function f, shape_type shape, std::true_type)
+    static future<void> bulk_async_impl(executor_type& ex, Function f, shape_type shape, std::true_type)
     {
       return ex.bulk_async(f, shape);
     }
 
     template<class Function>
-    static std::future<void> bulk_async_impl(executor_type& ex, Function f, shape_type shape, std::false_type)
+    static future<void> bulk_async_impl(executor_type& ex, Function f, shape_type shape, std::false_type)
     {
       return bulk_async(ex, [=](index_type index, const shape_type&) mutable
       {
@@ -101,7 +130,7 @@ struct executor_traits
 
   public:
     template<class Function>
-    static std::future<void> bulk_async(executor_type& ex, Function f, shape_type shape)
+    static future<void> bulk_async(executor_type& ex, Function f, shape_type shape)
     {
       return bulk_async_impl(ex, f, shape, has_bulk_async<Function>());
     }
@@ -245,10 +274,11 @@ struct executor_traits
 
 
 template<class Executor, class Function, class... Args>
-std::future<void> bulk_async(Executor& ex,
-                             typename executor_traits<Executor>::shape_type shape,
-                             Function&& f,
-                             Args&&... args)
+typename executor_traits<Executor>::template future<void>
+  bulk_async(Executor& ex,
+             typename executor_traits<Executor>::shape_type shape,
+             Function&& f,
+             Args&&... args)
 {
   auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...);
   return executor_traits<Executor>::bulk_async(ex, f, shape);

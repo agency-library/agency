@@ -48,6 +48,9 @@ class block_executor : private grid_executor
     using shape_type = unsigned int;
     using index_type = unsigned int;
 
+    template<class T>
+    using future = typename traits::template future<T>;
+
     using super_t::super_t;
     using super_t::shared_memory_size;
     using super_t::stream;
@@ -63,7 +66,7 @@ class block_executor : private grid_executor
 
   public:
     template<class Function>
-    std::future<void> bulk_async(Function f, shape_type shape)
+    future<void> bulk_async(Function f, shape_type shape)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
       return traits::bulk_async(g, super_t::shape_type{1,shape});
@@ -77,7 +80,7 @@ class block_executor : private grid_executor
     }
 
     template<class Function, class T>
-    std::future<void> bulk_async(Function f, shape_type shape, T shared_arg)
+    future<void> bulk_async(Function f, shape_type shape, T shared_arg)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
       return traits::bulk_async(*this, g, super_t::shape_type{1,shape}, thrust::make_tuple(agency::detail::ignore, shared_arg));
