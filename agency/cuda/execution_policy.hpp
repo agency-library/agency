@@ -258,7 +258,8 @@ void bulk_invoke(const ExecutionPolicy& exec, Function&& f, Args&&... args)
 
 
 template<class ExecutionPolicy, class Function, class... Args>
-std::future<void> bulk_async(const ExecutionPolicy& exec, Function&& f, Args&&... args)
+agency::detail::future<ExecutionPolicy,void>
+  bulk_async(const ExecutionPolicy& exec, Function&& f, Args&&... args)
 {
   std::cout << "cuda::bulk_async(ExecutionPolicy): implement me!" << std::endl;
   return agency::detail::make_ready_future();
@@ -419,19 +420,31 @@ void bulk_invoke(const cuda::concurrent_execution_policy& exec,
 
 
 template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory, class DerivedExecutionPolicy, class Function, class... Args>
-std::future<void> bulk_async(cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>&& exec, Function&& f, Args&&... args)
+agency::detail::future<
+  cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>,
+  void
+>
+  bulk_async(cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>&& exec, Function&& f, Args&&... args)
 {
   return cuda::bulk_async(exec, std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory, class DerivedExecutionPolicy, class Function, class... Args>
-std::future<void> bulk_async(cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>& exec, Function&& f, Args&&... args)
+agency::detail::future<
+  cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>,
+  void
+>
+  bulk_async(cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>& exec, Function&& f, Args&&... args)
 {
   return cuda::bulk_async(exec, std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory, class DerivedExecutionPolicy, class Function, class... Args>
-std::future<void> bulk_async(const cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>& exec, Function&& f, Args&&... args)
+agency::detail::future<
+  cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>,
+  void
+>
+  bulk_async(const cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>& exec, Function&& f, Args&&... args)
 {
   return cuda::bulk_async(exec, std::forward<Function>(f), std::forward<Args>(args)...);
 }
