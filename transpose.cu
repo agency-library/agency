@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cassert>
 #include <algorithm>
+#include <numeric>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <agency/cuda/execution_policy.hpp>
@@ -27,15 +28,22 @@ void postprocess(const thrust::host_vector<float>& ref, const thrust::host_vecto
 
 // simple copy kernel
 // Used as reference case representing best effective bandwidth.
-__global__ void copy(float *odata, const float *idata)
+struct copy_kernel
 {
-  int x = blockIdx.x * TILE_DIM + threadIdx.x;
-  int y = blockIdx.y * TILE_DIM + threadIdx.y;
-  int width = gridDim.x * TILE_DIM;
+  template<class Agent>
+  __device__
+  void operator()(Agent& self, float* odata, const float* idata)
+  {
+    auto idx = TILE_DIM * self.outer().index() + self.inner().index();
+    int width = self.outer().group_shape()[0] * TILE_DIM;
 
-  for (int j = 0; j < TILE_DIM; j+= BLOCK_ROWS)
-    odata[(y+j)*width + x] = idata[(y+j)*width + x];
-}
+    for(int j = 0; j < TILE_DIM; j+= BLOCK_ROWS)
+    {
+      odata[(idx[1]+j)*width + idx[0]] = idata[(idx[1]+j)*width + idx[0]];
+    }
+  }
+};
+
 
 // copy kernel using shared memory
 // Also used as reference case, demonstrating effect of using shared memory.
@@ -211,10 +219,8 @@ int main(int argc, char **argv)
     throw std::logic_error("TILE_DIM must be a multiple of BLOCK_ROWS");
   }
     
-  // host
-  for (int j = 0; j < ny; j++)
-    for (int i = 0; i < nx; i++)
-      h_idata[j*nx + i] = j*nx + i;
+  // initialize input
+  std::iota(h_idata.begin(), h_idata.end(), 0);
 
   // correct result for error checking
   for (int j = 0; j < ny; j++)
@@ -238,11 +244,11 @@ int main(int argc, char **argv)
   printf("%25s", "copy");
   thrust::fill(d_cdata.begin(), d_cdata.end(), 0);
   // warm up
-  copy<<<dimGrid, dimBlock>>>(raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
+  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), copy_kernel{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
   timer.reset();
   for(int i = 0; i < NUM_REPS; i++)
   {
-    copy<<<dimGrid, dimBlock>>>(raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
+    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), copy_kernel{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
   }
   ms = timer.elapsed_milliseconds();
   h_cdata = d_cdata;
