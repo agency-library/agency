@@ -8,7 +8,17 @@
 
 const int TILE_DIM = 32;
 const int BLOCK_ROWS = 8;
-const int NUM_REPS = 100;
+
+
+// XXX need to figure out how to make this par(con) select grid_executor_2d automatically
+auto grid(agency::size2 num_blocks, agency::size2 num_threads)
+  -> decltype(agency::cuda::par(num_blocks, agency::cuda::con(num_threads)).on(agency::cuda::grid_executor_2d{}))
+{
+  return agency::cuda::par(num_blocks, agency::cuda::con(num_threads)).on(agency::cuda::grid_executor_2d{});
+}
+
+using cuda_thread_2d = agency::parallel_group_2d<agency::cuda::concurrent_agent_2d>;
+
 
 // Check errors and print GB/s
 void postprocess(const thrust::host_vector<float>& ref, const thrust::host_vector<float>& res, float ms)
@@ -22,17 +32,16 @@ void postprocess(const thrust::host_vector<float>& ref, const thrust::host_vecto
   }
   else
   {
-    printf("%20.2f\n", 2 * ref.size() * sizeof(float) * 1e-6 * NUM_REPS / ms );
+    printf("%20.2f\n", 2 * ref.size() * sizeof(float) * 1e-6 / ms );
   }
 }
+
 
 // simple copy kernel
 // Used as reference case representing best effective bandwidth.
 struct copy_kernel
 {
-  template<class Agent>
-  __device__
-  void operator()(Agent& self, float* odata, const float* idata)
+  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata)
   {
     auto idx = TILE_DIM * self.outer().index() + self.inner().index();
     int width = self.outer().group_shape()[0] * TILE_DIM;
@@ -49,9 +58,7 @@ struct copy_kernel
 // Also used as reference case, demonstrating effect of using shared memory.
 struct copy_shared_mem
 {
-  template<class Agent>
-  __device__
-  void operator()(Agent& self, float* odata, const float* idata)
+  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata)
   {
     __shared__ float tile[TILE_DIM * TILE_DIM];
     
@@ -77,9 +84,7 @@ struct copy_shared_mem
 
 struct transpose_naive
 {
-  template<class Agent>
-  __device__
-  void operator()(Agent& self, float* odata, const float* idata)
+  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata)
   {
     auto idx = TILE_DIM * self.outer().index() + self.inner().index();
     int width = self.outer().group_shape()[0] * TILE_DIM;
@@ -94,9 +99,7 @@ struct transpose_naive
 
 struct transpose_coalesced
 {
-  template<class Agent>
-  __device__
-  void operator()(Agent& self, float* odata, const float* idata)
+  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata)
   {
     __shared__ float tile[TILE_DIM][TILE_DIM];
       
@@ -124,9 +127,7 @@ struct transpose_coalesced
 
 struct transpose_no_bank_conflicts
 {
-  template<class Agent>
-  __device__
-  void operator()(Agent& self, float* odata, const float* idata)
+  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata)
   {
     __shared__ float tile[TILE_DIM][TILE_DIM+1];
       
@@ -134,26 +135,22 @@ struct transpose_no_bank_conflicts
     int y = blockIdx.y * TILE_DIM + threadIdx.y;
     int width = gridDim.x * TILE_DIM;
 
-    for (int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
-       tile[threadIdx.y+j][threadIdx.x] = idata[(y+j)*width + x];
+    for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
+    {
+      tile[threadIdx.y+j][threadIdx.x] = idata[(y+j)*width + x];
+    }
 
     self.inner().wait();
 
     x = self.outer().index()[1] * TILE_DIM + self.inner().index()[0];  // transpose block offset
     y = self.outer().index()[0] * TILE_DIM + self.inner().index()[1];
 
-    for (int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
-       odata[(y+j)*width + x] = tile[threadIdx.x][threadIdx.y + j];
+    for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
+    {
+      odata[(y+j)*width + x] = tile[threadIdx.x][threadIdx.y + j];
+    }
   }
 };
-
-
-// XXX need to figure out how to make this par(con) select grid_executor_2d automatically
-auto grid(agency::size2 num_blocks, agency::size2 num_threads)
-  -> decltype(agency::cuda::par(num_blocks, agency::cuda::con(num_threads)).on(agency::cuda::grid_executor_2d{}))
-{
-  return agency::cuda::par(num_blocks, agency::cuda::con(num_threads)).on(agency::cuda::grid_executor_2d{});
-}
 
 
 struct cuda_timer
@@ -192,24 +189,43 @@ struct cuda_timer
 };
 
 
+template<class Function, class... Args>
+float time_invocation(Function f, Args&&... args)
+{
+  int n = 100;
+
+  // warm up
+  f(std::forward<Args>(args)...);
+
+  cuda_timer timer;
+
+  for(int i = 0; i < n; i++)
+  {
+    f(std::forward<Args>(args)...);
+  }
+
+  return timer.elapsed_milliseconds() / n;
+}
+
+
 int main(int argc, char **argv)
 {
   const int nx = 1024;
   const int ny = 1024;
 
-  dim3 dimGrid(nx/TILE_DIM, ny/TILE_DIM, 1);
-  dim3 dimBlock(TILE_DIM, BLOCK_ROWS, 1);
+  agency::size2 dim_grid{nx/TILE_DIM, ny/TILE_DIM};
+  agency::size2 dim_block{TILE_DIM, BLOCK_ROWS};
 
   int devId = 0;
-  if (argc > 1) devId = atoi(argv[1]);
+  if(argc > 1) devId = atoi(argv[1]);
 
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, devId);
   printf("\nDevice : %s\n", prop.name);
   printf("Matrix size: %d %d, Block size: %d %d, Tile size: %d %d\n", 
          nx, ny, TILE_DIM, BLOCK_ROWS, TILE_DIM, TILE_DIM);
-  printf("dimGrid: %d %d %d. dimBlock: %d %d %d\n",
-         dimGrid.x, dimGrid.y, dimGrid.z, dimBlock.x, dimBlock.y, dimBlock.z);
+  printf("dimGrid: %lu %lu %d. dimBlock: %lu %lu %d\n",
+         dim_grid[0], dim_grid[1], 1, dim_block[0], dim_block[1], 1);
   
   cudaSetDevice(devId);
 
@@ -223,21 +239,27 @@ int main(int argc, char **argv)
   thrust::device_vector<float> d_tdata(nx * ny);
   
   // check parameters and calculate execution configuration
-  if (nx % TILE_DIM || ny % TILE_DIM) {
+  if(nx % TILE_DIM || ny % TILE_DIM)
+  {
     throw std::logic_error("nx and ny must be a multiple of TILE_DIM");
   }
 
-  if (TILE_DIM % BLOCK_ROWS) {
+  if(TILE_DIM % BLOCK_ROWS)
+  {
     throw std::logic_error("TILE_DIM must be a multiple of BLOCK_ROWS");
   }
     
   // initialize input
   std::iota(h_idata.begin(), h_idata.end(), 0);
 
-  // correct result for error checking
-  for (int j = 0; j < ny; j++)
-    for (int i = 0; i < nx; i++)
+  // transpose input into gold for error checking
+  for(int j = 0; j < ny; j++)
+  {
+    for(int i = 0; i < nx; i++)
+    {
       gold[j*nx + i] = h_idata[i*nx + j];
+    }
+  }
   
   // copy input to device
   d_idata = h_idata;
@@ -255,14 +277,12 @@ int main(int argc, char **argv)
   // ----
   printf("%25s", "copy");
   thrust::fill(d_cdata.begin(), d_cdata.end(), 0);
-  // warm up
-  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), copy_kernel{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
-  timer.reset();
-  for(int i = 0; i < NUM_REPS; i++)
+
+  ms = time_invocation([&]
   {
-    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), copy_kernel{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
-  }
-  ms = timer.elapsed_milliseconds();
+    agency::cuda::bulk_async(grid(dim_grid, dim_block), copy_kernel{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
+  });
+
   h_cdata = d_cdata;
   postprocess(h_idata, h_cdata, ms);
 
@@ -271,14 +291,12 @@ int main(int argc, char **argv)
   // -------------
   printf("%25s", "shared memory copy");
   thrust::fill(d_cdata.begin(), d_cdata.end(), 0);
-  // warm up
-  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), copy_shared_mem{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
-  timer.reset();
-  for(int i = 0; i < NUM_REPS; i++)
+
+  ms = time_invocation([&]
   {
-    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), copy_shared_mem{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
-  }
-  ms = timer.elapsed_milliseconds();
+    agency::cuda::bulk_async(grid(dim_grid, dim_block), copy_shared_mem{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
+  });
+
   h_cdata = d_cdata;
   postprocess(h_idata, h_cdata, ms);
 
@@ -287,14 +305,12 @@ int main(int argc, char **argv)
   // --------------
   printf("%25s", "naive transpose");
   thrust::fill(d_tdata.begin(), d_tdata.end(), 0);
-  // warmup
-  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_naive{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
-  timer.reset();
-  for(int i = 0; i < NUM_REPS; i++)
+
+  ms = time_invocation([&]
   {
-    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_naive{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
-  }
-  ms = timer.elapsed_milliseconds();
+    agency::cuda::bulk_async(grid(dim_grid, dim_block), transpose_naive{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
+  });
+
   h_tdata = d_tdata;
   postprocess(gold, h_tdata, ms);
 
@@ -303,14 +319,12 @@ int main(int argc, char **argv)
   // ------------------
   printf("%25s", "coalesced transpose");
   thrust::fill(d_tdata.begin(), d_tdata.end(), 0);
-  // warmup
-  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_coalesced{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
-  timer.reset();
-  for(int i = 0; i < NUM_REPS; i++)
+
+  ms = time_invocation([&]
   {
-    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_coalesced{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
-  }
-  ms = timer.elapsed_milliseconds();
+    agency::cuda::bulk_async(grid(dim_grid, dim_block), transpose_coalesced{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
+  });
+
   h_tdata = d_tdata;
   postprocess(gold, h_tdata, ms);
 
@@ -319,14 +333,12 @@ int main(int argc, char **argv)
   // ------------------------
   printf("%25s", "conflict-free transpose");
   thrust::fill(d_tdata.begin(), d_tdata.end(), 0);
-  // warmup
-  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_no_bank_conflicts{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
-  timer.reset();
-  for(int i = 0; i < NUM_REPS; i++)
+
+  ms = time_invocation([&]
   {
-    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_no_bank_conflicts{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
-  }
-  ms = timer.elapsed_milliseconds();
+    agency::cuda::bulk_async(grid(dim_grid, dim_block), transpose_no_bank_conflicts{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
+  });
+
   h_tdata = d_tdata;
   postprocess(gold, h_tdata, ms);
 
