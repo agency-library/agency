@@ -1,28 +1,16 @@
-#include <stdio.h>
-#include <assert.h>
-#include <agency/cuda/execution_policy.hpp>
+#include <cstdio>
+#include <cassert>
 #include <algorithm>
-
-// Convenience function for checking CUDA runtime API results
-// can be wrapped around any runtime API call. No-op in release builds.
-inline
-cudaError_t checkCuda(cudaError_t result)
-{
-#if defined(DEBUG) || defined(_DEBUG)
-  if (result != cudaSuccess) {
-    fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
-    assert(result == cudaSuccess);
-  }
-#endif
-  return result;
-}
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#include <agency/cuda/execution_policy.hpp>
 
 const int TILE_DIM = 32;
 const int BLOCK_ROWS = 8;
 const int NUM_REPS = 100;
 
 // Check errors and print GB/s
-void postprocess(const std::vector<float>& ref, const std::vector<float>& res, float ms)
+void postprocess(const thrust::host_vector<float>& ref, const thrust::host_vector<float>& res, float ms)
 {
   auto mismatch = std::mismatch(ref.begin(), ref.end(), res.begin());
   if(mismatch.first != ref.end())
@@ -156,30 +144,30 @@ struct cuda_timer
 
   cuda_timer(cudaStream_t stream = 0) : stream_(stream), start_{0}, end_{0}
   {
-    checkCuda(cudaEventCreate(&start_));
-    checkCuda(cudaEventCreate(&end_));
+    cudaEventCreate(&start_);
+    cudaEventCreate(&end_);
     reset();
   }
 
   void reset()
   {
-    checkCuda(cudaEventRecord(start_, stream_));
+    cudaEventRecord(start_, stream_);
   }
 
   float elapsed_milliseconds() const
   {
-    checkCuda(cudaEventRecord(end_, stream_));
-    checkCuda(cudaEventSynchronize(end_));
+    cudaEventRecord(end_, stream_);
+    cudaEventSynchronize(end_);
 
     float result = 0;
-    checkCuda(cudaEventElapsedTime(&result, start_, end_));
+    cudaEventElapsedTime(&result, start_, end_);
     return result;
   }
 
   ~cuda_timer()
   {
-    checkCuda(cudaEventDestroy(start_));
-    checkCuda(cudaEventDestroy(end_));
+    cudaEventDestroy(start_);
+    cudaEventDestroy(end_);
   }
 };
 
@@ -188,7 +176,6 @@ int main(int argc, char **argv)
 {
   const int nx = 1024;
   const int ny = 1024;
-  const int mem_size = nx*ny*sizeof(float);
 
   dim3 dimGrid(nx/TILE_DIM, ny/TILE_DIM, 1);
   dim3 dimBlock(TILE_DIM, BLOCK_ROWS, 1);
@@ -197,25 +184,24 @@ int main(int argc, char **argv)
   if (argc > 1) devId = atoi(argv[1]);
 
   cudaDeviceProp prop;
-  checkCuda( cudaGetDeviceProperties(&prop, devId));
+  cudaGetDeviceProperties(&prop, devId);
   printf("\nDevice : %s\n", prop.name);
   printf("Matrix size: %d %d, Block size: %d %d, Tile size: %d %d\n", 
          nx, ny, TILE_DIM, BLOCK_ROWS, TILE_DIM, TILE_DIM);
   printf("dimGrid: %d %d %d. dimBlock: %d %d %d\n",
          dimGrid.x, dimGrid.y, dimGrid.z, dimBlock.x, dimBlock.y, dimBlock.z);
   
-  checkCuda( cudaSetDevice(devId) );
+  cudaSetDevice(devId);
 
-  std::vector<float> h_idata(nx * ny);
-  std::vector<float> h_cdata(nx * ny);
-  std::vector<float> h_tdata(nx * ny);
-  std::vector<float> gold(nx * ny);
+  thrust::host_vector<float> h_idata(nx * ny);
+  thrust::host_vector<float> h_cdata(nx * ny);
+  thrust::host_vector<float> h_tdata(nx * ny);
+  thrust::host_vector<float> gold(nx * ny);
+
+  thrust::device_vector<float> d_idata(nx * ny);
+  thrust::device_vector<float> d_cdata(nx * ny);
+  thrust::device_vector<float> d_tdata(nx * ny);
   
-  float *d_idata, *d_cdata, *d_tdata;
-  checkCuda( cudaMalloc(&d_idata, mem_size) );
-  checkCuda( cudaMalloc(&d_cdata, mem_size) );
-  checkCuda( cudaMalloc(&d_tdata, mem_size) );
-
   // check parameters and calculate execution configuration
   if (nx % TILE_DIM || ny % TILE_DIM) {
     throw std::logic_error("nx and ny must be a multiple of TILE_DIM");
@@ -235,8 +221,8 @@ int main(int argc, char **argv)
     for (int i = 0; i < nx; i++)
       gold[j*nx + i] = h_idata[i*nx + j];
   
-  // device
-  checkCuda( cudaMemcpy(d_idata, h_idata.data(), mem_size, cudaMemcpyHostToDevice) );
+  // copy input to device
+  d_idata = h_idata;
   
   float ms;
   cuda_timer timer;
@@ -250,80 +236,82 @@ int main(int argc, char **argv)
   // copy 
   // ----
   printf("%25s", "copy");
-  checkCuda( cudaMemset(d_cdata, 0, mem_size) );
+  thrust::fill(d_cdata.begin(), d_cdata.end(), 0);
   // warm up
-  copy<<<dimGrid, dimBlock>>>(d_cdata, d_idata);
+  copy<<<dimGrid, dimBlock>>>(raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
   timer.reset();
   for(int i = 0; i < NUM_REPS; i++)
   {
-     copy<<<dimGrid, dimBlock>>>(d_cdata, d_idata);
+    copy<<<dimGrid, dimBlock>>>(raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
   }
   ms = timer.elapsed_milliseconds();
-  checkCuda( cudaMemcpy(h_cdata.data(), d_cdata, mem_size, cudaMemcpyDeviceToHost) );
+  h_cdata = d_cdata;
   postprocess(h_idata, h_cdata, ms);
 
   // -------------
   // copySharedMem 
   // -------------
   printf("%25s", "shared memory copy");
-  checkCuda( cudaMemset(d_cdata, 0, mem_size) );
+  thrust::fill(d_cdata.begin(), d_cdata.end(), 0);
   // warm up
-  copySharedMem<<<dimGrid, dimBlock>>>(d_cdata, d_idata);
+  copySharedMem<<<dimGrid, dimBlock>>>(raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
   timer.reset();
   for(int i = 0; i < NUM_REPS; i++)
   {
-     copySharedMem<<<dimGrid, dimBlock>>>(d_cdata, d_idata);
+    copySharedMem<<<dimGrid, dimBlock>>>(raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
   }
   ms = timer.elapsed_milliseconds();
-  checkCuda( cudaMemcpy(h_cdata.data(), d_cdata, mem_size, cudaMemcpyDeviceToHost) );
+  h_cdata = d_cdata;
   postprocess(h_idata, h_cdata, ms);
 
   // --------------
   // transposeNaive 
   // --------------
   printf("%25s", "naive transpose");
-  checkCuda( cudaMemset(d_tdata, 0, mem_size) );
+  thrust::fill(d_tdata.begin(), d_tdata.end(), 0);
   // warmup
-  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_naive{}, d_tdata, d_idata);
+  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_naive{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
   timer.reset();
   for(int i = 0; i < NUM_REPS; i++)
   {
-    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_naive{}, d_tdata, d_idata);
+    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_naive{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
   }
   ms = timer.elapsed_milliseconds();
-  checkCuda( cudaMemcpy(h_tdata.data(), d_tdata, mem_size, cudaMemcpyDeviceToHost) );
+  h_tdata = d_tdata;
   postprocess(gold, h_tdata, ms);
 
   // ------------------
   // transposeCoalesced 
   // ------------------
   printf("%25s", "coalesced transpose");
-  checkCuda( cudaMemset(d_tdata, 0, mem_size) );
+  thrust::fill(d_tdata.begin(), d_tdata.end(), 0);
   // warmup
-  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_coalesced{}, d_tdata, d_idata);
+  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_coalesced{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
   timer.reset();
   for(int i = 0; i < NUM_REPS; i++)
   {
-    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_coalesced{}, d_tdata, d_idata);
+    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_coalesced{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
   }
   ms = timer.elapsed_milliseconds();
-  checkCuda( cudaMemcpy(h_tdata.data(), d_tdata, mem_size, cudaMemcpyDeviceToHost) );
+  h_tdata = d_tdata;
   postprocess(gold, h_tdata, ms);
 
   // ------------------------
   // transposeNoBankConflicts
   // ------------------------
   printf("%25s", "conflict-free transpose");
-  checkCuda( cudaMemset(d_tdata, 0, mem_size) );
+  thrust::fill(d_tdata.begin(), d_tdata.end(), 0);
   // warmup
-  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_no_bank_conflicts{}, d_tdata, d_idata);
+  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_no_bank_conflicts{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
   timer.reset();
   for(int i = 0; i < NUM_REPS; i++)
   {
-    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_no_bank_conflicts{}, d_tdata, d_idata);
+    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), transpose_no_bank_conflicts{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
   }
   ms = timer.elapsed_milliseconds();
-  checkCuda( cudaMemcpy(h_tdata.data(), d_tdata, mem_size, cudaMemcpyDeviceToHost) );
+  h_tdata = d_tdata;
   postprocess(gold, h_tdata, ms);
+
+  return 0;
 }
 
