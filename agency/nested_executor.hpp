@@ -1,7 +1,6 @@
 #pragma once
 
 #include <utility>
-#include <future>
 #include <agency/execution_categories.hpp>
 #include <agency/executor_traits.hpp>
 #include <agency/detail/index_tuple.hpp>
@@ -72,6 +71,9 @@ class nested_executor
       )
     );
 
+    template<class T>
+    using future = typename outer_traits::template future<T>;
+
     nested_executor() = default;
 
     nested_executor(const outer_executor_type& outer_ex,
@@ -82,7 +84,7 @@ class nested_executor
 
     // XXX think we can eliminate this function
     template<class Function>
-    std::future<void> bulk_async(Function f, shape_type shape)
+    future<void> bulk_async(Function f, shape_type shape)
     {
       // split the shape into the inner & outer portions
       auto outer_shape = this->outer_shape(shape);
@@ -102,7 +104,7 @@ class nested_executor
     }
 
     template<class Function, class Tuple>
-    std::future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
+    future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
       static_assert(std::tuple_size<shape_type>::value == std::tuple_size<Tuple>::value, "Tuple of shared arguments must be the same size as shape_type.");
 

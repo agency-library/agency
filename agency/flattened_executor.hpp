@@ -29,6 +29,9 @@ class flattened_executor
     // XXX maybe use whichever of the first two elements of base_executor_type::shape_type has larger dimensionality?
     using shape_type = size_t;
 
+    template<class T>
+    using future = typename executor_traits<Executor>::template future<T>;
+
     flattened_executor(const base_executor_type& base_executor = base_executor_type())
       : min_inner_size_(1000),
         outer_subscription_(std::max(1u, log2(std::min(1u,std::thread::hardware_concurrency())))),
@@ -36,7 +39,7 @@ class flattened_executor
     {}
 
     template<class Function, class T>
-    std::future<void> bulk_async(Function f, shape_type shape, T shared_arg)
+    future<void> bulk_async(Function f, shape_type shape, T shared_arg)
     {
       return bulk_async_impl(base_executor(), f, shape, shared_arg);
     }
@@ -53,7 +56,7 @@ class flattened_executor
 
   private:
     template<class OtherExecutor, class Function, class T>
-    std::future<void> bulk_async_impl(OtherExecutor& exec, Function f, shape_type shape, T shared_arg)
+    future<void> bulk_async_impl(OtherExecutor& exec, Function f, shape_type shape, T shared_arg)
     {
       auto partitioning = partition(shape);
 
@@ -77,7 +80,7 @@ class flattened_executor
 
     // we can avoid the if(flat_idx < shape) branch above by providing a specialization for nested_executor
     template<class OuterExecutor, class InnerExecutor, class Function, class T>
-    std::future<void> bulk_async_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, T shared_arg)
+    future<void> bulk_async_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, T shared_arg)
     {
       auto partitioning = partition(shape);
 
