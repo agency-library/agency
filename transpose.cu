@@ -60,16 +60,16 @@ struct copy_shared_mem
 
     for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
     {
-      auto local_idx = (self.inner().index()[1] + j) * TILE_DIM + self.inner().index()[0];
-      tile[local_idx] = idata[(global_idx[1]+j)*width + global_idx[0]];
+      auto tile_idx = (self.inner().index()[1] + j) * TILE_DIM + self.inner().index()[0];
+      tile[tile_idx] = idata[(global_idx[1]+j)*width + global_idx[0]];
     }
 
     self.inner().wait();
 
     for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
     {
-      auto local_idx = (self.inner().index()[1] + j) * TILE_DIM + self.inner().index()[0];
-      odata[(global_idx[1]+j)*width + global_idx[0]] = tile[local_idx];          
+      auto tile_idx = (self.inner().index()[1] + j) * TILE_DIM + self.inner().index()[0];
+      odata[(global_idx[1]+j)*width + global_idx[0]] = tile[tile_idx];          
     }
   }
 };
