@@ -1,7 +1,6 @@
 #pragma once
 
 #include <agency/execution_categories.hpp>
-#include <future>
 #include <memory>
 #include <iostream>
 #include <exception>
@@ -25,6 +24,7 @@
 #include <agency/coordinate.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_tuple.hpp>
+#include <agency/cuda/detail/future.hpp>
 
 
 namespace agency
@@ -174,7 +174,7 @@ class basic_grid_executor
 
 
     template<class T>
-    using future = std::future<T>;
+    using future = detail::future<T>;
 
 
     template<class Tuple>
@@ -217,17 +217,7 @@ class basic_grid_executor
 
       void* kernel = reinterpret_cast<void*>(global_function_pointer<Function>());
 
-      // XXX unique_ptr & promise won't be valid in __device__ code
-      std::unique_ptr<std::promise<void>> promise(new std::promise<void>());
-    
-      auto result = promise->get_future();
-    
-      // call __notify when kernel is finished
-      // XXX cudaStreamAddCallback probably isn't valid in __device__ code
-      detail::throw_on_error(cudaStreamAddCallback(stream(), detail::grid_executor_notify, promise.release(), 0),
-                             "cuda::grid_executor::bulk_async(): cudaStreamAddCallback");
-    
-      return result;
+      return future<void>{stream()};
     }
 
   private:
