@@ -211,6 +211,7 @@ class basic_grid_executor
 
 
     template<class Function>
+    __host__ __device__
     future<void> bulk_async(Function f, shape_type shape)
     {
       launch(f, shape);
@@ -223,6 +224,7 @@ class basic_grid_executor
   private:
     // case where we have actual inner & outer shared parameters 
     template<class Function, class T1, class T2>
+    __host__ __device__
     future<void> bulk_async_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg)
     {
       // make outer shared argument
@@ -240,6 +242,7 @@ class basic_grid_executor
 
     // case where we have only inner shared parameter
     template<class Function, class T>
+    __host__ __device__
     future<void> bulk_async_with_shared_args(Function f, shape_type shape, agency::detail::ignore_t ignore, const T& inner_shared_arg)
     {
       // wrap up f in a thing that will marshal the shared arguments to it
@@ -250,6 +253,7 @@ class basic_grid_executor
 
     // case where we have only outer shared parameter
     template<class Function, class T>
+    __host__ __device__
     future<void> bulk_async_with_shared_args(Function f, shape_type shape, const T& outer_shared_arg, agency::detail::ignore_t ignore)
     {
       // make outer shared argument
@@ -267,6 +271,7 @@ class basic_grid_executor
 
     // case where we have no actual shared parameters
     template<class Function>
+    __host__ __device__
     future<void> bulk_async_with_shared_args(Function f, shape_type shape, agency::detail::ignore_t, agency::detail::ignore_t)
     {
       return bulk_async(f, shape);
@@ -274,6 +279,7 @@ class basic_grid_executor
 
   public:
     template<class Function, class Tuple>
+    __host__ __device__
     future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
       auto outer_shared_arg = agency::detail::get<0>(shared_arg_tuple);
@@ -283,85 +289,19 @@ class basic_grid_executor
     }
 
 
+    // XXX we can potentially eliminate these since executor_traits should implement them for us
     template<class Function>
     __host__ __device__
     void bulk_invoke(Function f, shape_type shape)
     {
-      // XXX bulk_invoke() needs to be implemented with a lowering to bulk_async
-      //     do this when we switch to executor-specific futures instead of std::future
-#ifndef __CUDA_ARCH__
-      bulk_async(f, shape).wait();
-#else
-      launch(f, shape);
-
-#  if __cuda_lib_has_cudart
-      detail::throw_on_error(cudaDeviceSynchronize(), "cuda::grid_executor::bulk_invoke(): cudaDeviceSynchronize");
-#  endif
-#endif
+      this->bulk_async(f, shape).wait();
     }
 
-
-  private:
-    // case where we have actual inner & outer shared parameters 
-    template<class Function, class T1, class T2>
-    __host__ __device__
-    void bulk_invoke_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg)
-    {
-      // make outer shared argument
-      auto outer_shared_arg_ptr = detail::make_unique<T1>(stream(), outer_shared_arg);
-
-      // wrap up f in a thing that will marshal the shared arguments to it
-      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_arg_ptr.get(), inner_shared_arg);
-
-      return bulk_invoke(g, shape);
-    }
-
-    // case where we have only inner shared parameter
-    template<class Function, class T>
-    __host__ __device__
-    void bulk_invoke_with_shared_args(Function f, shape_type shape, agency::detail::ignore_t ignore, const T& inner_shared_arg)
-    {
-      // wrap up f in a thing that will marshal the shared arguments to it
-      auto g = detail::function_with_shared_arguments<Function, agency::detail::ignore_t, T>(f, ignore, inner_shared_arg);
-
-      return bulk_invoke(g, shape);
-    }
-
-    // case where we have only outer shared parameter
-    template<class Function, class T>
-    __host__ __device__
-    void bulk_invoke_with_shared_args(Function f, shape_type shape, const T& outer_shared_arg, agency::detail::ignore_t ignore)
-    {
-      // make outer shared argument
-      auto outer_shared_arg_ptr = detail::make_unique<T>(stream(), outer_shared_arg);
-
-      // wrap up f in a thing that will marshal the shared arguments to it
-      auto g = detail::function_with_shared_arguments<Function, T, agency::detail::ignore_t>(f, outer_shared_arg_ptr.get(), ignore);
-
-      return bulk_invoke(g, shape);
-    }
-
-    // case where we have no actual shared parameters
-    template<class Function>
-    __host__ __device__
-    void bulk_invoke_with_shared_args(Function f, shape_type shape, agency::detail::ignore_t, agency::detail::ignore_t)
-    {
-      return bulk_invoke(f, shape);
-    }
-
-
-  public:
     template<class Function, class Tuple>
     __host__ __device__
     void bulk_invoke(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
-      // XXX bulk_invoke() needs to be implemented with a lowering to bulk_async
-      //     do this when we switch to executor-specific futures instead of std::future
-
-      auto outer_shared_arg = agency::detail::get<0>(shared_arg_tuple);
-      auto inner_shared_arg = agency::detail::get<1>(shared_arg_tuple);
-
-      return bulk_invoke_with_shared_args(f, shape, outer_shared_arg, inner_shared_arg);
+      this->bulk_async(f, shape, shared_arg_tuple).wait();
     }
 
     // this is exposed because it's necessary if a client wants to compute occupancy
