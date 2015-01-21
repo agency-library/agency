@@ -47,22 +47,32 @@ struct copy_kernel
 
 // copy kernel using shared memory
 // Also used as reference case, demonstrating effect of using shared memory.
-__global__ void copySharedMem(float *odata, const float *idata)
+struct copy_shared_mem
 {
-  __shared__ float tile[TILE_DIM * TILE_DIM];
-  
-  int x = blockIdx.x * TILE_DIM + threadIdx.x;
-  int y = blockIdx.y * TILE_DIM + threadIdx.y;
-  int width = gridDim.x * TILE_DIM;
+  template<class Agent>
+  __device__
+  void operator()(Agent& self, float* odata, const float* idata)
+  {
+    __shared__ float tile[TILE_DIM * TILE_DIM];
+    
+    auto global_idx = TILE_DIM * self.outer().index() + self.inner().index();
+    int width = self.outer().group_shape()[0] * TILE_DIM;
 
-  for (int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
-     tile[(threadIdx.y+j)*TILE_DIM + threadIdx.x] = idata[(y+j)*width + x];
+    for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
+    {
+      auto local_idx = (self.inner().index()[1] + j) * TILE_DIM + self.inner().index()[0];
+      tile[local_idx] = idata[(global_idx[1]+j)*width + global_idx[0]];
+    }
 
-  __syncthreads();
+    self.inner().wait();
 
-  for (int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
-     odata[(y+j)*width + x] = tile[(threadIdx.y+j)*TILE_DIM + threadIdx.x];          
-}
+    for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
+    {
+      auto local_idx = (self.inner().index()[1] + j) * TILE_DIM + self.inner().index()[0];
+      odata[(global_idx[1]+j)*width + global_idx[0]] = tile[local_idx];          
+    }
+  }
+};
 
 
 struct transpose_naive
@@ -75,7 +85,9 @@ struct transpose_naive
     int width = self.outer().group_shape()[0] * TILE_DIM;
 
     for(int j = 0; j < TILE_DIM; j+= BLOCK_ROWS)
+    {
       odata[idx[0]*width + (idx[1]+j)] = idata[(idx[1]+j)*width + idx[0]];
+    }
   }
 };
 
@@ -260,11 +272,11 @@ int main(int argc, char **argv)
   printf("%25s", "shared memory copy");
   thrust::fill(d_cdata.begin(), d_cdata.end(), 0);
   // warm up
-  copySharedMem<<<dimGrid, dimBlock>>>(raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
+  agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), copy_shared_mem{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
   timer.reset();
   for(int i = 0; i < NUM_REPS; i++)
   {
-    copySharedMem<<<dimGrid, dimBlock>>>(raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
+    agency::cuda::bulk_async(grid({dimGrid.x,dimGrid.y}, {dimBlock.x,dimBlock.y}), copy_shared_mem{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
   }
   ms = timer.elapsed_milliseconds();
   h_cdata = d_cdata;
