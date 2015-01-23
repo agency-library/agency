@@ -50,9 +50,13 @@ Programs with filenames ending in the `.cpp` extension are compilable with a C++
 or
 
     $ clang -std=c++11 -I. -pthread -lstdc++ example.cpp
+
+or
+
+    $ icc -std=c++11 -I. -pthread example.cpp
     
 Programs with filenames ending in the `.cu` extension are compilable with the NVIDIA compiler, e.g.:
 
     $ nvcc -std=c++11 -I. example.cu
     
-These programs are known to compile with `g++` v4.8, `clang` v3.5, and `nvcc` v7.0.
+These programs are known to compile with `g++` v4.8, `clang` v3.5, `nvcc` v7.0, and `icc` 15.0.
