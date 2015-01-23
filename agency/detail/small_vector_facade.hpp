@@ -182,8 +182,8 @@ template<typename Derived, typename Base, typename T, std::size_t Rank>
 
     __AGENCY_ANNOTATION
     small_vector_adaptor()
+      : super_t{}
     {
-      super_t::fill(value_type{});
     }
 
 
