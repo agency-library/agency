@@ -812,6 +812,114 @@ auto tuple_zip(Tuples&&... tuples)
 }
 
 
+// concatenate two index_sequences
+template<class IndexSequence1, class IndexSequence2> struct __index_sequence_cat_impl;
+
+
+template<size_t... Indices1, size_t... Indices2>
+struct __index_sequence_cat_impl<__index_sequence<Indices1...>, __index_sequence<Indices2...>>
+{
+  using type = __index_sequence<Indices1..., Indices2...>;
+};
+
+template<class IndexSequence1, class IndexSequence2>
+using __index_sequence_cat = typename __index_sequence_cat_impl<IndexSequence1,IndexSequence2>::type;
+
+
+template<template<size_t> class MetaFunction, class Indices>
+struct __filter_index_sequence_impl;
+
+
+// an empty sequence filters to the empty sequence
+template<template<size_t> class MetaFunction>
+struct __filter_index_sequence_impl<MetaFunction, __index_sequence<>>
+{
+  using type = __index_sequence<>;
+};
+
+template<template<size_t> class MetaFunction, size_t Index0, size_t... Indices>
+struct __filter_index_sequence_impl<MetaFunction, __index_sequence<Index0, Indices...>>
+{
+  // recurse and filter the rest of the indices
+  using rest = typename __filter_index_sequence_impl<MetaFunction,__index_sequence<Indices...>>::type;
+
+  // concatenate Index0 with rest if Index0 passes the filter
+  // else, just return rest
+  using type = typename std::conditional<
+    MetaFunction<Index0>::value,
+    __index_sequence_cat<
+      __index_sequence<Index0>,
+      rest
+    >,
+    rest
+  >::type;
+};
+
+
+template<template<size_t> class MetaFunction, class Indices>
+using __filter_index_sequence = typename __filter_index_sequence_impl<MetaFunction,Indices>::type;
+
+
+template<template<class> class MetaFunction, class Tuple>
+struct __index_filter
+{
+  using traits = tuple_traits<Tuple>;
+
+  template<size_t i>
+  using filter = MetaFunction<typename traits::template element_type<i>>;
+};
+
+
+template<template<class> class MetaFunction, class Tuple>
+using __make_filtered_indices_for_tuple =
+  __filter_index_sequence<
+    __index_filter<MetaFunction, Tuple>::template filter,
+    __make_index_sequence<tuple_traits<Tuple>::size>
+  >;
+
+
+// XXX nvcc 7.0 has trouble with this template template parameter
+//template<template<class> class MetaFunction, class Tuple, class Function>
+//TUPLE_UTILITY_ANNOTATION
+//auto tuple_filter_invoke(Tuple&& t, Function f)
+//  -> decltype(
+//       __tuple_apply_impl(
+//         f,
+//         std::forward<Tuple>(t),
+//         __make_filtered_indices_for_tuple<MetaFunction, typename std::decay<Tuple>::type>{}
+//       )
+//     )
+//{
+//  using filtered_indices = __make_filtered_indices_for_tuple<MetaFunction, typename std::decay<Tuple>::type>;
+//
+//  return __tuple_apply_impl(f, std::forward<Tuple>(t), filtered_indices{});
+//}
+template<template<class> class MetaFunction, class Tuple, class Function, class Indices = __make_filtered_indices_for_tuple<MetaFunction, typename std::decay<Tuple>::type>>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_filter_invoke(Tuple&& t, Function f)
+  -> decltype(
+       __tuple_apply_impl(
+         f,
+         std::forward<Tuple>(t),
+         Indices{}
+       )
+     )
+{
+  return __tuple_apply_impl(f, std::forward<Tuple>(t), Indices{});
+}
+
+
+template<template<class> class MetaFunction, class Tuple>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_filter(Tuple&& t)
+  -> decltype(
+       tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), __std_tuple_maker{})
+     )
+{
+  return tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), __std_tuple_maker{});
+}
+
+
 #ifdef TUPLE_UTILITY_NAMESPACE
 } // close namespace
 #endif // TUPLE_UTILITY_NAMESPACE
