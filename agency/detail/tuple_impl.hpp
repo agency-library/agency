@@ -29,6 +29,7 @@
 #include <stddef.h> // XXX instead of <cstddef> to WAR clang issue
 #include <type_traits>
 #include <utility>
+#include <tuple>
 
 // allow the user to define an annotation to apply to these functions
 // by default, it attempts to be constexpr
