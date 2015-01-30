@@ -24,6 +24,7 @@ using tuple = __tu::tuple<Types...>;
 using __tu::swap;
 using __tu::make_tuple;
 using __tu::tie;
+using __tu::forward_as_tuple;
 
 
 template<class IndexSequence, class... Tuples>
@@ -84,14 +85,6 @@ auto get(Tuple&& t)
      )
 {
   return __tu::tuple_traits<typename std::decay<Tuple>::type>::template get<i>(std::forward<Tuple>(t));
-}
-
-
-template<class... Args>
-__AGENCY_ANNOTATION
-tuple<Args&&...> forward_as_tuple(Args&&... args)
-{
-  return detail::tuple<Args&&...>{std::forward<Args>(args)...};
 }
 
 
