@@ -474,108 +474,137 @@ T make_from_tuple(const Tuple& t)
 }
 
 
-template<size_t i, class Tuple, class T, class Function>
-TUPLE_UTILITY_ANNOTATION
-typename std::enable_if<
-  (i >= std::tuple_size<
-     typename std::decay<Tuple>::type
-   >::value),
-   T
->::type
-  __tuple_reduce_impl(Tuple&&, T init, Function)
+template<class Function>
+struct __tuple_for_each_functor
 {
-  return init;
+  mutable Function f;
+  
+  template<class... Args>
+  TUPLE_UTILITY_ANNOTATION
+  int operator()(Args&&... args) const
+  {
+    f(std::forward<Args>(args)...);
+    return 0;
+  }
+};
+
+
+template<class... Args>
+TUPLE_UTILITY_ANNOTATION
+void __swallow(Args&&...){}
+
+
+template<size_t I, class Function, class... Tuples>
+TUPLE_UTILITY_ANNOTATION
+int __apply_row(Function f, Tuples&&... ts)
+{
+  f(__get<I>(std::forward<Tuples>(ts))...);
+  return 0;
 }
 
 
-
-template<size_t i, class Tuple, class T, class Function>
+template<size_t... I, class Function, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
-typename std::enable_if<
-  (i < std::tuple_size<
-     typename std::decay<Tuple>::type
-   >::value),
-   T
->::type
-  __tuple_reduce_impl(Tuple&& t, T init, Function f)
+void __tuple_for_each_n_impl(__index_sequence<I...>, Function f, Tuples&&... ts)
 {
-  return f(
-    __get<i>(std::forward<Tuple>(t)),
-    __tuple_reduce_impl<i+1>(std::forward<Tuple>(t), init, f)
+  auto g = __tuple_for_each_functor<Function>{f};
+
+  // XXX swallow g to WAR nvcc 7.0 unused variable warning
+  __swallow(g);
+
+  // we want to write this expression, but can't do it directly with ellipsis operator
+  //  __swallow(
+  //    g(__get<0>(t0), __get<0>(t1), __get<0>(t2), ...),
+  //    g(__get<1>(t0), __get<1>(t1), __get<1>(t2), ...),
+  //    g(__get<2>(t0), __get<2>(t1), __get<2>(t2), ...),
+  //    ...
+  //  );
+
+  __swallow(
+    __apply_row<I>(g, std::forward<Tuples>(ts)...)...
   );
 }
 
 
-template<class Tuple, class T, class Function>
+template<size_t N, class Function, class Tuple1, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
-T tuple_reduce(Tuple&& t, T init, Function f)
+void tuple_for_each_n(Function f, Tuple1&& t1, Tuples&&... ts)
 {
-  return __tuple_reduce_impl<0>(std::forward<Tuple>(t), init, f);
+  __tuple_for_each_n_impl(__make_index_sequence<N>{}, f, std::forward<Tuple1>(t1), std::forward<Tuples>(ts)...);
 }
-
-
-template<size_t I, size_t N>
-struct __tuple_for_each_impl
-{
-  template<class Function, class Tuple1, class... Tuples>
-  TUPLE_UTILITY_ANNOTATION
-  static void for_each(Function f, Tuple1&& t1, Tuples&&... ts)
-  {
-    f(__get<I>(std::forward<Tuple1>(t1)), __get<I>(std::forward<Tuples>(ts))...);
-
-    return __tuple_for_each_impl<I+1,N>::for_each(f, std::forward<Tuple1>(t1), std::forward<Tuples>(ts)...);
-  }
-};
-
-
-template<size_t I>
-struct __tuple_for_each_impl<I,I>
-{
-  template<class Function, class Tuple1, class... Tuples>
-  TUPLE_UTILITY_ANNOTATION
-  static void for_each(Function f, Tuple1&&, Tuples&&...)
-  {
-    return;
-  }
-};
 
 
 template<class Function, class Tuple1, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
 void tuple_for_each(Function f, Tuple1&& t1, Tuples&&... ts)
 {
-  return __tuple_for_each_impl<0,std::tuple_size<__decay_t<Tuple1>>::value>::for_each(f, std::forward<Tuple1>(t1), std::forward<Tuples>(ts)...);
+  tuple_for_each_n<std::tuple_size<__decay_t<Tuple1>>::value>(f, std::forward<Tuple1>(t1), std::forward<Tuples>(ts)...);
 }
+
+
+template<class T, class Function>
+struct __tuple_reduce_functor
+{
+  T& init;
+  Function f;
+
+  template<class Arg>
+  TUPLE_UTILITY_ANNOTATION
+  void operator()(Arg&& arg)
+  {
+    init = f(init, std::forward<Arg>(arg));
+  }
+};
+
+
+template<class Tuple, class T, class Function>
+TUPLE_UTILITY_ANNOTATION
+T tuple_reduce(Tuple&& t, T init, Function f)
+{
+  auto g = __tuple_reduce_functor<T,Function>{init, f};
+  tuple_for_each(g, std::forward<Tuple>(t));
+  return g.init;
+}
+
+
+
+
+template<class T>
+struct __print_element_and_delimiter
+{
+  std::ostream &os;
+  const T& delimiter;
+
+  template<class U>
+  void operator()(const U& arg)
+  {
+    os << arg << delimiter;
+  }
+};
 
 
 template<class Tuple, class T>
 typename std::enable_if<
-  std::tuple_size<Tuple>::value == 0
+  (std::tuple_size<
+    __decay_t<Tuple>
+  >::value > 0)
 >::type
-tuple_print(const Tuple& t, std::ostream& os, const T&)
+  __tuple_print_impl(const Tuple& t, std::ostream& os, const T& delimiter)
 {
+  static const int n_ = std::tuple_size<__decay_t<Tuple>>::value - 1;
+  static const int n  = n_ < 0 ? 0 : n_;
+
+  tuple_for_each_n<n>(__print_element_and_delimiter<T>{os,delimiter}, t);
+
+  // finally print the last element sans delimiter
+  os << tuple_last(t);
 }
 
 
 template<class Tuple, class T>
-typename std::enable_if<
-  std::tuple_size<Tuple>::value == 1
->::type
-tuple_print(const Tuple& t, std::ostream& os, const T&)
+void tuple_print(const Tuple& t, std::ostream& os, const T& delimiter)
 {
-  os << __get<0>(t);
-}
-
-
-template<class Tuple, class T>
-typename std::enable_if<
-  (std::tuple_size<Tuple>::value > 1)
->::type
-  tuple_print(const Tuple& t, std::ostream& os, const T& delimiter)
-{
-  os << tuple_head(t) << delimiter;
-
-  tuple_print(forward_tuple_tail<const Tuple&>(t), os, delimiter);
+  __tuple_print_impl(t, os, delimiter);
 }
 
 template<class Tuple>
