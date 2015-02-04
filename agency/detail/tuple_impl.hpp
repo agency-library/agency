@@ -44,6 +44,7 @@
 // allow the user to define a namespace for these functions
 #ifndef __TUPLE_NAMESPACE
 #define __TUPLE_NAMESPACE std
+#define __TUPLE_NAMESPACE_NEEDS_UNDEF
 #endif
 
 
@@ -173,6 +174,29 @@ class __tuple_leaf
     __TUPLE_ANNOTATION
     __tuple_leaf(const __tuple_leaf<I,U>& other) : val_(other.const_get()) {}
 
+
+    template<class U,
+             class = typename std::enable_if<
+               std::is_assignable<T,U>::value
+             >::type>
+    __TUPLE_ANNOTATION
+    __tuple_leaf& operator=(const __tuple_leaf<I,U>& other)
+    {
+      mutable_get() = other.const_get();
+      return *this;
+    }
+
+    template<class U,
+             class = typename std::enable_if<
+               std::is_assignable<T,U&&>::value
+             >::type>
+    __TUPLE_ANNOTATION
+    __tuple_leaf& operator=(__tuple_leaf<I,U>&& other)
+    {
+      mutable_get() = std::move(other.mutable_get());
+      return *this;
+    }
+
     __TUPLE_ANNOTATION
     const T& const_get() const
     {
@@ -262,6 +286,32 @@ class __tuple_base<__tuple_index_sequence<I...>, Types...>
       : __tuple_leaf<I,Types>(other)...
     {}
 
+    template<class... UTypes,
+             class = typename std::enable_if<
+               (sizeof...(Types) == sizeof...(UTypes)) &&
+               __tuple_and<
+                 std::is_assignable<Types,const UTypes&>...
+                >::value
+             >::type>
+    __TUPLE_ANNOTATION
+    __tuple_base& operator=(const __tuple_base<__tuple_index_sequence<I...>,UTypes...>& other)
+    {
+      swallow((mutable_leaf<I>() = other.template const_leaf<I>())...);
+      return *this;
+    }
+
+    template<class... UTypes,
+             class = typename std::enable_if<
+               (sizeof...(Types) == sizeof...(UTypes)) &&
+               __tuple_and<
+                 std::is_assignable<Types,UTypes&&>...
+               >::value
+             >::type>
+    __TUPLE_ANNOTATION
+    __tuple_base& operator=(__tuple_base<__tuple_index_sequence<I...>,UTypes...>&& other)
+    {
+      swallow((mutable_leaf<I>() = std::move(other.template mutable_leaf<I>()))...);
+    }
 
     template<class... UTypes,
              class = typename std::enable_if<
@@ -606,5 +656,10 @@ typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &&
 #ifdef __TUPLE_ANNOTATION_NEEDS_UNDEF
 #undef __TUPLE_ANNOTATION
 #undef __TUPLE_ANNOTATION_NEEDS_UNDEF
+#endif
+
+#ifdef __TUPLE_NAMESPACE_NEEDS_UNDEF
+#undef __TUPLE_NAMESPACE
+#undef __TUPLE_NAMESPACE_NEEDS_UNDEF
 #endif
 
