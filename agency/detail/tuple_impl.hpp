@@ -29,7 +29,6 @@
 #include <stddef.h> // XXX instead of <cstddef> to WAR clang issue
 #include <type_traits>
 #include <utility>
-#include <tuple>
 
 // allow the user to define an annotation to apply to these functions
 // by default, it attempts to be constexpr
@@ -101,6 +100,24 @@ struct tuple_size<__TUPLE_NAMESPACE::tuple<Types...>>
 namespace __TUPLE_NAMESPACE
 {
 
+// define variadic "and" operator 
+// prefix with "__tuple" to avoid collisions with other implementations 
+template <typename... Conditions>
+  struct __tuple_and;
+
+template<>
+  struct __tuple_and<>
+    : public std::true_type
+{
+};
+
+template <typename Condition, typename... Conditions>
+  struct __tuple_and<Condition, Conditions...>
+    : public std::integral_constant<
+        bool,
+        Condition::value && __tuple_and<Conditions...>::value>
+{
+};
 
 // XXX this implementation is based on Howard Hinnant's "tuple leaf" construction in libcxx
 
@@ -223,10 +240,9 @@ class __tuple_base<__tuple_index_sequence<I...>, Types...>
     template<class... UTypes,
              class = typename std::enable_if<
                (sizeof...(Types) == sizeof...(UTypes)) &&
-               std::is_constructible<
-                 __type_at<0,Types...>,
-                 __type_at<0,UTypes&&...>
-               >::value // XXX fill in the rest of these
+               __tuple_and<
+                 std::is_constructible<Types,UTypes&&>...
+               >::value
              >::type>
     __TUPLE_ANNOTATION
     explicit __tuple_base(UTypes&&... args)
@@ -237,23 +253,22 @@ class __tuple_base<__tuple_index_sequence<I...>, Types...>
     template<class... UTypes,
              class = typename std::enable_if<
                (sizeof...(Types) == sizeof...(UTypes)) &&
-               std::is_constructible<
-                 __type_at<0,Types...>,
-                 __type_at<0,const UTypes&...>
-               >::value // XXX fill in the rest of these
+               __tuple_and<
+                 std::is_constructible<Types,const UTypes&>...
+                >::value
              >::type>
     __TUPLE_ANNOTATION
     __tuple_base(const __tuple_base<__tuple_index_sequence<I...>,UTypes...>& other)
       : __tuple_leaf<I,Types>(other)...
     {}
 
+
     template<class... UTypes,
              class = typename std::enable_if<
                (sizeof...(Types) == sizeof...(UTypes)) &&
-               std::is_constructible<
-                 __type_at<0,Types...>,
-                 __type_at<0,const UTypes&...>
-               >::value // XXX fill in the rest of these
+               __tuple_and<
+                 std::is_constructible<Types,const UTypes&>...
+                >::value
              >::type>
     __TUPLE_ANNOTATION
     __tuple_base(const std::tuple<UTypes...>& other)
@@ -291,10 +306,9 @@ class __tuple_base<__tuple_index_sequence<I...>, Types...>
     template<class... UTypes,
              class = typename std::enable_if<
                (sizeof...(Types) == sizeof...(UTypes)) &&
-               std::is_convertible<
-                 __type_at<0,Types...>,
-                 __type_at<0,UTypes&&...>
-               >::value // XXX fill in the rest of these
+               __tuple_and<
+                 std::is_constructible<Types,const UTypes&>...
+                >::value
              >::type>
     __TUPLE_ANNOTATION
     operator std::tuple<UTypes...> () const
@@ -338,10 +352,9 @@ class tuple
     template<class... UTypes,
              class = typename std::enable_if<
                (sizeof...(Types) == sizeof...(UTypes)) &&
-               std::is_constructible<
-                 __type_at<0,Types...>,
-                 __type_at<0,UTypes&&...>
-               >::value // XXX fill in the rest of these
+               __tuple_and<
+                 std::is_constructible<Types,UTypes&&>...
+               >::value
              >::type>
     __TUPLE_ANNOTATION
     explicit tuple(UTypes&&... args)
@@ -351,10 +364,9 @@ class tuple
     template<class... UTypes,
              class = typename std::enable_if<
                (sizeof...(Types) == sizeof...(UTypes)) &&
-               std::is_constructible<
-                 __type_at<0,Types...>,
-                 __type_at<0,const UTypes&...>
-               >::value // XXX fill in the rest of these
+                 __tuple_and<
+                   std::is_constructible<Types,const UTypes&>...
+                 >::value
              >::type>
     __TUPLE_ANNOTATION
     tuple(const tuple<UTypes...>& other)
@@ -370,9 +382,9 @@ class tuple
     template<class UType1, class UType2,
              class = typename std::enable_if<
                (sizeof...(Types) == 2) &&
-               std::is_constructible<
-                 __type_at<0,Types...>,
-                 const UType1&
+               __tuple_and<
+                 std::is_constructible<__type_at<                            0,Types...>,const UType1&>,
+                 std::is_constructible<__type_at<sizeof...(Types) == 2 ? 1 : 0,Types...>,const UType2&>
                >::value
              >::type>
     __TUPLE_ANNOTATION
@@ -383,9 +395,9 @@ class tuple
     template<class UType1, class UType2,
              class = typename std::enable_if<
                (sizeof...(Types) == 2) &&
-               std::is_constructible<
-                 __type_at<0,Types...>,
-                 UType1&&
+               __tuple_and<
+                 std::is_constructible<__type_at<                            0,Types...>,UType1&&>,
+                 std::is_constructible<__type_at<sizeof...(Types) == 2 ? 1 : 0,Types...>,UType2&&>
                >::value
              >::type>
     __TUPLE_ANNOTATION
@@ -396,10 +408,9 @@ class tuple
     template<class... UTypes,
              class = typename std::enable_if<
                (sizeof...(Types) == sizeof...(UTypes)) &&
-               std::is_constructible<
-                 __type_at<0,Types...>,
-                 __type_at<0,const UTypes&...>
-               >::value // XXX fill in the rest of these
+                 __tuple_and<
+                   std::is_constructible<Types,const UTypes&>...
+                 >::value
              >::type>
     __TUPLE_ANNOTATION
     tuple(const std::tuple<UTypes...>& other)
@@ -458,10 +469,9 @@ class tuple
     template<class... UTypes,
              class = typename std::enable_if<
                (sizeof...(Types) == sizeof...(UTypes)) &&
-               std::is_convertible<
-                 __type_at<0,Types...>,
-                 __type_at<0,UTypes...>
-               >::value // XXX fill in the rest of these
+               __tuple_and<
+                 std::is_constructible<Types,const UTypes&>...
+                >::value
              >::type>
     __TUPLE_ANNOTATION
     operator std::tuple<UTypes...> () const
