@@ -82,6 +82,8 @@ class nested_executor
         inner_ex_(inner_ex)
     {}
 
+    // XXX executor adaptors like nested_executor need to implement bulk_invoke to be sure we get the most efficient implementation
+
     // XXX think we can eliminate this function
     template<class Function>
     future<void> bulk_async(Function f, shape_type shape)
