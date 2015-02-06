@@ -52,6 +52,19 @@ template<class ExecutionCategory1, class ExecutionCategory2>
 struct is_nested_execution_category<nested_execution_tag<ExecutionCategory1,ExecutionCategory2>> : std::true_type {};
 
 
+template<class ExecutionCategory>
+struct execution_depth : std::integral_constant<size_t, 1> {};
+
+
+template<class ExecutionCategory1, class ExecutionCategory2>
+struct execution_depth<nested_execution_tag<ExecutionCategory1,ExecutionCategory2>>
+  : std::integral_constant<
+      size_t,
+      1 + execution_depth<ExecutionCategory2>::value
+    >
+{};
+
+
 } // end detail
 } // end agency
 
