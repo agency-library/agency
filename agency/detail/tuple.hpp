@@ -13,6 +13,24 @@
 #include <utility>
 #include <type_traits>
 
+namespace __tu
+{
+
+
+// add an output operator for tuple
+template<class... Types>
+std::ostream& operator<<(std::ostream& os, const tuple<Types...>& t)
+{
+  os << "{";
+  __tu::tuple_print(t, os);
+  os << "}";
+  return os;
+}
+
+
+} // end namespace __tu
+
+
 namespace agency
 {
 namespace detail
@@ -113,6 +131,31 @@ auto forward_tail(Tuple&& t)
 }
 
 
+struct tuple_mover
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  auto operator()(Args&&... args)
+    -> decltype(
+         detail::make_tuple(std::move(args)...)
+       )
+  {
+    return detail::make_tuple(std::move(args)...);
+  }
+};
+
+
+template<class Tuple>
+__AGENCY_ANNOTATION
+auto move_tail(Tuple&& t)
+  -> decltype(
+       __tu::tuple_tail_invoke(std::move(t), tuple_mover{})
+     )
+{
+  return __tu::tuple_tail_invoke(std::move(t), tuple_mover{});
+}
+
+
 struct agency_tuple_maker
 {
   template<class... Args>
@@ -125,6 +168,17 @@ struct agency_tuple_maker
     return agency::detail::make_tuple(std::forward<Args>(args)...);
   }
 };
+
+
+template<class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_tail(Tuple&& t)
+  -> decltype(
+       __tu::tuple_tail_invoke(std::forward<Tuple>(t), agency_tuple_maker{})
+     )
+{
+  return __tu::tuple_tail_invoke(std::forward<Tuple>(t), agency_tuple_maker{});
+}
 
 
 template<typename Function, typename Tuple, typename... Tuples>
