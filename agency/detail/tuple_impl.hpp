@@ -311,6 +311,7 @@ class __tuple_base<__tuple_index_sequence<I...>, Types...>
     __tuple_base& operator=(__tuple_base<__tuple_index_sequence<I...>,UTypes...>&& other)
     {
       swallow((mutable_leaf<I>() = std::move(other.template mutable_leaf<I>()))...);
+      return *this;
     }
 
     template<class... UTypes,
