@@ -32,6 +32,34 @@ struct rebind_point_size_impl<T, N,
 };
 
 
+template<class T, class Tuple>
+struct append_tuple_element;
+
+template<class T, template<class...> class tuple_like, class... Types>
+struct append_tuple_element<T, tuple_like<Types...>>
+{
+  using type = tuple_like<Types..., T>;
+};
+
+
+template<template<class...> class tuple_like, class T, size_t N>
+struct make_homogeneous_tuple
+{
+  using rest = typename make_homogeneous_tuple<tuple_like, T, N - 1>::type;
+
+  using type = typename append_tuple_element<
+    T,
+    rest
+  >::type;
+};
+
+template<template<class...> class tuple_like, class T>
+struct make_homogeneous_tuple<tuple_like, T, 0>
+{
+  using type = tuple_like<>;
+};
+
+
 } // end point_size_detail
 
 
@@ -40,6 +68,15 @@ struct rebind_point_size
 {
   using type = typename point_size_detail::rebind_point_size_impl<T,N>::type;
 };
+
+// specialization for types which are instances of Tuple-like templates
+// XXX should actually enable only if tuple_like<T,Types...> is Tuple-like
+template<template<class...> class tuple_like, class T, class... Types, size_t N>
+struct rebind_point_size<tuple_like<T, Types...>, N>
+{
+  using type = typename point_size_detail::make_homogeneous_tuple<tuple_like, T, N>::type;
+};
+
 
 template<class T, size_t N>
 using rebind_point_size_t = typename rebind_point_size<T,N>::type;
