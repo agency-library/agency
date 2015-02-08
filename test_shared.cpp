@@ -3,6 +3,7 @@
 #include <agency/executor_traits.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/ignore.hpp>
+#include <agency/detail/index_cast.hpp>
 #include <agency/coordinate.hpp>
 #include <iostream>
 #include <cassert>
@@ -303,7 +304,6 @@ auto unpack_shared_params(TupleMatrix&& shared_param_matrix)
 }
 
 
-
 template<class Executor, class Function, class SharedArgTuple>
 void bulk_invoke_impl(Executor& exec, Function f, typename agency::executor_traits<Executor>::shape_type shape, SharedArgTuple&& shared_arg_tuple)
 {
@@ -461,30 +461,64 @@ void bulk_invoke(Executor&& exec, Function f, typename agency::executor_traits<t
 }
 
 
+size_t rank(agency::size2 shape, agency::size2 idx)
+{
+  return agency::get<1>(shape) * agency::get<0>(idx) + agency::get<1>(idx);
+}
+
+size_t rank(agency::size3 shape, agency::size3 idx)
+{
+  agency::size2 idx2{agency::get<0>(idx), agency::get<1>(idx)};
+  agency::size2 shape2{agency::get<0>(shape), agency::get<1>(shape)};
+
+  auto rank2 = rank(shape2, idx2);
+
+  return agency::get<2>(idx) + agency::get<2>(shape) * rank2;
+}
+
+
 int main()
 {
-  using executor_type = agency::nested_executor<agency::sequential_executor,agency::sequential_executor>;
+  using executor_type1 = agency::nested_executor<agency::sequential_executor,agency::sequential_executor>;
 
-  executor_type exec;
-  executor_type::shape_type shape{2,2};
+  using executor_type2 = agency::nested_executor<agency::sequential_executor,executor_type1>;
 
-  auto lambda = [=](executor_type::index_type idx, int& outer_shared0, int& outer_shared1, int& inner_shared)
+  executor_type2 exec;
+  executor_type2::shape_type shape{2,2,2};
+
+  auto lambda = [=](executor_type2::index_type idx, int& outer_shared, int& middle_shared, int& inner_shared)
   {
     std::cout << "idx: " << idx << std::endl;
-    std::cout << "outer_shared0: " << outer_shared0 << std::endl;
-    std::cout << "outer_shared1: " << outer_shared1 << std::endl;
+    std::cout << "outer_shared: " << outer_shared << std::endl;
+    std::cout << "middle_shared: " << middle_shared << std::endl;
     std::cout << "inner_shared:  " << inner_shared << std::endl;
 
-    assert(std::get<1>(shape) * std::get<0>(idx) + std::get<1>(idx) ==  outer_shared0);
-    assert(std::get<1>(shape) * std::get<0>(idx) + std::get<1>(idx) == -outer_shared1);
-    assert(std::get<1>(idx) == -inner_shared);
+    auto outer_shape_ = shape;
+    agency::size3 outer_shape{std::get<0>(outer_shape_), std::get<1>(outer_shape_), std::get<2>(outer_shape_)};
+    auto outer_idx_   = idx;
+    agency::size3 outer_idx{std::get<0>(outer_idx_), std::get<1>(outer_idx_), std::get<2>(outer_idx_)};
 
-    ++outer_shared0;
-    --outer_shared1;
-    --inner_shared;
+    assert(outer_shared  == rank(outer_shape, outer_idx) + 1);
+
+
+    auto middle_shape_ = agency::detail::tuple_tail(shape);
+    agency::size2 middle_shape{std::get<0>(middle_shape_), std::get<1>(middle_shape_)};
+    auto middle_idx_   = agency::detail::tuple_tail(idx);
+    agency::size2 middle_idx{std::get<0>(middle_idx_), std::get<1>(middle_idx_)};
+
+    assert(middle_shared == rank(middle_shape, middle_idx) + 2);
+
+    auto inner_shape  = agency::detail::tuple_tail(middle_shape);
+    auto inner_idx    = agency::detail::tuple_tail(middle_idx);
+
+    assert(inner_shared  == agency::detail::get<0>(inner_idx) + 3);
+
+    ++outer_shared;
+    ++middle_shared;
+    ++inner_shared;
   };
 
-  bulk_invoke(exec, lambda, shape, share<0>(0), share<0>(0), share<1>(0));
+  bulk_invoke(exec, lambda, shape, share<0>(1), share<1>(2), share<2>(3));
 
   return 0;
 }
