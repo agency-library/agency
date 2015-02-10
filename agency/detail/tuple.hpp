@@ -194,6 +194,28 @@ auto tuple_map(Function f, Tuple&& t, Tuples&&... ts)
 
 template<size_t N, class Tuple>
 __AGENCY_ANNOTATION
+auto tuple_take(Tuple&& t)
+  -> decltype(
+       __tu::tuple_take_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_take_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<size_t N, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_take_view(Tuple&& t)
+  -> decltype(
+       __tu::tuple_take_invoke<N>(std::forward<Tuple>(t), forwarder())
+     )
+{
+  return __tu::tuple_take_invoke<N>(std::forward<Tuple>(t), forwarder());
+}
+
+
+template<size_t N, class Tuple>
+__AGENCY_ANNOTATION
 auto tuple_drop(Tuple&& t)
   -> decltype(
        __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker())
@@ -203,14 +225,36 @@ auto tuple_drop(Tuple&& t)
 }
 
 
+template<size_t N, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_drop_view(Tuple&& t)
+  -> decltype(
+       __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), forwarder())
+     )
+{
+  return __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), forwarder());
+}
+
+
+template<size_t N, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_drop_back(Tuple&& t)
+  -> decltype(
+       __tu::tuple_drop_back_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_drop_back_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
 template<class Tuple>
 __AGENCY_ANNOTATION
 auto tuple_drop_last(Tuple&& t)
   -> decltype(
-       agency::detail::tuple_drop<1>(std::forward<Tuple>(t))
+       agency::detail::tuple_drop_back<1>(std::forward<Tuple>(t))
      )
 {
-  return agency::detail::tuple_drop<1>(std::forward<Tuple>(t));
+  return agency::detail::tuple_drop_back<1>(std::forward<Tuple>(t));
 }
 
 

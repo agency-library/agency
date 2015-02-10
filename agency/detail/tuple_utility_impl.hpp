@@ -303,14 +303,32 @@ auto tuple_take(Tuple&& t)
 }
 
 
+template<size_t N, size_t... I, class Tuple, class Function>
+auto __tuple_drop_invoke_impl(Tuple&& t, Function f, __index_sequence<I...>)
+  -> decltype(
+       f(__get<N + I>(std::forward<Tuple>(t))...)
+     )
+{
+  return f(__get<N + I>(std::forward<Tuple>(t))...);
+}
+
+
 template<size_t N, class Tuple, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_drop_invoke(Tuple&& t, Function f)
   -> decltype(
-       tuple_take_invoke<std::tuple_size<typename std::decay<Tuple>::type>::value - N>(std::forward<Tuple>(t), f)
+       __tuple_drop_invoke_impl<N>(
+         std::forward<Tuple>(t),
+         f,
+         __make_index_sequence<std::tuple_size<typename std::decay<Tuple>::type>::value - N>()
+       )
      )
 {
-  return tuple_take_invoke<std::tuple_size<typename std::decay<Tuple>::type>::value - N>(std::forward<Tuple>(t), f);
+  return __tuple_drop_invoke_impl<N>(
+    std::forward<Tuple>(t),
+    f,
+    __make_index_sequence<std::tuple_size<typename std::decay<Tuple>::type>::value - N>()
+  );
 }
 
 
@@ -325,14 +343,36 @@ auto tuple_drop(Tuple&& t)
 }
 
 
+template<size_t N, class Tuple, class Function>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_drop_back_invoke(Tuple&& t, Function f)
+  -> decltype(
+       tuple_take_invoke<std::tuple_size<typename std::decay<Tuple>::type>::value - N>(std::forward<Tuple>(t), f)
+     )
+{
+  return tuple_take_invoke<std::tuple_size<typename std::decay<Tuple>::type>::value - N>(std::forward<Tuple>(t), f);
+}
+
+
+template<size_t N, class Tuple>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_drop_back(Tuple&& t)
+  -> decltype(
+       tuple_drop_back_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker())
+     )
+{
+  return tuple_drop_back_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker());
+}
+
+
 template<class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_drop_last(Tuple&& t)
   -> decltype(
-       TUPLE_UTILITY_NAMESPACE::tuple_drop<1>(std::forward<Tuple>(t))
+       TUPLE_UTILITY_NAMESPACE::tuple_drop_back<1>(std::forward<Tuple>(t))
      )
 {
-  return TUPLE_UTILITY_NAMESPACE::tuple_drop<1>(std::forward<Tuple>(t));
+  return TUPLE_UTILITY_NAMESPACE::tuple_drop_back<1>(std::forward<Tuple>(t));
 }
 
 
