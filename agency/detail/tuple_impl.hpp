@@ -424,7 +424,13 @@ class tuple
       : base_{other.base_}
     {}
 
-    template<class... UTypes>
+    template<class... UTypes,
+             class = typename std::enable_if<
+               (sizeof...(Types) == sizeof...(UTypes)) &&
+                 __tuple_and<
+                   std::is_constructible<Types,UTypes&&>...
+                 >::value
+             >::type>
     __TUPLE_ANNOTATION
     tuple(tuple<UTypes...>&& other)
       : base_{std::move(other.base_)}
@@ -492,6 +498,7 @@ class tuple
       return *this;
     }
 
+    // XXX needs enable_if
     template<class... UTypes>
     __TUPLE_ANNOTATION
     tuple& operator=(const tuple<UTypes...>& other)
@@ -500,6 +507,7 @@ class tuple
       return *this;
     }
 
+    // XXX needs enable_if
     template<class... UTypes>
     __TUPLE_ANNOTATION
     tuple& operator=(tuple<UTypes...>&& other)
