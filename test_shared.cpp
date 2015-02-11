@@ -1,10 +1,11 @@
 #include <agency/sequential_executor.hpp>
 #include <agency/nested_executor.hpp>
 #include <agency/executor_traits.hpp>
+#include <agency/execution_agent.hpp>
 #include <agency/detail/tuple.hpp>
-#include <agency/detail/ignore.hpp>
 #include <agency/detail/index_cast.hpp>
 #include <agency/coordinate.hpp>
+#include <agency/execution_policy.hpp>
 #include <iostream>
 #include <cassert>
 #include <functional>
@@ -43,26 +44,34 @@ auto tuple_find_if(Tuple&& t)
 }
 
 
-// when looking for ignore_t, strip references first
+struct null_type {};
+
+std::ostream& operator<<(std::ostream& os, null_type)
+{
+  return os << "null";
+}
+
+
+// when looking for null_type, strip references first
 template<class T>
-struct is_ignore : std::is_same<agency::detail::ignore_t, typename std::decay<T>::type> {};
+struct is_null : std::is_same<null_type, typename std::decay<T>::type> {};
 
 
 template<class T>
-struct is_not_ignore : 
+struct is_not_null : 
   std::integral_constant<
     bool,
-    !is_ignore<T>::value
+    !is_null<T>::value
   >
 {};
 
 
 
 template<class Tuple>
-auto tuple_find_non_ignore(Tuple&& t)
-  -> decltype(tuple_find_if<is_not_ignore>(std::forward<Tuple>(t)))
+auto tuple_find_non_null(Tuple&& t)
+  -> decltype(tuple_find_if<is_not_null>(std::forward<Tuple>(t)))
 {
-  return tuple_find_if<is_not_ignore>(std::forward<Tuple>(t));
+  return tuple_find_if<is_not_null>(std::forward<Tuple>(t));
 }
 
 
@@ -75,9 +84,9 @@ struct shared_parameter
   }
 
   template<size_t other_level>
-  agency::detail::ignore_t make(std::integral_constant<size_t,other_level>) const
+  null_type make(std::integral_constant<size_t,other_level>) const
   {
-    return agency::detail::ignore;
+    return null_type{};
   }
 
   agency::detail::tuple<Args...> args_;
@@ -198,12 +207,12 @@ template<size_t... RowIndex, class TupleMatrix>
 auto extract_shared_parameters_from_rows_impl(agency::detail::index_sequence<RowIndex...>, TupleMatrix&& mtx)
   -> decltype(
        agency::detail::tie(
-         tuple_find_non_ignore(agency::detail::get<RowIndex>(std::forward<TupleMatrix>(mtx)))...
+         tuple_find_non_null(agency::detail::get<RowIndex>(std::forward<TupleMatrix>(mtx)))...
        )
      )
 {
   return agency::detail::tie(
-    tuple_find_non_ignore(agency::detail::get<RowIndex>(mtx))...
+    tuple_find_non_null(agency::detail::get<RowIndex>(mtx))...
   );
 }
 
@@ -294,7 +303,7 @@ auto unpack_shared_params(TupleMatrix&& shared_param_matrix)
      )
 {
   // to transform the shared_param_matrix into a tuple of shared parameters
-  // we need to find the actual (non-ignore) parameter in each column of the matrix
+  // we need to find the actual (non-null) parameter in each column of the matrix
   // the easiest way to do this is to tranpose the matrix and extract the shared parameter from each row of the transpose
   return extract_shared_parameters_from_rows(
     make_transposed_view<NumSharedParams>(
@@ -305,7 +314,7 @@ auto unpack_shared_params(TupleMatrix&& shared_param_matrix)
 
 
 template<class Executor, class Function, class SharedArgTuple>
-void bulk_invoke_impl(Executor& exec, Function f, typename agency::executor_traits<Executor>::shape_type shape, SharedArgTuple&& shared_arg_tuple)
+void bulk_invoke_executor_impl(Executor& exec, Function f, typename agency::executor_traits<Executor>::shape_type shape, SharedArgTuple&& shared_arg_tuple)
 {
   using traits = agency::executor_traits<Executor>;
 
@@ -425,30 +434,56 @@ struct unpack_shared_args_and_invoke
 };
 
 
+// J... is a bit vector indicating which of args is a shared parameter
+// then I... is the exclusive scan of J
 template<size_t... I, class Function, class... Args>
 auto bind_unshared_parameters_impl(agency::detail::index_sequence<I...>, Function f, Args&&... args)
   -> decltype(
-       std::bind(f, hold_shared_parameters_place<I>(std::forward<Args>(args))...)
+       std::bind(f, hold_shared_parameters_place<1 + I>(std::forward<Args>(args))...)
      )
 {
-  return std::bind(f, hold_shared_parameters_place<I>(std::forward<Args>(args))...);
+  // we add 1 to I to account for the executor_idx argument passed by unpack_shared_args_and_invoke
+  // above as the first parameter to f
+  return std::bind(f, hold_shared_parameters_place<1 + I>(std::forward<Args>(args))...);
 }
 
+
+template<class... Args>
+struct arg_is_shared
+{
+  using tuple_type = agency::detail::tuple<Args...>;
+
+  template<size_t i>
+  using map = is_shared_parameter<
+    typename std::decay<
+      typename std::tuple_element<i,tuple_type>::type
+    >::type
+  >;
+};
+
+
+// we need to generate
+template<class... Args>
+using scanned_shared_argument_indices = agency::detail::transform_exclusive_scan_index_sequence<
+  arg_is_shared<Args...>::template map,
+  0,
+  agency::detail::index_sequence_for<Args...>
+>;
 
 template<class Function, class... Args>
 auto bind_unshared_parameters(Function f, Args&&... args)
   -> decltype(
-       bind_unshared_parameters_impl(agency::detail::index_sequence_for<Args...>{}, f, std::forward<Args>(args)...)
+       bind_unshared_parameters_impl(scanned_shared_argument_indices<Args...>{}, f, std::forward<Args>(args)...)
      )
 {
-  return bind_unshared_parameters_impl(agency::detail::index_sequence_for<Args...>{}, f, std::forward<Args>(args)...);
+  return bind_unshared_parameters_impl(scanned_shared_argument_indices<Args...>{}, f, std::forward<Args>(args)...);
 }
 
 
 template<class Executor, class Function, class... Args>
-void bulk_invoke(Executor&& exec, Function f, typename agency::executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
+void bulk_invoke_executor(Executor&& exec, Function f, typename agency::executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
 {
-  // the _1 is for the idx parameter
+  // the _1 is for the executor idx parameter, which is the first parameter passed to f
   auto g = bind_unshared_parameters(f, std::placeholders::_1, std::forward<Args>(args)...);
 
   // make a tuple of the shared args
@@ -457,7 +492,7 @@ void bulk_invoke(Executor&& exec, Function f, typename agency::executor_traits<t
   // create h which takes a tuple of args and calls g
   auto h = unpack_shared_args_and_invoke<decltype(g)>{g};
 
-  bulk_invoke_impl(exec, h, shape, shared_arg_tuple);
+  bulk_invoke_executor_impl(exec, h, shape, shared_arg_tuple);
 }
 
 
@@ -476,8 +511,7 @@ size_t rank(agency::size3 shape, agency::size3 idx)
   return agency::get<2>(idx) + agency::get<2>(shape) * rank2;
 }
 
-
-int main()
+void test1()
 {
   using executor_type1 = agency::nested_executor<agency::sequential_executor,agency::sequential_executor>;
 
@@ -518,7 +552,104 @@ int main()
     ++inner_shared;
   };
 
-  bulk_invoke(exec, lambda, shape, share<0>(1), share<1>(2), share<2>(3));
+  bulk_invoke_executor(exec, lambda, shape, share<0>(1), share<1>(2), share<2>(3));
+}
+
+
+template<class ExecutorTraits, class AgentTraits, class Function, size_t... UserArgIndices>
+struct execute_agent_functor
+{
+  using agent_type        = typename AgentTraits::execution_agent_type;
+  using agent_param_type  = typename AgentTraits::param_type;
+  using agent_domain_type = typename AgentTraits::domain_type;
+  using agent_shape_type  = decltype(std::declval<agent_domain_type>().shape());
+
+  using executor_shape_type = typename ExecutorTraits::shape_type;
+
+  agent_param_type    agent_param_;
+  agent_shape_type    agent_shape_;
+  executor_shape_type executor_shape_;
+  Function            f_;
+
+  using agent_index_type    = typename AgentTraits::index_type;
+  using executor_index_type = typename ExecutorTraits::index_type;
+
+  template<class... Args>
+  void operator()(const executor_index_type& executor_idx, Args&&... args)
+  {
+    // collect all parameters into a tuple of references
+    auto args_tuple = agency::detail::forward_as_tuple(std::forward<Args>(args)...);
+
+    // split the parameters into user parameters and agent parameters
+    auto user_args         = agency::detail::tuple_take_view<sizeof...(UserArgIndices)>(args_tuple);
+    auto agent_shared_args = agency::detail::tuple_drop_view<sizeof...(UserArgIndices)>(args_tuple);
+
+    // turn the executor index into an agent index
+    using agent_index_type = typename AgentTraits::index_type;
+    auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape_, agent_shape_);
+
+    // AgentTraits::execute expects a function whose only parameter is agent_type
+    // so we have to 
+    auto invoke_f = [&user_args,this](agent_type& self)
+    {
+      // invoke f by passing the agent, then the user's parameters
+      f_(self, agency::detail::get<UserArgIndices>(user_args)...);
+    };
+
+    AgentTraits::execute(invoke_f, agent_idx, agent_param_, agent_shared_args);
+  }
+};
+
+
+template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
+void bulk_invoke_new_impl(agency::detail::index_sequence<UserArgIndices...>,
+                          agency::detail::index_sequence<SharedArgIndices...>,
+                          ExecutionPolicy& policy, Function f, Args&&... args)
+{
+  using agent_type = agency::sequential_group<agency::sequential_agent>;
+  using agent_traits = agency::execution_agent_traits<agent_type>;
+
+  // get the parameters of the agent
+  auto param = policy.param();
+  auto agent_shape = agent_traits::domain(param).shape();
+  auto agent_shared_params = agent_traits::make_shared_initializer(param);
+
+  using executor_type = typename ExecutionPolicy::executor_type;
+  using executor_traits = agency::executor_traits<executor_type>;
+
+  // convert the shape of the agent into the type of the executor's shape
+  using executor_shape_type = typename executor_traits::shape_type;
+  executor_shape_type executor_shape = agency::detail::shape_cast<executor_shape_type>(agent_shape);
+
+  // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
+  auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
+
+  bulk_invoke_executor(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(std::get<SharedArgIndices>(agent_shared_params))...);
+}
+
+
+template<class ExecutionPolicy, class Function, class... Args>
+void bulk_invoke_new(ExecutionPolicy& policy, Function f, Args&&... args)
+{
+  bulk_invoke_new_impl(agency::detail::index_sequence_for<Args...>(), agency::detail::make_index_sequence<2>(), policy, f, std::forward<Args>(args)...);
+}
+
+void test2()
+{
+  auto lambda = [](agency::sequential_group<agency::sequential_agent>& self, int local_param)
+  {
+    std::cout << "index: " << self.index() << " local_param: " << local_param << std::endl;
+  };
+
+  auto policy = agency::seq(2,agency::seq(2));
+  bulk_invoke_new(policy, lambda, 13);
+}
+
+
+int main()
+{
+//  test1();
+  test2();
 
   return 0;
 }
