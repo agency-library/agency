@@ -170,8 +170,8 @@ auto tuple_matrix_column(TupleMatrix&& mtx)
 
 
 template<size_t... RowIndex, class SharedArgTuple>
-auto make_shared_parameter_matrix_impl(agency::detail::index_sequence<RowIndex...>,
-                                       SharedArgTuple&& shared_arg_tuple)
+auto pack_shared_parameters_for_executor_impl(agency::detail::index_sequence<RowIndex...>,
+                                              SharedArgTuple&& shared_arg_tuple)
   -> decltype(
        agency::detail::make_tuple(
          __tu::tuple_map(call_make<RowIndex>{}, std::forward<SharedArgTuple>(shared_arg_tuple))...
@@ -184,19 +184,20 @@ auto make_shared_parameter_matrix_impl(agency::detail::index_sequence<RowIndex..
 }
 
 
-// create a shared parameter matrix
+// to package shared parameters for an executor,
+// we create a shared parameter matrix
 // the rows correspond to levels of the executor's hierarchy
 // the columns correspond to shared arguments
 template<size_t num_rows, class SharedArgTuple>
-auto make_shared_parameter_matrix(SharedArgTuple&& shared_arg_tuple)
+auto pack_shared_parameters_for_executor(SharedArgTuple&& shared_arg_tuple)
   -> decltype(
-       make_shared_parameter_matrix_impl(
+       pack_shared_parameters_for_executor_impl(
          agency::detail::make_index_sequence<num_rows>{},
          std::forward<SharedArgTuple>(shared_arg_tuple)
        )
      )
 {
-  return make_shared_parameter_matrix_impl(
+  return pack_shared_parameters_for_executor_impl(
     agency::detail::make_index_sequence<num_rows>{},
     std::forward<SharedArgTuple>(shared_arg_tuple)
   );
@@ -293,7 +294,7 @@ struct tuple_matrix_shape
 template<class TupleMatrix,
          size_t NumSharedParams = tuple_matrix_shape<typename std::decay<TupleMatrix>::type>::columns
         >
-auto unpack_shared_params(TupleMatrix&& shared_param_matrix)
+auto unpack_shared_parameters_from_executor(TupleMatrix&& shared_param_matrix)
   -> decltype(
        extract_shared_parameters_from_rows(
          make_transposed_view<NumSharedParams>(
@@ -328,22 +329,18 @@ void bulk_invoke_executor_impl(Executor& exec, Function f, typename agency::exec
   //       2.1 we can fix this if executors receive shared parameters as forwarding references
   //     3. won't be able to support concurrent construction
 
-  // turn the tuple of shared arguments into a tuple of shared initializers by invoking .make()
-
-  // create a shared parameter matrix
-  // the rows correspond to levels of the executor's hierarchy
-  // the columns correspond to shared arguments
+  // package up the shared parameters for the executor
   const size_t executor_depth = agency::detail::execution_depth<
     typename traits::execution_category
   >::value;
 
-  auto shared_init = make_shared_parameter_matrix<executor_depth>(std::forward<SharedArgTuple>(shared_arg_tuple));
+  auto shared_init = pack_shared_parameters_for_executor<executor_depth>(std::forward<SharedArgTuple>(shared_arg_tuple));
 
   using shared_param_type = typename traits::template shared_param_type<decltype(shared_init)>;
 
   traits::bulk_invoke(exec, [=](typename traits::index_type idx, shared_param_type& shared_param_matrix)
   {
-    auto shared_params = unpack_shared_params(shared_param_matrix);
+    auto shared_params = unpack_shared_parameters_from_executor(shared_param_matrix);
 
     f(idx, shared_params);
   },
@@ -480,6 +477,7 @@ auto bind_unshared_parameters(Function f, Args&&... args)
 }
 
 
+// XXX should merge bulk_invoke_executor_impl with this function
 template<class Executor, class Function, class... Args>
 void bulk_invoke_executor(Executor&& exec, Function f, typename agency::executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
 {
