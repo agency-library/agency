@@ -191,53 +191,6 @@ struct execute_agent_functor
 };
 
 
-template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
-void bulk_invoke_new_impl(agency::detail::index_sequence<UserArgIndices...>,
-                          agency::detail::index_sequence<SharedArgIndices...>,
-                          ExecutionPolicy& policy, Function f, Args&&... args)
-{
-  using agent_type = typename ExecutionPolicy::execution_agent_type;
-  using agent_traits = agency::execution_agent_traits<agent_type>;
-  using execution_category = typename agent_traits::execution_category;
-
-  // get the parameters of the agent
-  auto param = policy.param();
-  auto agent_shape = agent_traits::domain(param).shape();
-
-  // XXX if the agent is not nested, make_shared_initializer returns a single value
-  //     but the get() below expects it to be a tuple, so wrap if execution is not nested
-  // XXX eliminate this once #20 is resolved
-  auto agent_shared_params = agency::detail::make_tuple_if_not_nested<execution_category>(agent_traits::make_shared_initializer(param));
-
-  using executor_type = typename ExecutionPolicy::executor_type;
-  using executor_traits = agency::executor_traits<executor_type>;
-
-  // convert the shape of the agent into the type of the executor's shape
-  using executor_shape_type = typename executor_traits::shape_type;
-  executor_shape_type executor_shape = agency::detail::shape_cast<executor_shape_type>(agent_shape);
-
-  // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
-  auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
-
-  ::bulk_invoke_executor(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(std::get<SharedArgIndices>(agent_shared_params))...);
-}
-
-
-template<class ExecutionPolicy, class Function, class... Args>
-typename agency::detail::enable_if_call_possible<
-    Function(
-      typename ExecutionPolicy::execution_agent_type&,
-      decay_parameter_t<Args>...
-    )
->::type
-  bulk_invoke_new(ExecutionPolicy& policy, Function f, Args&&... args)
-{
-  using agent_traits = agency::execution_agent_traits<typename ExecutionPolicy::execution_agent_type>;
-  const size_t num_shared_params = agency::detail::execution_depth<typename agent_traits::execution_category>::value;
-
-  bulk_invoke_new_impl(agency::detail::index_sequence_for<Args...>(), agency::detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
-}
-
 void test2()
 {
   auto lambda = [](agency::sequential_group<agency::sequential_agent>& self, int local_param)
@@ -246,19 +199,7 @@ void test2()
   };
 
   auto policy = agency::seq(2,agency::seq(2));
-  bulk_invoke_new(policy, lambda, 13);
-}
-
-
-void test3()
-{
-  auto lambda = [](agency::sequential_agent& self)
-  {
-    std::cout << "index: " << self.index() << std::endl;
-  };
-
-  auto policy = agency::seq(10);
-  ::bulk_invoke_new(policy, lambda);
+  agency::bulk_invoke(policy, lambda, 13);
 }
 
 
@@ -266,7 +207,6 @@ int main()
 {
 //  test1();
   test2();
-//  test3();
 
   return 0;
 }

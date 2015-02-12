@@ -132,45 +132,99 @@ using future = typename executor_traits<
 >::template future<T>;
 
 
-} // end detail
-
-
-template<class ExecutionPolicy, class Function, class... Args>
-typename detail::enable_if_execution_policy<detail::decay_t<ExecutionPolicy>>::type
-  bulk_invoke(ExecutionPolicy&& policy, Function&& f, Args&&... args)
+template<class ExecutorTraits, class AgentTraits, class Function, size_t... UserArgIndices>
+struct execute_agent_functor
 {
-  // XXX we really need to collapse all this stuff shared between bulk_invoke & bulk_async
+  using agent_type        = typename AgentTraits::execution_agent_type;
+  using agent_param_type  = typename AgentTraits::param_type;
+  using agent_domain_type = typename AgentTraits::domain_type;
+  using agent_shape_type  = decltype(std::declval<agent_domain_type>().shape());
 
-  using execution_policy_type = typename std::decay<ExecutionPolicy>::type;
-  using agent_type = typename execution_policy_type::execution_agent_type;
+  using executor_shape_type = typename ExecutorTraits::shape_type;
+
+  agent_param_type    agent_param_;
+  agent_shape_type    agent_shape_;
+  executor_shape_type executor_shape_;
+  Function            f_;
+
+  using agent_index_type    = typename AgentTraits::index_type;
+  using executor_index_type = typename ExecutorTraits::index_type;
+
+  template<class... Args>
+  void operator()(const executor_index_type& executor_idx, Args&&... args)
+  {
+    // collect all parameters into a tuple of references
+    auto args_tuple = detail::forward_as_tuple(std::forward<Args>(args)...);
+
+    // split the parameters into user parameters and agent parameters
+    auto user_args         = detail::tuple_take_view<sizeof...(UserArgIndices)>(args_tuple);
+    auto agent_shared_args = detail::tuple_drop_view<sizeof...(UserArgIndices)>(args_tuple);
+
+    // turn the executor index into an agent index
+    using agent_index_type = typename AgentTraits::index_type;
+    auto agent_idx = detail::index_cast<agent_index_type>(executor_idx, executor_shape_, agent_shape_);
+
+    // AgentTraits::execute expects a function whose only parameter is agent_type
+    // so we have to 
+    auto invoke_f = [&user_args,this](agent_type& self)
+    {
+      // invoke f by passing the agent, then the user's parameters
+      f_(self, detail::get<UserArgIndices>(user_args)...);
+    };
+
+    AgentTraits::execute(invoke_f, agent_idx, agent_param_, agent_shared_args);
+  }
+};
+
+
+template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
+void bulk_invoke_impl(index_sequence<UserArgIndices...>,
+                      index_sequence<SharedArgIndices...>,
+                      ExecutionPolicy& policy, Function f, Args&&... args)
+{
+  using agent_type = typename ExecutionPolicy::execution_agent_type;
   using agent_traits = execution_agent_traits<agent_type>;
+  using execution_category = typename agent_traits::execution_category;
 
+  // get the parameters of the agent
   auto param = policy.param();
   auto agent_shape = agent_traits::domain(param).shape();
-  auto shared_init = agent_traits::make_shared_initializer(param);
 
-  using executor_type = typename execution_policy_type::executor_type;
+  // XXX if the agent is not nested, make_shared_initializer returns a single value
+  //     but the get() below expects it to be a tuple, so wrap if execution is not nested
+  // XXX eliminate this once #20 is resolved and this operation always returns a tuple
+  auto agent_shared_params = detail::make_tuple_if_not_nested<execution_category>(agent_traits::make_shared_initializer(param));
+
+  using executor_type = typename ExecutionPolicy::executor_type;
   using executor_traits = agency::executor_traits<executor_type>;
-  using executor_index_type = typename executor_traits::index_type;
-  using shared_param_type = typename executor_traits::template shared_param_type<decltype(shared_init)>;
 
   // convert the shape of the agent into the type of the executor's shape
   using executor_shape_type = typename executor_traits::shape_type;
   executor_shape_type executor_shape = detail::shape_cast<executor_shape_type>(agent_shape);
 
-  // _1 is for the execution agent parameter
-  auto g = std::bind(f, std::placeholders::_1, std::forward<Args>(args)...);
+  // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
+  auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  return executor_traits::bulk_invoke(policy.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
-  {
-    // convert the index of the executor into the type of the agent's index
-    using agent_index_type = typename agent_traits::index_type;
-    auto agent_idx = detail::index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
+  detail::bulk_invoke_executor(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_params))...);
+}
 
-    agent_traits::execute(f, agent_idx, param, shared_params);
-  },
-  executor_shape,
-  shared_init);
+
+} // end detail
+
+
+template<class ExecutionPolicy, class Function, class... Args>
+typename detail::enable_if_call_possible<
+    Function(
+      typename std::decay<ExecutionPolicy>::type::execution_agent_type&,
+      detail::decay_parameter_t<Args>...
+    )
+>::type
+  bulk_invoke(ExecutionPolicy&& policy, Function f, Args&&... args)
+{
+  using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
+  const size_t num_shared_params = detail::execution_depth<typename agent_traits::execution_category>::value;
+
+  detail::bulk_invoke_impl(detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
 }
 
 
