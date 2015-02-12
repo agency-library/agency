@@ -30,16 +30,6 @@ namespace agency
 template<class T> struct is_execution_policy : std::false_type {};
 
 
-// customization point -- allow users to specialize this
-// to change the type of execution policy based on the type of an executor
-template<class ExecutionPolicy, class Executor>
-struct rebind_executor;
-
-
-template<class ExecutionPolicy, class Executor>
-using rebind_executor_t = typename rebind_executor<ExecutionPolicy,Executor>::type;
-
-
 namespace detail
 {
 
@@ -54,6 +44,118 @@ template<class T, class Result = void>
 struct disable_if_execution_policy
   : std::enable_if<!is_execution_policy<T>::value,Result>
 {};
+
+
+template<class ExecutionPolicy, class Function>
+void bulk_invoke_impl(ExecutionPolicy& policy, Function f)
+{
+  // XXX we really need to collapse all this stuff shared between bulk_invoke & bulk_async
+  using agent_type = typename ExecutionPolicy::execution_agent_type;
+  using agent_traits = execution_agent_traits<agent_type>;
+
+  auto param = policy.param();
+  auto agent_shape = agent_traits::domain(param).shape();
+  auto shared_init = agent_traits::make_shared_initializer(param);
+
+  using executor_type = typename ExecutionPolicy::executor_type;
+  using executor_traits = agency::executor_traits<executor_type>;
+  using executor_index_type = typename executor_traits::index_type;
+  using shared_param_type = typename executor_traits::template shared_param_type<decltype(shared_init)>;
+
+  // convert the shape of the agent into the type of the executor's shape
+  using executor_shape_type = typename executor_traits::shape_type;
+  executor_shape_type executor_shape = detail::shape_cast<executor_shape_type>(agent_shape);
+
+  return executor_traits::bulk_invoke(policy.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
+  {
+    // convert the index of the executor into the type of the agent's index
+    using agent_index_type = typename agent_traits::index_type;
+    auto agent_idx = detail::index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
+
+    agent_traits::execute(f, agent_idx, param, shared_params);
+  },
+  executor_shape,
+  shared_init);
+}
+
+
+// gets the type of future bulk_async() returns
+template<class ExecutionPolicy, class T>
+using future = typename executor_traits<
+  typename ExecutionPolicy::executor_type
+>::template future<T>;
+
+
+template<class ExecutionPolicy, class Function>
+future<ExecutionPolicy,void> bulk_async_impl(ExecutionPolicy& policy, Function f)
+{
+  // XXX we really need to collapse all this stuff shared between bulk_invoke & bulk_async
+  using agent_type = typename ExecutionPolicy::execution_agent_type;
+  using agent_traits = execution_agent_traits<agent_type>;
+
+  auto param = policy.param();
+  auto agent_shape = agent_traits::domain(param).shape();
+  auto shared_init = agent_traits::make_shared_initializer(param);
+
+  using executor_type = typename ExecutionPolicy::executor_type;
+  using executor_traits = agency::executor_traits<executor_type>;
+  using executor_index_type = typename executor_traits::index_type;
+  using shared_param_type = typename executor_traits::template shared_param_type<decltype(shared_init)>;
+
+  // convert the shape of the agent into the type of the executor's shape
+  using executor_shape_type = typename executor_traits::shape_type;
+  executor_shape_type executor_shape = detail::shape_cast<executor_shape_type>(agent_shape);
+
+  return executor_traits::bulk_async(policy.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
+  {
+    // convert the index of the executor into the type of the agent's index
+    using agent_index_type = typename agent_traits::index_type;
+    auto agent_idx = detail::index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
+
+    agent_traits::execute(f, agent_idx, param, shared_params);
+  },
+  executor_shape,
+  shared_init);
+}
+
+
+} // end detail
+
+
+template<class ExecutionPolicy, class Function, class... Args>
+typename detail::enable_if_execution_policy<detail::decay_t<ExecutionPolicy>>::type
+bulk_invoke(ExecutionPolicy&& exec, Function&& f, Args&&... args)
+{
+  return detail::bulk_invoke_impl(exec, std::bind(f, std::placeholders::_1, args...));
+}
+
+
+template<class ExecutionPolicy, class Function, class... Args>
+typename detail::enable_if_execution_policy<
+  detail::decay_t<ExecutionPolicy>,
+  detail::future<
+    detail::decay_t<ExecutionPolicy>,
+    void
+  >
+>::type
+bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
+{
+  return detail::bulk_async_impl(exec, std::bind(f, std::placeholders::_1, args...));
+}
+
+
+// customization point -- allow users to specialize this
+// to change the type of execution policy based on the type of an executor
+template<class ExecutionPolicy, class Executor>
+struct rebind_executor;
+
+
+template<class ExecutionPolicy, class Executor>
+using rebind_executor_t = typename rebind_executor<ExecutionPolicy,Executor>::type;
+
+
+namespace detail
+{
 
 
 template<class... Types>
@@ -206,85 +308,6 @@ class basic_execution_policy
 };
 
 
-// ExecutionCategory1 corresponds to the category of the executor
-// XXX ExecutionCategory2 corresponds to the category of the policy
-// XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
-template<class ExecutionCategory1, class ExecutionAgent, class BulkExecutor, class ExecutionCategory2, class DerivedExecutionPolicy, class Function>
-void bulk_invoke_impl(ExecutionCategory1,
-                      const basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2,DerivedExecutionPolicy>& exec,
-                      Function f)
-{
-  using traits = execution_agent_traits<ExecutionAgent>;
-
-  auto param = exec.param();
-  auto agent_shape = traits::domain(param).shape();
-  auto shared_init = traits::make_shared_initializer(param);
-
-  using executor_index_type = typename executor_traits<BulkExecutor>::index_type;
-  using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
-
-  // convert the shape of the agent into the type of the executor's shape
-  using executor_shape_type = typename executor_traits<BulkExecutor>::shape_type;
-  executor_shape_type executor_shape = detail::shape_cast<executor_shape_type>(agent_shape);
-
-  return executor_traits<BulkExecutor>::bulk_invoke(exec.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
-  {
-    // convert the index of the executor into the type of the agent's index
-    using agent_index_type = typename traits::index_type;
-    auto agent_idx = detail::index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
-
-    traits::execute(f, agent_idx, param, shared_params);
-  },
-  executor_shape,
-  shared_init);
-}
-
-
-// gets the type of future bulk_async() returns
-template<class ExecutionPolicy, class T>
-using future = typename executor_traits<
-  typename ExecutionPolicy::executor_type
->::template future<T>;
-
-
-// ExecutionCategory1 corresponds to the category of the executor
-// XXX ExecutionCategory2 corresponds to the category of the policy
-// XXX this overload should only be selected if ExecutionCategory1 is stronger than ExecutionCategory2
-template<class ExecutionCategory1, class ExecutionAgent, class BulkExecutor, class ExecutionCategory2, class DerivedExecutionPolicy, class Function>
-future<
-  basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2,DerivedExecutionPolicy>,
-  void
->
-  bulk_async_impl(ExecutionCategory1,
-                  const basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory2,DerivedExecutionPolicy>& exec,
-                  Function f)
-{
-  using traits = execution_agent_traits<ExecutionAgent>;
-
-  auto param = exec.param();
-  auto agent_shape = traits::domain(param).shape();
-  auto shared_init = traits::make_shared_initializer(param);
-
-  using executor_index_type = typename executor_traits<BulkExecutor>::index_type;
-  using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
-
-  // convert the shape of the agent into the type of the executor's shape
-  using executor_shape_type = typename executor_traits<BulkExecutor>::shape_type;
-  executor_shape_type executor_shape = detail::shape_cast<executor_shape_type>(agent_shape);
-
-  return executor_traits<BulkExecutor>::bulk_async(exec.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
-  {
-    // convert the index of the executor into the type of the agent's index
-    using agent_index_type = typename traits::index_type;
-    auto agent_idx = detail::index_cast<agent_index_type>(executor_idx, executor_shape, agent_shape);
-
-    traits::execute(f, agent_idx, param, shared_params);
-  },
-  executor_shape,
-  shared_init);
-}
-
-
 template<class ExecutionPolicy1, class ExecutionPolicy2>
 class nested_execution_policy
   : public basic_execution_policy<
@@ -424,32 +447,6 @@ template<> struct is_execution_policy<vector_execution_policy> : std::true_type 
 
 
 const vector_execution_policy vec{};
-
-
-template<class ExecutionPolicy, class Function, class... Args>
-typename detail::enable_if_execution_policy<detail::decay_t<ExecutionPolicy>>::type
-bulk_invoke(ExecutionPolicy&& exec, Function&& f, Args&&... args)
-{
-  // XXX the execution_category we dispatch on should be the category of the policy's executor
-  using execution_category = typename detail::decay_t<ExecutionPolicy>::execution_category;
-  return detail::bulk_invoke_impl(execution_category(), exec, std::bind(f, std::placeholders::_1, args...));
-}
-
-
-template<class ExecutionPolicy, class Function, class... Args>
-typename detail::enable_if_execution_policy<
-  detail::decay_t<ExecutionPolicy>,
-  detail::future<
-    detail::decay_t<ExecutionPolicy>,
-    void
-  >
->::type
-bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
-{
-  // XXX the execution_category we dispatch on should be the category of the policy's executor
-  using execution_category = typename detail::decay_t<ExecutionPolicy>::execution_category;
-  return detail::bulk_async_impl(execution_category(), exec, std::bind(f, std::placeholders::_1, args...));
-}
 
 
 } // end agency
