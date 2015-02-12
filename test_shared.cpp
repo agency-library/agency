@@ -146,51 +146,6 @@ void test1()
 }
 
 
-template<class ExecutorTraits, class AgentTraits, class Function, size_t... UserArgIndices>
-struct execute_agent_functor
-{
-  using agent_type        = typename AgentTraits::execution_agent_type;
-  using agent_param_type  = typename AgentTraits::param_type;
-  using agent_domain_type = typename AgentTraits::domain_type;
-  using agent_shape_type  = decltype(std::declval<agent_domain_type>().shape());
-
-  using executor_shape_type = typename ExecutorTraits::shape_type;
-
-  agent_param_type    agent_param_;
-  agent_shape_type    agent_shape_;
-  executor_shape_type executor_shape_;
-  Function            f_;
-
-  using agent_index_type    = typename AgentTraits::index_type;
-  using executor_index_type = typename ExecutorTraits::index_type;
-
-  template<class... Args>
-  void operator()(const executor_index_type& executor_idx, Args&&... args)
-  {
-    // collect all parameters into a tuple of references
-    auto args_tuple = agency::detail::forward_as_tuple(std::forward<Args>(args)...);
-
-    // split the parameters into user parameters and agent parameters
-    auto user_args         = agency::detail::tuple_take_view<sizeof...(UserArgIndices)>(args_tuple);
-    auto agent_shared_args = agency::detail::tuple_drop_view<sizeof...(UserArgIndices)>(args_tuple);
-
-    // turn the executor index into an agent index
-    using agent_index_type = typename AgentTraits::index_type;
-    auto agent_idx = agency::detail::index_cast<agent_index_type>(executor_idx, executor_shape_, agent_shape_);
-
-    // AgentTraits::execute expects a function whose only parameter is agent_type
-    // so we have to 
-    auto invoke_f = [&user_args,this](agent_type& self)
-    {
-      // invoke f by passing the agent, then the user's parameters
-      f_(self, agency::detail::get<UserArgIndices>(user_args)...);
-    };
-
-    AgentTraits::execute(invoke_f, agent_idx, agent_param_, agent_shared_args);
-  }
-};
-
-
 void test2()
 {
   auto lambda = [](agency::sequential_group<agency::sequential_agent>& self, int local_param)
