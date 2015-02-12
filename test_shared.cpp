@@ -198,11 +198,16 @@ void bulk_invoke_new_impl(agency::detail::index_sequence<UserArgIndices...>,
 {
   using agent_type = typename ExecutionPolicy::execution_agent_type;
   using agent_traits = agency::execution_agent_traits<agent_type>;
+  using execution_category = typename agent_traits::execution_category;
 
   // get the parameters of the agent
   auto param = policy.param();
   auto agent_shape = agent_traits::domain(param).shape();
-  auto agent_shared_params = agent_traits::make_shared_initializer(param);
+
+  // XXX if the agent is not nested, make_shared_initializer returns a single value
+  //     but the get() below expects it to be a tuple, so wrap if execution is not nested
+  // XXX eliminate this once #20 is resolved
+  auto agent_shared_params = agency::detail::make_tuple_if_not_nested<execution_category>(agent_traits::make_shared_initializer(param));
 
   using executor_type = typename ExecutionPolicy::executor_type;
   using executor_traits = agency::executor_traits<executor_type>;
@@ -227,7 +232,10 @@ typename agency::detail::enable_if_call_possible<
 >::type
   bulk_invoke_new(ExecutionPolicy& policy, Function f, Args&&... args)
 {
-  bulk_invoke_new_impl(agency::detail::index_sequence_for<Args...>(), agency::detail::make_index_sequence<2>(), policy, f, std::forward<Args>(args)...);
+  using agent_traits = agency::execution_agent_traits<typename ExecutionPolicy::execution_agent_type>;
+  const size_t num_shared_params = agency::detail::execution_depth<typename agent_traits::execution_category>::value;
+
+  bulk_invoke_new_impl(agency::detail::index_sequence_for<Args...>(), agency::detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
 }
 
 void test2()
@@ -242,10 +250,23 @@ void test2()
 }
 
 
+void test3()
+{
+  auto lambda = [](agency::sequential_agent& self)
+  {
+    std::cout << "index: " << self.index() << std::endl;
+  };
+
+  auto policy = agency::seq(10);
+  ::bulk_invoke_new(policy, lambda);
+}
+
+
 int main()
 {
 //  test1();
   test2();
+//  test3();
 
   return 0;
 }
