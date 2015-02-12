@@ -18,6 +18,12 @@ struct ignore_t
   }
 };
 
+
+std::ostream& operator<<(std::ostream& os, ignore_t)
+{
+  return std::cout << "ignore";
+}
+
 namespace
 {
 

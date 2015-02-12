@@ -222,11 +222,17 @@ struct execute_agent_functor
 };
 
 
-// XXX collapse this and the implementation of bulk_async_impl
-template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
-void bulk_invoke_impl(index_sequence<UserArgIndices...>,
-                      index_sequence<SharedArgIndices...>,
-                      ExecutionPolicy& policy, Function f, Args&&... args)
+// this is the implementation of bulk_invoke(execution_policy) or bulk_async(execution_policy),
+// depending on what BulkCall does
+// the implementation of bulk_invoke & bulk_async are the same, modulo the type of result
+// the idea is to lower the call onto the corresponding call to bulk_invoke_executor or bulk_async_executor
+// by marshalling the shared arguments used to construct execution agents
+template<class BulkCall, size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
+typename BulkCall::result_type
+  bulk_call_execution_policy(BulkCall bulk_call,
+                             index_sequence<UserArgIndices...>,
+                             index_sequence<SharedArgIndices...>,
+                             ExecutionPolicy& policy, Function f, Args&&... args)
 {
   using agent_type = typename ExecutionPolicy::execution_agent_type;
   using agent_traits = execution_agent_traits<agent_type>;
@@ -251,8 +257,35 @@ void bulk_invoke_impl(index_sequence<UserArgIndices...>,
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  detail::bulk_invoke_executor(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_params))...);
+  return bulk_call(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_params))...);
 }
+
+
+// this functor takes its arguments and forwards them to bulk_invoke_executor
+struct call_bulk_invoke_executor
+{
+  using result_type = void;
+
+  template<class... Args>
+  void operator()(Args&&... args)
+  {
+    detail::bulk_invoke_executor(std::forward<Args>(args)...);
+  }
+};
+
+
+// this functor takes its arguments and forwards them to bulk_async_executor
+template<class Result>
+struct call_bulk_async_executor
+{
+  using result_type = Result;
+
+  template<class... Args>
+  result_type operator()(Args&&... args)
+  {
+    return detail::bulk_async_executor(std::forward<Args>(args)...);
+  }
+};
 
 
 template<class T, class Result = void>
@@ -272,40 +305,6 @@ template<class ExecutionPolicy, class T>
 using policy_future = executor_future<typename ExecutionPolicy::executor_type, T>;
 
 
-// XXX collapse this and the implementation of bulk_invoke_impl
-template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
-policy_future<ExecutionPolicy,void>
-  bulk_async_impl(index_sequence<UserArgIndices...>,
-                  index_sequence<SharedArgIndices...>,
-                  ExecutionPolicy& policy, Function f, Args&&... args)
-{
-  using agent_type = typename ExecutionPolicy::execution_agent_type;
-  using agent_traits = execution_agent_traits<agent_type>;
-  using execution_category = typename agent_traits::execution_category;
-
-  // get the parameters of the agent
-  auto param = policy.param();
-  auto agent_shape = agent_traits::domain(param).shape();
-
-  // XXX if the agent is not nested, make_shared_initializer returns a single value
-  //     but the get() below expects it to be a tuple, so wrap if execution is not nested
-  // XXX eliminate this once #20 is resolved and this operation always returns a tuple
-  auto agent_shared_params = detail::make_tuple_if_not_nested<execution_category>(agent_traits::make_shared_initializer(param));
-
-  using executor_type = typename ExecutionPolicy::executor_type;
-  using executor_traits = agency::executor_traits<executor_type>;
-
-  // convert the shape of the agent into the type of the executor's shape
-  using executor_shape_type = typename executor_traits::shape_type;
-  executor_shape_type executor_shape = detail::shape_cast<executor_shape_type>(agent_shape);
-
-  // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
-  auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
-
-  return detail::bulk_async_executor(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_params))...);
-}
-
-
 } // end detail
 
 
@@ -321,7 +320,8 @@ typename detail::enable_if_call_possible<
   using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
   const size_t num_shared_params = detail::execution_depth<typename agent_traits::execution_category>::value;
 
-  detail::bulk_invoke_impl(detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
+  detail::call_bulk_invoke_executor invoker;
+  detail::bulk_call_execution_policy(invoker, detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
 }
 
 
@@ -338,7 +338,10 @@ bulk_async(ExecutionPolicy&& policy, Function&& f, Args&&... args)
   using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
   const size_t num_shared_params = detail::execution_depth<typename agent_traits::execution_category>::value;
 
-  return detail::bulk_async_impl(detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
+  using result_type = detail::policy_future<detail::decay_t<ExecutionPolicy>,void>;
+
+  detail::call_bulk_async_executor<result_type> asyncer;
+  return detail::bulk_call_execution_policy(asyncer, detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
 }
 
 

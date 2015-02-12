@@ -139,7 +139,7 @@ void bulk_invoke_impl(const ExecutionPolicy& exec, Function&& f)
 
 
 template<class ExecutionPolicy, class Function>
-agency::detail::future<ExecutionPolicy,void>
+agency::detail::policy_future<ExecutionPolicy,void>
   bulk_async_impl(const ExecutionPolicy& exec, Function&& f)
 {
   using execution_agent_type = typename ExecutionPolicy::execution_agent_type;
@@ -282,7 +282,7 @@ void bulk_invoke(const ExecutionPolicy& exec, Function&& f, Args&&... args)
 
 
 template<class ExecutionPolicy, class Function, class... Args>
-agency::detail::future<ExecutionPolicy,void>
+agency::detail::policy_future<ExecutionPolicy,void>
   bulk_async(const ExecutionPolicy& exec, Function&& f, Args&&... args)
 {
   auto g = detail::bind(f, thrust::placeholders::_1, std::forward<Args>(args)...);
@@ -444,7 +444,7 @@ void bulk_invoke(const cuda::concurrent_execution_policy& exec,
 
 
 template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory, class DerivedExecutionPolicy, class Function, class... Args>
-agency::detail::future<
+agency::detail::policy_future<
   cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>,
   void
 >
@@ -454,7 +454,7 @@ agency::detail::future<
 }
 
 template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory, class DerivedExecutionPolicy, class Function, class... Args>
-agency::detail::future<
+agency::detail::policy_future<
   cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>,
   void
 >
@@ -464,7 +464,7 @@ agency::detail::future<
 }
 
 template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory, class DerivedExecutionPolicy, class Function, class... Args>
-agency::detail::future<
+agency::detail::policy_future<
   cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>,
   void
 >
@@ -475,7 +475,7 @@ agency::detail::future<
 
 
 template<class Function, class... Args>
-agency::detail::future<
+agency::detail::policy_future<
   cuda::parallel_execution_policy,
   void
 >
@@ -487,7 +487,7 @@ agency::detail::future<
 }
 
 template<class Function, class... Args>
-agency::detail::future<
+agency::detail::policy_future<
   cuda::parallel_execution_policy,
   void
 >
@@ -499,7 +499,7 @@ agency::detail::future<
 }
 
 template<class Function, class... Args>
-agency::detail::future<
+agency::detail::policy_future<
   cuda::parallel_execution_policy,
   void
 >
@@ -512,7 +512,7 @@ agency::detail::future<
 
 
 template<class Function, class... Args>
-agency::detail::future<
+agency::detail::policy_future<
   cuda::concurrent_execution_policy,
   void
 >
@@ -524,7 +524,7 @@ agency::detail::future<
 }
 
 template<class Function, class... Args>
-agency::detail::future<
+agency::detail::policy_future<
   cuda::concurrent_execution_policy,
   void
 >
@@ -536,7 +536,7 @@ agency::detail::future<
 }
 
 template<class Function, class... Args>
-agency::detail::future<
+agency::detail::policy_future<
   cuda::concurrent_execution_policy,
   void
 >
