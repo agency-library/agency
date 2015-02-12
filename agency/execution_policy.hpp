@@ -46,10 +46,22 @@ struct disable_if_execution_policy
 {};
 
 
-template<class ExecutionPolicy, class Function>
-void bulk_invoke_impl(ExecutionPolicy& policy, Function f)
+// gets the type of future bulk_async() returns
+template<class ExecutionPolicy, class T>
+using future = typename executor_traits<
+  typename ExecutionPolicy::executor_type
+>::template future<T>;
+
+
+} // end detail
+
+
+template<class ExecutionPolicy, class Function, class... Args>
+typename detail::enable_if_execution_policy<detail::decay_t<ExecutionPolicy>>::type
+  bulk_invoke(ExecutionPolicy&& policy, Function&& f, Args&&... args)
 {
   // XXX we really need to collapse all this stuff shared between bulk_invoke & bulk_async
+
   using agent_type = typename ExecutionPolicy::execution_agent_type;
   using agent_traits = execution_agent_traits<agent_type>;
 
@@ -65,6 +77,9 @@ void bulk_invoke_impl(ExecutionPolicy& policy, Function f)
   // convert the shape of the agent into the type of the executor's shape
   using executor_shape_type = typename executor_traits::shape_type;
   executor_shape_type executor_shape = detail::shape_cast<executor_shape_type>(agent_shape);
+
+  // _1 is for the execution agent parameter
+  auto g = std::bind(f, std::placeholders::_1, std::forward<Args>(args)...);
 
   return executor_traits::bulk_invoke(policy.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
   {
@@ -79,15 +94,15 @@ void bulk_invoke_impl(ExecutionPolicy& policy, Function f)
 }
 
 
-// gets the type of future bulk_async() returns
-template<class ExecutionPolicy, class T>
-using future = typename executor_traits<
-  typename ExecutionPolicy::executor_type
->::template future<T>;
-
-
-template<class ExecutionPolicy, class Function>
-future<ExecutionPolicy,void> bulk_async_impl(ExecutionPolicy& policy, Function f)
+template<class ExecutionPolicy, class Function, class... Args>
+typename detail::enable_if_execution_policy<
+  detail::decay_t<ExecutionPolicy>,
+  detail::future<
+    detail::decay_t<ExecutionPolicy>,
+    void
+  >
+>::type
+bulk_async(ExecutionPolicy&& policy, Function&& f, Args&&... args)
 {
   // XXX we really need to collapse all this stuff shared between bulk_invoke & bulk_async
   using agent_type = typename ExecutionPolicy::execution_agent_type;
@@ -106,6 +121,9 @@ future<ExecutionPolicy,void> bulk_async_impl(ExecutionPolicy& policy, Function f
   using executor_shape_type = typename executor_traits::shape_type;
   executor_shape_type executor_shape = detail::shape_cast<executor_shape_type>(agent_shape);
 
+  // _1 is for the execution agent parameter
+  auto g = std::bind(f, std::placeholders::_1, std::forward<Args>(args)...);
+
   return executor_traits::bulk_async(policy.executor(), [=](executor_index_type executor_idx, shared_param_type shared_params)
   {
     // convert the index of the executor into the type of the agent's index
@@ -116,31 +134,6 @@ future<ExecutionPolicy,void> bulk_async_impl(ExecutionPolicy& policy, Function f
   },
   executor_shape,
   shared_init);
-}
-
-
-} // end detail
-
-
-template<class ExecutionPolicy, class Function, class... Args>
-typename detail::enable_if_execution_policy<detail::decay_t<ExecutionPolicy>>::type
-bulk_invoke(ExecutionPolicy&& exec, Function&& f, Args&&... args)
-{
-  return detail::bulk_invoke_impl(exec, std::bind(f, std::placeholders::_1, args...));
-}
-
-
-template<class ExecutionPolicy, class Function, class... Args>
-typename detail::enable_if_execution_policy<
-  detail::decay_t<ExecutionPolicy>,
-  detail::future<
-    detail::decay_t<ExecutionPolicy>,
-    void
-  >
->::type
-bulk_async(ExecutionPolicy&& exec, Function&& f, Args&&... args)
-{
-  return detail::bulk_async_impl(exec, std::bind(f, std::placeholders::_1, args...));
 }
 
 
