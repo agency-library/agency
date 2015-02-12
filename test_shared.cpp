@@ -142,7 +142,7 @@ void test1()
     ++inner_shared;
   };
 
-  bulk_invoke_executor(exec, lambda, shape, share<0>(1), share<1>(2), share<2>(3));
+  ::bulk_invoke_executor(exec, lambda, shape, share<0>(1), share<1>(2), share<2>(3));
 }
 
 
@@ -214,7 +214,7 @@ void bulk_invoke_new_impl(agency::detail::index_sequence<UserArgIndices...>,
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  bulk_invoke_executor(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(std::get<SharedArgIndices>(agent_shared_params))...);
+  ::bulk_invoke_executor(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(std::get<SharedArgIndices>(agent_shared_params))...);
 }
 
 

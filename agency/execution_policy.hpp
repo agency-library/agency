@@ -17,9 +17,25 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_cast.hpp>
+#include <agency/detail/shared_parameter.hpp>
+#include <agency/detail/is_call_possible.hpp>
 
 namespace agency
 {
+
+
+template<size_t level, class T, class... Args>
+detail::shared_parameter<level, T,Args...> share(Args&&... args)
+{
+  return detail::shared_parameter<level, T,Args...>{detail::make_tuple(std::forward<Args>(args)...)};
+}
+
+
+template<size_t level, class T>
+detail::shared_parameter<level,T,T> share(const T& val)
+{
+  return detail::shared_parameter<level,T,T>{detail::make_tuple(val)};
+}
 
 
 // XXX add is_execution_policy_v
@@ -32,6 +48,69 @@ template<class T> struct is_execution_policy : std::false_type {};
 
 namespace detail
 {
+
+
+template<class T>
+struct decay_parameter : std::decay<T> {};
+
+
+template<size_t level, class T, class... Args>
+struct decay_parameter<
+  detail::shared_parameter<level, T, Args...>
+>
+{
+  // shared parameters are passed by reference
+  using type = T&;
+};
+
+
+template<class T>
+using decay_parameter_t = typename decay_parameter<T>::type;
+
+
+template<class Executor, class Function, class... Args>
+typename detail::enable_if_call_possible<
+  Function(
+    typename executor_traits<Executor>::index_type,
+    decay_parameter_t<Args>...
+  )
+>::type
+  bulk_invoke_executor(Executor& exec, Function f, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
+{
+  // the _1 is for the executor idx parameter, which is the first parameter passed to f
+  auto g = bind_unshared_parameters(f, std::placeholders::_1, std::forward<Args>(args)...);
+
+  // make a tuple of the shared args
+  auto shared_arg_tuple = forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
+
+  using traits = executor_traits<Executor>;
+
+  // package up the shared parameters for the executor
+  const size_t executor_depth = detail::execution_depth<
+    typename traits::execution_category
+  >::value;
+
+  // construct shared arguments and package them for the executor
+  auto shared_init = detail::pack_shared_parameters_for_executor<executor_depth>(shared_arg_tuple);
+
+  using shared_param_type = typename traits::template shared_param_type<decltype(shared_init)>;
+
+  traits::bulk_invoke(exec, [=](typename traits::index_type idx, shared_param_type& packaged_shared_params)
+  {
+    auto shared_params = detail::unpack_shared_parameters_from_executor(packaged_shared_params);
+
+    // XXX the following is the moral equivalent of:
+    // g(idx, shared_params...);
+
+    // create one big tuple of the arguments so we can just call tuple_apply
+    auto idx_and_shared_params = __tu::tuple_prepend_invoke(shared_params, idx, detail::forwarder{});
+
+    __tu::tuple_apply(g, idx_and_shared_params);
+  },
+  shape,
+  std::move(shared_init)
+  );
+}
 
 
 template<class T, class Result = void>
@@ -62,14 +141,15 @@ typename detail::enable_if_execution_policy<detail::decay_t<ExecutionPolicy>>::t
 {
   // XXX we really need to collapse all this stuff shared between bulk_invoke & bulk_async
 
-  using agent_type = typename ExecutionPolicy::execution_agent_type;
+  using execution_policy_type = typename std::decay<ExecutionPolicy>::type;
+  using agent_type = typename execution_policy_type::execution_agent_type;
   using agent_traits = execution_agent_traits<agent_type>;
 
   auto param = policy.param();
   auto agent_shape = agent_traits::domain(param).shape();
   auto shared_init = agent_traits::make_shared_initializer(param);
 
-  using executor_type = typename ExecutionPolicy::executor_type;
+  using executor_type = typename execution_policy_type::executor_type;
   using executor_traits = agency::executor_traits<executor_type>;
   using executor_index_type = typename executor_traits::index_type;
   using shared_param_type = typename executor_traits::template shared_param_type<decltype(shared_init)>;
@@ -105,14 +185,16 @@ typename detail::enable_if_execution_policy<
 bulk_async(ExecutionPolicy&& policy, Function&& f, Args&&... args)
 {
   // XXX we really need to collapse all this stuff shared between bulk_invoke & bulk_async
-  using agent_type = typename ExecutionPolicy::execution_agent_type;
+  
+  using execution_policy_type = typename std::decay<ExecutionPolicy>::type;
+  using agent_type = typename execution_policy_type::execution_agent_type;
   using agent_traits = execution_agent_traits<agent_type>;
 
   auto param = policy.param();
   auto agent_shape = agent_traits::domain(param).shape();
   auto shared_init = agent_traits::make_shared_initializer(param);
 
-  using executor_type = typename ExecutionPolicy::executor_type;
+  using executor_type = typename execution_policy_type::executor_type;
   using executor_traits = agency::executor_traits<executor_type>;
   using executor_index_type = typename executor_traits::index_type;
   using shared_param_type = typename executor_traits::template shared_param_type<decltype(shared_init)>;
