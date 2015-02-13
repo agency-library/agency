@@ -5,6 +5,7 @@
 #include <agency/detail/tuple.hpp>
 #include <type_traits>
 #include <utility>
+#include <functional>
 
 namespace agency
 {
