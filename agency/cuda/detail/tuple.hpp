@@ -92,6 +92,8 @@ struct tuple_war_1527140<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>
 template<class... T>
 using tuple = typename tuple_detail::tuple_war_1527140<T...>::type;
 
+using thrust::get;
+
 
 // XXX replace this with the variadic forward_as_tuple() when thrust::tuple's constructor can receive && references
 inline __host__ __device__

@@ -13,7 +13,7 @@ int main()
 
   bulk_invoke(vec(n), [&](vector_agent &self)
   {
-    int i = self.index();
+    auto i = self.index();
     z[i] = a * x[i] + y[i];
   });
 

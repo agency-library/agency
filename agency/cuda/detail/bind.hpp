@@ -4,8 +4,8 @@
 #include <utility>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <thrust/functional.h>
 #include <agency/cuda/detail/tuple.hpp>
+#include <thrust/functional.h>
 
 
 namespace agency
@@ -40,12 +40,12 @@ __host__ __device__
 auto apply_impl(F&& f, Tuple&& t, agency::detail::index_sequence<I...>)
   -> decltype(
        std::forward<F>(f)(
-         thrust::get<I>(std::forward<Tuple>(t))...
+         detail::get<I>(std::forward<Tuple>(t))...
        )
      )
 {
   return std::forward<F>(f)(
-    thrust::get<I>(std::forward<Tuple>(t))...
+    detail::get<I>(std::forward<Tuple>(t))...
   );
 }
 
@@ -119,13 +119,13 @@ auto substitute_arg(ArgTuple&& arg_tuple, const BoundArg&,
                      is_placeholder<decay_t<BoundArg>>::value
                    >::type* = 0)
   -> decltype(
-       thrust::get<
+       detail::get<
          argument_index<BoundArg>::value
        >(std::forward<ArgTuple>(arg_tuple))
      )
 {
   const unsigned int idx = argument_index<BoundArg>::value;
-  return thrust::get<idx>(std::forward<ArgTuple>(arg_tuple));
+  return detail::get<idx>(std::forward<ArgTuple>(arg_tuple));
 }
 
 
@@ -136,7 +136,7 @@ auto substitute_impl(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple, agen
        detail::forward_as_tuple(
          substitute_arg(
            std::forward<ArgTuple>(arg_tuple),
-           thrust::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
+           detail::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
          )...
        )
      )
@@ -144,7 +144,7 @@ auto substitute_impl(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple, agen
   return detail::forward_as_tuple(
     substitute_arg(
       std::forward<ArgTuple>(arg_tuple),
-      thrust::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
+      detail::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
     )...
   );
 }
