@@ -75,7 +75,7 @@ typename BulkCall::result_type
   bulk_call_executor(BulkCall bulk_call, Executor& exec, Function f, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
-  auto g = bind_unshared_parameters(f, std::placeholders::_1, std::forward<Args>(args)...);
+  auto g = bind_unshared_parameters(f, placeholders::_1, std::forward<Args>(args)...);
 
   // make a tuple of the shared args
   auto shared_arg_tuple = forward_shared_parameters_as_tuple(std::forward<Args>(args)...);

@@ -99,7 +99,7 @@ template<class Function, class... Args>
 __host__ __device__
 void bulk_invoke(block_executor& ex, typename grid_executor::shape_type shape, Function&& f, Args&&... args)
 {
-  auto g = detail::bind(std::forward<Function>(f), thrust::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::bind(std::forward<Function>(f), detail::placeholders::_1, std::forward<Args>(args)...);
   ex.bulk_invoke(g, shape);
 }
 

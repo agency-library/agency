@@ -25,11 +25,8 @@ template<class T>
 struct has_nested_type : has_nested_type_impl<T>::type {};
 
 
-template<class> struct is_call_possible;
-
-
 template<class Function, class... Args>
-struct is_call_possible<Function(Args...)>
+struct is_call_possible
   : has_nested_type<
       std::result_of<Function(Args...)>
     >
@@ -44,7 +41,7 @@ template<class Result, class Function, class... Args>
 struct enable_if_call_possible<Function(Args...),Result>
   : std::enable_if<
       agency::detail::is_call_possible<
-        Function(Args...)
+        Function,Args...
       >::value,
       Result
     >

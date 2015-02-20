@@ -276,7 +276,7 @@ const concurrent_execution_policy con{};
 template<class ExecutionPolicy, class Function, class... Args>
 void bulk_invoke(const ExecutionPolicy& exec, Function&& f, Args&&... args)
 {
-  auto g = detail::bind(f, thrust::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::bind(f, detail::placeholders::_1, std::forward<Args>(args)...);
   detail::bulk_invoke_impl(exec, g);
 }
 
@@ -285,7 +285,7 @@ template<class ExecutionPolicy, class Function, class... Args>
 agency::detail::policy_future<ExecutionPolicy,void>
   bulk_async(const ExecutionPolicy& exec, Function&& f, Args&&... args)
 {
-  auto g = detail::bind(f, thrust::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::bind(f, detail::placeholders::_1, std::forward<Args>(args)...);
   return detail::bulk_async_impl(exec, g);
 }
 
