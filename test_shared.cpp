@@ -148,13 +148,16 @@ void test1()
 
 void test2()
 {
-  auto lambda = [](agency::sequential_group<agency::sequential_agent>& self, int local_param)
+  auto lambda = [](agency::sequential_group<agency::sequential_agent>& self, int& outer_shared, int& inner_shared)
   {
-    std::cout << "index: " << self.index() << " local_param: " << local_param << std::endl;
+    std::cout << "idx: " << self.index() << std::endl;
+    std::cout << "outer_shared: " << outer_shared << std::endl;
+    std::cout << "inner_shared: " << inner_shared << std::endl;
   };
 
-  auto policy = agency::seq(2,agency::seq(2));
-  agency::bulk_invoke(policy, lambda, 13);
+  auto policy = agency::seq(2, agency::seq(2));
+
+  agency::bulk_invoke(policy, lambda, agency::share<0>(1), agency::share<1>(2));
 }
 
 

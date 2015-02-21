@@ -149,6 +149,8 @@ tuple_matrix_transpose_view<tuple<Rows...>>
 }
 
 
+// XXX seems weird that this takes num_columns as a parameter
+//     it should just be able to figure it out from tuple_matrix_shape
 template<size_t num_columns, class... Rows>
 __AGENCY_ANNOTATION
 tuple_matrix_transpose_view<tuple<Rows...>>

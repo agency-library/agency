@@ -180,10 +180,10 @@ struct packaged_shared_parameters_t_impl<index_sequence<RowIndex...>,Tuple>
 };
 
 
-template<class Tuple>
+template<size_t execution_depth, class Tuple>
 using packaged_shared_parameters_t = typename packaged_shared_parameters_t_impl<
   agency::detail::make_index_sequence<
-    std::tuple_size<Tuple>::value
+    execution_depth
   >,
   Tuple
 >::type;
@@ -194,7 +194,7 @@ using packaged_shared_parameters_t = typename packaged_shared_parameters_t_impl<
 // the rows correspond to levels of the executor's hierarchy
 // the columns correspond to shared arguments
 template<size_t... RowIndex, class... SharedArgs>
-packaged_shared_parameters_t<tuple<SharedArgs...>>
+packaged_shared_parameters_t<sizeof...(RowIndex), tuple<SharedArgs...>>
   pack_shared_parameters_for_executor_impl(index_sequence<RowIndex...>,
                                            const tuple<SharedArgs...>& shared_arg_tuple)
 {
@@ -204,12 +204,12 @@ packaged_shared_parameters_t<tuple<SharedArgs...>>
 }
 
 
-template<size_t num_rows, class... SharedArgs>
-packaged_shared_parameters_t<tuple<SharedArgs...>>
+template<size_t execution_depth, class... SharedArgs>
+packaged_shared_parameters_t<execution_depth, tuple<SharedArgs...>>
   pack_shared_parameters_for_executor(const tuple<SharedArgs...>& shared_arg_tuple)
 {
   return detail::pack_shared_parameters_for_executor_impl(
-    make_index_sequence<num_rows>{},
+    make_index_sequence<execution_depth>{},
     shared_arg_tuple
   );
 }
@@ -273,11 +273,13 @@ __AGENCY_ANNOTATION
 unpack_shared_parameters_from_executor_t<tuple<Rows...>>
   unpack_shared_parameters_from_executor(tuple<Rows...>& shared_param_matrix)
 {
+  const size_t num_columns = tuple_matrix_shape<tuple<Rows...>>::columns;
+
   // to transform the shared_param_matrix into a tuple of shared parameters
   // we need to find the actual (non-null) parameter in each column of the matrix
   // the easiest way to do this is to tranpose the matrix and extract the shared parameter from each row of the transpose
   return detail::extract_shared_parameters_from_rows(
-    detail::make_transposed_view<sizeof...(Rows)>(
+    detail::make_transposed_view<num_columns>(
       shared_param_matrix
     )
   );
