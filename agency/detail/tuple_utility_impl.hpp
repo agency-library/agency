@@ -304,6 +304,7 @@ auto tuple_take(Tuple&& t)
 
 
 template<size_t N, size_t... I, class Tuple, class Function>
+TUPLE_UTILITY_ANNOTATION
 auto __tuple_drop_invoke_impl(Tuple&& t, Function f, __index_sequence<I...>)
   -> decltype(
        f(__get<N + I>(std::forward<Tuple>(t))...)
