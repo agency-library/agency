@@ -123,7 +123,7 @@ void bulk_invoke_impl(const ExecutionPolicy& exec, Function&& f)
 
   auto param = exec.param();
   auto agent_shape = traits::domain(param).shape();
-  auto shared_init = traits::make_shared_initializer(param);
+  auto shared_param_tuple = traits::make_shared_param_tuple(param);
 
   using executor_type = typename ExecutionPolicy::executor_type;
   using executor_index_type = typename executor_traits<executor_type>::index_type;
@@ -134,7 +134,7 @@ void bulk_invoke_impl(const ExecutionPolicy& exec, Function&& f)
 
   auto execute_me = make_execute_agent_functor<traits>(f, param, executor_shape, agent_shape);
 
-  return executor_traits<executor_type>::bulk_invoke(exec.executor(), execute_me, executor_shape, shared_init);
+  return executor_traits<executor_type>::bulk_invoke(exec.executor(), execute_me, executor_shape, shared_param_tuple);
 }
 
 
@@ -147,7 +147,7 @@ agency::detail::future<ExecutionPolicy,void>
 
   auto param = exec.param();
   auto agent_shape = traits::domain(param).shape();
-  auto shared_init = traits::make_shared_initializer(param);
+  auto shared_param_tuple = traits::make_shared_param_tuple(param);
 
   using executor_type = typename ExecutionPolicy::executor_type;
   using executor_index_type = typename executor_traits<executor_type>::index_type;
@@ -158,7 +158,7 @@ agency::detail::future<ExecutionPolicy,void>
 
   auto execute_me = make_execute_agent_functor<traits>(f, param, executor_shape, agent_shape);
 
-  return executor_traits<executor_type>::bulk_async(exec.executor(), execute_me, executor_shape, shared_init);
+  return executor_traits<executor_type>::bulk_async(exec.executor(), execute_me, executor_shape, shared_param_tuple);
 }
 
 

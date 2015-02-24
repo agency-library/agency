@@ -218,10 +218,10 @@ void bulk_invoke_impl(ExecutionCategory1,
 
   auto param = exec.param();
   auto agent_shape = traits::domain(param).shape();
-  auto shared_init = traits::make_shared_initializer(param);
+  auto shared_param_tuple = traits::make_shared_param_tuple(param);
 
   using executor_index_type = typename executor_traits<BulkExecutor>::index_type;
-  using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
+  using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_param_tuple)>;
 
   // convert the shape of the agent into the type of the executor's shape
   using executor_shape_type = typename executor_traits<BulkExecutor>::shape_type;
@@ -236,7 +236,7 @@ void bulk_invoke_impl(ExecutionCategory1,
     traits::execute(f, agent_idx, param, shared_params);
   },
   executor_shape,
-  shared_init);
+  shared_param_tuple);
 }
 
 
@@ -263,10 +263,10 @@ future<
 
   auto param = exec.param();
   auto agent_shape = traits::domain(param).shape();
-  auto shared_init = traits::make_shared_initializer(param);
+  auto shared_param_tuple = traits::make_shared_param_tuple(param);
 
   using executor_index_type = typename executor_traits<BulkExecutor>::index_type;
-  using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_init)>;
+  using shared_param_type = typename executor_traits<BulkExecutor>::template shared_param_type<decltype(shared_param_tuple)>;
 
   // convert the shape of the agent into the type of the executor's shape
   using executor_shape_type = typename executor_traits<BulkExecutor>::shape_type;
@@ -281,7 +281,7 @@ future<
     traits::execute(f, agent_idx, param, shared_params);
   },
   executor_shape,
-  shared_init);
+  shared_param_tuple);
 }
 
 
