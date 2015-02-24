@@ -153,6 +153,17 @@ struct is_constructible_from_type_list<T,type_list<Types...>>
 {};
 
 
+template<class T0, class TypeList>
+struct type_list_prepend;
+
+template<class T0, class... Types>
+struct type_list_prepend<T0, type_list<Types...>>
+{
+  using type = type_list<T0, Types...>;
+};
+
+
+
 } // end detail
 } // end agency
 
