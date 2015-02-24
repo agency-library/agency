@@ -213,11 +213,7 @@ struct execute_agent_functor
       f_(self, detail::get<UserArgIndices>(user_args)...);
     };
 
-    // XXX AgentTraits::execute expects agent_type::shared_param_type
-    //     which may or may not be a tuple
-    //     if agent_type's execution is not nested, we need to unwrap agent_shared_args
-    // XXX eliminate this mess after #20 is resolved and AgentTraits::execute always takes a tuple
-    AgentTraits::execute(invoke_f, agent_idx, agent_param_, detail::unwrap_tuple_if_not_nested<agent_execution_category>(agent_shared_args));
+    AgentTraits::execute(invoke_f, agent_idx, agent_param_, agent_shared_args);
   }
 };
 
@@ -242,10 +238,7 @@ typename BulkCall::result_type
   auto param = policy.param();
   auto agent_shape = agent_traits::domain(param).shape();
 
-  // XXX if the agent is not nested, make_shared_initializer returns a single value
-  //     but the get() below expects it to be a tuple, so wrap if execution is not nested
-  // XXX eliminate this once #20 is resolved and this operation always returns a tuple
-  auto agent_shared_params = detail::make_tuple_if_not_nested<execution_category>(agent_traits::make_shared_initializer(param));
+  auto agent_shared_param_tuple = agent_traits::make_shared_param_tuple(param);
 
   using executor_type = typename ExecutionPolicy::executor_type;
   using executor_traits = agency::executor_traits<executor_type>;
@@ -257,7 +250,7 @@ typename BulkCall::result_type
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  return bulk_call(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_params))...);
+  return bulk_call(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
 }
 
 
