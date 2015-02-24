@@ -296,13 +296,13 @@ class __tuple_base<__tuple_index_sequence<I...>, Types...>
 
     __TUPLE_ANNOTATION
     __tuple_base(const __tuple_base& other)
-      : __tuple_leaf<I,Types>(other)...
+      : __tuple_leaf<I,Types>(other.template const_leaf<I>())...
     {}
 
 
     __TUPLE_ANNOTATION
     __tuple_base(__tuple_base&& other)
-      : __tuple_leaf<I,Types>(std::move(other))...
+      : __tuple_leaf<I,Types>(std::move(other.template mutable_leaf<I>()))...
     {}
 
 
@@ -315,7 +315,7 @@ class __tuple_base<__tuple_index_sequence<I...>, Types...>
              >::type>
     __TUPLE_ANNOTATION
     __tuple_base(const __tuple_base<__tuple_index_sequence<I...>,UTypes...>& other)
-      : __tuple_leaf<I,Types>(other)...
+      : __tuple_leaf<I,Types>(other.template const_leaf<I>())...
     {}
 
 
