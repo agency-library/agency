@@ -612,7 +612,7 @@ void bulk_invoke_new_impl(agency::detail::index_sequence<UserArgIndices...>,
   // get the parameters of the agent
   auto param = policy.param();
   auto agent_shape = agent_traits::domain(param).shape();
-  auto agent_shared_params = agent_traits::make_shared_initializer(param);
+  auto agent_shared_param_tuple = agent_traits::make_shared_param_tuple(param);
 
   using executor_type = typename ExecutionPolicy::executor_type;
   using executor_traits = agency::executor_traits<executor_type>;
@@ -624,7 +624,7 @@ void bulk_invoke_new_impl(agency::detail::index_sequence<UserArgIndices...>,
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  bulk_invoke_executor(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(std::get<SharedArgIndices>(agent_shared_params))...);
+  bulk_invoke_executor(policy.executor(), lambda, executor_shape, std::forward<Args>(args)..., share<SharedArgIndices>(std::get<SharedArgIndices>(agent_shared_param_tuple))...);
 }
 
 

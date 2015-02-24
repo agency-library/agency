@@ -124,69 +124,6 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
     ExecutionAgent agent(f, index, param);
   }
 
-  private:
-    // XXX eliminate me!
-    template<class ExecutionAgent1>
-    struct test_for_make_shared_initializer
-    {
-      template<
-        class ExecutionAgent2,
-        typename = decltype(
-          ExecutionAgent2::make_shared_initializer(
-            std::declval<param_type>()
-          )
-        )
-      >
-      static std::true_type test(int);
-
-      template<class>
-      static std::false_type test(...);
-
-      using type = decltype(test<ExecutionAgent1>(0));
-    };
-
-    // XXX this should only be enabled for flat execution_agents
-    //     nested agents should return a tuple of shared initializers
-    // XXX eliminate me!
-    template<class ExecutionAgent1>
-    __AGENCY_ANNOTATION
-    static decltype(agency::detail::ignore) make_shared_initializer(const param_type&, std::false_type)
-    {
-      return agency::detail::ignore;
-    }
-
-    // XXX eliminate me!
-    __agency_hd_warning_disable__
-    template<class ExecutionAgent1>
-    __AGENCY_ANNOTATION
-    static auto make_shared_initializer(const param_type& param, std::true_type)
-      -> decltype(
-           ExecutionAgent1::make_shared_initializer(param)
-         )
-    {
-      return ExecutionAgent1::make_shared_initializer(param);
-    }
-
-  public:
-
-  // XXX eliminate me!
-  using has_make_shared_initializer = typename test_for_make_shared_initializer<execution_agent_type>::type;
-
-  // XXX eliminate me!
-  __AGENCY_ANNOTATION
-  static auto make_shared_initializer(const param_type& param)
-    -> decltype(
-         make_shared_initializer<execution_agent_type>(param, has_make_shared_initializer())
-       )
-  {
-    return make_shared_initializer<execution_agent_type>(param, has_make_shared_initializer());
-  }
-
-  // XXX eliminate me!
-  using shared_initializer_type = decltype(
-    make_shared_initializer(std::declval<param_type>())
-  );
-
 
   private:
     template<class T>
@@ -737,28 +674,6 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
         }
     };
 
-    // XXX move this into execution_agent_traits
-    static auto make_shared_initializer(const param_type& param)
-      -> decltype(
-           agency::detail::tuple_cat(
-             detail::make_tuple_if_not_nested<outer_execution_category>(
-               outer_traits::make_shared_initializer(param.outer())
-             ),
-             detail::make_tuple_if_not_nested<inner_execution_category>(
-               inner_traits::make_shared_initializer(param.inner())
-             )
-           )
-         )
-    {
-      auto outer_shared_init = outer_traits::make_shared_initializer(param.outer());
-      auto inner_shared_init = inner_traits::make_shared_initializer(param.inner());
-
-      auto outer_tuple = detail::make_tuple_if_not_nested<outer_execution_category>(outer_shared_init);
-      auto inner_tuple = detail::make_tuple_if_not_nested<inner_execution_category>(inner_shared_init);
-
-      return agency::detail::tuple_cat(outer_tuple, inner_tuple);
-    }
-
     __AGENCY_ANNOTATION
     outer_execution_agent_type& outer()
     {
@@ -829,17 +744,6 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
     execution_group(Function f, const index_type& index, const param_type& param)
       : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), param.outer())),
         inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), param.inner()))
-    {
-      f(*this);
-    }
-
-    // XXX eliminate me!
-    __agency_hd_warning_disable__
-    template<class Function, class Tuple>
-    __AGENCY_ANNOTATION
-    execution_group(Function f, const index_type& index, const param_type& param, Tuple& shared_param)
-      : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), param.outer(), detail::get<0>(shared_param))),
-        inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), param.inner(), detail::unwrap_tuple_if_not_nested<inner_execution_category>(detail::forward_tail(shared_param))))
     {
       f(*this);
     }
