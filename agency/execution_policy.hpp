@@ -125,10 +125,8 @@ struct call_bulk_invoke
 
 template<class Executor, class Function, class... Args>
 typename detail::enable_if_call_possible<
-  Function(
-    typename executor_traits<Executor>::index_type,
-    decay_parameter_t<Args>...
-  )
+  void,
+  Function, typename executor_traits<Executor>::index_type, decay_parameter_t<Args>...
 >::type
   bulk_invoke_executor(Executor& exec, Function f, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
 {
@@ -157,11 +155,8 @@ using executor_future = typename executor_traits<Executor>::template future<T>;
 
 template<class Executor, class Function, class... Args>
 typename detail::enable_if_call_possible<
-  Function(
-    typename executor_traits<Executor>::index_type,
-    decay_parameter_t<Args>...
-  ),
-  executor_future<Executor,void>
+  executor_future<Executor,void>,
+  Function, typename executor_traits<Executor>::index_type, decay_parameter_t<Args>...
 >::type
   bulk_async_executor(Executor& exec, Function f, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
 {
@@ -303,10 +298,8 @@ using policy_future = executor_future<typename ExecutionPolicy::executor_type, T
 
 template<class ExecutionPolicy, class Function, class... Args>
 typename detail::enable_if_call_possible<
-    Function(
-      typename std::decay<ExecutionPolicy>::type::execution_agent_type&,
-      detail::decay_parameter_t<Args>...
-    )
+  void,
+  Function, typename std::decay<ExecutionPolicy>::type::execution_agent_type&, detail::decay_parameter_t<Args>...
 >::type
   bulk_invoke(ExecutionPolicy&& policy, Function f, Args&&... args)
 {
