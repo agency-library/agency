@@ -34,11 +34,8 @@ struct is_call_possible
 };
 
 
-template<class,class = void> struct enable_if_call_possible;
-
-
 template<class Result, class Function, class... Args>
-struct enable_if_call_possible<Function(Args...),Result>
+struct enable_if_call_possible
   : std::enable_if<
       agency::detail::is_call_possible<
         Function,Args...
