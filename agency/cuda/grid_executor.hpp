@@ -215,9 +215,7 @@ class basic_grid_executor
     __host__ __device__
     future<void> bulk_async(Function f, shape_type shape)
     {
-      launch(f, shape);
-
-      void* kernel = reinterpret_cast<void*>(global_function_pointer<Function>());
+      launch(global_function_pointer(f), f, shape);
 
       return future<void>{stream()};
     }
@@ -279,6 +277,43 @@ class basic_grid_executor
     }
 
   public:
+    // this is exposed because it's necessary if a client wants to compute occupancy
+    // alternatively, cuda_executor could report occupancy of a Function for a given block size
+    // XXX probably shouldn't expose this -- max_shape() seems good enough
+    template<class Function>
+    __host__ __device__
+    static decltype(&detail::grid_executor_kernel<ThisIndexFunction,Function>)
+      global_function_pointer(const Function&)
+    {
+      return &detail::grid_executor_kernel<ThisIndexFunction, Function>;
+    }
+
+
+    template<class Function, class Tuple>
+    __host__ __device__
+    static decltype(
+      &detail::grid_executor_kernel<
+        ThisIndexFunction,
+        detail::function_with_shared_arguments<
+          Function,
+          typename std::tuple_element<0,Tuple>::type,
+          typename std::tuple_element<1,Tuple>::type
+        >
+      >
+    )
+      global_function_pointer(const Function&, const Tuple&)
+    {
+      return &detail::grid_executor_kernel<
+        ThisIndexFunction,
+        detail::function_with_shared_arguments<
+          Function,
+          typename std::tuple_element<0,Tuple>::type,
+          typename std::tuple_element<1,Tuple>::type
+        >
+      >;
+    }
+    
+
     template<class Function, class Tuple>
     __host__ __device__
     future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
@@ -305,51 +340,40 @@ class basic_grid_executor
       this->bulk_async(f, shape, shared_arg_tuple).wait();
     }
 
-    // this is exposed because it's necessary if a client wants to compute occupancy
-    // alternatively, cuda_executor could report occupancy of a Function for a given block size
-    template<class Function>
-    __host__ __device__
-    static decltype(&detail::grid_executor_kernel<ThisIndexFunction,Function>) global_function_pointer()
-    {
-      return &detail::grid_executor_kernel<ThisIndexFunction, Function>;
-    }
-
 
   private:
-    template<class Function>
+    template<class Arg>
     __host__ __device__
-    void launch(Function f, shape_type shape)
+    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape)
     {
-      launch(f, shape, shared_memory_size());
+      launch(kernel, arg, shape, shared_memory_size());
     }
 
-    template<class Function>
+    template<class Arg>
     __host__ __device__
-    void launch(Function f, shape_type shape, int shared_memory_size)
+    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size)
     {
-      launch(f, shape, shared_memory_size, stream());
+      launch(kernel, arg, shape, shared_memory_size, stream());
     }
 
-    template<class Function>
+    template<class Arg>
     __host__ __device__
-    void launch(Function f, shape_type shape, int shared_memory_size, cudaStream_t stream)
+    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream)
     {
-      launch(f, shape, shared_memory_size, stream, gpu());
+      launch(kernel, arg, shape, shared_memory_size, stream, gpu());
     }
 
-    template<class Function>
+    template<class Arg>
     __host__ __device__
-    void launch(Function f, shape_type shape, int shared_memory_size, cudaStream_t stream, gpu_id gpu)
+    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, gpu_id gpu)
     {
-      void* kernel = reinterpret_cast<void*>(global_function_pointer<Function>());
-
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
 
       ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
       ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
 
-      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, stream, gpu.native_handle(), f);
+      detail::checked_launch_kernel_on_device(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream, gpu.native_handle(), arg);
     }
 
     int shared_memory_size_;
@@ -388,13 +412,12 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
   public:
     using detail::basic_grid_executor<agency::uint2, agency::uint2, detail::this_index_1d>::basic_grid_executor;
 
-    template<class Function>
-    __host__ __device__
-    shape_type max_shape(Function) const
+  private:
+    inline __host__ __device__
+    shape_type max_shape_impl(void* fun_ptr) const
     {
       shape_type result = {0,0};
 
-      auto fun_ptr = global_function_pointer<Function>();
       detail::workaround_unused_variable_warning(fun_ptr);
 
 #if __cuda_lib_has_cudart
@@ -432,6 +455,21 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
 #endif // __cuda_lib_has_cudart
 
       return result;
+    }
+
+  public:
+    template<class Function>
+    __host__ __device__
+    shape_type max_shape(const Function& f) const
+    {
+      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer(f)));
+    }
+
+    template<class Function, class Tuple>
+    __host__ __device__
+    shape_type max_shape(const Function& f, const Tuple& shared_arg) const
+    {
+      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer(f,shared_arg)));
     }
 };
 
@@ -561,12 +599,11 @@ class flattened_executor<cuda::grid_executor>
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
 
-      // partition up the iteration space
-      auto partitioning = partition(dummy_function, shape);
-
       // create a shared initializer
       auto shared_init = agency::detail::make_tuple(shared_arg, agency::detail::ignore);
-      using shared_param_type = typename executor_traits<base_executor_type>::template shared_param_type<decltype(shared_init)>;
+
+      // partition up the iteration space
+      auto partitioning = partition(dummy_function, shared_init, shape);
 
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
@@ -589,15 +626,11 @@ class flattened_executor<cuda::grid_executor>
   private:
     using partition_type = typename executor_traits<base_executor_type>::shape_type;
 
-    // returns (outer size, inner size)
-    template<class Function>
     __host__ __device__
-    partition_type partition(Function f, shape_type shape) const
+    static partition_type partition_impl(partition_type max_shape, shape_type shape)
     {
       using outer_shape_type = typename std::tuple_element<0,partition_type>::type;
       using inner_shape_type = typename std::tuple_element<1,partition_type>::type;
-
-      auto max_shape = base_executor().max_shape(f);
 
       // make the inner groups as large as possible
       inner_shape_type inner_size = agency::detail::get<1>(max_shape);
@@ -607,6 +640,22 @@ class flattened_executor<cuda::grid_executor>
       assert(outer_size <= agency::detail::get<0>(max_shape));
 
       return partition_type{outer_size, inner_size};
+    }
+
+    // returns (outer size, inner size)
+    template<class Function>
+    __host__ __device__
+    partition_type partition(const Function& f, shape_type shape) const
+    {
+      return partition_impl(base_executor().max_shape(f), shape);
+    }
+
+    // returns (outer size, inner size)
+    template<class Function, class Tuple>
+    __host__ __device__
+    partition_type partition(const Function& f, const Tuple& shared_arg, shape_type shape) const
+    {
+      return partition_impl(base_executor().max_shape(f,shared_arg), shape);
     }
 
     size_t min_inner_size_;
