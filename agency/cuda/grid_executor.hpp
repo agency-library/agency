@@ -10,7 +10,7 @@
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
 #include <agency/flattened_executor.hpp>
-#include <agency/detail/ignore.hpp>
+#include <agency/detail/tuple.hpp>
 #include <thrust/detail/minmax.h>
 #include <agency/cuda/detail/tuple.hpp>
 #include <agency/cuda/detail/feature_test.hpp>

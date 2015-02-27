@@ -153,9 +153,76 @@ struct __tuple_make_index_sequence_impl<End, __tuple_index_sequence<Indices...>,
 template<size_t N>
 using __tuple_make_index_sequence = typename __tuple_make_index_sequence_impl<0, __tuple_index_sequence<>, N>::type;
 
-template<size_t I, class T>
-class __tuple_leaf
+
+template<class T>
+struct __tuple_use_empty_base_class_optimization
+  : std::integral_constant<
+      bool,
+      std::is_empty<T>::value
+#if __cplusplus >= 201402L
+      && !std::is_final<T>::value
+#endif
+    >
+{};
+
+
+template<class T, bool = __tuple_use_empty_base_class_optimization<T>::value>
+class __tuple_leaf_base
 {
+  public:
+    __TUPLE_ANNOTATION
+    __tuple_leaf_base() = default;
+
+    template<class U>
+    __TUPLE_ANNOTATION
+    __tuple_leaf_base(U&& arg) : val_(std::forward<U>(arg)) {}
+
+    __TUPLE_ANNOTATION
+    const T& const_get() const
+    {
+      return val_;
+    }
+
+    __TUPLE_ANNOTATION
+    T& mutable_get()
+    {
+      return val_;
+    }
+
+  private:
+    T val_;
+};
+
+template<class T>
+class __tuple_leaf_base<T,true> : public T
+{
+  public:
+    __TUPLE_ANNOTATION
+    __tuple_leaf_base() = default;
+
+    template<class U>
+    __TUPLE_ANNOTATION
+    __tuple_leaf_base(U&& arg) : T(std::forward<U>(arg)) {}
+
+    __TUPLE_ANNOTATION
+    const T& const_get() const
+    {
+      return *this;
+    }
+  
+    __TUPLE_ANNOTATION
+    T& mutable_get()
+    {
+      return *this;
+    }
+};
+
+template<size_t I, class T>
+class __tuple_leaf : public __tuple_leaf_base<T>
+{
+  private:
+    using super_t = __tuple_leaf_base<T>;
+
   public:
     __TUPLE_ANNOTATION
     __tuple_leaf() = default;
@@ -165,20 +232,20 @@ class __tuple_leaf
                std::is_constructible<T,U>::value
              >::type>
     __TUPLE_ANNOTATION
-    __tuple_leaf(U&& arg) : val_(std::forward<U>(arg)) {}
+    __tuple_leaf(U&& arg) : super_t(std::forward<U>(arg)) {}
 
     __TUPLE_ANNOTATION
-    __tuple_leaf(const __tuple_leaf& other) : val_(other.const_get()) {}
+    __tuple_leaf(const __tuple_leaf& other) : super_t(other.const_get()) {}
 
     __TUPLE_ANNOTATION
-    __tuple_leaf(__tuple_leaf&& other) : val_(std::forward<T>(other.mutable_get())) {}
+    __tuple_leaf(__tuple_leaf&& other) : super_t(std::forward<T>(other.mutable_get())) {}
 
     template<class U,
              class = typename std::enable_if<
                std::is_constructible<T,U>::value
              >::type>
     __TUPLE_ANNOTATION
-    __tuple_leaf(const __tuple_leaf<I,U>& other) : val_(other.const_get()) {}
+    __tuple_leaf(const __tuple_leaf<I,U>& other) : super_t(other.const_get()) {}
 
 
     template<class U,
@@ -188,21 +255,21 @@ class __tuple_leaf
     __TUPLE_ANNOTATION
     __tuple_leaf& operator=(const __tuple_leaf<I,U>& other)
     {
-      mutable_get() = other.const_get();
+      this->mutable_get() = other.const_get();
       return *this;
     }
     
     __TUPLE_ANNOTATION
     __tuple_leaf& operator=(const __tuple_leaf& other)
     {
-      mutable_get() = other.const_get();
+      this->mutable_get() = other.const_get();
       return *this;
     }
 
     __TUPLE_ANNOTATION
     __tuple_leaf& operator=(__tuple_leaf&& other)
     {
-      mutable_get() = std::forward<T>(other.mutable_get());
+      this->mutable_get() = std::forward<T>(other.mutable_get());
       return *this;
     }
 
@@ -213,32 +280,17 @@ class __tuple_leaf
     __TUPLE_ANNOTATION
     __tuple_leaf& operator=(__tuple_leaf<I,U>&& other)
     {
-      mutable_get() = std::forward<U>(other.mutable_get());
+      this->mutable_get() = std::forward<U>(other.mutable_get());
       return *this;
-    }
-
-    __TUPLE_ANNOTATION
-    const T& const_get() const
-    {
-      return val_;
-    }
-  
-    __TUPLE_ANNOTATION
-    T& mutable_get()
-    {
-      return val_;
     }
 
     __TUPLE_ANNOTATION
     int swap(__tuple_leaf& other)
     {
       using std::swap;
-      swap(mutable_get(), other.mutable_get());
+      swap(this->mutable_get(), other.mutable_get());
       return 0;
     }
-
-  private:
-    T val_; // XXX apply empty base class optimization to this
 };
 
 template<class... Args>
@@ -469,15 +521,30 @@ class __tuple_base<__tuple_index_sequence<I...>, Types...>
 
 
 template<class... Types>
-class tuple
+class tuple : private __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>, Types...>
 {
+  private:
+    using super_t = __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>, Types...>;
+
+    __TUPLE_ANNOTATION
+    super_t& base()
+    {
+      return *this;
+    }
+
+    __TUPLE_ANNOTATION
+    const super_t& base() const
+    {
+      return *this;
+    }
+
   public:
     __TUPLE_ANNOTATION
-    tuple() : base_{} {};
+    tuple() : super_t{} {};
 
     __TUPLE_ANNOTATION
     explicit tuple(const Types&... args)
-      : base_{args...}
+      : super_t{args...}
     {}
 
     template<class... UTypes,
@@ -489,7 +556,7 @@ class tuple
              >::type>
     __TUPLE_ANNOTATION
     explicit tuple(UTypes&&... args)
-      : base_{std::forward<UTypes>(args)...}
+      : super_t{std::forward<UTypes>(args)...}
     {}
 
     template<class... UTypes,
@@ -501,7 +568,7 @@ class tuple
              >::type>
     __TUPLE_ANNOTATION
     tuple(const tuple<UTypes...>& other)
-      : base_{other.base_}
+      : super_t{other.base()}
     {}
 
     template<class... UTypes,
@@ -513,7 +580,7 @@ class tuple
              >::type>
     __TUPLE_ANNOTATION
     tuple(tuple<UTypes...>&& other)
-      : base_{std::move(other.base_)}
+      : super_t{std::move(other.base())}
     {}
 
     template<class UType1, class UType2,
@@ -526,7 +593,7 @@ class tuple
              >::type>
     __TUPLE_ANNOTATION
     tuple(const std::pair<UType1,UType2>& p)
-      : base_{p.first, p.second}
+      : super_t{p.first, p.second}
     {}
 
     template<class UType1, class UType2,
@@ -539,12 +606,17 @@ class tuple
              >::type>
     __TUPLE_ANNOTATION
     tuple(std::pair<UType1,UType2>&& p)
-      : base_{std::move(p.first), std::move(p.second)}
+      : super_t{std::move(p.first), std::move(p.second)}
     {}
 
     __TUPLE_ANNOTATION
     tuple(const tuple& other)
-      : base_{other.base_}
+      : super_t{other.base()}
+    {}
+
+    __TUPLE_ANNOTATION
+    tuple(tuple&& other)
+      : super_t{std::move(other.base())}
     {}
 
     template<class... UTypes,
@@ -556,25 +628,20 @@ class tuple
              >::type>
     __TUPLE_ANNOTATION
     tuple(const std::tuple<UTypes...>& other)
-      : base_{other}
-    {}
-
-    __TUPLE_ANNOTATION
-    tuple(tuple&& other)
-      : base_{std::move(other.base_)}
+      : super_t{other}
     {}
 
     __TUPLE_ANNOTATION
     tuple& operator=(const tuple& other)
     {
-      base_.operator=(other.base_);
+      base().operator=(other.base());
       return *this;
     }
 
     __TUPLE_ANNOTATION
     tuple& operator=(tuple&& other)
     {
-      base_.operator=(std::move(other.base_));
+      base().operator=(std::move(other.base()));
       return *this;
     }
 
@@ -583,7 +650,7 @@ class tuple
     __TUPLE_ANNOTATION
     tuple& operator=(const tuple<UTypes...>& other)
     {
-      base_.operator=(other.base_);
+      base().operator=(other.base());
       return *this;
     }
 
@@ -592,7 +659,7 @@ class tuple
     __TUPLE_ANNOTATION
     tuple& operator=(tuple<UTypes...>&& other)
     {
-      base_.operator=(other.base_);
+      base().operator=(other.base());
       return *this;
     }
 
@@ -607,7 +674,7 @@ class tuple
     __TUPLE_ANNOTATION
     tuple& operator=(const std::pair<UType1,UType2>& p)
     {
-      base_.operator=(p);
+      base().operator=(p);
       return *this;
     }
 
@@ -622,14 +689,14 @@ class tuple
     __TUPLE_ANNOTATION
     tuple& operator=(std::pair<UType1,UType2>&& p)
     {
-      base_.operator=(std::move(p));
+      base().operator=(std::move(p));
       return *this;
     }
 
     __TUPLE_ANNOTATION
     void swap(tuple& other)
     {
-      base_.swap(other.base_);
+      base().swap(other.base());
     }
 
     // enable conversion to Tuple-like things
@@ -643,7 +710,7 @@ class tuple
     __TUPLE_ANNOTATION
     operator std::tuple<UTypes...> () const
     {
-      return static_cast<std::tuple<UTypes...>>(base_);
+      return static_cast<std::tuple<UTypes...>>(base());
     }
 
   private:
@@ -654,18 +721,15 @@ class tuple
     __TUPLE_ANNOTATION
     const typename std::tuple_element<i,tuple>::type& const_get() const
     {
-      return base_.template const_get<i>();
+      return base().template const_get<i>();
     }
 
     template<size_t i>
     __TUPLE_ANNOTATION
     typename std::tuple_element<i,tuple>::type& mutable_get()
     {
-      return base_.template mutable_get<i>();
+      return base().template mutable_get<i>();
     }
-
-    using base_type = __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>, Types...>;
-    base_type base_; 
 
   public:
     template<size_t i, class... UTypes>
@@ -728,6 +792,20 @@ __TUPLE_NAMESPACE::tuple<Args&&...> forward_as_tuple(Args&&... args)
 }
 
 
+struct __ignore_t
+{
+  template<class T>
+  __TUPLE_ANNOTATION
+  const __ignore_t operator=(T&&) const
+  {
+    return *this;
+  }
+};
+
+
+constexpr __ignore_t ignore{};
+
+
 } // end namespace
 
 
@@ -761,7 +839,7 @@ typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &&
 {
   using type = typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type;
 
-  auto&& leaf = static_cast<__TUPLE_NAMESPACE::__tuple_leaf<i,type>&&>(t.base_);
+  auto&& leaf = static_cast<__TUPLE_NAMESPACE::__tuple_leaf<i,type>&&>(t.base());
 
   return static_cast<type&&>(leaf.mutable_get());
 }

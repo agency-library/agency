@@ -7,7 +7,6 @@
 #include <agency/detail/index_tuple.hpp>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 #include <agency/detail/make_tuple_if_not_nested.hpp>
-#include <agency/detail/ignore.hpp>
 #include <agency/coordinate.hpp>
 #include <type_traits>
 

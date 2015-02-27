@@ -3,7 +3,6 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution_policy.hpp>
 #include <agency/flattened_executor.hpp>
-#include <agency/detail/ignore.hpp>
 #include <type_traits>
 #include <agency/cuda/execution_agent.hpp>
 #include <agency/cuda/grid_executor.hpp>
@@ -11,6 +10,7 @@
 #include <agency/cuda/concurrent_executor.hpp>
 #include <agency/cuda/nested_executor.hpp>
 #include <agency/cuda/detail/bind.hpp>
+#include <agency/detail/tuple.hpp>
 
 
 namespace agency

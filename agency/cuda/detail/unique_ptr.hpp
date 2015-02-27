@@ -146,7 +146,9 @@ unique_ptr<T> make_unique(cudaStream_t s, Args&&... args)
   auto deleter = default_delete<T>(s);
   unique_ptr<T> result(thrust::cuda::malloc<T>(1), deleter);
 
-  auto kernel = detail::construct_kernel<T,agency::detail::decay_t<Args>...>;
+  // XXX nvcc 7.0 has trouble with this decay_t sometimes
+  //auto kernel = detail::construct_kernel<T,agency::detail::decay_t<Args>...>;
+  auto kernel = detail::construct_kernel<T,typename std::decay<Args>::type...>;
   detail::workaround_unused_variable_warning(kernel);
 
 #ifndef __CUDA_ARCH__
