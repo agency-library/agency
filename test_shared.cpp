@@ -44,10 +44,8 @@ using decay_parameter_t = typename decay_parameter<T>::type;
 
 template<class Executor, class Function, class... Args>
 typename agency::detail::enable_if_call_possible<
-  Function(
-    typename agency::executor_traits<Executor>::index_type,
-    decay_parameter_t<Args>...
-  )
+  void,
+  Function, typename agency::executor_traits<Executor>::index_type, decay_parameter_t<Args>...
 >::type
   bulk_invoke_executor(Executor& exec, Function f, typename agency::executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
 {

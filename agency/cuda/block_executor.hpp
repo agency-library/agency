@@ -27,7 +27,7 @@ struct block_executor_helper_functor
   __device__
   void operator()(grid_executor::index_type idx, Tuple&& shared_params)
   {
-    f_(agency::detail::get<1>(idx), thrust::get<1>(shared_params));
+    f_(agency::detail::get<1>(idx), agency::detail::get<1>(shared_params));
   }
 };
 
@@ -83,14 +83,14 @@ class block_executor : private grid_executor
     future<void> bulk_async(Function f, shape_type shape, T shared_arg)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      return traits::bulk_async(*this, g, super_t::shape_type{1,shape}, thrust::make_tuple(agency::detail::ignore, shared_arg));
+      return traits::bulk_async(*this, g, super_t::shape_type{1,shape}, agency::detail::make_tuple(agency::detail::ignore, shared_arg));
     }
 
     template<class Function, class T>
     void bulk_invoke(Function f, shape_type shape, T shared_arg)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      traits::bulk_invoke(*this, g, super_t::shape_type{1,shape}, thrust::make_tuple(agency::detail::ignore, shared_arg));
+      traits::bulk_invoke(*this, g, super_t::shape_type{1,shape}, agency::detail::make_tuple(agency::detail::ignore, shared_arg));
     }
 };
 
