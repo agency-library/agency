@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <type_traits>
 #include <agency/detail/type_traits.hpp>
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>

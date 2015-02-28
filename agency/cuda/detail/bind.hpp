@@ -2,9 +2,11 @@
 
 #include <type_traits>
 #include <utility>
+#include <agency/detail/config.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/cuda/detail/tuple.hpp>
+#include <functional>
 #include <thrust/functional.h>
 
 
@@ -22,19 +24,6 @@ template<class T>
 using decay_t = agency::detail::decay_t<T>;
 
 
-template<class T>
-struct is_placeholder : std::false_type {};
-
-
-template<unsigned int i>
-struct is_placeholder<
-  thrust::detail::functional::actor<
-    thrust::detail::functional::argument<i>
-  >
-> : std::true_type {};
-
-
-__thrust_hd_warning_disable__
 template<typename F, typename Tuple, size_t... I>
 __host__ __device__
 auto apply_impl(F&& f, Tuple&& t, agency::detail::index_sequence<I...>)
@@ -70,12 +59,12 @@ auto apply(F&& f, Tuple&& t)
 }
 
 
-template<class ArgTuple, class BoundArg>
+template<class ArgTuple, class BoundArg,
+         class = typename std::enable_if<
+           (std::is_placeholder<decay_t<BoundArg>>::value == 0)
+         >::type>
 __host__ __device__
-auto substitute_arg(ArgTuple&&, BoundArg&& bound_arg,
-                    typename std::enable_if<
-                      !is_placeholder<decay_t<BoundArg>>::value
-                    >::type* = 0)
+auto substitute_arg(ArgTuple&&, BoundArg&& bound_arg)
   -> decltype(
        std::forward<BoundArg>(bound_arg)
      )
@@ -84,48 +73,23 @@ auto substitute_arg(ArgTuple&&, BoundArg&& bound_arg,
 }
 
 
-template<unsigned int i>
-struct placeholder
-  : thrust::detail::functional::actor<
-      thrust::detail::functional::argument<i>
-    >
-{};
 
 
-template<class T>
-struct argument_index
-  : std::integral_constant<
-      unsigned int, 0
-    >
-{};
-
-
-template<unsigned int i>
-struct argument_index<
-  thrust::detail::functional::actor<
-    thrust::detail::functional::argument<i>
-  >
->
-  : std::integral_constant<
-      unsigned int, i
-    >
-{};
-
-
-template<class ArgTuple, class BoundArg>
+template<class ArgTuple, class BoundArg,
+         class = typename std::enable_if<
+           (std::is_placeholder<BoundArg>::value > 0)
+         >::type>
 __host__ __device__
-auto substitute_arg(ArgTuple&& arg_tuple, const BoundArg&,
-                   typename std::enable_if<
-                     is_placeholder<decay_t<BoundArg>>::value
-                   >::type* = 0)
+auto substitute_arg(ArgTuple&& arg_tuple, const BoundArg&)
   -> decltype(
        detail::get<
-         argument_index<BoundArg>::value
+         static_cast<size_t>(std::is_placeholder<BoundArg>::value) - 1
        >(std::forward<ArgTuple>(arg_tuple))
      )
 {
-  const unsigned int idx = argument_index<BoundArg>::value;
-  return detail::get<idx>(std::forward<ArgTuple>(arg_tuple));
+  return detail::get<
+    static_cast<size_t>(std::is_placeholder<BoundArg>::value) - 1
+  >(std::forward<ArgTuple>(arg_tuple));
 }
 
 
@@ -169,6 +133,10 @@ auto substitute(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple)
 template<class F, class... BoundArgs>
 class bind_expression
 {
+  private:
+    F fun_;
+    tuple<BoundArgs...> bound_args_;
+
   public:
     __host__ __device__
     bind_expression(const F& f, const BoundArgs&... bound_args)
@@ -178,13 +146,13 @@ class bind_expression
 
     template<class... OtherArgs>
     __host__ __device__
-    auto operator()(OtherArgs&&... args) const
+    auto operator()(OtherArgs&&... args)
       -> decltype(
            apply(
-             *std::declval<const F*>(),
+             fun_,
              substitute(
                detail::forward_as_tuple(std::forward<OtherArgs>(args)...),
-               *std::declval<const tuple<BoundArgs...>*>()
+               bound_args_
              )
            )
          )
@@ -200,13 +168,13 @@ class bind_expression
 
     template<class... OtherArgs>
     __host__ __device__
-    auto operator()(OtherArgs&&... args)
+    auto operator()(OtherArgs&&... args) const
       -> decltype(
            apply(
-             *std::declval<F*>(),
+             fun_,
              substitute(
                detail::forward_as_tuple(std::forward<OtherArgs>(args)...),
-               *std::declval<tuple<BoundArgs...>*>()
+               bound_args_
              )
            )
          )
@@ -219,14 +187,16 @@ class bind_expression
         )
       );
     }
-
-  private:
-    F fun_;
-    tuple<BoundArgs...> bound_args_;
 };
 
 
 } // end bind_detail
+
+
+// XXX use thrust's placeholders instead of agency's
+//     because unlike thrust's placeholders, agency's
+//     placeholders are undefined in __device__ code
+namespace placeholders = thrust::placeholders;
 
 
 template<class F, class... BoundArgs>
@@ -244,4 +214,20 @@ detail::bind_detail::bind_expression<
 } // end detail
 } // end cuda
 } // end agency
+
+
+namespace std
+{
+
+
+template<unsigned int I>
+struct is_placeholder<
+  thrust::detail::functional::actor<
+    thrust::detail::functional::argument<I>
+  >
+> : std::integral_constant<int, I+1>
+{};
+
+
+} // end std
 

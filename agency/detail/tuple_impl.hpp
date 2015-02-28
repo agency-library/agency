@@ -521,30 +521,31 @@ class __tuple_base<__tuple_index_sequence<I...>, Types...>
 
 
 template<class... Types>
-class tuple : private __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>, Types...>
+class tuple
 {
   private:
-    using super_t = __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>, Types...>;
+    using base_type = __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>, Types...>;
+    base_type base_;
 
     __TUPLE_ANNOTATION
-    super_t& base()
+    base_type& base()
     {
-      return *this;
+      return base_;
     }
 
     __TUPLE_ANNOTATION
-    const super_t& base() const
+    const base_type& base() const
     {
-      return *this;
+      return base_;
     }
 
   public:
     __TUPLE_ANNOTATION
-    tuple() : super_t{} {};
+    tuple() : base_{} {};
 
     __TUPLE_ANNOTATION
     explicit tuple(const Types&... args)
-      : super_t{args...}
+      : base_{args...}
     {}
 
     template<class... UTypes,
@@ -556,7 +557,7 @@ class tuple : private __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>
              >::type>
     __TUPLE_ANNOTATION
     explicit tuple(UTypes&&... args)
-      : super_t{std::forward<UTypes>(args)...}
+      : base_{std::forward<UTypes>(args)...}
     {}
 
     template<class... UTypes,
@@ -568,7 +569,7 @@ class tuple : private __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>
              >::type>
     __TUPLE_ANNOTATION
     tuple(const tuple<UTypes...>& other)
-      : super_t{other.base()}
+      : base_{other.base()}
     {}
 
     template<class... UTypes,
@@ -580,7 +581,7 @@ class tuple : private __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>
              >::type>
     __TUPLE_ANNOTATION
     tuple(tuple<UTypes...>&& other)
-      : super_t{std::move(other.base())}
+      : base_{std::move(other.base())}
     {}
 
     template<class UType1, class UType2,
@@ -593,7 +594,7 @@ class tuple : private __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>
              >::type>
     __TUPLE_ANNOTATION
     tuple(const std::pair<UType1,UType2>& p)
-      : super_t{p.first, p.second}
+      : base_{p.first, p.second}
     {}
 
     template<class UType1, class UType2,
@@ -606,17 +607,17 @@ class tuple : private __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>
              >::type>
     __TUPLE_ANNOTATION
     tuple(std::pair<UType1,UType2>&& p)
-      : super_t{std::move(p.first), std::move(p.second)}
+      : base_{std::move(p.first), std::move(p.second)}
     {}
 
     __TUPLE_ANNOTATION
     tuple(const tuple& other)
-      : super_t{other.base()}
+      : base_{other.base()}
     {}
 
     __TUPLE_ANNOTATION
     tuple(tuple&& other)
-      : super_t{std::move(other.base())}
+      : base_{std::move(other.base())}
     {}
 
     template<class... UTypes,
@@ -628,7 +629,7 @@ class tuple : private __tuple_base<__tuple_make_index_sequence<sizeof...(Types)>
              >::type>
     __TUPLE_ANNOTATION
     tuple(const std::tuple<UTypes...>& other)
-      : super_t{other}
+      : base_{other}
     {}
 
     __TUPLE_ANNOTATION

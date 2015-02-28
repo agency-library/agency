@@ -12,11 +12,12 @@ struct hello_world
 
 struct with_shared_arg
 {
+  // XXX figure out what to do about our use of tuple here
   __device__
-  void operator()(agency::uint2 index, thrust::tuple<int&,int&> shared_arg)
+  void operator()(agency::uint2 index, agency::detail::tuple<int&,int&> shared_arg)
   {
-    int& outer_shared = thrust::get<0>(shared_arg);
-    int& inner_shared = thrust::get<1>(shared_arg);
+    int& outer_shared = agency::detail::get<0>(shared_arg);
+    int& inner_shared = agency::detail::get<1>(shared_arg);
 
     atomicAdd(&outer_shared, 1);
     atomicAdd(&inner_shared, 1);

@@ -3,6 +3,7 @@
 #include <future>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/tuple_of_references.hpp>
+#include <agency/detail/bind.hpp>
 #include <agency/execution_categories.hpp>
 
 
@@ -280,7 +281,7 @@ typename executor_traits<Executor>::template future<void>
              Function&& f,
              Args&&... args)
 {
-  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::bind(std::forward<Function>(f), detail::placeholders::_1, std::forward<Args>(args)...);
   return executor_traits<Executor>::bulk_async(ex, f, shape);
 }
 
@@ -291,7 +292,7 @@ void bulk_invoke(Executor& ex,
                  Function&& f,
                  Args&&... args)
 {
-  auto g = std::bind(std::forward<Function>(f), std::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::bind(std::forward<Function>(f), detail::placeholders::_1, std::forward<Args>(args)...);
   return executor_traits<Executor>::bulk_invoke(ex, f, shape);
 }
 
