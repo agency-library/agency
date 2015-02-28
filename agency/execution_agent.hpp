@@ -7,7 +7,6 @@
 #include <agency/detail/index_tuple.hpp>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 #include <agency/detail/make_tuple_if_not_nested.hpp>
-#include <agency/detail/ignore.hpp>
 #include <agency/coordinate.hpp>
 #include <type_traits>
 
@@ -172,13 +171,21 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
       execute(f, index, param, detail::get<Indices>(shared_params)...);
     }
 
+    // XXX should ensure that the tuple elements are all the right type and are references
+    template<class Function, class Tuple>
+    struct enable_if_execute_with_shared_param_tuple
+      : std::enable_if<
+          detail::is_tuple<Tuple>::value
+        >
+    {};
+
 
   public:
 
-  // XXX should ensure that the shared_params are all the right type and are references
   template<class Function, class Tuple>
   __AGENCY_ANNOTATION
-  static void execute(Function f, const index_type& index, const param_type& param, Tuple& shared_params)
+  static typename enable_if_execute_with_shared_param_tuple<Function,Tuple>::type
+    execute(Function f, const index_type& index, const param_type& param, Tuple& shared_params)
   {
     unpack_shared_params_and_execute(f, index, param, shared_params, detail::make_index_sequence<std::tuple_size<Tuple>::value>());
   }

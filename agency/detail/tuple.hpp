@@ -45,6 +45,10 @@ using __tu::tie;
 using __tu::forward_as_tuple;
 
 
+using ignore_t = decltype(__tu::ignore);
+constexpr ignore_t ignore{};
+
+
 template<class IndexSequence, class... Tuples>
 struct tuple_cat_result_impl_impl;
 

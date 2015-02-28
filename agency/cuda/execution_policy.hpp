@@ -11,6 +11,7 @@
 #include <agency/cuda/nested_executor.hpp>
 #include <agency/cuda/detail/bind.hpp>
 #include <agency/cuda/detail/shared_parameter.hpp>
+#include <agency/detail/tuple.hpp>
 
 
 namespace agency

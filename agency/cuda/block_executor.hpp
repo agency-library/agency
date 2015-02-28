@@ -2,7 +2,7 @@
 
 #include <agency/cuda/grid_executor.hpp>
 #include <agency/cuda/detail/bind.hpp>
-#include <agency/detail/ignore.hpp>
+#include <agency/detail/tuple.hpp>
 
 namespace agency
 {

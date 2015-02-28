@@ -16,6 +16,32 @@ template<typename T> \
   typedef std::integral_constant<bool, value> type;\
 };
 
+#ifdef __NVCC__
+#define __DEFINE_HAS_NESTED_MEMBER(trait_name, nested_member_name) \
+template<typename T> \
+  struct trait_name  \
+{                    \
+  typedef char yes_type; \
+  typedef int  no_type;  \
+  template<typename S> static yes_type test(int* arg[sizeof(S::nested_member_name)]); \
+  template<typename S> static no_type  test(...); \
+  static bool const value = sizeof(test<T>(0)) == sizeof(yes_type);\
+  typedef std::integral_constant<bool, value> type;\
+};
+#else
+#define __DEFINE_HAS_NESTED_MEMBER(trait_name, nested_member_name) \
+template<typename T> \
+  struct trait_name  \
+{                    \
+  typedef char yes_type; \
+  typedef int  no_type;  \
+  template<typename S> static yes_type test(decltype(S::nested_member_name)*); \
+  template<typename S> static no_type  test(...); \
+  static bool const value = sizeof(test<T>(0)) == sizeof(yes_type);\
+  typedef std::integral_constant<bool, value> type;\
+};
+#endif
+
 namespace agency
 {
 namespace detail
@@ -162,6 +188,12 @@ struct type_list_prepend<T0, type_list<Types...>>
   using type = type_list<T0, Types...>;
 };
 
+
+__DEFINE_HAS_NESTED_MEMBER(has_value, value);
+
+
+template<class T>
+struct is_tuple : has_value<std::tuple_size<T>> {};
 
 
 } // end detail

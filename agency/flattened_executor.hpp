@@ -5,7 +5,6 @@
 #include <agency/executor_traits.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/nested_executor.hpp>
-#include <agency/detail/ignore.hpp>
 
 namespace agency
 {

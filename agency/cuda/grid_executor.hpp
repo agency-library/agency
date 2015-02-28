@@ -10,7 +10,7 @@
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
 #include <agency/flattened_executor.hpp>
-#include <agency/detail/ignore.hpp>
+#include <agency/detail/tuple.hpp>
 #include <thrust/detail/minmax.h>
 #include <agency/cuda/detail/tuple.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
@@ -155,7 +155,7 @@ struct function_with_shared_arguments<Function,OuterSharedType,InnerSharedType,
   typename std::enable_if<std::is_empty<InnerSharedType>::value>::type>
 {
   __host__ __device__
-  function_with_shared_arguments(Function f, OuterSharedType* outer_ptr, InnerSharedType)
+  function_with_shared_arguments(Function f, OuterSharedType, InnerSharedType)
     : f_(f)
   {}
 
@@ -171,7 +171,7 @@ struct function_with_shared_arguments<Function,OuterSharedType,InnerSharedType,
     f_(idx, shared_params);
   }
 
-  Function         f_;
+  Function f_;
 };
 
 
