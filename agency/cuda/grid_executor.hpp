@@ -35,6 +35,16 @@ namespace detail
 {
 
 
+template<class T>
+struct is_ignorable_shared_parameter
+  : std::integral_constant<
+      bool,
+      (std::is_empty<T>::value || agency::detail::is_empty_tuple<T>::value)
+    >
+{};
+
+
+
 template<class Function, class OuterSharedType, class InnerSharedType, class Enable1 = void, class Enable2 = void>
 struct function_with_shared_arguments
 {
@@ -80,8 +90,8 @@ struct function_with_shared_arguments
 
 template<class Function, class OuterSharedType, class InnerSharedType>
 struct function_with_shared_arguments<Function, OuterSharedType, InnerSharedType,
-  typename std::enable_if<std::is_empty<OuterSharedType>::value>::type,
-  typename std::enable_if<!std::is_empty<InnerSharedType>::value>::type>
+  typename std::enable_if<is_ignorable_shared_parameter<OuterSharedType>::value>::type,
+  typename std::enable_if<!is_ignorable_shared_parameter<InnerSharedType>::value>::type>
 {
   __host__ __device__
   function_with_shared_arguments(Function f, OuterSharedType, InnerSharedType inner_shared_init)
@@ -124,8 +134,8 @@ struct function_with_shared_arguments<Function, OuterSharedType, InnerSharedType
 
 template<class Function, class OuterSharedType, class InnerSharedType>
 struct function_with_shared_arguments<Function,OuterSharedType,InnerSharedType,
-  typename std::enable_if<!std::is_empty<OuterSharedType>::value>::type,
-  typename std::enable_if<std::is_empty<InnerSharedType>::value>::type>
+  typename std::enable_if<!is_ignorable_shared_parameter<OuterSharedType>::value>::type,
+  typename std::enable_if<is_ignorable_shared_parameter<InnerSharedType>::value>::type>
 {
   __host__ __device__
   function_with_shared_arguments(Function f, OuterSharedType* outer_ptr, InnerSharedType)
@@ -151,8 +161,8 @@ struct function_with_shared_arguments<Function,OuterSharedType,InnerSharedType,
 
 template<class Function, class OuterSharedType, class InnerSharedType>
 struct function_with_shared_arguments<Function,OuterSharedType,InnerSharedType,
-  typename std::enable_if<std::is_empty<OuterSharedType>::value>::type,
-  typename std::enable_if<std::is_empty<InnerSharedType>::value>::type>
+  typename std::enable_if<is_ignorable_shared_parameter<OuterSharedType>::value>::type,
+  typename std::enable_if<is_ignorable_shared_parameter<InnerSharedType>::value>::type>
 {
   __host__ __device__
   function_with_shared_arguments(Function f, OuterSharedType, InnerSharedType)
@@ -254,66 +264,11 @@ class basic_grid_executor
     }
 
   private:
-//    // case where we have actual inner & outer shared parameters 
-//    template<class Function, class T1, class T2>
-//    __host__ __device__
-//    future<void> bulk_async_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg)
-//    {
-//      // make outer shared argument
-//      auto outer_shared_arg_ptr = detail::make_unique<T1>(stream(), outer_shared_arg);
-//
-//      // wrap up f in a thing that will marshal the shared arguments to it
-//      // note the .release()
-//      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_arg_ptr.release(), inner_shared_arg);
-//
-//      // XXX to deallocate & destroy the outer_shared_arg, we need to do a bulk_async(...).then(...)
-//      //     for now it just leaks :(
-//
-//      return bulk_async(g, shape);
-//    }
-//
-//    // case where we have only inner shared parameter
-//    template<class Function, class T>
-//    __host__ __device__
-//    future<void> bulk_async_with_shared_args(Function f, shape_type shape, agency::detail::ignore_t ignore, const T& inner_shared_arg)
-//    {
-//      // wrap up f in a thing that will marshal the shared arguments to it
-//      auto g = detail::function_with_shared_arguments<Function, agency::detail::ignore_t, T>(f, ignore, inner_shared_arg);
-//
-//      return bulk_async(g, shape);
-//    }
-//
-//    // case where we have only outer shared parameter
-//    template<class Function, class T>
-//    __host__ __device__
-//    future<void> bulk_async_with_shared_args(Function f, shape_type shape, const T& outer_shared_arg, agency::detail::ignore_t ignore)
-//    {
-//      // make outer shared argument
-//      auto outer_shared_arg_ptr = detail::make_unique<T>(stream(), outer_shared_arg);
-//
-//      // wrap up f in a thing that will marshal the shared arguments to it
-//      // note the .release()
-//      auto g = detail::function_with_shared_arguments<Function, T, agency::detail::ignore_t>(f, outer_shared_arg_ptr.release(), ignore);
-//
-//      // XXX to deallocate & destroy the outer_shared_arg, we need to do a bulk_async(...).then(...)
-//      //     for now it just leaks :(
-//
-//      return bulk_async(g, shape);
-//    }
-//
-//    // case where we have no actual shared parameters
-//    template<class Function>
-//    __host__ __device__
-//    future<void> bulk_async_with_shared_args(Function f, shape_type shape, agency::detail::ignore_t, agency::detail::ignore_t)
-//    {
-//      return bulk_async(f, shape);
-//    }
-
     template<class Function, class T1, class T2>
     __host__ __device__
     future<void> bulk_async_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg,
                                              typename std::enable_if<
-                                               std::is_empty<T1>::value
+                                               is_ignorable_shared_parameter<T1>::value
                                              >::type* = 0)
     {
       // no need to marshal the outer arg through gmem because it is empty
@@ -325,14 +280,11 @@ class basic_grid_executor
       return bulk_async(g, shape);
     }
 
-    template<class Function, class T1, class T2,
-             class = typename std::enable_if<
-               !std::is_empty<T1>::value
-             >::type>
+    template<class Function, class T1, class T2>
     __host__ __device__
     future<void> bulk_async_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg,
                                              typename std::enable_if<
-                                               !std::is_empty<T1>::value
+                                               !is_ignorable_shared_parameter<T1>::value
                                              >::type* = 0)
     {
       // make outer shared argument
