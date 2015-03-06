@@ -241,12 +241,10 @@ typename std::enable_if<
 
 
 // this class is a lattice, the points of which take on values which are unit-spaced
-// could call this class unit_grid instead, or just lattice, or just grid
-// but a more general grid type might have arbitrary spacing
 // T is any orderable (has strict weak <) type with
 // operators +, +=, -, -=, *, *=,  /, /= such that the rhs's type is regular_grid<T>::index_type
 template<class T>
-class regular_grid
+class lattice
 {
   public:
     // XXX should pick a different name for rank
@@ -274,7 +272,7 @@ class regular_grid
       return max_;
     }
 
-    // returns the number of lattice points along each of this regular_grid's dimensions
+    // returns the number of lattice points along each of this lattice's dimensions
     // chose the name shape instead of extent to jibe with e.g. numpy.ndarray.shape
     __AGENCY_ANNOTATION
     auto shape() const
@@ -287,24 +285,24 @@ class regular_grid
 
     // XXX WAR cudafe perf issue
     //using index_type = typename std::result_of<
-    //  decltype(&regular_grid::shape)(regular_grid)
+    //  decltype(&lattice::shape)(lattice)
     //>::type;
     using index_type = decltype(value_type{} - value_type{});
 
     // XXX should create a grid empty of points
     __AGENCY_ANNOTATION
-    regular_grid() = default;
+    lattice() = default;
 
     // copy from
     __AGENCY_ANNOTATION
-    regular_grid(const regular_grid&) = default;
+    lattice(const lattice&) = default;
 
-    // creates a new regular_grid with min as the first lattice point
+    // creates a new lattice with min as the first lattice point
     // through max exclusive
     // XXX should probably make this (min, shape) instead
     //     otherwise we'd have to require that min[i] <= max[i]
     __AGENCY_ANNOTATION
-    regular_grid(const value_type& min, const value_type& max)
+    lattice(const value_type& min, const value_type& max)
       : min_(min), max_(max)
     {}
 
@@ -317,13 +315,13 @@ class regular_grid
              >::type 
             >
     __AGENCY_ANNOTATION
-    regular_grid(const Size&... dimensions)
-      : regular_grid(index_type{static_cast<size_t>(dimensions)...})
+    lattice(const Size&... dimensions)
+      : lattice(index_type{static_cast<size_t>(dimensions)...})
     {}
 
     __AGENCY_ANNOTATION
-    regular_grid(const index_type& dimensions)
-      : regular_grid(index_type{}, dimensions)
+    lattice(const index_type& dimensions)
+      : lattice(index_type{}, dimensions)
     {}
 
     // XXX upon c++14, assert that the intializer_list is of the correct size
@@ -332,8 +330,8 @@ class regular_grid
                std::is_constructible<index_type, std::initializer_list<Size>>::value
              >::type>
     __AGENCY_ANNOTATION
-    regular_grid(std::initializer_list<Size> dimensions)
-      : regular_grid(index_type{dimensions})
+    lattice(std::initializer_list<Size> dimensions)
+      : lattice(index_type{dimensions})
     {}
 
     // returns whether or not p is the value of a lattice point
@@ -442,7 +440,7 @@ namespace detail
 
 
 template<class T>
-class grid_iterator
+class lattice_iterator
   : public std::iterator<
       std::random_access_iterator_tag,
       T,
@@ -460,7 +458,7 @@ class grid_iterator
       T
     >;
 
-    static constexpr size_t rank = regular_grid<T>::rank;
+    static constexpr size_t rank = lattice<T>::rank;
 
   public:
     using typename super_t::value_type;
@@ -468,14 +466,14 @@ class grid_iterator
     using typename super_t::difference_type;
 
     __AGENCY_ANNOTATION
-    explicit grid_iterator(const regular_grid<T>& grid)
-      : grid_(grid),
-        current_(grid_.min())
+    explicit lattice_iterator(const lattice<T>& domain)
+      : domain_(domain),
+        current_(domain_.min())
     {}
 
     __AGENCY_ANNOTATION
-    explicit grid_iterator(const regular_grid<T>& grid, T current)
-      : grid_(grid),
+    explicit lattice_iterator(const lattice<T>& domain, T current)
+      : domain_(domain),
         current_(current)
     {}
 
@@ -486,114 +484,114 @@ class grid_iterator
     }
 
     __AGENCY_ANNOTATION
-    grid_iterator& operator++()
+    lattice_iterator& operator++()
     {
       return increment(std::is_arithmetic<T>());
     }
 
     __AGENCY_ANNOTATION
-    grid_iterator operator++(int)
+    lattice_iterator operator++(int)
     {
-      grid_iterator result = *this;
+      lattice_iterator result = *this;
       ++(*this);
       return result;
     }
 
     __AGENCY_ANNOTATION
-    grid_iterator& operator--()
+    lattice_iterator& operator--()
     {
       return decrement(std::is_arithmetic<T>());
     }
 
     __AGENCY_ANNOTATION
-    grid_iterator operator--(int)
+    lattice_iterator operator--(int)
     {
-      grid_iterator result = *this;
+      lattice_iterator result = *this;
       --(*this);
       return result;
     }
 
     __AGENCY_ANNOTATION
-    grid_iterator operator+(difference_type n) const
+    lattice_iterator operator+(difference_type n) const
     {
-      grid_iterator result{*this};
+      lattice_iterator result{*this};
       return result += n;
     }
 
     __AGENCY_ANNOTATION
-    grid_iterator& operator+=(difference_type n)
+    lattice_iterator& operator+=(difference_type n)
     {
       return advance(std::is_arithmetic<T>());
     }
 
     __AGENCY_ANNOTATION
-    grid_iterator& operator-=(difference_type n)
+    lattice_iterator& operator-=(difference_type n)
     {
       return *this += -n;
     }
 
     __AGENCY_ANNOTATION
-    grid_iterator operator-(difference_type n) const
+    lattice_iterator operator-(difference_type n) const
     {
-      grid_iterator result{*this};
+      lattice_iterator result{*this};
       return result -= n;
     }
 
     __AGENCY_ANNOTATION
-    difference_type operator-(const grid_iterator& rhs) const
+    difference_type operator-(const lattice_iterator& rhs) const
     {
       return linearize() - rhs.linearize();
     }
 
     __AGENCY_ANNOTATION
-    bool operator==(const grid_iterator& rhs) const
+    bool operator==(const lattice_iterator& rhs) const
     {
       return current_ == rhs.current_;
     }
 
     __AGENCY_ANNOTATION
-    bool operator!=(const grid_iterator& rhs) const
+    bool operator!=(const lattice_iterator& rhs) const
     {
       return !(*this == rhs);
     }
 
     __AGENCY_ANNOTATION
-    bool operator<(const grid_iterator& rhs) const
+    bool operator<(const lattice_iterator& rhs) const
     {
       return current_ < rhs.current_;
     }
 
     __AGENCY_ANNOTATION
-    bool operator<=(const grid_iterator& rhs) const
+    bool operator<=(const lattice_iterator& rhs) const
     {
       return !(rhs < *this);
     }
 
     __AGENCY_ANNOTATION
-    bool operator>(const grid_iterator& rhs) const
+    bool operator>(const lattice_iterator& rhs) const
     {
       return rhs < *this;
     }
 
     __AGENCY_ANNOTATION
-    bool operator>=(const grid_iterator &rhs) const
+    bool operator>=(const lattice_iterator &rhs) const
     {
       return !(rhs > *this);
     }
 
     __AGENCY_ANNOTATION
-    static T past_the_end(const regular_grid<T>& grid)
+    static T past_the_end(const lattice<T>& domain)
     {
-      return past_the_end(grid, std::is_arithmetic<T>());
+      return past_the_end(domain, std::is_arithmetic<T>());
     }
 
   private:
     // point-like case
     __AGENCY_ANNOTATION
-    grid_iterator& increment(std::false_type)
+    lattice_iterator& increment(std::false_type)
     {
-      T min = grid_.min();
-      T max = grid_.max();
+      T min = domain_.min();
+      T max = domain_.max();
 
       for(int i = rank; i-- > 0;)
       {
@@ -615,7 +613,7 @@ class grid_iterator
 
     // scalar case
     __AGENCY_ANNOTATION
-    grid_iterator& increment(std::true_type)
+    lattice_iterator& increment(std::true_type)
     {
       ++current_;
       return *this;
@@ -623,10 +621,10 @@ class grid_iterator
 
     // point-like case
     __AGENCY_ANNOTATION
-    grid_iterator& decrement(std::false_type)
+    lattice_iterator& decrement(std::false_type)
     {
-      T min = grid_.min();
-      T max = grid_.max();
+      T min = domain_.min();
+      T max = domain_.max();
 
       for(int i = rank; i-- > 0;)
       {
@@ -647,7 +645,7 @@ class grid_iterator
 
     // scalar case
     __AGENCY_ANNOTATION
-    grid_iterator& decrement(std::true_type)
+    lattice_iterator& decrement(std::true_type)
     {
       --current_;
       return *this;
@@ -655,7 +653,7 @@ class grid_iterator
 
     // point-like case
     __AGENCY_ANNOTATION
-    grid_iterator& advance(difference_type n, std::false_type)
+    lattice_iterator& advance(difference_type n, std::false_type)
     {
       difference_type idx = linearize() + n;
 
@@ -663,7 +661,7 @@ class grid_iterator
 
       for(size_t i = 0; i < rank; ++i)
       {
-        current_[i] = grid_.min()[i] + idx / s[i];
+        current_[i] = domain_.min()[i] + idx / s[i];
         idx %= s[i];
       }
 
@@ -672,7 +670,7 @@ class grid_iterator
 
     // scalar case
     __AGENCY_ANNOTATION
-    grid_iterator& advance(difference_type n, std::true_type)
+    lattice_iterator& advance(difference_type n, std::true_type)
     {
       current_ += n;
       return *this;
@@ -687,7 +685,7 @@ class grid_iterator
       for(int i = rank - 1; i-- > 0;)
       {
         // accumulate the stride of the lower dimension
-        result[i] = result[i+1] * grid_.shape()[i];
+        result[i] = result[i+1] * domain_.shape()[i];
       }
 
       return result;
@@ -705,12 +703,12 @@ class grid_iterator
     {
       if(is_past_the_end())
       {
-        return grid_.size();
+        return domain_.size();
       }
 
       // subtract grid min from current to get
       // 0-based indices along each axis
-      T idx = current_ - grid_.min();
+      T idx = current_ - domain_.min();
 
       difference_type multiplier = 1;
       difference_type result = 0;
@@ -718,7 +716,7 @@ class grid_iterator
       for(int i = rank; i-- > 0; )
       {
         result += multiplier * idx[i];
-        multiplier *= grid_.shape()[i];
+        multiplier *= domain_.shape()[i];
       }
 
       return result;
@@ -733,27 +731,27 @@ class grid_iterator
 
     // point-like case
     __AGENCY_ANNOTATION
-    static T past_the_end(const regular_grid<T>& grid, std::false_type)
+    static T past_the_end(const lattice<T>& domain, std::false_type)
     {
-      T result = grid.min();
-      result[0] = grid.max()[0];
+      T result = domain.min();
+      result[0] = domain.max()[0];
       return result;
     }
 
     // scalar case
     __AGENCY_ANNOTATION
-    static T past_the_end(const regular_grid<T>& grid, std::true_type)
+    static T past_the_end(const lattice<T>& domain, std::true_type)
     {
-      return grid.max();
+      return domain.max();
     }
 
     __AGENCY_ANNOTATION
     bool is_past_the_end() const
     {
-      return !(current_[0] < grid_.max()[0]);
+      return !(current_[0] < domain_.max()[0]);
     }
 
-    regular_grid<T> grid_;
+    lattice<T> domain_;
     T current_;
 };
 
