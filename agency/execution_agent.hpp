@@ -103,7 +103,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
   >::type;
 
   // XXX what should we do if ExecutionAgent::domain(param) does not exist?
-  //     default should be regular_grid<index_type>, but by what process should we eventually
+  //     default should be lattice<index_type>, but by what process should we eventually
   //     arrive at that default?
   // XXX yank the general implementation from execution_group now that param_type::inner() exists
   __agency_hd_warning_disable__
@@ -343,7 +343,7 @@ class basic_execution_agent
       return index_;
     }
 
-    using domain_type = regular_grid<index_type>;
+    using domain_type = lattice<index_type>;
 
     __AGENCY_ANNOTATION
     const domain_type& domain() const
@@ -711,7 +711,7 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
       return index_cat(this->outer().index(), this->inner().index());
     }
 
-    using domain_type = regular_grid<index_type>;
+    using domain_type = lattice<index_type>;
 
     __AGENCY_ANNOTATION
     domain_type domain() const
