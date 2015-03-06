@@ -352,14 +352,14 @@ class basic_grid_executor
     // XXX we can potentially eliminate these since executor_traits should implement them for us
     template<class Function>
     __host__ __device__
-    void bulk_invoke(Function f, shape_type shape)
+    void execute(Function f, shape_type shape)
     {
       this->bulk_async(f, shape).wait();
     }
 
     template<class Function, class Tuple>
     __host__ __device__
-    void bulk_invoke(Function f, shape_type shape, Tuple shared_arg_tuple)
+    void execute(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
       this->bulk_async(f, shape, shared_arg_tuple).wait();
     }
@@ -498,12 +498,13 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
 };
 
 
+// XXX eliminate this
 template<class Function, class... Args>
 __host__ __device__
 void bulk_invoke(grid_executor& ex, typename grid_executor::shape_type shape, Function&& f, Args&&... args)
 {
   auto g = detail::bind(std::forward<Function>(f), detail::placeholders::_1, std::forward<Args>(args)...);
-  ex.bulk_invoke(g, shape);
+  ex.execute(g, shape);
 }
 
 
@@ -524,12 +525,13 @@ class grid_executor_2d : public detail::basic_grid_executor<
 };
 
 
+// XXX eliminate this
 template<class Function, class... Args>
 __host__ __device__
 void bulk_invoke(grid_executor_2d& ex, typename grid_executor_2d::shape_type shape, Function&& f, Args&&... args)
 {
   auto g = detail::bind(std::forward<Function>(f), detail::placeholders::_1, std::forward<Args>(args)...);
-  ex.bulk_invoke(g, shape);
+  ex.execute(g, shape);
 }
 
 

@@ -75,7 +75,7 @@ int main()
   cudaDeviceSynchronize();
 
   std::cout << "Testing bulk_invoke with shared arg on host" << std::endl;
-  ex.bulk_invoke(with_shared_arg(), agency::uint2{2,2}, thrust::make_tuple(7,13));
+  ex.execute(with_shared_arg(), agency::uint2{2,2}, thrust::make_tuple(7,13));
   cudaDeviceSynchronize();
 
   std::cout << "Testing bulk_invoke() on device" << std::endl;

@@ -82,7 +82,7 @@ class nested_executor
         inner_ex_(inner_ex)
     {}
 
-    // XXX executor adaptors like nested_executor need to implement bulk_invoke to be sure we get the most efficient implementation
+    // XXX executor adaptors like nested_executor need to implement execute to be sure we get the most efficient implementation
 
     // XXX think we can eliminate this function
     template<class Function>
@@ -94,7 +94,7 @@ class nested_executor
 
       return outer_traits::bulk_async(outer_executor(), [=](outer_index_type outer_idx)
       {
-        inner_traits::bulk_invoke(inner_executor(), [=](inner_index_type inner_idx)
+        inner_traits::execute(inner_executor(), [=](inner_index_type inner_idx)
         {
           f(index_cat(outer_idx, inner_idx));
         },
@@ -129,7 +129,7 @@ class nested_executor
 
       return outer_traits::bulk_async(outer_executor(), [=](outer_index_type outer_idx, outer_shared_ref_type outer_shared_ref)
       {
-        inner_traits::bulk_invoke(inner_executor(), [=,&outer_shared_ref](inner_index_type inner_idx, inner_shared_ref_type inner_shared_ref)
+        inner_traits::execute(inner_executor(), [=,&outer_shared_ref](inner_index_type inner_idx, inner_shared_ref_type inner_shared_ref)
         {
           // create a 1-tuple of just a reference to the outer shared argument
           auto outer_shared_ref_tuple = detail::tie(outer_shared_ref);

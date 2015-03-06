@@ -94,7 +94,7 @@ class flattened_executor
 
         using inner_index_type = typename executor_traits<InnerExecutor>::index_type;
 
-        executor_traits<InnerExecutor>::bulk_invoke(exec.inner_executor(), [=,&shared_arg](inner_index_type inner_idx)
+        executor_traits<InnerExecutor>::execute(exec.inner_executor(), [=,&shared_arg](inner_index_type inner_idx)
         {
           auto index = subgroup_begin + inner_idx;
     
