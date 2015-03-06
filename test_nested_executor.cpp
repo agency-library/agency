@@ -21,7 +21,7 @@ int main()
   std::cout << std::endl;
 
   // test with shared variables
-  ex.bulk_async([](std::tuple<size_t,size_t> idx, std::tuple<int&,int&> shared)
+  ex.async_execute([](std::tuple<size_t,size_t> idx, std::tuple<int&,int&> shared)
   {
     mut.lock();
     if(std::get<0>(idx) == 0 && std::get<1>(idx) == 0)
@@ -49,7 +49,7 @@ int main()
   // test with 3-deep nesting
   agency::nested_executor<agency::sequential_executor, agency::nested_executor<agency::sequential_executor,agency::sequential_executor>> ex2;
 
-  ex2.bulk_async([](std::tuple<size_t,size_t,size_t> idx)
+  ex2.async_execute([](std::tuple<size_t,size_t,size_t> idx)
   {
     std::cout << "(" << std::get<0>(idx) << ", " << std::get<1>(idx) << ", " << std::get<2>(idx) << ")" << std::endl;
   },
@@ -59,7 +59,7 @@ int main()
   std::cout << std::endl;
 
   // test with shared variables
-  ex2.bulk_async([](std::tuple<size_t,size_t,size_t> idx, std::tuple<int&,int&,int&> shared)
+  ex2.async_execute([](std::tuple<size_t,size_t,size_t> idx, std::tuple<int&,int&,int&> shared)
   {
     std::cout << "(" << std::get<0>(idx) << ", " << std::get<1>(idx) << ", " << std::get<2>(idx) << ")" << std::endl;
     std::cout << "1st shared variable: " << std::get<0>(shared) << std::endl;

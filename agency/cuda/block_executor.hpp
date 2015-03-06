@@ -66,10 +66,10 @@ class block_executor : private grid_executor
 
   public:
     template<class Function>
-    future<void> bulk_async(Function f, shape_type shape)
+    future<void> async_execute(Function f, shape_type shape)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      return traits::bulk_async(g, super_t::shape_type{1,shape});
+      return traits::async_execute(g, super_t::shape_type{1,shape});
     }
 
     template<class Function>
@@ -80,10 +80,10 @@ class block_executor : private grid_executor
     }
 
     template<class Function, class T>
-    future<void> bulk_async(Function f, shape_type shape, T shared_arg)
+    future<void> async_execute(Function f, shape_type shape, T shared_arg)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      return traits::bulk_async(*this, g, super_t::shape_type{1,shape}, agency::detail::make_tuple(agency::detail::ignore, shared_arg));
+      return traits::async_execute(*this, g, super_t::shape_type{1,shape}, agency::detail::make_tuple(agency::detail::ignore, shared_arg));
     }
 
     template<class Function, class T>

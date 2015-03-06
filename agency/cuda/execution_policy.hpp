@@ -98,14 +98,14 @@ typename agency::detail::enable_if_bulk_invoke_executor<
 
 
 template<class Executor, class Result>
-struct call_bulk_async
+struct call_async_execute
 {
   using result_type = Result;
 
   template<class... Args>
   result_type operator()(Args&&... args)
   {
-    return executor_traits<Executor>::bulk_async(std::forward<Args>(args)...);
+    return executor_traits<Executor>::async_execute(std::forward<Args>(args)...);
   }
 };
 
@@ -118,8 +118,8 @@ typename agency::detail::enable_if_bulk_async_executor<
 {
   using result_type = agency::detail::executor_future<Executor,void>;
 
-  call_bulk_async<Executor,result_type> asyncer;
-  return detail::bulk_call_executor(asyncer, exec, f, shape, std::forward<Args>(args)...);
+  call_async_execute<Executor,result_type> caller;
+  return detail::bulk_call_executor(caller, exec, f, shape, std::forward<Args>(args)...);
 }
 
 

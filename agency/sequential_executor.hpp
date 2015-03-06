@@ -23,7 +23,7 @@ class sequential_executor
     }
 
     template<class Function, class T>
-    std::future<void> bulk_async(Function f, size_t n, T shared_arg)
+    std::future<void> async_execute(Function f, size_t n, T shared_arg)
     {
       return std::async(std::launch::deferred, [=]
       {
