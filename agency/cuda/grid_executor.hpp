@@ -256,9 +256,9 @@ class basic_grid_executor
 
     template<class Function>
     __host__ __device__
-    future<void> bulk_async(Function f, shape_type shape)
+    future<void> async_execute(Function f, shape_type shape)
     {
-      launch(global_function_pointer(f), f, shape);
+      this->launch(global_function_pointer(f), f, shape);
 
       return future<void>{stream()};
     }
@@ -266,10 +266,10 @@ class basic_grid_executor
   private:
     template<class Function, class T1, class T2>
     __host__ __device__
-    future<void> bulk_async_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg,
-                                             typename std::enable_if<
-                                               is_ignorable_shared_parameter<T1>::value
-                                             >::type* = 0)
+    future<void> async_execute_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg,
+                                                typename std::enable_if<
+                                                  is_ignorable_shared_parameter<T1>::value
+                                                >::type* = 0)
     {
       // no need to marshal the outer arg through gmem because it is empty
       
@@ -277,15 +277,15 @@ class basic_grid_executor
       // note the .release()
       auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_arg, inner_shared_arg);
 
-      return bulk_async(g, shape);
+      return this->async_execute(g, shape);
     }
 
     template<class Function, class T1, class T2>
     __host__ __device__
-    future<void> bulk_async_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg,
-                                             typename std::enable_if<
-                                               !is_ignorable_shared_parameter<T1>::value
-                                             >::type* = 0)
+    future<void> async_execute_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg,
+                                                typename std::enable_if<
+                                                  !is_ignorable_shared_parameter<T1>::value
+                                                >::type* = 0)
     {
       // make outer shared argument
       auto outer_shared_arg_ptr = detail::make_unique<T1>(stream(), outer_shared_arg);
@@ -294,10 +294,10 @@ class basic_grid_executor
       // note the .release()
       auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_arg_ptr.release(), inner_shared_arg);
 
-      // XXX to deallocate & destroy the outer_shared_arg, we need to do a bulk_async(...).then(...)
+      // XXX to deallocate & destroy the outer_shared_arg, we need to do a async_execute(...).then(...)
       //     for now it just leaks :(
 
-      return bulk_async(g, shape);
+      return this->async_execute(g, shape);
     }
 
   public:
@@ -340,28 +340,28 @@ class basic_grid_executor
 
     template<class Function, class Tuple>
     __host__ __device__
-    future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
+    future<void> async_execute(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
       auto outer_shared_arg = agency::detail::get<0>(shared_arg_tuple);
       auto inner_shared_arg = agency::detail::get<1>(shared_arg_tuple);
 
-      return bulk_async_with_shared_args(f, shape, outer_shared_arg, inner_shared_arg);
+      return async_execute_with_shared_args(f, shape, outer_shared_arg, inner_shared_arg);
     }
 
 
     // XXX we can potentially eliminate these since executor_traits should implement them for us
     template<class Function>
     __host__ __device__
-    void bulk_invoke(Function f, shape_type shape)
+    void execute(Function f, shape_type shape)
     {
-      this->bulk_async(f, shape).wait();
+      this->async_execute(f, shape).wait();
     }
 
     template<class Function, class Tuple>
     __host__ __device__
-    void bulk_invoke(Function f, shape_type shape, Tuple shared_arg_tuple)
+    void execute(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
-      this->bulk_async(f, shape, shared_arg_tuple).wait();
+      this->async_execute(f, shape, shared_arg_tuple).wait();
     }
 
 
@@ -498,12 +498,13 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
 };
 
 
+// XXX eliminate this
 template<class Function, class... Args>
 __host__ __device__
 void bulk_invoke(grid_executor& ex, typename grid_executor::shape_type shape, Function&& f, Args&&... args)
 {
   auto g = detail::bind(std::forward<Function>(f), detail::placeholders::_1, std::forward<Args>(args)...);
-  ex.bulk_invoke(g, shape);
+  ex.execute(g, shape);
 }
 
 
@@ -524,12 +525,13 @@ class grid_executor_2d : public detail::basic_grid_executor<
 };
 
 
+// XXX eliminate this
 template<class Function, class... Args>
 __host__ __device__
 void bulk_invoke(grid_executor_2d& ex, typename grid_executor_2d::shape_type shape, Function&& f, Args&&... args)
 {
   auto g = detail::bind(std::forward<Function>(f), detail::placeholders::_1, std::forward<Args>(args)...);
-  ex.bulk_invoke(g, shape);
+  ex.execute(g, shape);
 }
 
 
@@ -603,7 +605,7 @@ class flattened_executor<cuda::grid_executor>
     {}
 
     template<class Function>
-    future<void> bulk_async(Function f, shape_type shape)
+    future<void> async_execute(Function f, shape_type shape)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
@@ -614,11 +616,11 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().bulk_async(execute_me, partitioning);
+      return base_executor().async_execute(execute_me, partitioning);
     }
 
     template<class Function, class T>
-    future<void> bulk_async(Function f, shape_type shape, T shared_arg)
+    future<void> async_execute(Function f, shape_type shape, T shared_arg)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
@@ -632,7 +634,7 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().bulk_async(execute_me, partitioning, shared_init);
+      return base_executor().async_execute(execute_me, partitioning, shared_init);
     }
 
     __host__ __device__

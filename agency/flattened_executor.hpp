@@ -38,9 +38,9 @@ class flattened_executor
     {}
 
     template<class Function, class T>
-    future<void> bulk_async(Function f, shape_type shape, T shared_arg)
+    future<void> async_execute(Function f, shape_type shape, T shared_arg)
     {
-      return bulk_async_impl(base_executor(), f, shape, shared_arg);
+      return this->async_execute_impl(base_executor(), f, shape, shared_arg);
     }
 
     const base_executor_type& base_executor() const
@@ -55,7 +55,7 @@ class flattened_executor
 
   private:
     template<class OtherExecutor, class Function, class T>
-    future<void> bulk_async_impl(OtherExecutor& exec, Function f, shape_type shape, T shared_arg)
+    future<void> async_execute_impl(OtherExecutor& exec, Function f, shape_type shape, T shared_arg)
     {
       auto partitioning = partition(shape);
 
@@ -63,7 +63,7 @@ class flattened_executor
       using shared_param_type = typename executor_traits<OtherExecutor>::template shared_param_type<decltype(shared_init)>;
       using index_type = typename executor_traits<OtherExecutor>::index_type;
 
-      return executor_traits<OtherExecutor>::bulk_async(exec, [=](index_type idx, shared_param_type shared_params)
+      return executor_traits<OtherExecutor>::async_execute(exec, [=](index_type idx, shared_param_type shared_params)
       {
         auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning) + agency::detail::get<1>(idx);
 
@@ -79,7 +79,7 @@ class flattened_executor
 
     // we can avoid the if(flat_idx < shape) branch above by providing a specialization for nested_executor
     template<class OuterExecutor, class InnerExecutor, class Function, class T>
-    future<void> bulk_async_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, T shared_arg)
+    future<void> async_execute_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, T shared_arg)
     {
       auto partitioning = partition(shape);
 
@@ -87,14 +87,14 @@ class flattened_executor
 
       using outer_index_type = typename executor_traits<OuterExecutor>::index_type;
     
-      return executor_traits<OuterExecutor>::bulk_async(exec.outer_executor(), [=,&exec](outer_index_type outer_idx, shared_param_type shared_arg)
+      return executor_traits<OuterExecutor>::async_execute(exec.outer_executor(), [=,&exec](outer_index_type outer_idx, shared_param_type shared_arg)
       {
         auto subgroup_begin = outer_idx * agency::detail::get<1>(partitioning);
         auto subgroup_end   = std::min(shape, subgroup_begin + agency::detail::get<1>(partitioning));
 
         using inner_index_type = typename executor_traits<InnerExecutor>::index_type;
 
-        executor_traits<InnerExecutor>::bulk_invoke(exec.inner_executor(), [=,&shared_arg](inner_index_type inner_idx)
+        executor_traits<InnerExecutor>::execute(exec.inner_executor(), [=,&shared_arg](inner_index_type inner_idx)
         {
           auto index = subgroup_begin + inner_idx;
     

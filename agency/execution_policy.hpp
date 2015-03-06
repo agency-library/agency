@@ -111,14 +111,14 @@ typename BulkCall::result_type
 
 
 template<class Executor>
-struct call_bulk_invoke
+struct call_execute
 {
   using result_type = void;
 
   template<class... Args>
   void operator()(Args&&... args)
   {
-    executor_traits<Executor>::bulk_invoke(std::forward<Args>(args)...);
+    executor_traits<Executor>::execute(std::forward<Args>(args)...);
   }
 };
 
@@ -135,20 +135,20 @@ template<class Executor, class Function, class... Args>
 typename enable_if_bulk_invoke_executor<Executor, Function, Args...>::type
   bulk_invoke_executor(Executor& exec, Function f, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
 {
-  call_bulk_invoke<Executor> invoker;
-  return bulk_call_executor(invoker, exec, f, shape, std::forward<Args>(args)...);
+  call_execute<Executor> caller;
+  return bulk_call_executor(caller, exec, f, shape, std::forward<Args>(args)...);
 }
 
 
 template<class Executor, class Result>
-struct call_bulk_async
+struct call_async_execute
 {
   using result_type = Result;
 
   template<class... Args>
   result_type operator()(Args&&... args)
   {
-    return executor_traits<Executor>::bulk_async(std::forward<Args>(args)...);
+    return executor_traits<Executor>::async_execute(std::forward<Args>(args)...);
   }
 };
 
@@ -173,8 +173,8 @@ typename enable_if_bulk_async_executor<Executor, Function, Args...>::type
 {
   using result_type = executor_future<Executor,void>;
 
-  call_bulk_async<Executor,result_type> asyncer;
-  return bulk_call_executor(asyncer, exec, f, shape, std::forward<Args>(args)...);
+  call_async_execute<Executor,result_type> caller;
+  return bulk_call_executor(caller, exec, f, shape, std::forward<Args>(args)...);
 }
 
 

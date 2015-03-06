@@ -67,7 +67,7 @@ typename agency::detail::enable_if_call_possible<
 
   using shared_param_type = typename traits::template shared_param_type<decltype(shared_init)>;
 
-  traits::bulk_invoke(exec, [=](typename traits::index_type idx, shared_param_type& packaged_shared_params)
+  traits::execute(exec, [=](typename traits::index_type idx, shared_param_type& packaged_shared_params)
   {
     auto shared_params = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params);
 

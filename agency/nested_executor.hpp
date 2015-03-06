@@ -82,19 +82,19 @@ class nested_executor
         inner_ex_(inner_ex)
     {}
 
-    // XXX executor adaptors like nested_executor need to implement bulk_invoke to be sure we get the most efficient implementation
+    // XXX executor adaptors like nested_executor need to implement execute to be sure we get the most efficient implementation
 
     // XXX think we can eliminate this function
     template<class Function>
-    future<void> bulk_async(Function f, shape_type shape)
+    future<void> async_execute(Function f, shape_type shape)
     {
       // split the shape into the inner & outer portions
       auto outer_shape = this->outer_shape(shape);
       auto inner_shape = this->inner_shape(shape);
 
-      return outer_traits::bulk_async(outer_executor(), [=](outer_index_type outer_idx)
+      return outer_traits::async_execute(outer_executor(), [=](outer_index_type outer_idx)
       {
-        inner_traits::bulk_invoke(inner_executor(), [=](inner_index_type inner_idx)
+        inner_traits::execute(inner_executor(), [=](inner_index_type inner_idx)
         {
           f(index_cat(outer_idx, inner_idx));
         },
@@ -106,7 +106,7 @@ class nested_executor
     }
 
     template<class Function, class Tuple>
-    future<void> bulk_async(Function f, shape_type shape, Tuple shared_arg_tuple)
+    future<void> async_execute(Function f, shape_type shape, Tuple shared_arg_tuple)
     {
       static_assert(std::tuple_size<shape_type>::value == std::tuple_size<Tuple>::value, "Tuple of shared arguments must be the same size as shape_type.");
 
@@ -127,9 +127,9 @@ class nested_executor
       using outer_shared_ref_type = typename outer_traits::template shared_param_type<decltype(outer_shared_arg)>;
       using inner_shared_ref_type = typename inner_traits::template shared_param_type<decltype(inner_shared_arg)>;
 
-      return outer_traits::bulk_async(outer_executor(), [=](outer_index_type outer_idx, outer_shared_ref_type outer_shared_ref)
+      return outer_traits::async_execute(outer_executor(), [=](outer_index_type outer_idx, outer_shared_ref_type outer_shared_ref)
       {
-        inner_traits::bulk_invoke(inner_executor(), [=,&outer_shared_ref](inner_index_type inner_idx, inner_shared_ref_type inner_shared_ref)
+        inner_traits::execute(inner_executor(), [=,&outer_shared_ref](inner_index_type inner_idx, inner_shared_ref_type inner_shared_ref)
         {
           // create a 1-tuple of just a reference to the outer shared argument
           auto outer_shared_ref_tuple = detail::tie(outer_shared_ref);
