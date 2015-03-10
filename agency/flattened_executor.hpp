@@ -54,16 +54,19 @@ class flattened_executor
     }
 
   private:
-    template<class OtherExecutor, class Function, class T>
-    future<void> async_execute_impl(OtherExecutor& exec, Function f, shape_type shape, T shared_arg)
+    using partition_type = typename executor_traits<base_executor_type>::shape_type;
+
+    // this functor is for async_execute_impl immediately below
+    template<class Function>
+    struct async_execute_flat_case_functor
     {
-      auto partitioning = partition(shape);
+      Function       f;
+      shape_type     shape;
+      partition_type partitioning;
 
-      auto shared_init = detail::make_tuple(shared_arg, agency::detail::ignore);
-      using shared_param_type = typename executor_traits<OtherExecutor>::template shared_param_type<decltype(shared_init)>;
-      using index_type = typename executor_traits<OtherExecutor>::index_type;
-
-      return executor_traits<OtherExecutor>::async_execute(exec, [=](index_type idx, shared_param_type shared_params)
+      template<class Index, class T>
+      __AGENCY_ANNOTATION
+      void operator()(const Index& idx, T& shared_params)
       {
         auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning) + agency::detail::get<1>(idx);
 
@@ -71,11 +74,74 @@ class flattened_executor
         {
           f(flat_idx, agency::detail::get<0>(shared_params));
         }
-      },
-      partitioning,
-      shared_init
-      );
+      }
+    };
+
+    template<class OtherExecutor, class Function, class T>
+    future<void> async_execute_impl(OtherExecutor& exec, Function f, shape_type shape, T shared_arg)
+    {
+      auto partitioning = partition(shape);
+
+      auto shared_init = detail::make_tuple(shared_arg, agency::detail::ignore);
+
+      return executor_traits<OtherExecutor>::async_execute(exec, async_execute_flat_case_functor<Function>{f, shape, partitioning}, partitioning, shared_init);
+
+      // XXX upon c++14
+      //using index_type = typename executor_traits<OtherExecutor>::index_type;
+
+      //return executor_traits<OtherExecutor>::async_execute(exec, [=](index_type idx, auto& shared_params)
+      //{
+      //  auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning) + agency::detail::get<1>(idx);
+
+      //  if(flat_idx < shape)
+      //  {
+      //    f(flat_idx, agency::detail::get<0>(shared_params));
+      //  }
+      //},
+      //partitioning,
+      //shared_init
+      //);
     }
+
+
+    // this functor is for async_execute_impl immediately below
+    template<class NestedExecutor, class Function>
+    struct async_execute_nested_case_functor
+    {
+      NestedExecutor& exec;
+      Function        f;
+      shape_type      shape;
+      partition_type  partitioning;
+
+      template<class OuterIndex, class T>
+      struct nested_functor
+      {
+        Function f;
+        OuterIndex subgroup_begin;
+        T& shared_arg;
+
+        template<class InnerIndex>
+        __AGENCY_ANNOTATION
+        void operator()(const InnerIndex& inner_idx)
+        {
+          auto index = subgroup_begin + inner_idx;
+    
+          f(index, shared_arg);
+        }
+      };
+
+      template<class Index, class T>
+      __AGENCY_ANNOTATION
+      void operator()(const Index& outer_idx, T& shared_arg)
+      {
+        auto subgroup_begin = outer_idx * agency::detail::get<1>(partitioning);
+        auto subgroup_end   = std::min(shape, subgroup_begin + agency::detail::get<1>(partitioning));
+
+        using inner_executor_type = typename NestedExecutor::inner_executor_type;
+
+        executor_traits<inner_executor_type>::execute(exec.inner_executor(), nested_functor<decltype(subgroup_begin),T>{f, subgroup_begin, shared_arg}, subgroup_end - subgroup_begin);
+      }
+    };
 
     // we can avoid the if(flat_idx < shape) branch above by providing a specialization for nested_executor
     template<class OuterExecutor, class InnerExecutor, class Function, class T>
@@ -83,30 +149,32 @@ class flattened_executor
     {
       auto partitioning = partition(shape);
 
-      using shared_param_type = typename executor_traits<OuterExecutor>::template shared_param_type<T>;
+      using executor_type = nested_executor<OuterExecutor,InnerExecutor>;
+      return executor_traits<OuterExecutor>::async_execute(exec.outer_executor(), async_execute_nested_case_functor<executor_type,Function>{exec, f, shape, partitioning}, agency::detail::get<0>(partitioning), shared_arg);
 
-      using outer_index_type = typename executor_traits<OuterExecutor>::index_type;
+      // XXX the functors are so confusing
+      //     should get the shared param type by doing decltype(make_parameter(shared_arg))
+      //     when it becomes available
+
+      // XXX upon c++14
+      //return executor_traits<OuterExecutor>::async_execute(exec.outer_executor(), [=,&exec](auto outer_idx, auto& shared_arg)
+      //{
+      //  auto subgroup_begin = outer_idx * agency::detail::get<1>(partitioning);
+      //  auto subgroup_end   = std::min(shape, subgroup_begin + agency::detail::get<1>(partitioning));
+
+      //  using inner_index_type = typename executor_traits<InnerExecutor>::index_type;
+
+      //  executor_traits<InnerExecutor>::execute(exec.inner_executor(), [=,&shared_arg](inner_index_type inner_idx)
+      //  {
+      //    auto index = subgroup_begin + inner_idx;
     
-      return executor_traits<OuterExecutor>::async_execute(exec.outer_executor(), [=,&exec](outer_index_type outer_idx, shared_param_type shared_arg)
-      {
-        auto subgroup_begin = outer_idx * agency::detail::get<1>(partitioning);
-        auto subgroup_end   = std::min(shape, subgroup_begin + agency::detail::get<1>(partitioning));
-
-        using inner_index_type = typename executor_traits<InnerExecutor>::index_type;
-
-        executor_traits<InnerExecutor>::execute(exec.inner_executor(), [=,&shared_arg](inner_index_type inner_idx)
-        {
-          auto index = subgroup_begin + inner_idx;
-    
-          f(index, shared_arg);
-        },
-        subgroup_end - subgroup_begin);
-      },
-      agency::detail::get<0>(partitioning),
-      shared_arg);
+      //    f(index, shared_arg);
+      //  },
+      //  subgroup_end - subgroup_begin);
+      //},
+      //agency::detail::get<0>(partitioning),
+      //shared_arg);
     }
-
-    using partition_type = typename executor_traits<base_executor_type>::shape_type;
 
     // returns (outer size, inner size)
     partition_type partition(shape_type shape) const

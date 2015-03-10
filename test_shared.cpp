@@ -42,6 +42,28 @@ template<class T>
 using decay_parameter_t = typename decay_parameter<T>::type;
 
 
+template<class Function>
+struct unpack_shared_parameters_from_executor_and_invoke
+{
+  mutable Function g;
+
+  template<class Index, class SharedParams>
+  __AGENCY_ANNOTATION
+  void operator()(const Index& idx, SharedParams& packaged_shared_params) const
+  {
+    auto shared_params = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params);
+
+    // XXX the following is the moral equivalent of:
+    // g(idx, shared_params...);
+
+    // create one big tuple of the arguments so we can just call tuple_apply
+    auto idx_and_shared_params = __tu::tuple_prepend_invoke(shared_params, idx, agency::detail::forwarder{});
+
+    __tu::tuple_apply(g, idx_and_shared_params);
+  }
+};
+
+
 template<class Executor, class Function, class... Args>
 typename agency::detail::enable_if_call_possible<
   void,
@@ -65,22 +87,7 @@ typename agency::detail::enable_if_call_possible<
   // construct shared arguments and package them for the executor
   auto shared_init = agency::detail::pack_shared_parameters_for_executor<executor_depth>(shared_arg_tuple);
 
-  using shared_param_type = typename traits::template shared_param_type<decltype(shared_init)>;
-
-  traits::execute(exec, [=](typename traits::index_type idx, shared_param_type& packaged_shared_params)
-  {
-    auto shared_params = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params);
-
-    // XXX the following is the moral equivalent of:
-    // g(idx, shared_params...);
-
-    // create one big tuple of the arguments so we can just call tuple_apply
-    auto idx_and_shared_params = __tu::tuple_prepend_invoke(shared_params, idx, agency::detail::forwarder{});
-
-    __tu::tuple_apply(g, idx_and_shared_params);
-  },
-  shape,
-  std::move(shared_init));
+  traits::execute(exec, unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g}, shape, std::move(shared_init));
 }
 
 
