@@ -221,10 +221,6 @@ class basic_grid_executor
     using future = detail::future<T>;
 
 
-    template<class Tuple>
-    using shared_param_type = detail::tuple_of_references_t<Tuple>;
-
-
     __host__ __device__
     explicit basic_grid_executor(int shared_memory_size = 0, cudaStream_t stream = 0, gpu_id gpu = detail::current_gpu())
       : shared_memory_size_(shared_memory_size),

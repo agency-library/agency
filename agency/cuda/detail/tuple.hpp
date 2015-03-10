@@ -18,26 +18,6 @@ using agency::detail::get;
 using agency::detail::forward_as_tuple;
 
 
-template<class, class> struct tuple_of_references_impl;
-
-
-template<class Tuple, size_t... I>
-struct tuple_of_references_impl<Tuple,agency::detail::index_sequence<I...>>
-{
-  using type = tuple<
-    typename std::tuple_element<I,Tuple>::type&...
-  >;
-};
-
-
-template<class Tuple>
-using tuple_of_references_t =
-  typename tuple_of_references_impl<
-    Tuple,
-    agency::detail::make_index_sequence<std::tuple_size<Tuple>::value>
-  >::type;
-
-
 } // end detail
 } // end cuda
 } // end agency
