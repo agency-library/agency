@@ -5,6 +5,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/tuple_matrix.hpp>
 #include <agency/detail/bind.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <utility>
 #include <functional>
@@ -67,40 +68,6 @@ typename tuple_find_non_null_result<tuple<Types...>>::type
 {
   return detail::get<find_exactly_one_not_null<Types...>::value>(t);
 }
-
-
-template<size_t level, class T, class... Args>
-struct shared_parameter
-{
-  __AGENCY_ANNOTATION
-  T make(std::integral_constant<size_t,level>) const
-  {
-    return __tu::make_from_tuple<T>(args_);
-  }
-
-  template<size_t other_level>
-  __AGENCY_ANNOTATION
-  null_type make(std::integral_constant<size_t,other_level>) const
-  {
-    return null_type{};
-  }
-
-  tuple<Args...> args_;
-};
-
-
-template<class T> struct is_shared_parameter : std::false_type {};
-template<size_t level, class T, class... Args>
-struct is_shared_parameter<shared_parameter<level,T,Args...>> : std::true_type {};
-
-
-template<class T>
-struct is_shared_parameter_ref
-  : std::integral_constant<
-      bool,
-      (std::is_reference<T>::value && is_shared_parameter<typename std::remove_reference<T>::type>::value)
-    >
-{};
 
 
 template<size_t level>

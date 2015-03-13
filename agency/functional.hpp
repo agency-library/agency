@@ -1,11 +1,8 @@
 #pragma once
 
-// XXX should probably eliminate this header
-//     consider renaming it to functional.hpp
-
 #include <agency/detail/config.hpp>
-#include <agency/detail/shared_parameter.hpp>
 #include <agency/detail/tuple.hpp>
+#include <type_traits>
 
 namespace agency
 {
@@ -19,6 +16,82 @@ template<class T>
 using decay_parameter_t = typename decay_parameter<T>::type;
 
 
+template<class T>
+struct decay_construct_result : std::decay<T> {};
+
+
+template<class... Types>
+struct decay_construct_result<
+  detail::tuple<Types...>
+>
+{
+  using type = detail::tuple<typename decay_construct_result<Types>::type...>;
+};
+
+
+template<class T>
+__AGENCY_ANNOTATION
+typename decay_construct_result<T>::type decay_construct(T&& parm)
+{
+  // this is essentially decay_copy
+  return std::forward<T>(parm);
+}
+
+
+namespace detail
+{
+
+
+template<class T, class... Args>
+class factory
+{
+  public:
+    __AGENCY_ANNOTATION
+    factory(const tuple<Args...>& args)
+      : args_(args)
+    {}
+
+    __AGENCY_ANNOTATION
+    T make() const &
+    {
+      return __tu::make_from_tuple<T>(args_);
+    }
+
+    __AGENCY_ANNOTATION
+    T make() &&
+    {
+      return __tu::make_from_tuple<T>(std::move(args_));
+    }
+
+  private:
+    tuple<Args...> args_;
+};
+
+
+template<size_t level, class T, class... Args>
+struct shared_parameter : public factory<T,Args...>
+{
+  using factory<T,Args...>::factory;
+};
+
+
+template<class T> struct is_shared_parameter : std::false_type {};
+template<size_t level, class T, class... Args>
+struct is_shared_parameter<shared_parameter<level,T,Args...>> : std::true_type {};
+
+
+template<class T>
+struct is_shared_parameter_ref
+  : std::integral_constant<
+      bool,
+      (std::is_reference<T>::value && is_shared_parameter<typename std::remove_reference<T>::type>::value)
+    >
+{};
+
+
+} // end detail
+
+
 template<size_t level, class T, class... Args>
 struct decay_parameter<
   detail::shared_parameter<level, T, Args...>
@@ -29,13 +102,8 @@ struct decay_parameter<
 };
 
 
-// XXX eliminate me
-template<class T>
-struct parameter_t : std::decay<T> {};
-
-
 template<size_t level, class T, class... Args>
-struct parameter_t<
+struct decay_construct_result<
   detail::shared_parameter<level, T, Args...>
 >
 {
@@ -43,21 +111,28 @@ struct parameter_t<
 };
 
 
-template<class... Types>
-struct parameter_t<
-  detail::tuple<Types...>
->
-{
-  using type = detail::tuple<typename parameter_t<Types>::type...>;
-};
-
-
-template<class T>
+// overload decay_construct for shared_parameter
+template<size_t level, class T, class... Args>
 __AGENCY_ANNOTATION
-typename parameter_t<T>::type decay_construct(T&& parm)
+T decay_construct(detail::shared_parameter<level,T,Args...>& parm)
 {
-  // this is essentially decay_copy
-  return std::forward<T>(parm);
+  return parm.make();
+}
+
+
+template<size_t level, class T, class... Args>
+__AGENCY_ANNOTATION
+T decay_construct(const detail::shared_parameter<level,T,Args...>& parm)
+{
+  return parm.make();
+}
+
+
+template<size_t level, class T, class... Args>
+__AGENCY_ANNOTATION
+T decay_construct(detail::shared_parameter<level,T,Args...>&& parm)
+{
+  return std::move(parm).make();
 }
 
 
@@ -77,48 +152,19 @@ detail::shared_parameter<level,T,T> share(const T& val)
 }
 
 
-// overload decay_construct for shared_parameter
-template<size_t level, class T, class... Args>
+template<class... Types>
 __AGENCY_ANNOTATION
-T decay_construct(detail::shared_parameter<level,T,Args...>& parm)
-{
-  return __tu::make_from_tuple<T>(parm.args_);
-}
-
-
-template<size_t level, class T, class... Args>
-__AGENCY_ANNOTATION
-T decay_construct(const detail::shared_parameter<level,T,Args...>& parm)
-{
-  return __tu::make_from_tuple<T>(parm.args_);
-}
-
-
-template<size_t level, class T, class... Args>
-__AGENCY_ANNOTATION
-T decay_construct(detail::shared_parameter<level,T,Args...>&& parm)
-{
-  return __tu::make_from_tuple<T>(std::move(parm.args_));
-}
-
-
-template<class T>
-struct parameter_t;
+typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>& t);
 
 
 template<class... Types>
 __AGENCY_ANNOTATION
-typename parameter_t<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>& t);
+typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(const detail::tuple<Types...>& t);
 
 
 template<class... Types>
 __AGENCY_ANNOTATION
-typename parameter_t<detail::tuple<Types...>>::type decay_construct(const detail::tuple<Types...>& t);
-
-
-template<class... Types>
-__AGENCY_ANNOTATION
-typename parameter_t<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>&& t);
+typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>&& t);
 
 
 namespace detail
@@ -144,7 +190,7 @@ struct call_decay_construct
 
 template<class... Types>
 __AGENCY_ANNOTATION
-typename parameter_t<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>& t)
+typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>& t)
 {
   return detail::tuple_map(
     detail::call_decay_construct{}, t
@@ -154,7 +200,7 @@ typename parameter_t<detail::tuple<Types...>>::type decay_construct(detail::tupl
 
 template<class... Types>
 __AGENCY_ANNOTATION
-typename parameter_t<detail::tuple<Types...>>::type decay_construct(const detail::tuple<Types...>& t)
+typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(const detail::tuple<Types...>& t)
 {
   return detail::tuple_map(
     detail::call_decay_construct{}, t
@@ -164,7 +210,7 @@ typename parameter_t<detail::tuple<Types...>>::type decay_construct(const detail
 
 template<class... Types>
 __AGENCY_ANNOTATION
-typename parameter_t<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>&& t)
+typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>&& t)
 {
   return detail::tuple_map(
     detail::call_decay_construct{}, std::move(t)

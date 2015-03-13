@@ -2,7 +2,7 @@
 
 #include <future>
 #include <agency/execution_categories.hpp>
-#include <agency/parameter.hpp>
+#include <agency/functional.hpp>
 #include <functional>
 
 namespace agency

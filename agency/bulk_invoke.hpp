@@ -3,7 +3,8 @@
 #include <agency/detail/config.hpp>
 #include <agency/executor_traits.hpp>
 #include <agency/execution_agent.hpp>
-#include <agency/parameter.hpp>
+#include <agency/functional.hpp>
+#include <agency/detail/shared_parameter.hpp>
 #include <agency/detail/is_call_possible.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_cast.hpp>

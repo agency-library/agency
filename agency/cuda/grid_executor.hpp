@@ -22,7 +22,7 @@
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/coordinate.hpp>
-#include <agency/parameter.hpp>
+#include <agency/functional.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_tuple.hpp>
 #include <agency/cuda/detail/future.hpp>
@@ -40,7 +40,7 @@ template<class T>
 struct is_ignorable_shared_parameter
   : std::integral_constant<
       bool,
-      (std::is_empty<typename parameter_t<T>::type>::value || agency::detail::is_empty_tuple<typename parameter_t<T>::type>::value)
+      (std::is_empty<typename decay_construct_result<T>::type>::value || agency::detail::is_empty_tuple<typename decay_construct_result<T>::type>::value)
     >
 {};
 
@@ -48,8 +48,8 @@ struct is_ignorable_shared_parameter
 template<class Function, class OuterSharedInit, class InnerSharedInit, class Enable1 = void, class Enable2 = void>
 struct function_with_shared_arguments
 {
-  using outer_shared_type = typename parameter_t<OuterSharedInit>::type;
-  using inner_shared_type = typename parameter_t<InnerSharedInit>::type;
+  using outer_shared_type = typename decay_construct_result<OuterSharedInit>::type;
+  using inner_shared_type = typename decay_construct_result<InnerSharedInit>::type;
 
   Function           f_;
   outer_shared_type* outer_ptr_;
@@ -97,8 +97,8 @@ struct function_with_shared_arguments<Function, OuterSharedInit, InnerSharedInit
   typename std::enable_if<is_ignorable_shared_parameter<OuterSharedInit>::value>::type,
   typename std::enable_if<!is_ignorable_shared_parameter<InnerSharedInit>::value>::type>
 {
-  using outer_shared_type = typename parameter_t<OuterSharedInit>::type;
-  using inner_shared_type = typename parameter_t<InnerSharedInit>::type;
+  using outer_shared_type = typename decay_construct_result<OuterSharedInit>::type;
+  using inner_shared_type = typename decay_construct_result<InnerSharedInit>::type;
 
   Function         f_;
   InnerSharedInit  inner_shared_init_;
@@ -145,8 +145,8 @@ struct function_with_shared_arguments<Function,OuterSharedInit,InnerSharedInit,
   typename std::enable_if<!is_ignorable_shared_parameter<OuterSharedInit>::value>::type,
   typename std::enable_if<is_ignorable_shared_parameter<InnerSharedInit>::value>::type>
 {
-  using outer_shared_type = typename parameter_t<OuterSharedInit>::type;
-  using inner_shared_type = typename parameter_t<InnerSharedInit>::type;
+  using outer_shared_type = typename decay_construct_result<OuterSharedInit>::type;
+  using inner_shared_type = typename decay_construct_result<InnerSharedInit>::type;
 
   Function           f_;
   outer_shared_type* outer_ptr_;
@@ -175,8 +175,8 @@ struct function_with_shared_arguments<Function,OuterSharedInit,InnerSharedInit,
   typename std::enable_if<is_ignorable_shared_parameter<OuterSharedInit>::value>::type,
   typename std::enable_if<is_ignorable_shared_parameter<InnerSharedInit>::value>::type>
 {
-  using outer_shared_type = typename parameter_t<OuterSharedInit>::type;
-  using inner_shared_type = typename parameter_t<InnerSharedInit>::type;
+  using outer_shared_type = typename decay_construct_result<OuterSharedInit>::type;
+  using inner_shared_type = typename decay_construct_result<InnerSharedInit>::type;
 
   __host__ __device__
   function_with_shared_arguments(Function f, OuterSharedInit, InnerSharedInit)
@@ -299,7 +299,7 @@ class basic_grid_executor
     {
       // XXX move decay_construct inside of make_unique
       auto outer_shared_arg = agency::decay_construct(outer_shared_init);
-      using outer_shared_arg_t = typename parameter_t<T1>::type;
+      using outer_shared_arg_t = typename decay_construct_result<T1>::type;
 
       // make outer shared argument
       auto outer_shared_arg_ptr = detail::make_unique<outer_shared_arg_t>(stream(), outer_shared_arg);

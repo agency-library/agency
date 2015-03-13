@@ -5,8 +5,9 @@
 #include <memory>
 #include <agency/detail/future.hpp>
 #include <agency/execution_categories.hpp>
-#include <agency/parameter.hpp>
+#include <agency/functional.hpp>
 #include <algorithm>
+
 
 namespace agency
 {
