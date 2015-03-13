@@ -15,64 +15,45 @@ namespace detail
 {
 
 
-template<class... Types>
-__AGENCY_ANNOTATION
-const typename std::tuple_element<0,tuple<Types...>>::type&
-  tuple_find_if_impl(const tuple<Types...>& filtered_tuple)
-{
-  return detail::get<0>(filtered_tuple);
-}
-
-
-template<template<class> class MetaFunction, class Tuple>
-using tuple_find_if_t = decltype(
-  tuple_find_if_impl(
-    __tu::tuple_filter_invoke<MetaFunction>(
-      std::declval<Tuple>(),
-      std::declval<agency::detail::forwarder>()
-    )
-  )
-);
-
-
-template<template<class> class MetaFunction, class Tuple>
-TUPLE_UTILITY_ANNOTATION
-tuple_find_if_t<MetaFunction,Tuple>
-  tuple_find_if(Tuple&& t)
-{
-  return tuple_find_if_impl(
-    __tu::tuple_filter_invoke<MetaFunction>(
-      std::forward<Tuple>(t),
-      detail::forwarder{}
-    )
-  );
-}
-
-
 // signifies an element of the shared parameter matrix which is not occupied
 struct null_type {};
 
 
-// when looking for null_type, strip references first
-template<class T>
-struct is_null : std::is_same<null_type, typename std::decay<T>::type> {};
+template<size_t I, class... Types>
+struct find_exactly_one_not_null_impl;
 
 
-template<class T>
-struct is_not_null : 
-  std::integral_constant<
-    bool,
-    !is_null<T>::value
-  >
-{};
+template<size_t I, class... Types>
+struct find_exactly_one_not_null_impl<I, null_type, Types...> : find_exactly_one_not_null_impl<I+1, Types...> {};
+
+
+template<size_t I, class T, class... Types>
+struct find_exactly_one_not_null_impl<I, T, Types...> : std::integral_constant<size_t, I>
+{
+  static_assert(find_exactly_one_not_null_impl<0,Types...>::value == sizeof...(Types), "non-null type can only occur once in type list");
+
+  using type = T;
+};
+
+
+template<size_t I>
+struct find_exactly_one_not_null_impl<I> : std::integral_constant<size_t, I> {};
+
+
+// note that we decay the type when searching for null_type
+template<class... Types>
+struct find_exactly_one_not_null : find_exactly_one_not_null_impl<0, typename std::decay<Types>::type...>
+{
+  static_assert(find_exactly_one_not_null::value < sizeof...(Types), "type not found in type list");
+};
 
 
 template<class... Types>
 __AGENCY_ANNOTATION
-tuple_find_if_t<is_not_null,tuple<Types...>>
+typename find_exactly_one_not_null<Types...>::type&
   tuple_find_non_null(const tuple<Types...>& t)
 {
-  return detail::tuple_find_if<is_not_null>(t);
+  return detail::get<find_exactly_one_not_null<Types...>::value>(t);
 }
 
 
