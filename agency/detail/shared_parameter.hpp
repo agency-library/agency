@@ -48,9 +48,21 @@ struct find_exactly_one_not_null : find_exactly_one_not_null_impl<0, typename st
 };
 
 
+template<class Tuple>
+struct tuple_find_non_null_result;
+
+
+template<class... Types>
+struct tuple_find_non_null_result<tuple<Types...>>
+  : std::add_lvalue_reference<
+      typename find_exactly_one_not_null<Types...>::type
+    >
+{};
+
+
 template<class... Types>
 __AGENCY_ANNOTATION
-typename find_exactly_one_not_null<Types...>::type&
+typename tuple_find_non_null_result<tuple<Types...>>::type
   tuple_find_non_null(const tuple<Types...>& t)
 {
   return detail::get<find_exactly_one_not_null<Types...>::value>(t);
@@ -92,79 +104,44 @@ struct is_shared_parameter_ref
 
 
 template<size_t level>
-struct call_make
+struct make_shared_parameter_matrix_element
 {
+  // XXX might want to std::move parm
+  template<class T, class... Args>
+  __AGENCY_ANNOTATION
+  shared_parameter<level,T,Args...> operator()(const shared_parameter<level,T,Args...>& parm) const
+  {
+    return parm;
+  }
+
   template<size_t other_level, class T, class... Args>
   __AGENCY_ANNOTATION
-  auto operator()(const shared_parameter<other_level,T,Args...>& parm) const
-    -> decltype(
-         parm.make(std::integral_constant<size_t,level>{})
-       )
+  null_type operator()(const shared_parameter<other_level,T,Args...>&) const
   {
-    return parm.make(std::integral_constant<size_t,level>{});
+    return null_type{};
   }
 };
 
 
-template<size_t column_idx, size_t... row_idx, class TupleMatrix>
-__AGENCY_ANNOTATION
-auto tuple_matrix_column_impl(index_sequence<row_idx...>, TupleMatrix&& mtx)
-  -> decltype(
-       detail::tie(
-           detail::get<column_idx>(detail::get<row_idx>(std::forward<TupleMatrix>(mtx)))...
-         )
-     )
-{
-  return detail::tie(
-    detail::get<column_idx>(detail::get<row_idx>(std::forward<TupleMatrix>(mtx)))...
-  );
-}
-
-
-template<size_t column_idx, class TupleMatrix>
-__AGENCY_ANNOTATION
-auto tuple_matrix_column(TupleMatrix&& mtx)
-  -> decltype(
-       tuple_matrix_column_impl<column_idx>(
-         make_index_sequence<
-           std::tuple_size<
-             typename std::decay<TupleMatrix>::type
-           >::value
-         >{},
-         std::forward<TupleMatrix>(mtx)
-       )
-     )
-{
-  return tuple_matrix_column_impl<column_idx>(
-    make_index_sequence<
-      std::tuple_size<
-        typename std::decay<TupleMatrix>::type
-      >::value
-    >{},
-    std::forward<TupleMatrix>(mtx)
-  );
-}
-
-
 template<class Indices, class Tuple>
-struct packaged_shared_parameters_t_impl;
+struct shared_parameter_matrix_t_impl;
 
 
 template<size_t... RowIndex, class Tuple>
-struct packaged_shared_parameters_t_impl<index_sequence<RowIndex...>,Tuple>
+struct shared_parameter_matrix_t_impl<index_sequence<RowIndex...>,Tuple>
 {
   using type = decltype(
     detail::make_tuple(
-      detail::tuple_map(detail::call_make<RowIndex>{}, std::declval<Tuple>())...
+      detail::tuple_map(make_shared_parameter_matrix_element<RowIndex>{}, std::declval<Tuple>())...
     )
   );
 };
 
 
-template<size_t execution_depth, class Tuple>
-using packaged_shared_parameters_t = typename packaged_shared_parameters_t_impl<
+template<size_t num_rows, class Tuple>
+using shared_parameter_matrix_t = typename shared_parameter_matrix_t_impl<
   agency::detail::make_index_sequence<
-    execution_depth
+    num_rows
   >,
   Tuple
 >::type;
@@ -175,24 +152,32 @@ using packaged_shared_parameters_t = typename packaged_shared_parameters_t_impl<
 // the rows correspond to levels of the executor's hierarchy
 // the columns correspond to shared arguments
 template<size_t... RowIndex, class... SharedArgs>
-packaged_shared_parameters_t<sizeof...(RowIndex), tuple<SharedArgs...>>
-  pack_shared_parameters_for_executor_impl(index_sequence<RowIndex...>,
-                                           const tuple<SharedArgs...>& shared_arg_tuple)
+shared_parameter_matrix_t<sizeof...(RowIndex), tuple<SharedArgs...>>
+  make_shared_parameter_matrix_impl(index_sequence<RowIndex...>,
+                                    const tuple<SharedArgs...>& shared_arg_tuple)
 {
   return detail::make_tuple(
-    detail::tuple_map(detail::call_make<RowIndex>{}, shared_arg_tuple)...
+    detail::tuple_map(make_shared_parameter_matrix_element<RowIndex>{}, shared_arg_tuple)...
   );
 }
 
 
 template<size_t execution_depth, class... SharedArgs>
-packaged_shared_parameters_t<execution_depth, tuple<SharedArgs...>>
-  pack_shared_parameters_for_executor(const tuple<SharedArgs...>& shared_arg_tuple)
+shared_parameter_matrix_t<execution_depth, tuple<SharedArgs...>>
+  make_shared_parameter_matrix(const tuple<SharedArgs...>& shared_arg_tuple)
 {
-  return detail::pack_shared_parameters_for_executor_impl(
+  return detail::make_shared_parameter_matrix_impl(
     make_index_sequence<execution_depth>{},
     shared_arg_tuple
   );
+}
+
+
+template<size_t executor_depth, class... SharedArgs>
+shared_parameter_matrix_t<executor_depth, tuple<SharedArgs...>>
+  make_shared_parameter_package_for_executor(const tuple<SharedArgs...>& shared_arg_tuple)
+{
+  return make_shared_parameter_matrix<executor_depth>(shared_arg_tuple);
 }
 
 
@@ -204,9 +189,12 @@ template<size_t... RowIndices, class TupleMatrix>
 struct extracted_shared_parameters_t_impl<index_sequence<RowIndices...>,TupleMatrix>
 {
   using type = agency::detail::tuple<
-    decltype(
-      agency::detail::tuple_find_non_null(detail::get<RowIndices>(*std::declval<TupleMatrix*>()))
-    )...
+    typename tuple_find_non_null_result<
+      typename std::tuple_element<
+        RowIndices,
+        TupleMatrix
+      >::type
+    >::type...
   >;
 };
 

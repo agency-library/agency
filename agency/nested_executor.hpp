@@ -3,6 +3,8 @@
 #include <utility>
 #include <agency/execution_categories.hpp>
 #include <agency/executor_traits.hpp>
+#include <agency/detail/tuple.hpp>
+#include <agency/parameter.hpp>
 #include <agency/detail/index_tuple.hpp>
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/detail/make_tuple_if_not_nested.hpp>

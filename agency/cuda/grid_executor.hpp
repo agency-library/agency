@@ -22,6 +22,7 @@
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/coordinate.hpp>
+#include <agency/parameter.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_tuple.hpp>
 #include <agency/cuda/detail/future.hpp>
@@ -39,17 +40,23 @@ template<class T>
 struct is_ignorable_shared_parameter
   : std::integral_constant<
       bool,
-      (std::is_empty<T>::value || agency::detail::is_empty_tuple<T>::value)
+      (std::is_empty<typename parameter_t<T>::type>::value || agency::detail::is_empty_tuple<typename parameter_t<T>::type>::value)
     >
 {};
 
 
-
-template<class Function, class OuterSharedType, class InnerSharedType, class Enable1 = void, class Enable2 = void>
+template<class Function, class OuterSharedInit, class InnerSharedInit, class Enable1 = void, class Enable2 = void>
 struct function_with_shared_arguments
 {
+  using outer_shared_type = typename parameter_t<OuterSharedInit>::type;
+  using inner_shared_type = typename parameter_t<InnerSharedInit>::type;
+
+  Function           f_;
+  outer_shared_type* outer_ptr_;
+  InnerSharedInit    inner_shared_init_;
+
   __host__ __device__
-  function_with_shared_arguments(Function f, OuterSharedType* outer_ptr, InnerSharedType inner_shared_init)
+  function_with_shared_arguments(Function f, outer_shared_type* outer_ptr, InnerSharedInit inner_shared_init)
     : f_(f),
       outer_ptr_(outer_ptr),
       inner_shared_init_(inner_shared_init)
@@ -59,17 +66,18 @@ struct function_with_shared_arguments
   __device__
   void operator()(const Index& idx)
   {
-    // XXX can't rely on a default constructor
-    __shared__ uninitialized<InnerSharedType> inner_param;
+    // can't rely on a default constructor
+    __shared__ uninitialized<inner_shared_type> inner_param;
 
     // initialize the inner shared parameter
     if(idx[1] == 0)
     {
-      inner_param.construct(inner_shared_init_);
+      // XXX should avoid the move construction here
+      inner_param.construct(agency::decay_construct(inner_shared_init_));
     }
     __syncthreads();
 
-    tuple<OuterSharedType&,InnerSharedType&> shared_params(*outer_ptr_, inner_param);
+    tuple<outer_shared_type&,inner_shared_type&> shared_params(*outer_ptr_, inner_param);
 
     f_(idx, shared_params);
 
@@ -81,20 +89,22 @@ struct function_with_shared_arguments
       inner_param.destroy();
     }
   }
-
-  Function         f_;
-  OuterSharedType* outer_ptr_;
-  InnerSharedType  inner_shared_init_;
 };
 
 
-template<class Function, class OuterSharedType, class InnerSharedType>
-struct function_with_shared_arguments<Function, OuterSharedType, InnerSharedType,
-  typename std::enable_if<is_ignorable_shared_parameter<OuterSharedType>::value>::type,
-  typename std::enable_if<!is_ignorable_shared_parameter<InnerSharedType>::value>::type>
+template<class Function, class OuterSharedInit, class InnerSharedInit>
+struct function_with_shared_arguments<Function, OuterSharedInit, InnerSharedInit,
+  typename std::enable_if<is_ignorable_shared_parameter<OuterSharedInit>::value>::type,
+  typename std::enable_if<!is_ignorable_shared_parameter<InnerSharedInit>::value>::type>
 {
+  using outer_shared_type = typename parameter_t<OuterSharedInit>::type;
+  using inner_shared_type = typename parameter_t<InnerSharedInit>::type;
+
+  Function         f_;
+  InnerSharedInit  inner_shared_init_;
+
   __host__ __device__
-  function_with_shared_arguments(Function f, OuterSharedType, InnerSharedType inner_shared_init)
+  function_with_shared_arguments(Function f, OuterSharedInit, InnerSharedInit inner_shared_init)
     : f_(f),
       inner_shared_init_(inner_shared_init)
   {}
@@ -103,18 +113,19 @@ struct function_with_shared_arguments<Function, OuterSharedType, InnerSharedType
   __device__
   void operator()(const Index& idx)
   {
-    // XXX can't rely on a default constructor
-    __shared__ uninitialized<InnerSharedType> inner_param;
+    // can't rely on a default constructor
+    __shared__ uninitialized<inner_shared_type> inner_param;
 
     // initialize the inner shared parameter
     if(idx[1] == 0)
     {
-      inner_param.construct(inner_shared_init_);
+      // XXX should avoid the move construction here
+      inner_param.construct(agency::decay_construct(inner_shared_init_));
     }
     __syncthreads();
 
-    OuterSharedType outer;
-    tuple<OuterSharedType&,InnerSharedType&> shared_params(outer, inner_param);
+    outer_shared_type outer;
+    tuple<outer_shared_type&,inner_shared_type&> shared_params(outer, inner_param);
 
     f_(idx, shared_params);
 
@@ -126,19 +137,22 @@ struct function_with_shared_arguments<Function, OuterSharedType, InnerSharedType
       inner_param.destroy();
     }
   }
-
-  Function         f_;
-  InnerSharedType  inner_shared_init_;
 };
 
 
-template<class Function, class OuterSharedType, class InnerSharedType>
-struct function_with_shared_arguments<Function,OuterSharedType,InnerSharedType,
-  typename std::enable_if<!is_ignorable_shared_parameter<OuterSharedType>::value>::type,
-  typename std::enable_if<is_ignorable_shared_parameter<InnerSharedType>::value>::type>
+template<class Function, class OuterSharedInit, class InnerSharedInit>
+struct function_with_shared_arguments<Function,OuterSharedInit,InnerSharedInit,
+  typename std::enable_if<!is_ignorable_shared_parameter<OuterSharedInit>::value>::type,
+  typename std::enable_if<is_ignorable_shared_parameter<InnerSharedInit>::value>::type>
 {
+  using outer_shared_type = typename parameter_t<OuterSharedInit>::type;
+  using inner_shared_type = typename parameter_t<InnerSharedInit>::type;
+
+  Function           f_;
+  outer_shared_type* outer_ptr_;
+
   __host__ __device__
-  function_with_shared_arguments(Function f, OuterSharedType* outer_ptr, InnerSharedType)
+  function_with_shared_arguments(Function f, outer_shared_type* outer_ptr, InnerSharedInit)
     : f_(f),
       outer_ptr_(outer_ptr)
   {}
@@ -147,25 +161,25 @@ struct function_with_shared_arguments<Function,OuterSharedType,InnerSharedType,
   __device__
   void operator()(const Index& idx)
   {
-    InnerSharedType inner;
+    inner_shared_type inner;
 
-    tuple<OuterSharedType&,InnerSharedType&> shared_params(*outer_ptr_, inner);
+    tuple<outer_shared_type&,inner_shared_type&> shared_params(*outer_ptr_, inner);
 
     f_(idx, shared_params);
   }
-
-  Function         f_;
-  OuterSharedType* outer_ptr_;
 };
 
 
-template<class Function, class OuterSharedType, class InnerSharedType>
-struct function_with_shared_arguments<Function,OuterSharedType,InnerSharedType,
-  typename std::enable_if<is_ignorable_shared_parameter<OuterSharedType>::value>::type,
-  typename std::enable_if<is_ignorable_shared_parameter<InnerSharedType>::value>::type>
+template<class Function, class OuterSharedInit, class InnerSharedInit>
+struct function_with_shared_arguments<Function,OuterSharedInit,InnerSharedInit,
+  typename std::enable_if<is_ignorable_shared_parameter<OuterSharedInit>::value>::type,
+  typename std::enable_if<is_ignorable_shared_parameter<InnerSharedInit>::value>::type>
 {
+  using outer_shared_type = typename parameter_t<OuterSharedInit>::type;
+  using inner_shared_type = typename parameter_t<InnerSharedInit>::type;
+
   __host__ __device__
-  function_with_shared_arguments(Function f, OuterSharedType, InnerSharedType)
+  function_with_shared_arguments(Function f, OuterSharedInit, InnerSharedInit)
     : f_(f)
   {}
 
@@ -173,10 +187,10 @@ struct function_with_shared_arguments<Function,OuterSharedType,InnerSharedType,
   __device__
   void operator()(const Index& idx)
   {
-    OuterSharedType outer;
-    InnerSharedType inner;
+    outer_shared_type outer;
+    inner_shared_type inner;
 
-    tuple<OuterSharedType&,InnerSharedType&> shared_params(outer, inner);
+    tuple<outer_shared_type&,inner_shared_type&> shared_params(outer, inner);
 
     f_(idx, shared_params);
   }
@@ -262,33 +276,37 @@ class basic_grid_executor
   private:
     template<class Function, class T1, class T2>
     __host__ __device__
-    future<void> async_execute_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg,
-                                                typename std::enable_if<
-                                                  is_ignorable_shared_parameter<T1>::value
-                                                >::type* = 0)
+    future<void> async_execute_with_shared_inits(Function f, shape_type shape, const T1& outer_shared_init, const T2& inner_shared_init,
+                                                 typename std::enable_if<
+                                                   is_ignorable_shared_parameter<T1>::value
+                                                 >::type* = 0)
     {
       // no need to marshal the outer arg through gmem because it is empty
       
       // wrap up f in a thing that will marshal the shared arguments to it
       // note the .release()
-      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_arg, inner_shared_arg);
+      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_init, inner_shared_init);
 
       return this->async_execute(g, shape);
     }
 
     template<class Function, class T1, class T2>
     __host__ __device__
-    future<void> async_execute_with_shared_args(Function f, shape_type shape, const T1& outer_shared_arg, const T2& inner_shared_arg,
-                                                typename std::enable_if<
-                                                  !is_ignorable_shared_parameter<T1>::value
-                                                >::type* = 0)
+    future<void> async_execute_with_shared_inits(Function f, shape_type shape, const T1& outer_shared_init, const T2& inner_shared_init,
+                                                 typename std::enable_if<
+                                                   !is_ignorable_shared_parameter<T1>::value
+                                                 >::type* = 0)
     {
+      // XXX move decay_construct inside of make_unique
+      auto outer_shared_arg = agency::decay_construct(outer_shared_init);
+      using outer_shared_arg_t = typename parameter_t<T1>::type;
+
       // make outer shared argument
-      auto outer_shared_arg_ptr = detail::make_unique<T1>(stream(), outer_shared_arg);
+      auto outer_shared_arg_ptr = detail::make_unique<outer_shared_arg_t>(stream(), outer_shared_arg);
 
       // wrap up f in a thing that will marshal the shared arguments to it
       // note the .release()
-      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_arg_ptr.release(), inner_shared_arg);
+      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_arg_ptr.release(), inner_shared_init);
 
       // XXX to deallocate & destroy the outer_shared_arg, we need to do a async_execute(...).then(...)
       //     for now it just leaks :(
@@ -336,12 +354,12 @@ class basic_grid_executor
 
     template<class Function, class Tuple>
     __host__ __device__
-    future<void> async_execute(Function f, shape_type shape, Tuple shared_arg_tuple)
+    future<void> async_execute(Function f, shape_type shape, Tuple shared_init_tuple)
     {
-      auto outer_shared_arg = agency::detail::get<0>(shared_arg_tuple);
-      auto inner_shared_arg = agency::detail::get<1>(shared_arg_tuple);
+      auto outer_shared_init = agency::detail::get<0>(shared_init_tuple);
+      auto inner_shared_init = agency::detail::get<1>(shared_init_tuple);
 
-      return async_execute_with_shared_args(f, shape, outer_shared_arg, inner_shared_arg);
+      return async_execute_with_shared_inits(f, shape, outer_shared_init, inner_shared_init);
     }
 
 
@@ -355,9 +373,9 @@ class basic_grid_executor
 
     template<class Function, class Tuple>
     __host__ __device__
-    void execute(Function f, shape_type shape, Tuple shared_arg_tuple)
+    void execute(Function f, shape_type shape, Tuple shared_init_tuple)
     {
-      this->async_execute(f, shape, shared_arg_tuple).wait();
+      this->async_execute(f, shape, shared_init_tuple).wait();
     }
 
 

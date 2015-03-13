@@ -153,7 +153,7 @@ unique_ptr<T> make_unique(cudaStream_t s, Args&&... args)
   detail::workaround_unused_variable_warning(kernel);
 
 #ifndef __CUDA_ARCH__
-  // we're executing on the host; launch a kernel to call the destructor
+  // we're executing on the host; launch a kernel to call the constructor
   detail::checked_launch_kernel(reinterpret_cast<void*>(kernel), ::dim3{1,1,1}, ::dim3{1,1,1}, 0, s, result.get(), std::forward<Args>(args)...);
 #else
   // we're executing on the device; just placement new directly

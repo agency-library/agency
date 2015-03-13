@@ -2,6 +2,7 @@
 
 #include <future>
 #include <agency/execution_categories.hpp>
+#include <agency/parameter.hpp>
 #include <functional>
 
 namespace agency
@@ -14,8 +15,10 @@ class vector_executor
     using execution_category = vector_execution_tag;
 
     template<class Function, class T>
-    void execute(Function f, size_t n, T shared_arg)
+    void execute(Function f, size_t n, T shared_init)
     {
+      auto shared_parm = agency::decay_construct(shared_init);
+
       // ivdep requires gcc 4.9+
 #if !defined(__INTEL_COMPILER) && !defined(__NVCC__) && (__GNUC__ >= 4) && (__GNUC_MINOR__ >= 9)
       #pragma GCC ivdep
@@ -24,16 +27,16 @@ class vector_executor
 #endif
       for(size_t i = 0; i < n; ++i)
       {
-        f(i, shared_arg);
+        f(i, shared_parm);
       }
     }
 
     template<class Function, class T>
-    std::future<void> async_execute(Function f, size_t n, T shared_arg)
+    std::future<void> async_execute(Function f, size_t n, T shared_init)
     {
       return std::async(std::launch::deferred, [=]
       {
-        this->execute(f, n, shared_arg);
+        this->execute(f, n, shared_init);
       });
     }
 };

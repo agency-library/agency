@@ -153,7 +153,7 @@ class flattened_executor
       return executor_traits<OuterExecutor>::async_execute(exec.outer_executor(), async_execute_nested_case_functor<executor_type,Function>{exec, f, shape, partitioning}, agency::detail::get<0>(partitioning), shared_arg);
 
       // XXX the functors are so confusing
-      //     should get the shared param type by doing decltype(make_parameter(shared_arg))
+      //     should get the shared param type by doing decltype(decay_construct(shared_arg))
       //     when it becomes available
 
       // XXX upon c++14
