@@ -54,21 +54,25 @@ struct copy_kernel
 };
 
 
+struct tile1d_t
+{
+  float data[TILE_DIM * TILE_DIM];
+};
+
+
 // copy kernel using shared memory
 // Also used as reference case, demonstrating effect of using shared memory.
 struct copy_shared_mem
 {
-  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata)
+  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata, tile1d_t& tile)
   {
-    __shared__ float tile[TILE_DIM * TILE_DIM];
-    
     auto global_idx = TILE_DIM * self.outer().index() + self.inner().index();
     int width = self.outer().group_shape()[0] * TILE_DIM;
 
     for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
     {
       auto tile_idx = (self.inner().index()[1] + j) * TILE_DIM + self.inner().index()[0];
-      tile[tile_idx] = idata[(global_idx[1]+j)*width + global_idx[0]];
+      tile.data[tile_idx] = idata[(global_idx[1]+j)*width + global_idx[0]];
     }
 
     self.inner().wait();
@@ -76,7 +80,7 @@ struct copy_shared_mem
     for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
     {
       auto tile_idx = (self.inner().index()[1] + j) * TILE_DIM + self.inner().index()[0];
-      odata[(global_idx[1]+j)*width + global_idx[0]] = tile[tile_idx];          
+      odata[(global_idx[1]+j)*width + global_idx[0]] = tile.data[tile_idx];          
     }
   }
 };
@@ -97,19 +101,23 @@ struct transpose_naive
 };
 
 
+struct tile2d_t
+{
+  float data[TILE_DIM][TILE_DIM];
+};
+
+
 struct transpose_coalesced
 {
-  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata)
+  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata, tile2d_t& tile)
   {
-    __shared__ float tile[TILE_DIM][TILE_DIM];
-      
     int x = self.outer().index()[0] * TILE_DIM + self.inner().index()[0];
     int y = self.outer().index()[1] * TILE_DIM + self.inner().index()[1];
     int width = self.outer().group_shape()[0] * TILE_DIM;
 
     for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
     {
-      tile[self.inner().index()[1]+j][self.inner().index()[0]] = idata[(y+j)*width + x];
+      tile.data[self.inner().index()[1]+j][self.inner().index()[0]] = idata[(y+j)*width + x];
     }
 
     self.inner().wait();
@@ -119,25 +127,29 @@ struct transpose_coalesced
 
     for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
     {
-      odata[(y+j)*width + x] = tile[self.inner().index()[0]][self.inner().index()[1] + j];
+      odata[(y+j)*width + x] = tile.data[self.inner().index()[0]][self.inner().index()[1] + j];
     }
   }
 };
 
 
+struct conflict_free_tile2d_t
+{
+  float data[TILE_DIM][TILE_DIM+1];
+};
+
+
 struct transpose_no_bank_conflicts
 {
-  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata)
+  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata, conflict_free_tile2d_t& tile)
   {
-    __shared__ float tile[TILE_DIM][TILE_DIM+1];
-      
     int x = blockIdx.x * TILE_DIM + threadIdx.x;
     int y = blockIdx.y * TILE_DIM + threadIdx.y;
     int width = gridDim.x * TILE_DIM;
 
     for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
     {
-      tile[threadIdx.y+j][threadIdx.x] = idata[(y+j)*width + x];
+      tile.data[threadIdx.y+j][threadIdx.x] = idata[(y+j)*width + x];
     }
 
     self.inner().wait();
@@ -147,7 +159,7 @@ struct transpose_no_bank_conflicts
 
     for(int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
     {
-      odata[(y+j)*width + x] = tile[threadIdx.x][threadIdx.y + j];
+      odata[(y+j)*width + x] = tile.data[threadIdx.x][threadIdx.y + j];
     }
   }
 };
@@ -294,7 +306,7 @@ int main(int argc, char **argv)
 
   ms = time_invocation([&]
   {
-    agency::cuda::bulk_async(grid(dim_grid, dim_block), copy_shared_mem{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
+    agency::cuda::bulk_async(grid(dim_grid, dim_block), copy_shared_mem{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()), agency::share<1,tile1d_t>());
   });
 
   h_cdata = d_cdata;
@@ -322,7 +334,7 @@ int main(int argc, char **argv)
 
   ms = time_invocation([&]
   {
-    agency::cuda::bulk_async(grid(dim_grid, dim_block), transpose_coalesced{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
+    agency::cuda::bulk_async(grid(dim_grid, dim_block), transpose_coalesced{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()), agency::share<1,tile2d_t>());
   });
 
   h_tdata = d_tdata;
@@ -336,7 +348,7 @@ int main(int argc, char **argv)
 
   ms = time_invocation([&]
   {
-    agency::cuda::bulk_async(grid(dim_grid, dim_block), transpose_no_bank_conflicts{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
+    agency::cuda::bulk_async(grid(dim_grid, dim_block), transpose_no_bank_conflicts{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()), agency::share<1,conflict_free_tile2d_t>());
   });
 
   h_tdata = d_tdata;
