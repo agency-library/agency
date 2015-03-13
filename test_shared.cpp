@@ -25,24 +25,6 @@ agency::detail::shared_parameter<level,T,T> share(const T& val)
 }
 
 
-template<class T>
-struct decay_parameter : std::decay<T> {};
-
-
-template<size_t level, class T, class... Args>
-struct decay_parameter<
-  agency::detail::shared_parameter<level, T, Args...>
->
-{
-  // shared parameters are passed by reference
-  using type = T&;
-};
-
-
-template<class T>
-using decay_parameter_t = typename decay_parameter<T>::type;
-
-
 template<class Function>
 struct unpack_shared_parameters_from_executor_and_invoke
 {
@@ -66,9 +48,8 @@ struct unpack_shared_parameters_from_executor_and_invoke
 
 
 template<class Executor, class Function, class... Args>
-typename agency::detail::enable_if_call_possible<
-  void,
-  Function, typename agency::executor_traits<Executor>::index_type, decay_parameter_t<Args>...
+typename agency::detail::enable_if_bulk_invoke_executor<
+  Executor, Function, Args...
 >::type
   bulk_invoke_executor(Executor& exec, Function f, typename agency::executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
 {

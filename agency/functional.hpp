@@ -9,15 +9,11 @@ namespace agency
 
 
 template<class T>
-struct decay_parameter : std::decay<T> {};
-
-
-template<class T>
-using decay_parameter_t = typename decay_parameter<T>::type;
-
-
-template<class T>
 struct decay_construct_result : std::decay<T> {};
+
+
+template<class T>
+using decay_construct_result_t = typename decay_construct_result<T>::type;
 
 
 template<class... Types>
@@ -31,7 +27,7 @@ struct decay_construct_result<
 
 template<class T>
 __AGENCY_ANNOTATION
-typename decay_construct_result<T>::type decay_construct(T&& parm)
+decay_construct_result_t<T> decay_construct(T&& parm)
 {
   // this is essentially decay_copy
   return std::forward<T>(parm);
@@ -93,16 +89,6 @@ struct is_shared_parameter_ref
 
 
 template<size_t level, class T, class... Args>
-struct decay_parameter<
-  detail::shared_parameter<level, T, Args...>
->
-{
-  // shared parameters are passed by reference
-  using type = T&;
-};
-
-
-template<size_t level, class T, class... Args>
 struct decay_construct_result<
   detail::shared_parameter<level, T, Args...>
 >
@@ -154,17 +140,17 @@ detail::shared_parameter<level,T,T> share(const T& val)
 
 template<class... Types>
 __AGENCY_ANNOTATION
-typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>& t);
+decay_construct_result_t<detail::tuple<Types...>> decay_construct(detail::tuple<Types...>& t);
 
 
 template<class... Types>
 __AGENCY_ANNOTATION
-typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(const detail::tuple<Types...>& t);
+decay_construct_result_t<detail::tuple<Types...>> decay_construct(const detail::tuple<Types...>& t);
 
 
 template<class... Types>
 __AGENCY_ANNOTATION
-typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>&& t);
+decay_construct_result_t<detail::tuple<Types...>> decay_construct(detail::tuple<Types...>&& t);
 
 
 namespace detail
@@ -190,7 +176,7 @@ struct call_decay_construct
 
 template<class... Types>
 __AGENCY_ANNOTATION
-typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>& t)
+decay_construct_result_t<detail::tuple<Types...>> decay_construct(detail::tuple<Types...>& t)
 {
   return detail::tuple_map(
     detail::call_decay_construct{}, t
@@ -200,7 +186,7 @@ typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(d
 
 template<class... Types>
 __AGENCY_ANNOTATION
-typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(const detail::tuple<Types...>& t)
+decay_construct_result_t<detail::tuple<Types...>> decay_construct(const detail::tuple<Types...>& t)
 {
   return detail::tuple_map(
     detail::call_decay_construct{}, t
@@ -210,7 +196,7 @@ typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(c
 
 template<class... Types>
 __AGENCY_ANNOTATION
-typename decay_construct_result<detail::tuple<Types...>>::type decay_construct(detail::tuple<Types...>&& t)
+decay_construct_result_t<detail::tuple<Types...>> decay_construct(detail::tuple<Types...>&& t)
 {
   return detail::tuple_map(
     detail::call_decay_construct{}, std::move(t)

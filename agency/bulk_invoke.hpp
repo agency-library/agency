@@ -93,10 +93,25 @@ struct call_execute
 };
 
 
+template<class T>
+struct decay_parameter : decay_construct_result<T> {};
+
+template<class T>
+using decay_parameter_t = typename decay_parameter<T>::type;
+
+
+template<size_t level, class T, class... Args>
+struct decay_parameter<shared_parameter<level,T,Args...>>
+{
+  // shared_parameters are passed by reference
+  using type = T&;
+};
+
+
 template<class Executor, class Function, class... Args>
 struct enable_if_bulk_invoke_executor
   : enable_if_call_possible<
-      void, Function, typename executor_traits<Executor>::index_type, typename decay_parameter<Args>::type...
+      void, Function, typename executor_traits<Executor>::index_type, decay_parameter_t<Args>...
     >
 {};
 
@@ -132,7 +147,7 @@ template<class Executor, class Function, class... Args>
 struct enable_if_bulk_async_executor
   : enable_if_call_possible<
       executor_future<Executor,void>,
-      Function, typename executor_traits<Executor>::index_type, typename decay_parameter<Args>::type...
+      Function, typename executor_traits<Executor>::index_type, decay_parameter_t<Args>...
     >
 {};
 
