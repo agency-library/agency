@@ -60,7 +60,7 @@ typename BulkCall::result_type
   >::value;
 
   // construct shared arguments and package them for the executor
-  auto packaged_shared_parameter_tuple = agency::detail::pack_shared_parameters_for_executor<executor_depth>(shared_arg_tuple);
+  auto packaged_shared_parameter_tuple = agency::detail::make_shared_parameter_package_for_executor<executor_depth>(shared_arg_tuple);
 
   auto functor = unpack_shared_parameters_from_executor_and_invoke<
     decltype(g),

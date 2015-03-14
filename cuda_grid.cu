@@ -10,14 +10,14 @@ struct kernel
     printf("hello from {%d, %d}\n", (int)self.outer().index(), (int)self.inner().index());
   }
 
-  __device__
-  void operator()(agency::parallel_group_2d<agency::cuda::concurrent_agent_2d>& self)
-  {
-    auto outer_idx = self.outer().index();
-    auto inner_idx = self.inner().index();
-
-    printf("hello from {{%d, %d}, {%d, %d}}\n", (int)outer_idx[0], (int)outer_idx[1], (int)inner_idx[0], (int)inner_idx[1]);
-  }
+//  __device__
+//  void operator()(agency::parallel_group_2d<agency::cuda::concurrent_agent_2d>& self)
+//  {
+//    auto outer_idx = self.outer().index();
+//    auto inner_idx = self.inner().index();
+//
+//    printf("hello from {{%d, %d}, {%d, %d}}\n", (int)outer_idx[0], (int)outer_idx[1], (int)inner_idx[0], (int)inner_idx[1]);
+//  }
 };
 
 
@@ -43,7 +43,7 @@ int main()
 {
   bulk_invoke(grid(2,32), kernel());
 
-  agency::cuda::bulk_invoke(grid({1,2}, {1,32}), kernel());
+//  agency::cuda::bulk_invoke(grid({1,2}, {1,32}), kernel());
 
   return 0;
 }

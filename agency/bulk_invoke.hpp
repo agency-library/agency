@@ -1,7 +1,9 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
 #include <agency/executor_traits.hpp>
 #include <agency/execution_agent.hpp>
+#include <agency/functional.hpp>
 #include <agency/detail/shared_parameter.hpp>
 #include <agency/detail/is_call_possible.hpp>
 #include <agency/detail/shape_cast.hpp>
@@ -10,42 +12,8 @@
 
 namespace agency
 {
-
-
-template<size_t level, class T, class... Args>
-detail::shared_parameter<level, T,Args...> share(Args&&... args)
-{
-  return detail::shared_parameter<level, T,Args...>{detail::make_tuple(std::forward<Args>(args)...)};
-}
-
-
-template<size_t level, class T>
-detail::shared_parameter<level,T,T> share(const T& val)
-{
-  return detail::shared_parameter<level,T,T>{detail::make_tuple(val)};
-}
-
-
 namespace detail
 {
-
-
-template<class T>
-struct decay_parameter : std::decay<T> {};
-
-
-template<size_t level, class T, class... Args>
-struct decay_parameter<
-  detail::shared_parameter<level, T, Args...>
->
-{
-  // shared parameters are passed by reference
-  using type = T&;
-};
-
-
-template<class T>
-using decay_parameter_t = typename decay_parameter<T>::type;
 
 
 template<class Function>
@@ -89,8 +57,8 @@ typename BulkCall::result_type
     typename traits::execution_category
   >::value;
 
-  // construct shared arguments and package them for the executor
-  auto shared_init = detail::pack_shared_parameters_for_executor<executor_depth>(shared_arg_tuple);
+  // construct shared initializers and package them for the executor
+  auto shared_init = agency::detail::make_shared_parameter_package_for_executor<executor_depth>(shared_arg_tuple);
 
   return bulk_call(exec, unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g}, shape, std::move(shared_init));
 
@@ -125,10 +93,25 @@ struct call_execute
 };
 
 
+template<class T>
+struct decay_parameter : decay_construct_result<T> {};
+
+template<class T>
+using decay_parameter_t = typename decay_parameter<T>::type;
+
+
+template<size_t level, class T, class... Args>
+struct decay_parameter<shared_parameter<level,T,Args...>>
+{
+  // shared_parameters are passed by reference
+  using type = T&;
+};
+
+
 template<class Executor, class Function, class... Args>
 struct enable_if_bulk_invoke_executor
   : enable_if_call_possible<
-      void, Function, typename executor_traits<Executor>::index_type, typename decay_parameter<Args>::type...
+      void, Function, typename executor_traits<Executor>::index_type, decay_parameter_t<Args>...
     >
 {};
 
@@ -164,7 +147,7 @@ template<class Executor, class Function, class... Args>
 struct enable_if_bulk_async_executor
   : enable_if_call_possible<
       executor_future<Executor,void>,
-      Function, typename executor_traits<Executor>::index_type, typename decay_parameter<Args>::type...
+      Function, typename executor_traits<Executor>::index_type, decay_parameter_t<Args>...
     >
 {};
 

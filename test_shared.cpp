@@ -3,8 +3,9 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/shape_cast.hpp>
-#include <agency/execution_policy.hpp>
 #include <agency/detail/shared_parameter.hpp>
+#include <agency/sequential_executor.hpp>
+#include <agency/execution_policy.hpp>
 #include <agency/detail/is_call_possible.hpp>
 #include <iostream>
 #include <cassert>
@@ -22,24 +23,6 @@ agency::detail::shared_parameter<level,T,T> share(const T& val)
 {
   return agency::detail::shared_parameter<level,T,T>{agency::detail::make_tuple(val)};
 }
-
-
-template<class T>
-struct decay_parameter : std::decay<T> {};
-
-
-template<size_t level, class T, class... Args>
-struct decay_parameter<
-  agency::detail::shared_parameter<level, T, Args...>
->
-{
-  // shared parameters are passed by reference
-  using type = T&;
-};
-
-
-template<class T>
-using decay_parameter_t = typename decay_parameter<T>::type;
 
 
 template<class Function>
@@ -65,9 +48,8 @@ struct unpack_shared_parameters_from_executor_and_invoke
 
 
 template<class Executor, class Function, class... Args>
-typename agency::detail::enable_if_call_possible<
-  void,
-  Function, typename agency::executor_traits<Executor>::index_type, decay_parameter_t<Args>...
+typename agency::detail::enable_if_bulk_invoke_executor<
+  Executor, Function, Args...
 >::type
   bulk_invoke_executor(Executor& exec, Function f, typename agency::executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
 {
@@ -85,7 +67,7 @@ typename agency::detail::enable_if_call_possible<
   >::value;
 
   // construct shared arguments and package them for the executor
-  auto shared_init = agency::detail::pack_shared_parameters_for_executor<executor_depth>(shared_arg_tuple);
+  auto shared_init = agency::detail::make_shared_parameter_package_for_executor<executor_depth>(shared_arg_tuple);
 
   traits::execute(exec, unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g}, shape, std::move(shared_init));
 }
@@ -151,25 +133,41 @@ void test1()
 }
 
 
-void test2()
+//void test2()
+//{
+//  auto lambda = [](agency::sequential_group<agency::sequential_agent>& self, int& outer_shared, int& inner_shared)
+//  {
+//    std::cout << "idx: " << self.index() << std::endl;
+//    std::cout << "outer_shared: " << outer_shared << std::endl;
+//    std::cout << "inner_shared: " << inner_shared << std::endl;
+//  };
+//
+//  auto policy = agency::seq(2, agency::seq(2));
+//
+//  agency::bulk_invoke(policy, lambda, agency::share<0>(1), agency::share<1>(2));
+//}
+
+
+void test0()
 {
-  auto lambda = [](agency::sequential_group<agency::sequential_agent>& self, int& outer_shared, int& inner_shared)
+  auto lambda = [](int idx, int& shared)
   {
-    std::cout << "idx: " << self.index() << std::endl;
-    std::cout << "outer_shared: " << outer_shared << std::endl;
-    std::cout << "inner_shared: " << inner_shared << std::endl;
+    std::cout << "idx: " << idx << std::endl;
+
+    assert(shared == idx + 13);
+    ++shared;
   };
 
-  auto policy = agency::seq(2, agency::seq(2));
-
-  agency::bulk_invoke(policy, lambda, agency::share<0>(1), agency::share<1>(2));
+  agency::sequential_executor exec;
+  ::bulk_invoke_executor(exec, lambda, 10, agency::share<0>(13));
 }
 
 
 int main()
 {
-//  test1();
-  test2();
+//  test0();
+  test1();
+//  test2();
 
   return 0;
 }

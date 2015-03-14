@@ -2,6 +2,7 @@
 
 #include <future>
 #include <agency/execution_categories.hpp>
+#include <agency/functional.hpp>
 #include <functional>
 
 namespace agency
@@ -14,20 +15,22 @@ class sequential_executor
     using execution_category = sequential_execution_tag;
 
     template<class Function, class T>
-    void execute(Function f, size_t n, T shared_arg)
+    void execute(Function f, size_t n, T shared_init)
     {
+      auto shared_parm = agency::decay_construct(shared_init);
+
       for(size_t i = 0; i < n; ++i)
       {
-        f(i, shared_arg);
+        f(i, shared_parm);
       }
     }
 
     template<class Function, class T>
-    std::future<void> async_execute(Function f, size_t n, T shared_arg)
+    std::future<void> async_execute(Function f, size_t n, T shared_init)
     {
       return std::async(std::launch::deferred, [=]
       {
-        this->execute(f, n, shared_arg);
+        this->execute(f, n, shared_init);
       });
     }
 };
