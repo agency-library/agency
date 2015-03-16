@@ -23,11 +23,11 @@ struct block_executor_helper_functor
     f_(agency::detail::get<1>(idx));
   }
 
-  template<class Tuple>
+  template<class T>
   __device__
-  void operator()(grid_executor::index_type idx, Tuple&& shared_params)
+  void operator()(grid_executor::index_type idx, const agency::detail::ignore_t&, T& inner_shared_param)
   {
-    f_(agency::detail::get<1>(idx), agency::detail::get<1>(shared_params));
+    f_(agency::detail::get<1>(idx), inner_shared_param);
   }
 };
 
@@ -80,17 +80,17 @@ class block_executor : private grid_executor
     }
 
     template<class Function, class T>
-    future<void> async_execute(Function f, shape_type shape, T shared_arg)
+    future<void> async_execute(Function f, shape_type shape, T shared_init)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      return traits::async_execute(*this, g, super_t::shape_type{1,shape}, agency::detail::make_tuple(agency::detail::ignore, shared_arg));
+      return traits::async_execute(*this, g, super_t::shape_type{1,shape}, agency::detail::ignore, shared_init);
     }
 
     template<class Function, class T>
-    void execute(Function f, shape_type shape, T shared_arg)
+    void execute(Function f, shape_type shape, T shared_init)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      traits::execute(*this, g, super_t::shape_type{1,shape}, agency::detail::make_tuple(agency::detail::ignore, shared_arg));
+      traits::execute(*this, g, super_t::shape_type{1,shape}, agency::detail::ignore, shared_init);
     }
 };
 
