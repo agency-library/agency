@@ -81,13 +81,13 @@ struct executor_traits
     template<class T>
     using future = typename executor_future<executor_type,T>::type;
 
-    // XXX we could make .async_execute(f, shape, shared_arg) optional
-    //     the default implementation could create a launcher agent to own the shared arg and wait for the
+    // XXX we could make .async_execute(f, shape, shared_inits...) optional
+    //     the default implementation could create a launcher agent to own the shared inits and wait for the
     //     workers
-    template<class Function, class T>
-    static future<void> async_execute(executor_type& ex, Function f, shape_type shape, T shared_arg)
+    template<class Function, class T, class... Types>
+    static future<void> async_execute(executor_type& ex, Function f, shape_type shape, T outer_shared_init, Types... inner_shared_inits)
     {
-      return ex.async_execute(f, shape, shared_arg);
+      return ex.async_execute(f, shape, outer_shared_init, inner_shared_inits...);
     }
 
   private:
@@ -136,15 +136,18 @@ struct executor_traits
     }
 
   private:
-    template<class Function, class T>
-    struct test_for_execute_with_shared_arg
+    template<class Function, class... T>
+    struct test_for_execute_with_shared_inits
     {
       template<
         class Executor2,
-        typename = decltype(std::declval<Executor2*>()->execute(
-        std::declval<Function>(),
-        std::declval<shape_type>(),
-        std::declval<T>()))
+        typename = decltype(
+          std::declval<Executor2*>()->execute(
+            std::declval<Function>(),
+            std::declval<shape_type>(),
+            std::declval<T>()...
+          )
+        )
       >
       static std::true_type test(int);
 
@@ -154,26 +157,26 @@ struct executor_traits
       using type = decltype(test<executor_type>(0));
     };
 
-    template<class Function, class T>
-    using has_execute_with_shared_arg = typename test_for_execute_with_shared_arg<Function,T>::type;
+    template<class Function, class... T>
+    using has_execute_with_shared_inits = typename test_for_execute_with_shared_inits<Function,T...>::type;
 
-    template<class Function, class T>
-    static void execute_with_shared_arg_impl(executor_type& ex, Function f, shape_type shape, T shared_arg, std::true_type)
+    template<class Function, class... T>
+    static void execute_with_shared_inits_impl(std::true_type, executor_type& ex, Function f, shape_type shape, T... shared_inits)
     {
-      ex.execute(f, shape, shared_arg);
+      ex.execute(f, shape, shared_inits...);
     }
 
-    template<class Function, class T>
-    static void execute_with_shared_arg_impl(executor_type& ex, Function f, shape_type shape, T shared_arg, std::false_type)
+    template<class Function, class... T>
+    static void execute_with_shared_inits_impl(std::false_type, executor_type& ex, Function f, shape_type shape, T... shared_inits)
     {
-      executor_traits::async_execute(ex, f, shape, shared_arg).wait();
+      executor_traits::async_execute(ex, f, shape, shared_inits...).wait();
     }
 
   public:
-    template<class Function, class T>
-    static void execute(executor_type& ex, Function f, shape_type shape, T shared_arg)
+    template<class Function, class T, class... Types>
+    static void execute(executor_type& ex, Function f, shape_type shape, T outer_shared_init, Types... inner_shared_inits)
     {
-      executor_traits::execute_with_shared_arg_impl(ex, f, shape, shared_arg, has_execute_with_shared_arg<Function,T>());
+      executor_traits::execute_with_shared_inits_impl(has_execute_with_shared_inits<Function,T,Types...>(), ex, f, shape, outer_shared_init, inner_shared_inits...);
     }
 
   private:

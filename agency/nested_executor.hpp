@@ -110,13 +110,13 @@ class nested_executor
   private:
     // this is the functor used by async_execute below
     // it takes the place of a nested, polymorphic lambda function
-    template<class Function, class InnerSharedType>
+    template<class Function, class... InnerSharedType>
     struct async_execute_outer_functor
     {
-      nested_executor& exec;
-      Function         f;
-      inner_shape_type inner_shape;
-      InnerSharedType  inner_shared_arg;
+      nested_executor&                  exec;
+      Function                          f;
+      inner_shape_type                  inner_shape;
+      detail::tuple<InnerSharedType...> inner_shared_inits;
 
       template<class OuterIndex, class OuterSharedType>
       struct async_execute_inner_functor
@@ -125,77 +125,57 @@ class nested_executor
         OuterIndex outer_idx;
         OuterSharedType& outer_shared;
 
-        template<class InnerIndex, class T>
-        void operator()(const InnerIndex& inner_idx, T& inner_shared)
+        template<class InnerIndex, class... T>
+        void operator()(const InnerIndex& inner_idx, T&... inner_shared)
         {
-          // create a 1-tuple of just a reference to the outer shared argument
-          auto outer_shared_ref_tuple = detail::tie(outer_shared);
-
-          // if the inner executor isn't nested, we need to tie the inner_shared_ref into a 1-element tuple
-          auto inner_shared_ref_tuple = detail::tie_if_not_nested<inner_execution_category>(inner_shared);
-
-          // concatenate the outer reference tuple inner tuple of references
-          auto full_tuple_of_references = detail::tuple_cat(outer_shared_ref_tuple, inner_shared_ref_tuple);
-
-          f(index_cat(outer_idx, inner_idx), full_tuple_of_references);
+          f(index_cat(outer_idx, inner_idx), outer_shared, inner_shared...);
         }
       };
+
+      template<size_t... Indices, class OuterIndex, class T>
+      void invoke_execute(detail::index_sequence<Indices...>, const OuterIndex& outer_idx, T& outer_shared)
+      {
+        inner_traits::execute(exec.inner_executor(), async_execute_inner_functor<OuterIndex,T>{f, outer_idx, outer_shared}, inner_shape, detail::get<Indices>(inner_shared_inits)...);
+      }
 
       template<class OuterIndex, class T>
       void operator()(const OuterIndex& outer_idx, T& outer_shared)
       {
-        inner_traits::execute(exec.inner_executor(), async_execute_inner_functor<OuterIndex,T>{f, outer_idx, outer_shared}, inner_shape, inner_shared_arg);
+        invoke_execute(detail::index_sequence_for<InnerSharedType...>(), outer_idx, outer_shared);
       }
     };
 
   public:
-    template<class Function, class Tuple>
-    future<void> async_execute(Function f, shape_type shape, Tuple shared_arg_tuple)
+    template<class Function, class T, class... Types>
+    future<void> async_execute(Function f, shape_type shape, T outer_shared_init, Types... inner_shared_inits)
     {
-      static_assert(std::tuple_size<shape_type>::value == std::tuple_size<Tuple>::value, "Tuple of shared arguments must be the same size as shape_type.");
+      // XXX should assert on execution depth rather than size of shape_type
+      static_assert(std::tuple_size<shape_type>::value == 1 + sizeof...(Types), "Number of shared arguments must be the same as the size of shape_type.");
 
       // split the shape into the inner & outer portions
       auto outer_shape = this->outer_shape(shape);
       auto inner_shape = this->inner_shape(shape);
 
-      // split the shared argument tuple into the inner & outer portions
-      // note these are moves and not copies or references into the original tuple
-      auto outer_shared_arg = std::move(__tu::tuple_head(shared_arg_tuple));
-      auto inner_shared_arg_tuple = detail::move_tail(shared_arg_tuple);
-
-      // if the inner executor isn't nested, we need to unwrap the tail arguments
-      // XXX this could also create a copy -- we should move instead
-      auto inner_shared_arg = detail::unwrap_tuple_if_not_nested<inner_execution_category>(inner_shared_arg_tuple);
-
       return outer_traits::async_execute(
         outer_executor(),
-        async_execute_outer_functor<Function,decltype(inner_shared_arg)>{*this, f, inner_shape, inner_shared_arg},
+        async_execute_outer_functor<Function,Types...>{*this, f, inner_shape, detail::make_tuple(inner_shared_inits...)},
         outer_shape,
-        outer_shared_arg
+        outer_shared_init
       );
 
       // XXX upon c++14
-      //return outer_traits::async_execute(outer_executor(), [=](const auto& outer_idx, auto& outer_shared)
+      //return outer_traits::async_execute(outer_executor(), [=](const auto& outer_idx, auto& outer_shared_param)
       //{
-      //  inner_traits::execute(inner_executor(), [=,&outer_shared_ref](const auto& inner_idx, auto& inner_shared)
+      //  inner_traits::execute(inner_executor(), [=,&outer_shared_param](const auto& inner_idx, auto&... inner_shared_parms)
       //  {
-      //    // create a 1-tuple of just a reference to the outer shared argument
-      //    auto outer_shared_ref_tuple = detail::tie(outer_shared);
-
-      //    // if the inner executor isn't nested, we need to tie the inner_shared_ref into a 1-element tuple
-      //    auto inner_shared_ref_tuple = detail::tie_if_not_nested<inner_execution_category>(inner_shared);
-
-      //    // concatenate the outer reference tuple inner tuple of references
-      //    auto full_tuple_of_references = detail::tuple_cat(outer_shared_ref_tuple, inner_shared_ref_tuple);
-
-      //    f(index_cat(outer_idx, inner_idx), full_tuple_of_references);
+      //    f(index_cat(outer_idx, inner_idx), outer_shared_param, inner_shared_params...);
       //  },
       //  inner_shape,
-      //  inner_shared_arg
+      //  inner_shared_inits...
       //  );
       //},
       //outer_shape,
-      //outer_shared_arg
+      //outer_shared_init
       //);
     }
 

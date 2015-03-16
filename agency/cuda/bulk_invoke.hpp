@@ -20,24 +20,35 @@ namespace detail
 {
 
   
-template<class Function, class Indices>
-struct unpack_shared_parameters_from_executor_and_invoke;
-
-
-template<class Function, size_t... I>
-struct unpack_shared_parameters_from_executor_and_invoke<Function,agency::detail::index_sequence<I...>>
+template<class Function>
+struct unpack_shared_parameters_from_executor_and_invoke
 {
   mutable Function g;
 
-  template<class Index, class SharedParams>
+  template<class Index, class Tuple, size_t... I>
   __AGENCY_ANNOTATION
-  void operator()(const Index& idx, SharedParams& packaged_shared_params) const
+  void invoke_from_tuple(const Index& idx, const Tuple& t, agency::detail::index_sequence<I...>) const
   {
-    auto shared_params = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params);
+    g(idx, agency::detail::get<I>(t)...);
+  }
 
-    g(idx, agency::detail::get<I>(shared_params)...);
+  template<class Index, class... Types>
+  __AGENCY_ANNOTATION
+  void operator()(const Index& idx, Types&... packaged_shared_params) const
+  {
+    auto shared_param_tuple = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params...);
+
+    invoke_from_tuple(idx, shared_param_tuple, agency::detail::make_index_sequence<std::tuple_size<decltype(shared_param_tuple)>::value>());
   }
 };
+
+
+template<class BulkCall, class Executor, class Function, class Tuple, size_t... TupleIndices>
+typename BulkCall::result_type
+  bulk_call_executor_impl(BulkCall bulk_call, Executor& exec, Function f, typename executor_traits<Executor>::shape_type shape, Tuple&& shared_init_tuple, agency::detail::index_sequence<TupleIndices...>)
+{
+  return bulk_call(exec, f, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...);
+}
 
 
 // since almost all the code is shared between bulk_invoke_executor & bulk_async_executor,
@@ -62,12 +73,9 @@ typename BulkCall::result_type
   // construct shared arguments and package them for the executor
   auto packaged_shared_parameter_tuple = agency::detail::make_shared_parameter_package_for_executor<executor_depth>(shared_arg_tuple);
 
-  auto functor = unpack_shared_parameters_from_executor_and_invoke<
-    decltype(g),
-    agency::detail::make_index_sequence<std::tuple_size<decltype(shared_arg_tuple)>::value>
-  >{g};
+  auto functor = unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
 
-  return bulk_call(exec, functor, shape, std::move(packaged_shared_parameter_tuple));
+  return detail::bulk_call_executor_impl(bulk_call, exec, functor, shape, std::move(packaged_shared_parameter_tuple), agency::detail::make_index_sequence<executor_depth>());
 }
 
 

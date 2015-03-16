@@ -206,10 +206,10 @@ using unpack_shared_parameters_from_executor_t = extracted_shared_parameters_t<t
 
 template<class... Rows>
 __AGENCY_ANNOTATION
-unpack_shared_parameters_from_executor_t<tuple<Rows...>>
-  unpack_shared_parameters_from_executor(tuple<Rows...>& shared_param_matrix)
+unpack_shared_parameters_from_executor_t<tuple<Rows&...>>
+  unpack_shared_parameter_matrix_from_executor(tuple<Rows&...> shared_param_matrix)
 {
-  const size_t num_columns = tuple_matrix_shape<tuple<Rows...>>::columns;
+  const size_t num_columns = tuple_matrix_shape<tuple<Rows&...>>::columns;
 
   // to transform the shared_param_matrix into a tuple of shared parameters
   // we need to find the actual (non-null) parameter in each column of the matrix
@@ -219,6 +219,15 @@ unpack_shared_parameters_from_executor_t<tuple<Rows...>>
       shared_param_matrix
     )
   );
+}
+
+
+template<class... Types>
+__AGENCY_ANNOTATION
+unpack_shared_parameters_from_executor_t<tuple<Types&...>>
+  unpack_shared_parameters_from_executor(Types&... shared_params)
+{
+  return detail::unpack_shared_parameter_matrix_from_executor(detail::tie(shared_params...));
 }
 
 

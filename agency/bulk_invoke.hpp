@@ -21,11 +21,11 @@ struct unpack_shared_parameters_from_executor_and_invoke
 {
   mutable Function g;
 
-  template<class Index, class SharedParams>
+  template<class Index, class... Types>
   __AGENCY_ANNOTATION
-  void operator()(const Index& idx, SharedParams& packaged_shared_params) const
+  void operator()(const Index& idx, Types&... packaged_shared_params) const
   {
-    auto shared_params = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params);
+    auto shared_params = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params...);
 
     // XXX the following is the moral equivalent of:
     // g(idx, shared_params...);
@@ -38,11 +38,19 @@ struct unpack_shared_parameters_from_executor_and_invoke
 };
 
 
+template<class BulkCall, class Executor, class Function, class Tuple, size_t... TupleIndices>
+typename BulkCall::result_type
+  bulk_call_executor_impl(BulkCall bulk_call, Executor& exec, Function f, typename executor_traits<Executor>::shape_type shape, Tuple&& shared_init_tuple, detail::index_sequence<TupleIndices...>)
+{
+  return bulk_call(exec, unpack_shared_parameters_from_executor_and_invoke<Function>{f}, shape, detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...);
+}
+
+
 // since almost all the code is shared between bulk_invoke_executor & bulk_async_executor,
 // we collapse it all into one function parameterized by the bulk call in question
 template<class BulkCall, class Executor, class Function, class... Args>
 typename BulkCall::result_type
-  bulk_call_executor(BulkCall bulk_call, Executor& exec, Function f, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
+  bulk_call_executor(BulkCall bulk_call, Executor& exec, Function f, typename executor_traits<Executor>::shape_type shape, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
   auto g = bind_unshared_parameters(f, placeholders::_1, std::forward<Args>(args)...);
@@ -60,7 +68,7 @@ typename BulkCall::result_type
   // construct shared initializers and package them for the executor
   auto shared_init = agency::detail::make_shared_parameter_package_for_executor<executor_depth>(shared_arg_tuple);
 
-  return bulk_call(exec, unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g}, shape, std::move(shared_init));
+  return bulk_call_executor_impl(bulk_call, exec, g, shape, std::move(shared_init), detail::make_index_sequence<executor_depth>());
 
   // XXX upon c++14
   //return bulk_call(exec, [=](const auto& idx, auto& packaged_shared_params)

@@ -1,4 +1,6 @@
 #include <agency/cuda/grid_executor.hpp>
+#include <iostream>
+#include <cstdio>
 
 struct hello_world
 {
@@ -12,13 +14,9 @@ struct hello_world
 
 struct with_shared_arg
 {
-  // XXX figure out what to do about our use of tuple here
   __device__
-  void operator()(agency::uint2 index, agency::detail::tuple<int&,int&> shared_arg)
+  void operator()(agency::uint2 index, int& outer_shared, int& inner_shared)
   {
-    int& outer_shared = agency::detail::get<0>(shared_arg);
-    int& inner_shared = agency::detail::get<1>(shared_arg);
-
     atomicAdd(&outer_shared, 1);
     atomicAdd(&inner_shared, 1);
 
@@ -75,7 +73,7 @@ int main()
   cudaDeviceSynchronize();
 
   std::cout << "Testing bulk_invoke with shared arg on host" << std::endl;
-  ex.execute(with_shared_arg(), agency::uint2{2,2}, thrust::make_tuple(7,13));
+  ex.execute(with_shared_arg(), agency::uint2{2,2}, 7, 13);
   cudaDeviceSynchronize();
 
   std::cout << "Testing bulk_invoke() on device" << std::endl;

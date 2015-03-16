@@ -30,11 +30,11 @@ struct unpack_shared_parameters_from_executor_and_invoke
 {
   mutable Function g;
 
-  template<class Index, class SharedParams>
+  template<class Index, class... Types>
   __AGENCY_ANNOTATION
-  void operator()(const Index& idx, SharedParams& packaged_shared_params) const
+  void operator()(const Index& idx, Types&... packaged_shared_params) const
   {
-    auto shared_params = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params);
+    auto shared_params = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params...);
 
     // XXX the following is the moral equivalent of:
     // g(idx, shared_params...);
@@ -47,11 +47,18 @@ struct unpack_shared_parameters_from_executor_and_invoke
 };
 
 
+template<class Executor, class Function, class Tuple, size_t... TupleIndices>
+void bulk_invoke_executor_impl(Executor& exec, Function f, typename agency::executor_traits<Executor>::shape_type shape, Tuple&& shared_init_tuple, agency::detail::index_sequence<TupleIndices...>)
+{
+  return agency::executor_traits<Executor>::execute(exec, unpack_shared_parameters_from_executor_and_invoke<Function>{f}, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...);
+}
+
+
 template<class Executor, class Function, class... Args>
 typename agency::detail::enable_if_bulk_invoke_executor<
   Executor, Function, Args...
 >::type
-  bulk_invoke_executor(Executor& exec, Function f, typename agency::executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
+  bulk_invoke_executor(Executor& exec, Function f, typename agency::executor_traits<Executor>::shape_type shape, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
   auto g = bind_unshared_parameters(f, std::placeholders::_1, std::forward<Args>(args)...);
@@ -67,9 +74,9 @@ typename agency::detail::enable_if_bulk_invoke_executor<
   >::value;
 
   // construct shared arguments and package them for the executor
-  auto shared_init = agency::detail::make_shared_parameter_package_for_executor<executor_depth>(shared_arg_tuple);
+  auto shared_init_tuple = agency::detail::make_shared_parameter_package_for_executor<executor_depth>(shared_arg_tuple);
 
-  traits::execute(exec, unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g}, shape, std::move(shared_init));
+  ::bulk_invoke_executor_impl(exec, g, shape, std::move(shared_init_tuple), agency::detail::make_index_sequence<executor_depth>());
 }
 
 

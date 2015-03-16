@@ -52,13 +52,13 @@ struct function_with_shared_arguments
   using inner_shared_type = decay_construct_result_t<InnerSharedInit>;
 
   Function           f_;
-  outer_shared_type* outer_ptr_;
+  outer_shared_type* outer_shared_param_ptr_;
   InnerSharedInit    inner_shared_init_;
 
   __host__ __device__
-  function_with_shared_arguments(Function f, outer_shared_type* outer_ptr, InnerSharedInit inner_shared_init)
+  function_with_shared_arguments(Function f, outer_shared_type* outer_shared_param_ptr, InnerSharedInit inner_shared_init)
     : f_(f),
-      outer_ptr_(outer_ptr),
+      outer_shared_param_ptr_(outer_shared_param_ptr),
       inner_shared_init_(inner_shared_init)
   {}
 
@@ -67,26 +67,24 @@ struct function_with_shared_arguments
   void operator()(const Index& idx)
   {
     // can't rely on a default constructor
-    __shared__ uninitialized<inner_shared_type> inner_param;
+    __shared__ uninitialized<inner_shared_type> inner_shared_param;
 
     // initialize the inner shared parameter
     if(idx[1] == 0)
     {
       // XXX should avoid the move construction here
-      inner_param.construct(agency::decay_construct(inner_shared_init_));
+      inner_shared_param.construct(agency::decay_construct(inner_shared_init_));
     }
     __syncthreads();
 
-    tuple<outer_shared_type&,inner_shared_type&> shared_params(*outer_ptr_, inner_param);
-
-    f_(idx, shared_params);
+    f_(idx, *outer_shared_param_ptr_, inner_shared_param.get());
 
     __syncthreads();
 
     // destroy the inner shared parameter
     if(idx[1] == 0)
     {
-      inner_param.destroy();
+      inner_shared_param.destroy();
     }
   }
 };
@@ -114,27 +112,26 @@ struct function_with_shared_arguments<Function, OuterSharedInit, InnerSharedInit
   void operator()(const Index& idx)
   {
     // can't rely on a default constructor
-    __shared__ uninitialized<inner_shared_type> inner_param;
+    __shared__ uninitialized<inner_shared_type> inner_shared_param;
 
     // initialize the inner shared parameter
     if(idx[1] == 0)
     {
       // XXX should avoid the move construction here
-      inner_param.construct(agency::decay_construct(inner_shared_init_));
+      inner_shared_param.construct(agency::decay_construct(inner_shared_init_));
     }
     __syncthreads();
 
-    outer_shared_type outer;
-    tuple<outer_shared_type&,inner_shared_type&> shared_params(outer, inner_param);
+    outer_shared_type outer_shared_param;
 
-    f_(idx, shared_params);
+    f_(idx, outer_shared_param, inner_shared_param.get());
 
     __syncthreads();
 
     // destroy the inner shared parameter
     if(idx[1] == 0)
     {
-      inner_param.destroy();
+      inner_shared_param.destroy();
     }
   }
 };
@@ -149,23 +146,21 @@ struct function_with_shared_arguments<Function,OuterSharedInit,InnerSharedInit,
   using inner_shared_type = decay_construct_result_t<InnerSharedInit>;
 
   Function           f_;
-  outer_shared_type* outer_ptr_;
+  outer_shared_type* outer_shared_param_ptr_;
 
   __host__ __device__
-  function_with_shared_arguments(Function f, outer_shared_type* outer_ptr, InnerSharedInit)
+  function_with_shared_arguments(Function f, outer_shared_type* outer_shared_param_ptr, InnerSharedInit)
     : f_(f),
-      outer_ptr_(outer_ptr)
+      outer_shared_param_ptr_(outer_shared_param_ptr)
   {}
 
   template<class Index>
   __device__
   void operator()(const Index& idx)
   {
-    inner_shared_type inner;
+    inner_shared_type inner_shared_param;
 
-    tuple<outer_shared_type&,inner_shared_type&> shared_params(*outer_ptr_, inner);
-
-    f_(idx, shared_params);
+    f_(idx, *outer_shared_param_ptr_, inner_shared_param);
   }
 };
 
@@ -187,12 +182,10 @@ struct function_with_shared_arguments<Function,OuterSharedInit,InnerSharedInit,
   __device__
   void operator()(const Index& idx)
   {
-    outer_shared_type outer;
-    inner_shared_type inner;
+    outer_shared_type outer_shared_param;
+    inner_shared_type inner_shared_param;
 
-    tuple<outer_shared_type&,inner_shared_type&> shared_params(outer, inner);
-
-    f_(idx, shared_params);
+    f_(idx, outer_shared_param, inner_shared_param);
   }
 
   Function f_;
@@ -327,38 +320,27 @@ class basic_grid_executor
     }
 
 
-    template<class Function, class Tuple>
+    template<class Function, class T1, class T2>
     __host__ __device__
     static decltype(
       &detail::grid_executor_kernel<
         ThisIndexFunction,
-        detail::function_with_shared_arguments<
-          Function,
-          typename std::tuple_element<0,Tuple>::type,
-          typename std::tuple_element<1,Tuple>::type
-        >
+        detail::function_with_shared_arguments<Function, T1, T2>
       >
     )
-      global_function_pointer(const Function&, const Tuple&)
+      global_function_pointer(const Function&, const T1&, const T2&)
     {
       return &detail::grid_executor_kernel<
         ThisIndexFunction,
-        detail::function_with_shared_arguments<
-          Function,
-          typename std::tuple_element<0,Tuple>::type,
-          typename std::tuple_element<1,Tuple>::type
-        >
+        detail::function_with_shared_arguments<Function,T1,T2>
       >;
     }
     
 
-    template<class Function, class Tuple>
+    template<class Function, class T1, class T2>
     __host__ __device__
-    future<void> async_execute(Function f, shape_type shape, Tuple shared_init_tuple)
+    future<void> async_execute(Function f, shape_type shape, T1 outer_shared_init, T2 inner_shared_init)
     {
-      auto outer_shared_init = agency::detail::get<0>(shared_init_tuple);
-      auto inner_shared_init = agency::detail::get<1>(shared_init_tuple);
-
       return async_execute_with_shared_inits(f, shape, outer_shared_init, inner_shared_init);
     }
 
@@ -371,11 +353,11 @@ class basic_grid_executor
       this->async_execute(f, shape).wait();
     }
 
-    template<class Function, class Tuple>
+    template<class Function, class T1, class T2>
     __host__ __device__
-    void execute(Function f, shape_type shape, Tuple shared_init_tuple)
+    void execute(Function f, shape_type shape, T1 outer_shared_init, T2 inner_shared_init)
     {
-      this->async_execute(f, shape, shared_init_tuple).wait();
+      this->async_execute(f, shape, outer_shared_init, inner_shared_init).wait();
     }
 
 
@@ -503,11 +485,11 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
       return max_shape_impl(reinterpret_cast<void*>(global_function_pointer(f)));
     }
 
-    template<class Function, class Tuple>
+    template<class Function, class T1, class T2>
     __host__ __device__
-    shape_type max_shape(const Function& f, const Tuple& shared_arg) const
+    shape_type max_shape(const Function& f, const T1& outer_shared_init, const T2& inner_shared_init) const
     {
-      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer(f,shared_arg)));
+      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer(f, outer_shared_init, inner_shared_init)));
     }
 };
 
@@ -569,13 +551,13 @@ struct flattened_grid_executor_functor
 
   template<class T>
   __device__
-  void operator()(cuda::grid_executor::index_type idx, T&& shared_params)
+  void operator()(cuda::grid_executor::index_type idx, T& outer_shared_param, const agency::detail::ignore_t&)
   {
     auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning_) + agency::detail::get<1>(idx);
 
     if(flat_idx < shape_)
     {
-      f_(flat_idx, agency::detail::get<0>(shared_params));
+      f_(flat_idx, outer_shared_param);
     }
   }
 
@@ -634,21 +616,18 @@ class flattened_executor<cuda::grid_executor>
     }
 
     template<class Function, class T>
-    future<void> async_execute(Function f, shape_type shape, T shared_arg)
+    future<void> async_execute(Function f, shape_type shape, T shared_init)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
 
-      // create a shared initializer
-      auto shared_init = agency::detail::make_tuple(shared_arg, agency::detail::ignore);
-
       // partition up the iteration space
-      auto partitioning = partition(dummy_function, shared_init, shape);
+      auto partitioning = partition(dummy_function, shape, shared_init, agency::detail::ignore);
 
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().async_execute(execute_me, partitioning, shared_init);
+      return base_executor().async_execute(execute_me, partitioning, shared_init, agency::detail::ignore);
     }
 
     __host__ __device__
@@ -691,11 +670,11 @@ class flattened_executor<cuda::grid_executor>
     }
 
     // returns (outer size, inner size)
-    template<class Function, class Tuple>
+    template<class Function, class T1, class T2>
     __host__ __device__
-    partition_type partition(const Function& f, const Tuple& shared_arg, shape_type shape) const
+    partition_type partition(const Function& f, shape_type shape, const T1& outer_shared_init, const T2& inner_shared_init) const
     {
-      return partition_impl(base_executor().max_shape(f,shared_arg), shape);
+      return partition_impl(base_executor().max_shape(f,outer_shared_init,inner_shared_init), shape);
     }
 
     size_t min_inner_size_;
