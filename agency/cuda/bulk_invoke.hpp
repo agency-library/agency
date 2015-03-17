@@ -45,7 +45,7 @@ struct unpack_shared_parameters_from_executor_and_invoke
 
 template<class BulkCall, class Executor, class Function, class Tuple, size_t... TupleIndices>
 typename BulkCall::result_type
-  bulk_call_executor_impl(BulkCall bulk_call, Executor& exec, Function f, typename executor_traits<Executor>::shape_type shape, Tuple&& shared_init_tuple, agency::detail::index_sequence<TupleIndices...>)
+  bulk_call_executor_impl(BulkCall bulk_call, Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Tuple&& shared_init_tuple, agency::detail::index_sequence<TupleIndices...>)
 {
   return bulk_call(exec, f, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...);
 }
@@ -55,7 +55,7 @@ typename BulkCall::result_type
 // we collapse it all into one function parameterized by the bulk call in question
 template<class BulkCall, class Executor, class Function, class... Args>
 typename BulkCall::result_type
-  bulk_call_executor(BulkCall bulk_call, Executor& exec, Function f, typename agency::executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
+  bulk_call_executor(BulkCall bulk_call, Executor& exec, typename agency::executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
   auto g = detail::bind_unshared_parameters(f, placeholders::_1, std::forward<Args>(args)...);
@@ -75,7 +75,7 @@ typename BulkCall::result_type
 
   auto functor = unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
 
-  return detail::bulk_call_executor_impl(bulk_call, exec, functor, shape, std::move(packaged_shared_parameter_tuple), agency::detail::make_index_sequence<executor_depth>());
+  return detail::bulk_call_executor_impl(bulk_call, exec, shape, functor, std::move(packaged_shared_parameter_tuple), agency::detail::make_index_sequence<executor_depth>());
 }
 
 
@@ -96,10 +96,10 @@ template<class Executor, class Function, class... Args>
 typename agency::detail::enable_if_bulk_invoke_executor<
   Executor, Function, Args...
 >::type
-  bulk_invoke_executor(Executor& exec, Function f, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
+  bulk_invoke_executor(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
   call_execute<Executor> caller;
-  return detail::bulk_call_executor(caller, exec, f, shape, std::forward<Args>(args)...);
+  return detail::bulk_call_executor(caller, exec, shape, f, std::forward<Args>(args)...);
 }
 
 
@@ -120,12 +120,12 @@ template<class Executor, class Function, class... Args>
 typename agency::detail::enable_if_bulk_async_executor<
   Executor, Function, Args...
 >::type
-  bulk_async_executor(Executor& exec, Function f, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Args&&... args)
+  bulk_async_executor(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
   using result_type = agency::detail::executor_future<Executor,void>;
 
   call_async_execute<Executor,result_type> caller;
-  return detail::bulk_call_executor(caller, exec, f, shape, std::forward<Args>(args)...);
+  return detail::bulk_call_executor(caller, exec, shape, f, std::forward<Args>(args)...);
 }
 
 
@@ -224,7 +224,7 @@ typename BulkCall::result_type
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto invoke_me = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  return bulk_call(policy.executor(), invoke_me, executor_shape, std::forward<Args>(args)..., agency::share<SharedArgIndices>(agency::detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
+  return bulk_call(policy.executor(), executor_shape, invoke_me, std::forward<Args>(args)..., agency::share<SharedArgIndices>(agency::detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
 }
 
 
