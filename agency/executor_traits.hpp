@@ -222,6 +222,45 @@ struct executor_traits
 };
 
 
+namespace detail
+{
+
+
+template<class Executor>
+struct executor_index
+{
+  using type = typename executor_traits<Executor>::index_type;
+};
+
+
+template<class Executor>
+using executor_index_t = typename executor_index<Executor>::type;
+
+
+template<class Executor>
+struct executor_shape
+{
+  using type = typename executor_traits<Executor>::shape_type;
+};
+
+
+template<class Executor>
+using executor_shape_t = typename executor_shape<Executor>::type;
+
+
+template<class Executor, class T>
+struct executor_future
+{
+  using type = typename executor_traits<Executor>::template future<T>;
+};
+
+template<class Executor, class T>
+using executor_future_t = typename executor_future<Executor,T>::type;
+
+
+} // end detail
+
+
 // XXX eliminate this
 template<class Executor, class Function, class... Args>
 typename executor_traits<Executor>::template future<void>

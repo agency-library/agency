@@ -122,7 +122,7 @@ typename agency::detail::enable_if_bulk_async_executor<
 >::type
   bulk_async_executor(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
-  using result_type = agency::detail::executor_future<Executor,void>;
+  using result_type = agency::detail::executor_future_t<Executor,void>;
 
   call_async_execute<Executor,result_type> caller;
   return detail::bulk_call_executor(caller, exec, shape, f, std::forward<Args>(args)...);

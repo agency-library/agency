@@ -146,16 +146,13 @@ struct call_async_execute
 };
 
 
-// gets the type of future bulk_async_executor returns
-template<class Executor, class T>
-using executor_future = typename executor_traits<Executor>::template future<T>;
-
-
 template<class Executor, class Function, class... Args>
 struct enable_if_bulk_async_executor
   : enable_if_call_possible<
-      executor_future<Executor,void>,
-      Function, typename executor_traits<Executor>::index_type, decay_parameter_t<Args>...
+      executor_future_t<Executor,void>,
+      Function,
+      executor_index_t<Executor>,
+      decay_parameter_t<Args>...
     >
 {};
 
@@ -164,7 +161,7 @@ template<class Executor, class Function, class... Args>
 typename enable_if_bulk_async_executor<Executor, Function, Args...>::type
   bulk_async_executor(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
-  using result_type = executor_future<Executor,void>;
+  using result_type = executor_future_t<Executor,void>;
 
   call_async_execute<Executor,result_type> caller;
   return bulk_call_executor(caller, exec, shape, f, std::forward<Args>(args)...);
@@ -282,7 +279,7 @@ struct call_bulk_async_executor
 
 // gets the type of future bulk_async(policy) returns
 template<class ExecutionPolicy, class T>
-using policy_future = executor_future<typename ExecutionPolicy::executor_type, T>;
+using policy_future = executor_future_t<typename ExecutionPolicy::executor_type, T>;
 
 
 template<class ExecutionPolicy, class Function, class... Args>
