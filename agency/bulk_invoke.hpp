@@ -148,11 +148,11 @@ struct call_async_execute
 
 template<class Executor, class Function, class... Args>
 struct enable_if_bulk_async_executor
-  : enable_if_call_possible<
-      executor_future_t<Executor,void>,
-      Function,
-      executor_index_t<Executor>,
-      decay_parameter_t<Args>...
+  : lazy_enable_if_call_possible<
+      executor_future<Executor,void>,
+      identity<Function>,
+      executor_index<Executor>,
+      decay_parameter<Args>...
     >
 {};
 

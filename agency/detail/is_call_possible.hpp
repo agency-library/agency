@@ -45,6 +45,16 @@ struct enable_if_call_possible
 {};
 
 
+template<class Result, class Function, class... Args>
+struct lazy_enable_if_call_possible
+  : enable_if_call_possible<
+      typename Result::type,
+      typename Function::type,
+      typename Args::type...
+    >
+{};
+
+
 } // end detail
 } // end agency
 
