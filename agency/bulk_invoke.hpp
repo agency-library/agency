@@ -285,11 +285,28 @@ template<class ExecutionPolicy, class T>
 using policy_future = executor_future_t<typename ExecutionPolicy::executor_type, T>;
 
 
+template<class ExecutionPolicy>
+struct execution_policy_agent
+{
+  using type = typename ExecutionPolicy::execution_agent_type;
+};
+
+
+template<class ExecutionPolicy>
+using execution_policy_agent_t = typename execution_policy_agent<ExecutionPolicy>::type;
+
+
 template<class ExecutionPolicy, class Function, class... Args>
 struct enable_if_bulk_invoke_execution_policy
-  : enable_if_call_possible<
-      void,
-      Function, typename std::decay<ExecutionPolicy>::type::execution_agent_type&, decay_parameter_t<Args>...
+  : lazy_enable_if_call_possible<
+      identity<void>,
+      identity<Function>,
+      lazy_add_lvalue_reference<
+        execution_policy_agent<
+          typename std::decay<ExecutionPolicy>::type
+        >
+      >,
+      decay_parameter<Args>...
     >
 {};
 

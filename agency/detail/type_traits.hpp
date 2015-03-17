@@ -290,6 +290,13 @@ template<class Tuple>
 struct is_empty_tuple : is_empty_tuple_impl<Tuple>::type {};
 
 
+template<class T>
+struct lazy_add_lvalue_reference
+{
+  using type = typename std::add_lvalue_reference<typename T::type>::type;
+};
+
+
 } // end detail
 } // end agency
 
