@@ -281,7 +281,7 @@ typename agency::detail::enable_if_bulk_async_execution_policy<
   using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
   const size_t num_shared_params = agency::detail::execution_depth<typename agent_traits::execution_category>::value;
 
-  using result_type = agency::detail::policy_future<agency::detail::decay_t<ExecutionPolicy>,void>;
+  using result_type = agency::detail::policy_future_t<agency::detail::decay_t<ExecutionPolicy>,void>;
 
   detail::call_bulk_async_executor<result_type> asyncer;
   return detail::bulk_call_execution_policy(asyncer, agency::detail::index_sequence_for<Args...>(), agency::detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);

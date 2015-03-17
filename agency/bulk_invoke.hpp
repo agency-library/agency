@@ -282,7 +282,13 @@ struct call_bulk_async_executor
 
 // gets the type of future bulk_async(policy) returns
 template<class ExecutionPolicy, class T>
-using policy_future = executor_future_t<typename ExecutionPolicy::executor_type, T>;
+struct policy_future
+{
+  using type = executor_future_t<typename ExecutionPolicy::executor_type, T>;
+};
+
+template<class ExecutionPolicy, class T>
+using policy_future_t = typename policy_future<ExecutionPolicy,T>::type;
 
 
 template<class ExecutionPolicy>
@@ -313,12 +319,18 @@ struct enable_if_bulk_invoke_execution_policy
 
 template<class ExecutionPolicy, class Function, class... Args>
 struct enable_if_bulk_async_execution_policy
-  : enable_if_call_possible<
+  : lazy_enable_if_call_possible<
       policy_future<
         typename std::decay<ExecutionPolicy>::type,
         void
       >,
-      Function, typename std::decay<ExecutionPolicy>::type::execution_agent_type&, decay_parameter_t<Args>...
+      identity<Function>,
+      lazy_add_lvalue_reference<
+        execution_policy_agent<
+          typename std::decay<ExecutionPolicy>::type
+        >
+      >,
+      decay_parameter<Args>...
     >
 {};
 
@@ -349,7 +361,7 @@ typename detail::enable_if_bulk_async_execution_policy<
   using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
   const size_t num_shared_params = detail::execution_depth<typename agent_traits::execution_category>::value;
 
-  using result_type = detail::policy_future<detail::decay_t<ExecutionPolicy>,void>;
+  using result_type = detail::policy_future_t<detail::decay_t<ExecutionPolicy>,void>;
 
   detail::call_bulk_async_executor<result_type> asyncer;
   return detail::bulk_call_execution_policy(asyncer, detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
