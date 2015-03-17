@@ -118,8 +118,11 @@ struct decay_parameter<shared_parameter<level,T,Args...>>
 
 template<class Executor, class Function, class... Args>
 struct enable_if_bulk_invoke_executor
-  : enable_if_call_possible<
-      void, Function, typename executor_traits<Executor>::index_type, decay_parameter_t<Args>...
+  : lazy_enable_if_call_possible<
+      identity<void>,
+      identity<Function>,
+      executor_index<Executor>,
+      decay_parameter<Args>...
     >
 {};
 
