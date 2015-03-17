@@ -144,6 +144,7 @@ class nested_executor
         invoke_execute(detail::index_sequence_for<InnerSharedType...>(), outer_idx, outer_shared);
       }
     };
+    
 
   public:
     template<class Function, class T, class... Types>
@@ -163,7 +164,18 @@ class nested_executor
         outer_shared_init
       );
 
-      // XXX upon c++14
+      // XXX gcc 4.8 can't capture parameter packs
+      //using outer_shared_param_type = decay_construct_result_t<T>;
+
+      //return outer_traits::async_execute(outer_executor(), [=](const outer_index_type& outer_idx, outer_shared_param_type& outer_shared_param)
+      //{
+      //  inner_traits::execute(inner_executor(), async_execute_inner_functor<Function,outer_shared_param_type>{f,outer_idx,outer_shared_param}, inner_shape, inner_shared_inits...);
+      //},
+      //outer_shape,
+      //outer_shared_init
+      //);
+
+      // XXX use this implementation upon c++14:
       //return outer_traits::async_execute(outer_executor(), [=](const auto& outer_idx, auto& outer_shared_param)
       //{
       //  inner_traits::execute(inner_executor(), [=,&outer_shared_param](const auto& inner_idx, auto&... inner_shared_parms)
