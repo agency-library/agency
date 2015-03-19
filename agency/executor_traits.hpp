@@ -14,9 +14,71 @@ namespace detail
 
 __DEFINE_HAS_NESTED_TYPE(has_index_type, index_type);
 __DEFINE_HAS_NESTED_TYPE(has_shape_type, shape_type);
+__DEFINE_HAS_NESTED_TYPE(has_execution_category, execution_category);
+
+
+template<class Executor1>
+struct nested_index_type
+{
+  using type = typename Executor1::index_type;
+};
+
+
+template<class T, class Default = size_t>
+struct nested_index_type_with_default
+  : agency::detail::lazy_conditional<
+      agency::detail::has_index_type<T>::value,
+      nested_index_type<T>,
+      agency::detail::identity<Default>
+    >
+{};
+
+
+template<class Executor>
+struct has_async_execute_impl
+{
+  using index_type = typename nested_index_type_with_default<
+    Executor
+  >::type;
+
+  struct dummy_functor
+  {
+    template<class T>
+    void operator()(const index_type&, int&) {}
+  };
+
+  template<class Executor1,
+           class = decltype(
+             std::declval<Executor1>().async_execute(
+               std::declval<dummy_functor>(),
+               std::declval<index_type>(),
+               *std::declval<int*>()
+             )
+           )>
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+
+template<class T>
+struct has_async_execute : has_async_execute_impl<T>::type {};
 
 
 } // end detail
+
+
+template<class T>
+struct is_executor
+  : std::integral_constant<
+      bool,
+      detail::has_execution_category<T>::value &&
+      detail::has_async_execute<T>::value
+    >
+{};
 
 
 template<class Executor>
@@ -40,10 +102,9 @@ struct executor_traits
 
     using execution_category = typename Executor::execution_category;
 
-    using index_type = typename detail::lazy_conditional<
-      detail::has_index_type<executor_type>::value,
-      executor_index<executor_type>,
-      detail::identity<size_t>
+    using index_type = typename detail::nested_index_type_with_default<
+      executor_type,
+      size_t
     >::type;
 
     using shape_type = typename detail::lazy_conditional<
