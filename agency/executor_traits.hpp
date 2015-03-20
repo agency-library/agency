@@ -342,17 +342,5 @@ using executor_future_t = typename executor_future<Executor,T>::type;
 } // end detail
 
 
-// XXX eliminate this
-template<class Executor, class Function, class... Args>
-void bulk_invoke(Executor& ex,
-                 typename executor_traits<Executor>::shape_type shape,
-                 Function&& f,
-                 Args&&... args)
-{
-  auto g = detail::bind(std::forward<Function>(f), detail::placeholders::_1, std::forward<Args>(args)...);
-  return executor_traits<Executor>::execute(ex, f, shape);
-}
-
-
 } // end agency
 

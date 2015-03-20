@@ -6,6 +6,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/executor_traits.hpp>
 #include <agency/execution_agent.hpp>
+#include <agency/bulk_invoke.hpp>
 #include <agency/cuda/detail/bind.hpp>
 #include <utility>
 #include <tuple>
@@ -92,17 +93,6 @@ struct call_execute
 };
 
 
-template<class Executor, class Function, class... Args>
-typename agency::detail::enable_if_bulk_invoke_executor<
-  Executor, Function, Args...
->::type
-  bulk_invoke_executor(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
-{
-  call_execute<Executor> caller;
-  return detail::bulk_call_executor(caller, exec, shape, f, std::forward<Args>(args)...);
-}
-
-
 template<class Executor, class Result>
 struct call_async_execute
 {
@@ -116,17 +106,35 @@ struct call_async_execute
 };
 
 
+} // end detail
+
+
+template<class Executor, class Function, class... Args>
+typename agency::detail::enable_if_bulk_invoke_executor<
+  Executor, Function, Args...
+>::type
+  bulk_invoke(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
+{
+  detail::call_execute<Executor> caller;
+  return detail::bulk_call_executor(caller, exec, shape, f, std::forward<Args>(args)...);
+}
+
+
 template<class Executor, class Function, class... Args>
 typename agency::detail::enable_if_bulk_async_executor<
   Executor, Function, Args...
 >::type
-  bulk_async_executor(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
+  bulk_async(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
   using result_type = agency::detail::executor_future_t<Executor,void>;
 
-  call_async_execute<Executor,result_type> caller;
+  detail::call_async_execute<Executor,result_type> caller;
   return detail::bulk_call_executor(caller, exec, shape, f, std::forward<Args>(args)...);
 }
+
+
+namespace detail
+{
 
 
 template<class Function, class Tuple, size_t... Indices>
@@ -228,29 +236,29 @@ typename BulkCall::result_type
 }
 
 
-// this functor takes its arguments and forwards them to bulk_invoke_executor
-struct call_bulk_invoke_executor
+// this functor takes its arguments and calls cuda::bulk_invoke
+struct call_bulk_invoke
 {
   using result_type = void;
 
   template<class... Args>
   void operator()(Args&&... args)
   {
-    agency::cuda::detail::bulk_invoke_executor(std::forward<Args>(args)...);
+    agency::cuda::bulk_invoke(std::forward<Args>(args)...);
   }
 };
 
 
-// this functor takes its arguments and forwards them to bulk_async_executor
+// this functor takes its arguments and calls cuda::bulk_async
 template<class Result>
-struct call_bulk_async_executor
+struct call_bulk_async
 {
   using result_type = Result;
 
   template<class... Args>
   result_type operator()(Args&&... args)
   {
-    return agency::cuda::detail::bulk_async_executor(std::forward<Args>(args)...);
+    return agency::cuda::bulk_async(std::forward<Args>(args)...);
   }
 };
 
@@ -267,7 +275,7 @@ typename agency::detail::enable_if_bulk_invoke_execution_policy<
   using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
   const size_t num_shared_params = agency::detail::execution_depth<typename agent_traits::execution_category>::value;
 
-  detail::call_bulk_invoke_executor invoker;
+  detail::call_bulk_invoke invoker;
   detail::bulk_call_execution_policy(invoker, agency::detail::index_sequence_for<Args...>(), agency::detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
 }
 
@@ -283,7 +291,7 @@ typename agency::detail::enable_if_bulk_async_execution_policy<
 
   using result_type = agency::detail::policy_future_t<agency::detail::decay_t<ExecutionPolicy>,void>;
 
-  detail::call_bulk_async_executor<result_type> asyncer;
+  detail::call_bulk_async<result_type> asyncer;
   return detail::bulk_call_execution_policy(asyncer, agency::detail::index_sequence_for<Args...>(), agency::detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
 }
 

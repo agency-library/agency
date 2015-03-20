@@ -145,15 +145,6 @@ struct enable_if_bulk_invoke_executor
 {};
 
 
-template<class Executor, class Function, class... Args>
-typename enable_if_bulk_invoke_executor<Executor, Function, Args...>::type
-  bulk_invoke_executor(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
-{
-  call_execute<Executor> caller;
-  return bulk_call_executor(caller, exec, shape, f, std::forward<Args>(args)...);
-}
-
-
 template<class Executor, class Result>
 struct call_async_execute
 {
@@ -191,6 +182,15 @@ struct enable_if_bulk_async_executor
 
 
 } // end detail
+
+
+template<class Executor, class Function, class... Args>
+typename detail::enable_if_bulk_invoke_executor<Executor, Function, Args...>::type
+  bulk_invoke(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
+{
+  detail::call_execute<Executor> caller;
+  return detail::bulk_call_executor(caller, exec, shape, f, std::forward<Args>(args)...);
+}
 
 
 template<class Executor, class Function, class... Args>
@@ -290,15 +290,16 @@ typename BulkCall::result_type
 }
 
 
-// this functor takes its arguments and forwards them to bulk_invoke_executor
-struct call_bulk_invoke_executor
+// this functor takes its arguments and calls bulk_invoke via adl
+struct call_bulk_invoke_adl
 {
   using result_type = void;
 
   template<class... Args>
   void operator()(Args&&... args)
   {
-    detail::bulk_invoke_executor(std::forward<Args>(args)...);
+    using agency::bulk_invoke;
+    bulk_invoke(std::forward<Args>(args)...);
   }
 };
 
@@ -369,7 +370,12 @@ struct enable_if_bulk_invoke_execution_policy_impl<
 template<class ExecutionPolicy, class Function, class... Args>
 struct enable_if_bulk_invoke_execution_policy
   : enable_if_bulk_invoke_execution_policy_impl<
-      has_execution_agent_type<ExecutionPolicy>::value, ExecutionPolicy, Function, Args...
+      has_execution_agent_type<
+        typename std::decay<ExecutionPolicy>::type
+      >::value,
+      typename std::decay<ExecutionPolicy>::type,
+      Function,
+      Args...
     >
 {};
 
@@ -393,7 +399,12 @@ struct enable_if_bulk_async_execution_policy_impl<
 template<class ExecutionPolicy, class Function, class... Args>
 struct enable_if_bulk_async_execution_policy
   : enable_if_bulk_async_execution_policy_impl<
-      has_execution_agent_type<ExecutionPolicy>::value, ExecutionPolicy, Function, Args...
+      has_execution_agent_type<
+        typename std::decay<ExecutionPolicy>::type
+      >::value,
+      typename std::decay<ExecutionPolicy>::type,
+      Function,
+      Args...
     >
 {};
 
@@ -403,21 +414,21 @@ struct enable_if_bulk_async_execution_policy
 
 template<class ExecutionPolicy, class Function, class... Args>
 typename detail::enable_if_bulk_invoke_execution_policy<
-  typename std::decay<ExecutionPolicy>::type, Function, Args...
+  ExecutionPolicy, Function, Args...
 >::type
   bulk_invoke(ExecutionPolicy&& policy, Function f, Args&&... args)
 {
   using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
   const size_t num_shared_params = detail::execution_depth<typename agent_traits::execution_category>::value;
 
-  detail::call_bulk_invoke_executor invoker;
+  detail::call_bulk_invoke_adl invoker;
   detail::bulk_call_execution_policy(invoker, detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
 }
 
 
 template<class ExecutionPolicy, class Function, class... Args>
 typename detail::enable_if_bulk_async_execution_policy<
-  typename std::decay<ExecutionPolicy>::type, Function, Args...
+  ExecutionPolicy, Function, Args...
 >::type
   bulk_async(ExecutionPolicy&& policy, Function&& f, Args&&... args)
 {
