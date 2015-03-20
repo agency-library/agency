@@ -287,30 +287,37 @@ namespace detail
 {
 
 
+template<class Executor, class Enable = void>
+struct executor_index {};
+
 template<class Executor>
-struct executor_index
+struct executor_index<Executor, typename std::enable_if<is_executor<Executor>::value>::type>
 {
   using type = typename executor_traits<Executor>::index_type;
 };
-
 
 template<class Executor>
 using executor_index_t = typename executor_index<Executor>::type;
 
 
+template<class Executor, class Enable = void>
+struct executor_shape {};
+
 template<class Executor>
-struct executor_shape
+struct executor_shape<Executor, typename std::enable_if<is_executor<Executor>::value>::type>
 {
   using type = typename executor_traits<Executor>::shape_type;
 };
-
 
 template<class Executor>
 using executor_shape_t = typename executor_shape<Executor>::type;
 
 
+template<class Executor, class T, class Enable = void>
+struct executor_future {};
+
 template<class Executor, class T>
-struct executor_future
+struct executor_future<Executor, T, typename std::enable_if<is_executor<Executor>::value>::type>
 {
   using type = typename executor_traits<Executor>::template future<T>;
 };
@@ -320,19 +327,6 @@ using executor_future_t = typename executor_future<Executor,T>::type;
 
 
 } // end detail
-
-
-// XXX eliminate this
-template<class Executor, class Function, class... Args>
-typename executor_traits<Executor>::template future<void>
-  bulk_async(Executor& ex,
-             typename executor_traits<Executor>::shape_type shape,
-             Function&& f,
-             Args&&... args)
-{
-  auto g = detail::bind(std::forward<Function>(f), detail::placeholders::_1, std::forward<Args>(args)...);
-  return executor_traits<Executor>::async_execute(ex, f, shape);
-}
 
 
 // XXX eliminate this
