@@ -16,11 +16,13 @@ namespace detail
 // where each nested tuple is the same type
 // the nested tuples are allowed to be values or references
 // we can create views of its columns or a view of its transpose
+// The degenerate case of an empty TupleMatrix with 0 rows and 0 columns
+// is simply an empty tuple<>
 
-template<class TupleMatrix>
-struct tuple_matrix_shape
+template<class TupleMatrix, size_t num_rows = std::tuple_size<TupleMatrix>::value>
+struct tuple_matrix_shape_impl
 {
-  static const size_t rows = std::tuple_size<TupleMatrix>::value;
+  static const size_t rows = num_rows;
 
   // decay any reference on the row type, if it exists
   using row_type = typename std::decay<
@@ -29,6 +31,16 @@ struct tuple_matrix_shape
 
   static const size_t columns = std::tuple_size<row_type>::value;
 };
+
+template<class RowType>
+struct tuple_matrix_shape_impl<RowType,0>
+{
+  static const size_t rows = 0;
+  static const size_t cols = 0;
+};
+
+template<class TupleMatrix>
+struct tuple_matrix_shape : tuple_matrix_shape_impl<TupleMatrix> {};
 
 
 // returns the type of element at [row_idx, column_idx]
