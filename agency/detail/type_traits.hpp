@@ -190,6 +190,26 @@ struct type_list_prepend<T0, type_list<Types...>>
 };
 
 
+template<class T, size_t n>
+struct repeat_type_impl
+{
+  using rest = typename repeat_type_impl<T,n-1>::type;
+  using type = typename type_list_prepend<
+    T,
+    rest
+  >::type;
+};
+
+template<class T>
+struct repeat_type_impl<T,0>
+{
+  using type = type_list<>;
+};
+
+template<class T, size_t n>
+using repeat_type = typename repeat_type_impl<T,n>::type;
+
+
 template<class... Conditions>
 struct static_and;
 

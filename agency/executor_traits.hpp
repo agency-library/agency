@@ -34,8 +34,12 @@ struct nested_index_type_with_default
 {};
 
 
-template<class Executor>
-struct has_async_execute_impl
+template<class Executor, class TypeList>
+struct has_async_execute_impl;
+
+
+template<class Executor, class... Types>
+struct has_async_execute_impl<Executor, type_list<Types...>>
 {
   using index_type = typename nested_index_type_with_default<
     Executor
@@ -43,8 +47,7 @@ struct has_async_execute_impl
 
   struct dummy_functor
   {
-    template<class T>
-    void operator()(const index_type&, int&) {}
+    void operator()(const index_type&, Types&...) {}
   };
 
   template<class Executor1,
@@ -52,7 +55,7 @@ struct has_async_execute_impl
              std::declval<Executor1>().async_execute(
                std::declval<dummy_functor>(),
                std::declval<index_type>(),
-               *std::declval<int*>()
+               *std::declval<Types*>()...
              )
            )>
   static std::true_type test(int);
@@ -64,8 +67,18 @@ struct has_async_execute_impl
 };
 
 
+template<class T, bool = has_execution_category<T>::value>
+struct has_async_execute : std::false_type {};
+
 template<class T>
-struct has_async_execute : has_async_execute_impl<T>::type {};
+struct has_async_execute<T,true> 
+  : has_async_execute_impl<
+      T,
+      repeat_type<
+        int, execution_depth<typename T::execution_category>::value
+      >
+    >::type
+{};
 
 
 } // end detail
