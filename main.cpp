@@ -12,12 +12,16 @@ int main()
     std::cout << "Hello world from sequential_agent " << self.index() << std::endl;
   });
 
+  seq_f.wait();
+
   auto par_f = bulk_async(par(5), [](parallel_agent &self)
   {
     mut.lock();
     std::cout << "Hello world from parallel_agent " << self.index() << std::endl;
     mut.unlock();
   });
+
+  par_f.wait();
 
   auto con_f = bulk_async(con(5), [](concurrent_agent &self)
   {
@@ -32,8 +36,6 @@ int main()
     mut.unlock();
   });
 
-  seq_f.wait();
-  par_f.wait();
   con_f.wait();
 
   auto singly_nested_f = bulk_async(con(2, seq(3)), [](concurrent_group<sequential_agent> &self)
