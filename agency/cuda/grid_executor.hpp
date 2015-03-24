@@ -339,9 +339,9 @@ class basic_grid_executor
 
     template<class Function, class T1, class T2>
     __host__ __device__
-    future<void> async_execute(Function f, shape_type shape, T1 outer_shared_init, T2 inner_shared_init)
+    future<void> async_execute(Function f, shape_type shape, T1&& outer_shared_init, T2&& inner_shared_init)
     {
-      return async_execute_with_shared_inits(f, shape, outer_shared_init, inner_shared_init);
+      return async_execute_with_shared_inits(f, shape, std::forward<T1>(outer_shared_init), std::forward<T2>(inner_shared_init));
     }
 
 
@@ -355,9 +355,9 @@ class basic_grid_executor
 
     template<class Function, class T1, class T2>
     __host__ __device__
-    void execute(Function f, shape_type shape, T1 outer_shared_init, T2 inner_shared_init)
+    void execute(Function f, shape_type shape, T1&& outer_shared_init, T2&& inner_shared_init)
     {
-      this->async_execute(f, shape, outer_shared_init, inner_shared_init).wait();
+      this->async_execute(f, shape, std::forward<T1>(outer_shared_init), std::forward<T2>(inner_shared_init)).wait();
     }
 
 

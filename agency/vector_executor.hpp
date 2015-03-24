@@ -16,9 +16,9 @@ class vector_executor
     using execution_category = vector_execution_tag;
 
     template<class Function, class T>
-    void execute(Function f, size_t n, T shared_init)
+    void execute(Function f, size_t n, T&& shared_init)
     {
-      auto shared_parm = agency::decay_construct(shared_init);
+      auto shared_parm = agency::decay_construct(std::forward<T>(shared_init));
 
       // ivdep requires gcc 4.9+
 #if !defined(__INTEL_COMPILER) && !defined(__NVCC__) && (__GNUC__ >= 4) && (__GNUC_MINOR__ >= 9)
@@ -33,7 +33,7 @@ class vector_executor
     }
 
     template<class Function, class T>
-    std::future<void> async_execute(Function f, size_t n, T shared_init)
+    std::future<void> async_execute(Function f, size_t n, T&& shared_init)
     {
       return std::async(std::launch::deferred, [=]
       {

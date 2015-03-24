@@ -148,7 +148,7 @@ class nested_executor
 
   public:
     template<class Function, class T, class... Types>
-    future<void> async_execute(Function f, shape_type shape, T outer_shared_init, Types... inner_shared_inits)
+    future<void> async_execute(Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
     {
       // XXX should assert on execution depth rather than size of shape_type
       static_assert(std::tuple_size<shape_type>::value == 1 + sizeof...(Types), "Number of shared arguments must be the same as the size of shape_type.");
@@ -159,9 +159,9 @@ class nested_executor
 
       return outer_traits::async_execute(
         outer_executor(),
-        async_execute_outer_functor<Function,Types...>{*this, f, inner_shape, detail::make_tuple(inner_shared_inits...)},
+        async_execute_outer_functor<Function,typename std::decay<Types>::type...>{*this, f, inner_shape, detail::forward_as_tuple(inner_shared_inits...)},
         outer_shape,
-        outer_shared_init
+        std::forward<T>(outer_shared_init)
       );
 
       // XXX gcc 4.8 can't capture parameter packs

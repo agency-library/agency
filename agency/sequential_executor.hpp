@@ -15,9 +15,9 @@ class sequential_executor
     using execution_category = sequential_execution_tag;
 
     template<class Function, class T>
-    void execute(Function f, size_t n, T shared_init)
+    void execute(Function f, size_t n, T&& shared_init)
     {
-      auto shared_parm = agency::decay_construct(shared_init);
+      auto shared_parm = agency::decay_construct(std::forward<T>(shared_init));
 
       for(size_t i = 0; i < n; ++i)
       {
@@ -26,7 +26,7 @@ class sequential_executor
     }
 
     template<class Function, class T>
-    std::future<void> async_execute(Function f, size_t n, T shared_init)
+    std::future<void> async_execute(Function f, size_t n, T&& shared_init)
     {
       return std::async(std::launch::deferred, [=]
       {
