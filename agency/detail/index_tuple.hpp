@@ -1,8 +1,10 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/arithmetic_tuple_facade.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/make_tuple_if_not_nested.hpp>
 
 namespace agency
 {
@@ -47,6 +49,48 @@ struct index_tuple_maker
     return make_index_tuple(std::forward<Args>(args)...);
   }
 };
+
+
+template<class ExecutionCategory1,
+         class ExecutionCategory2,
+         class Index1,
+         class Index2>
+struct nested_index
+{
+  using type = decltype(
+    __tu::tuple_cat_apply(
+      detail::index_tuple_maker{},
+      detail::make_tuple_if_not_nested<ExecutionCategory1>(std::declval<Index1>()),
+      detail::make_tuple_if_not_nested<ExecutionCategory2>(std::declval<Index2>())
+    )
+  );
+};
+
+
+template<class ExecutionCategory1,
+         class ExecutionCategory2,
+         class Index1,
+         class Index2>
+using nested_index_t = typename nested_index<
+  ExecutionCategory1,
+  ExecutionCategory2,
+  Index1,
+  Index2
+>::type;
+
+
+template<class ExecutionCategory1,
+         class ExecutionCategory2,
+         class Index1,
+         class Index2>
+nested_index_t<ExecutionCategory1,ExecutionCategory2,Index1,Index2> make_nested_index(const Index1& outer_idx, const Index2& inner_idx)
+{
+  return __tu::tuple_cat_apply(
+    detail::index_tuple_maker{},
+    detail::make_tuple_if_not_nested<ExecutionCategory1>(outer_idx),
+    detail::make_tuple_if_not_nested<ExecutionCategory2>(inner_idx)
+  );
+}
 
 
 } // end detail
