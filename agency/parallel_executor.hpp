@@ -7,9 +7,21 @@
 
 namespace agency
 {
+namespace this_thread
+{
 
 
-using parallel_executor = flattened_executor<nested_executor<concurrent_executor, sequential_executor>>;
+class parallel_executor : public sequential_executor
+{
+  public:
+    using execution_category = parallel_execution_tag;
+};
+
+
+} // end this_thread
+
+
+using parallel_executor = flattened_executor<nested_executor<concurrent_executor, this_thread::parallel_executor>>;
 
 
 } // end agency
