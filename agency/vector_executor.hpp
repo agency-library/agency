@@ -8,6 +8,8 @@
 
 namespace agency
 {
+namespace this_thread
+{
 
 
 class vector_executor
@@ -41,6 +43,13 @@ class vector_executor
       });
     }
 };
+
+
+} // end this_thread
+
+
+// XXX consider a flattened nesting similar to parallel_executor
+using vector_executor = this_thread::vector_executor;
 
 
 } // end agency
