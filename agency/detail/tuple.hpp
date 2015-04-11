@@ -273,6 +273,17 @@ auto tuple_apply(Function f, Tuple&& t)
 }
 
 
+template<size_t N, class T>
+__AGENCY_ANNOTATION
+auto tuple_repeat(const T& x)
+  -> decltype(
+       __tu::tuple_repeat_invoke<N>(x, agency_tuple_maker())
+     )
+{
+  return __tu::tuple_repeat_invoke<N>(x, agency_tuple_maker());
+}
+
+
 } // end detail
 } // end agency
 

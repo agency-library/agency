@@ -4,6 +4,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/bind.hpp>
 #include <agency/execution_categories.hpp>
+#include <agency/detail/tuple.hpp>
 
 
 namespace agency
@@ -166,7 +167,7 @@ struct executor_traits
 
   private:
     template<class Function>
-    struct test_for_async_execute
+    struct test_for_async_execute_without_shared_inits
     {
       template<
         class Executor2,
@@ -183,30 +184,42 @@ struct executor_traits
     };
 
     template<class Function>
-    using has_async_execute = typename test_for_async_execute<Function>::type;
+    using has_async_execute_without_shared_inits = typename test_for_async_execute_without_shared_inits<Function>::type;
 
     template<class Function>
-    static future<void> async_execute_impl(executor_type& ex, Function f, shape_type shape, std::true_type)
+    static future<void> async_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, std::true_type)
     {
       return ex.async_execute(f, shape);
     }
 
-    template<class Function>
-    static future<void> async_execute_impl(executor_type& ex, Function f, shape_type shape, std::false_type)
+    template<class Function, class... Types, size_t... Indices>
+    static future<void> async_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, const detail::tuple<Types...>& dummy_shared_inits, detail::index_sequence<Indices...>)
     {
-      return executor_traits::async_execute(ex, [=](index_type index, const shape_type&) mutable
+      return executor_traits::async_execute(ex, [=](index_type index, Types&...) mutable
       {
         f(index);
       },
-      shape, shape
+      shape,
+      detail::get<Indices>(dummy_shared_inits)...
       );
+    }
+
+    template<class Function>
+    static future<void> async_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, std::false_type)
+    {
+      constexpr size_t depth = detail::execution_depth<execution_category>::value;
+
+      // create dummy shared initializers
+      auto dummy_tuple = detail::tuple_repeat<depth>(detail::ignore);
+
+      return executor_traits::async_execute_without_shared_inits_impl(ex, f, shape, dummy_tuple, detail::make_index_sequence<depth>());
     }
 
   public:
     template<class Function>
     static future<void> async_execute(executor_type& ex, Function f, shape_type shape)
     {
-      return executor_traits::async_execute_impl(ex, f, shape, has_async_execute<Function>());
+      return executor_traits::async_execute_without_shared_inits_impl(ex, f, shape, has_async_execute_without_shared_inits<Function>());
     }
 
   private:
