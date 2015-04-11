@@ -1040,6 +1040,48 @@ auto tuple_filter(Tuple&& t)
 }
 
 
+template<size_t, class T>
+TUPLE_UTILITY_ANNOTATION
+T&& __identity(T&& x)
+{
+  return std::forward<T>(x);
+}
+
+
+template<class T, class Function, size_t... Indices>
+TUPLE_UTILITY_ANNOTATION
+auto __tuple_repeat_invoke_impl(T&& x, Function f, __index_sequence<Indices...>)
+  -> decltype(
+       f(__identity<Indices>(x)...)
+     )
+{
+  return f(__identity<Indices>(x)...);
+}
+
+
+
+template<size_t N, class T, class Function>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_repeat_invoke(T&& x, Function f)
+  -> decltype(
+       __tuple_repeat_invoke_impl(std::forward<T>(x), f, __make_index_sequence<N>())
+     )
+{
+  return __tuple_repeat_invoke_impl(std::forward<T>(x), f, __make_index_sequence<N>());
+}
+
+
+template<size_t N, class T>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_repeat(const T& x)
+  -> decltype(
+       tuple_repeat_invoke<N>(x, __std_tuple_maker{})
+     )
+{
+  return tuple_repeat_invoke<N>(x, __std_tuple_maker{});
+}
+
+
 #ifndef TUPLE_UTILITY_NAMESPACE_NEEDS_UNDEF
 // if the user defined TUPLE_UTILITY_NAMESPACE, then we need to close the namespace
 } // close namespace
