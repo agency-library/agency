@@ -82,10 +82,6 @@ struct tuple_element<i, __TUPLE_NAMESPACE::tuple<Type1,Types...>>
 };
 
 
-template<size_t i, class... Types>
-using tuple_element_t = typename tuple_element<i,Types...>::type;
-
-
 template<class> struct tuple_size;
 
 
@@ -905,14 +901,14 @@ namespace __TUPLE_NAMESPACE
 
 
 __TUPLE_ANNOTATION
-  bool __tuple_all()
+  inline bool __tuple_all()
 {
   return true;
 }
 
 
 __TUPLE_ANNOTATION
-  bool __tuple_all(bool t)
+  inline bool __tuple_all(bool t)
 {
   return t;
 }
