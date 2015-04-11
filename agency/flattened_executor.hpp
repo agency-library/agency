@@ -38,9 +38,9 @@ class flattened_executor
     {}
 
     template<class Function, class T>
-    future<void> async_execute(Function f, shape_type shape, T shared_arg)
+    future<void> async_execute(Function f, shape_type shape, T&& shared_arg)
     {
-      return this->async_execute_impl(base_executor(), f, shape, shared_arg);
+      return this->async_execute_impl(base_executor(), f, shape, std::forward<T>(shared_arg));
     }
 
     const base_executor_type& base_executor() const
@@ -57,12 +57,12 @@ class flattened_executor
     using partition_type = typename executor_traits<base_executor_type>::shape_type;
 
     template<class OtherExecutor, class Function, class T>
-    future<void> async_execute_impl(OtherExecutor& exec, Function f, shape_type shape, T shared_init)
+    future<void> async_execute_impl(OtherExecutor& exec, Function f, shape_type shape, T&& shared_init)
     {
       auto partitioning = partition(shape);
 
       using index_type = typename executor_traits<OtherExecutor>::index_type;
-      using outer_shared_param_type = decay_construct_result_t<T>;
+      using outer_shared_param_type = decay_construct_result_t<typename std::decay<T>::type>;
 
       return executor_traits<OtherExecutor>::async_execute(exec, [=](const index_type& idx, outer_shared_param_type& outer_shared_param, const agency::detail::ignore_t&) mutable
       {
@@ -74,19 +74,19 @@ class flattened_executor
         }
       },
       partitioning,
-      shared_init,
+      std::forward<T>(shared_init),
       agency::detail::ignore
       );
     }
 
     // we can avoid the if(flat_idx < shape) branch above by providing a specialization for nested_executor
     template<class OuterExecutor, class InnerExecutor, class Function, class T>
-    future<void> async_execute_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, T shared_init)
+    future<void> async_execute_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, T&& shared_init)
     {
       auto partitioning = partition(shape);
 
       using outer_index_type = typename executor_traits<OuterExecutor>::index_type;
-      using shared_param_type = decay_construct_result_t<T>;
+      using shared_param_type = decay_construct_result_t<typename std::decay<T>::type>;
 
       return executor_traits<OuterExecutor>::async_execute(exec.outer_executor(), [=,&exec](const outer_index_type& outer_idx, shared_param_type& shared_param) mutable
       {
@@ -105,7 +105,7 @@ class flattened_executor
         );
       },
       agency::detail::get<0>(partitioning),
-      shared_init
+      std::forward<T>(shared_init)
       );
     }
 

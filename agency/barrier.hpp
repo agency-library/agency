@@ -6,66 +6,87 @@
 #include <mutex>
 #include <condition_variable>
 
-// XXX probably this needn't be exposed in a public namespace
+// XXX this functionality probably needn't be exposed in a public namespace
 
 namespace agency
 {
 
 
-class barrier
+class blocking_barrier
 {
   public:
-    inline explicit barrier(size_t num_threads)
-      : barrier(num_threads, std::function<size_t()>([=](){return num_threads;}))
-    {
-      if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
-    }
-
-    inline barrier(size_t num_threads, size_t(*completion)())
-      : barrier(num_threads, std::function<size_t()>(completion))
-    {
-      if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
-    }
-
-    inline barrier(size_t num_threads, std::function<size_t()> completion)
-      : completion_(completion),
+    inline explicit blocking_barrier(size_t num_threads)
+      : count_init_(num_threads),
         count_(num_threads)
+
     {
       if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
     }
 
     inline void count_down_and_wait()
     {
+      std::unique_lock<std::mutex> lock(mutex_);
+
       if(--count_ == 0)
       {
-        // call the completion function
-        size_t new_count = completion_();
-        if(new_count == 0) throw std::logic_error("barrier: completion function may not return 0.");
+        // initialize the count variable
+        count_ = count_init_;
 
-        count_ = new_count;
-
-        // wake everyone up
+        // unblock all blocking threads
         cv_.notify_all();
       }
       else
       {
-        // sleep until woken
-        std::unique_lock<std::mutex> lock(mutex_);
-
-        // XXX the lambda needs to go inside the wait() invocation
-        //     instead of as an argument the stupid comma operator
-        // XXX unfortunately, the barrier doesn't work when this code is written as intended
-        //     we need to throw out this barrier implementation ASAP and get a better one from Olivier
-        cv_.wait(lock), [this](){ this->count_ == 0; };
+        // block until either we are woken or the count is reinitialized
+        cv_.wait(lock, [this]{ return this->count_ == this->count_init_; });
       }
     }
 
   private:
-    std::function<size_t()> completion_;
-    std::atomic_size_t      count_;
+    size_t                  count_init_;
+    size_t                  count_;
     std::mutex              mutex_;
     std::condition_variable cv_;
 };
+
+
+class spinning_barrier
+{
+  public:
+    inline explicit spinning_barrier(size_t num_threads)
+      : count_(num_threads), 
+        num_spinning_(0),
+        generation_(0)
+    {
+      if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
+    }
+
+    inline void count_down_and_wait()
+    {
+      size_t generation = generation_.load();
+
+      if(num_spinning_.fetch_add(1) == count_ - 1)
+      {
+        num_spinning_.store(0);
+        generation_.fetch_add(1);
+      }
+      else
+      {
+        while(generation_.load() == generation)
+        {
+          ;
+        }
+      }
+    }
+
+protected:
+    size_t              count_;
+    std::atomic<size_t> num_spinning_;
+    std::atomic<size_t> generation_;
+};
+
+
+using barrier = blocking_barrier;
 
 
 } // end agency

@@ -6,8 +6,8 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/functional.hpp>
 #include <agency/detail/index_tuple.hpp>
+#include <agency/detail/shape_tuple.hpp>
 #include <agency/detail/tuple_utility.hpp>
-#include <agency/detail/make_tuple_if_not_nested.hpp>
 #include <agency/detail/unwrap_tuple_if_not_nested.hpp>
 
 namespace agency
@@ -31,25 +31,22 @@ class nested_executor
     using outer_index_type = typename outer_traits::index_type;
     using inner_index_type = typename inner_traits::index_type;
 
-    // XXX move this into index_tuple.hpp?
-    static auto index_cat(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
-      -> decltype(
-           __tu::tuple_cat_apply(
-             detail::index_tuple_maker{},
-             detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-             detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
-           )
-         )
-    {
-      return __tu::tuple_cat_apply(
-        detail::index_tuple_maker{},
-        detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-        detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
-      );
-    }
+  public:
+    using index_type = detail::nested_index_t<
+      outer_execution_category,
+      inner_execution_category,
+      outer_index_type,
+      inner_index_type
+    >;
 
+  private:
     using outer_shape_type = typename outer_traits::shape_type;
     using inner_shape_type = typename inner_traits::shape_type;
+
+    static index_type make_index(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
+    {
+      return detail::make_nested_index<outer_execution_category,inner_execution_category>(outer_idx, inner_idx);
+    }
 
   public:
     using execution_category = 
@@ -59,19 +56,12 @@ class nested_executor
       >;
 
     // XXX consider adding a public static make_shape() function
-    using shape_type = decltype(
-      detail::tuple_cat(
-        detail::make_tuple_if_not_nested<outer_execution_category>(std::declval<outer_shape_type>()),
-        detail::make_tuple_if_not_nested<inner_execution_category>(std::declval<inner_shape_type>())
-      )
-    );
-
-    using index_type = decltype(
-      index_cat(
-        std::declval<outer_index_type>(), 
-        std::declval<inner_shape_type>()
-      )
-    );
+    using shape_type = detail::nested_shape_t<
+      outer_execution_category,
+      inner_execution_category,
+      outer_shape_type,
+      inner_shape_type
+    >;
 
     template<class T>
     using future = typename outer_traits::template future<T>;
@@ -98,7 +88,7 @@ class nested_executor
       {
         inner_traits::execute(inner_executor(), [=](inner_index_type inner_idx)
         {
-          f(index_cat(outer_idx, inner_idx));
+          f(make_index(outer_idx, inner_idx));
         },
         inner_shape
         );
@@ -128,7 +118,7 @@ class nested_executor
         template<class InnerIndex, class... T>
         void operator()(const InnerIndex& inner_idx, T&... inner_shared)
         {
-          f(index_cat(outer_idx, inner_idx), outer_shared, inner_shared...);
+          f(make_index(outer_idx, inner_idx), outer_shared, inner_shared...);
         }
       };
 
@@ -148,7 +138,7 @@ class nested_executor
 
   public:
     template<class Function, class T, class... Types>
-    future<void> async_execute(Function f, shape_type shape, T outer_shared_init, Types... inner_shared_inits)
+    future<void> async_execute(Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
     {
       // XXX should assert on execution depth rather than size of shape_type
       static_assert(std::tuple_size<shape_type>::value == 1 + sizeof...(Types), "Number of shared arguments must be the same as the size of shape_type.");
@@ -159,9 +149,9 @@ class nested_executor
 
       return outer_traits::async_execute(
         outer_executor(),
-        async_execute_outer_functor<Function,Types...>{*this, f, inner_shape, detail::make_tuple(inner_shared_inits...)},
+        async_execute_outer_functor<Function,typename std::decay<Types>::type...>{*this, f, inner_shape, detail::forward_as_tuple(inner_shared_inits...)},
         outer_shape,
-        outer_shared_init
+        std::forward<T>(outer_shared_init)
       );
 
       // XXX gcc 4.8 can't capture parameter packs
@@ -180,7 +170,7 @@ class nested_executor
       //{
       //  inner_traits::execute(inner_executor(), [=,&outer_shared_param](const auto& inner_idx, auto&... inner_shared_parms)
       //  {
-      //    f(index_cat(outer_idx, inner_idx), outer_shared_param, inner_shared_params...);
+      //    f(make_index(outer_idx, inner_idx), outer_shared_param, inner_shared_params...);
       //  },
       //  inner_shape,
       //  inner_shared_inits...
