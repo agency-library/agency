@@ -140,8 +140,7 @@ class nested_executor
     template<class Function, class T, class... Types>
     future<void> async_execute(Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
     {
-      // XXX should assert on execution depth rather than size of shape_type
-      static_assert(std::tuple_size<shape_type>::value == 1 + sizeof...(Types), "Number of shared arguments must be the same as the size of shape_type.");
+      static_assert(detail::execution_depth<execution_category>::value == 1 + sizeof...(Types), "Number of shared arguments must be the same as the depth of execution_category.");
 
       // split the shape into the inner & outer portions
       auto outer_shape = this->outer_shape(shape);
