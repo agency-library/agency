@@ -306,6 +306,70 @@ struct executor_traits
     {
       executor_traits::execute_impl(ex, f, shape, has_execute<Function>());
     }
+
+    template<class Function, class T, class... Types>
+    static std::future<void> then_execute(executor_type& ex, future<void>& fut, Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
+    {
+      return ex.then_execute(fut, f, shape, std::forward<T>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
+    }
+
+  private:
+    template<class Function>
+    struct test_for_then_execute_without_shared_inits
+    {
+      template<
+        class Executor2,
+        typename = decltype(std::declval<Executor2*>()->then_execute(
+        *std::declval<future<void>*>(),
+        std::declval<Function>(),
+        std::declval<shape_type>()))
+      >
+      static std::true_type test(int);
+
+      template<class>
+      static std::false_type test(...);
+
+      using type = decltype(test<executor_type>(0));
+    };
+
+    template<class Function>
+    using has_then_execute_without_shared_inits = typename test_for_then_execute_without_shared_inits<Function>::type;
+
+    template<class Function>
+    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, future<void>& fut, Function f, shape_type shape, std::true_type)
+    {
+      return ex.then_execute(fut, f, shape);
+    }
+
+    template<class Function, class... Types, size_t... Indices>
+    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, future<void>& fut, Function f, shape_type shape, const detail::tuple<Types...>& dummy_shared_inits, detail::index_sequence<Indices...>)
+    {
+      return executor_traits::then_execute(ex, fut, [=](index_type index, Types&...) mutable
+      {
+        f(index);
+      },
+      shape,
+      detail::get<Indices>(dummy_shared_inits)...
+      );
+    }
+
+    template<class Function>
+    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, future<void>& fut, Function f, shape_type shape, std::false_type)
+    {
+      constexpr size_t depth = detail::execution_depth<execution_category>::value;
+
+      // create dummy shared initializers
+      auto dummy_tuple = detail::tuple_repeat<depth>(detail::ignore);
+
+      return executor_traits::then_execute_without_shared_inits_impl(ex, fut, f, shape, dummy_tuple, detail::make_index_sequence<depth>());
+    }
+
+  public:
+    template<class Function>
+    static future<void> then_execute(executor_type& ex, std::future<void>& fut, Function f, shape_type shape)
+    {
+      return executor_traits::then_execute_without_shared_inits_impl(ex, fut, f, shape, has_then_execute_without_shared_inits<Function>());
+    }
 };
 
 
