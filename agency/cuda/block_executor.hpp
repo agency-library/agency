@@ -66,6 +66,13 @@ class block_executor : private grid_executor
 
   public:
     template<class Function>
+    future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
+    {
+      auto g = detail::block_executor_helper_functor<Function>{f};
+      return traits::then_execute(dependency, g, super_t::shape_type{1,shape});
+    }
+
+    template<class Function>
     future<void> async_execute(Function f, shape_type shape)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
