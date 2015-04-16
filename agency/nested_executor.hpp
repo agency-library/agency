@@ -180,6 +180,39 @@ class nested_executor
       //);
     }
 
+    template<class Function, class T, class... Types>
+    future<void> then_execute(future<void>& fut, Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
+    {
+      static_assert(detail::execution_depth<execution_category>::value == 1 + sizeof...(Types), "Number of shared arguments must be the same as the depth of execution_category.");
+
+      // split the shape into the inner & outer portions
+      auto outer_shape = this->outer_shape(shape);
+      auto inner_shape = this->inner_shape(shape);
+
+      return outer_traits::then_execute(
+        outer_executor(),
+        fut,
+        async_execute_outer_functor<Function,typename std::decay<Types>::type...>{*this, f, inner_shape, detail::forward_as_tuple(inner_shared_inits...)},
+        outer_shape,
+        std::forward<T>(outer_shared_init)
+      );
+
+      // XXX use this implementation upon c++14:
+      //return outer_traits::then_execute(outer_executor(), fut, [=](const auto& outer_idx, auto& outer_shared_param)
+      //{
+      //  inner_traits::execute(inner_executor(), [=,&outer_shared_param](const auto& inner_idx, auto&... inner_shared_parms)
+      //  {
+      //    f(make_index(outer_idx, inner_idx), outer_shared_param, inner_shared_params...);
+      //  },
+      //  inner_shape,
+      //  inner_shared_inits...
+      //  );
+      //},
+      //outer_shape,
+      //outer_shared_init
+      //);
+    }
+
     outer_executor_type& outer_executor()
     {
       return outer_ex_;
