@@ -1,6 +1,6 @@
 #pragma once
 
-#include <future>
+#include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/bind.hpp>
 #include <agency/execution_categories.hpp>
@@ -130,6 +130,37 @@ struct has_then_execute<T,true>
 {};
 
 
+template<class Executor, class T>
+struct has_make_ready_future
+{
+  template<
+    class Executor2,
+    typename = decltype(std::declval<Executor2*>()->make_ready_future(std::declval<T>()))
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor>
+struct has_make_ready_future<Executor, void>
+{
+  template<
+    class Executor2,
+    typename = decltype(std::declval<Executor2*>()->make_ready_future())
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+
 } // end detail
 
 
@@ -204,10 +235,24 @@ struct executor_traits
     template<class T>
     using future = typename executor_future<executor_type,T>::type;
 
+  private:
+    template<class T>
+    using has_make_ready_future = typename detail::has_make_ready_future<executor_type,T>::type;
+
+    static future<void> make_ready_future_impl(executor_type& ex, std::true_type)
+    {
+      return ex.make_ready_future();
+    }
+
+    static future<void> make_ready_future_impl(executor_type&, std::false_type)
+    {
+      return future_traits<future<void>>::make_ready_future();
+    }
+
+  public:
     static future<void> make_ready_future(executor_type& ex)
     {
-      // XXX test for existence of make_ready_future() and use a default should it not exist
-      return ex.make_ready_future();
+      return make_ready_future_impl(ex, has_make_ready_future<void>());
     }
 
     template<class Function, class T, class... Types>

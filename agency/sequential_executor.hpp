@@ -1,6 +1,6 @@
 #pragma once
 
-#include <agency/detail/future.hpp>
+#include <agency/future.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/functional.hpp>
 #include <functional>
