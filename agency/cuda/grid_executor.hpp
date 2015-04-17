@@ -626,6 +626,12 @@ class flattened_executor<cuda::grid_executor>
     template<class T>
     using future = cuda::grid_executor::template future<T>;
 
+    // XXX eliminate this when executor_traits implements the correct default for make_ready_future()
+    future<void> make_ready_future()
+    {
+      return executor_traits<base_executor_type>::make_ready_future(base_executor());
+    }
+
     // XXX initialize outer_subscription_ correctly
     __host__ __device__
     flattened_executor(const base_executor_type& base_executor = base_executor_type())
@@ -634,7 +640,7 @@ class flattened_executor<cuda::grid_executor>
     {}
 
     template<class Function>
-    future<void> async_execute(Function f, shape_type shape)
+    future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
@@ -645,11 +651,11 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().async_execute(execute_me, partitioning);
+      return base_executor().then_execute(dependency, execute_me, partitioning);
     }
 
     template<class Function, class T>
-    future<void> async_execute(Function f, shape_type shape, T shared_init)
+    future<void> then_execute(future<void>& dependency, Function f, shape_type shape, T shared_init)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
@@ -660,7 +666,7 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().async_execute(execute_me, partitioning, shared_init, agency::detail::ignore);
+      return base_executor().then_execute(dependency, execute_me, partitioning, shared_init, agency::detail::ignore);
     }
 
     __host__ __device__

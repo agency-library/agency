@@ -51,6 +51,12 @@ class block_executor : private grid_executor
     template<class T>
     using future = typename traits::template future<T>;
 
+    // XXX eliminate this when executor_traits implements the correct default for make_ready_future()
+    future<void> make_ready_future()
+    {
+      return executor_traits<super_t>::make_ready_future(*this);
+    }
+
     using super_t::super_t;
     using super_t::shared_memory_size;
     using super_t::stream;
@@ -64,14 +70,14 @@ class block_executor : private grid_executor
       return super_t::max_shape(f).y;
     }
 
-  public:
-    template<class Function>
-    future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
+    template<class Function, class T>
+    future<void> then_execute(future<void>& dependency, Function f, shape_type shape, T&& shared_init)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      return traits::then_execute(dependency, g, super_t::shape_type{1,shape});
+      return traits::then_execute(dependency, g, super_t::shape_type{1,shape}, agency::detail::ignore, std::forward<T>(shared_init));
     }
 
+    // XXX eliminate these -- executor_traits should give them to us
     template<class Function>
     future<void> async_execute(Function f, shape_type shape)
     {
