@@ -66,7 +66,6 @@ class nested_executor
     template<class T>
     using future = typename outer_traits::template future<T>;
 
-    // XXX eliminate this when executor_traits::make_ready_future() has the correct default behavior
     future<void> make_ready_future()
     {
       return outer_traits::make_ready_future(outer_executor());

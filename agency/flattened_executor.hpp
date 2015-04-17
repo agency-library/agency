@@ -31,7 +31,6 @@ class flattened_executor
     template<class T>
     using future = typename executor_traits<Executor>::template future<T>;
 
-    // XXX eliminate this when executor_traits implements the correct default for make_ready_future()
     future<void> make_ready_future()
     {
       return executor_traits<base_executor_type>::make_ready_future(base_executor());

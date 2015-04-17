@@ -34,12 +34,6 @@ class sequential_executor
       });
     }
 
-    // XXX eliminate this after we implement executor_traits::make_ready_future()'s default behavior
-    inline std::future<void> make_ready_future()
-    {
-      return detail::make_ready_future();
-    }
-
     template<class Function, class T>
     std::future<void> then_execute(std::future<void>& fut, Function f, size_t n, T&& shared_init)
     {

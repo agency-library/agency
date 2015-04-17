@@ -39,7 +39,8 @@ class block_executor : private grid_executor
 {
   private:
     using super_t = grid_executor;
-    using traits = executor_traits<super_t>;
+    using super_traits = executor_traits<super_t>;
+    using traits = executor_traits<block_executor>;
 
   public:
     using execution_category = concurrent_execution_tag;
@@ -49,12 +50,11 @@ class block_executor : private grid_executor
     using index_type = unsigned int;
 
     template<class T>
-    using future = typename traits::template future<T>;
+    using future = typename super_traits::template future<T>;
 
-    // XXX eliminate this when executor_traits implements the correct default for make_ready_future()
     future<void> make_ready_future()
     {
-      return executor_traits<super_t>::make_ready_future(*this);
+      return super_traits::make_ready_future(*this);
     }
 
     using super_t::super_t;
@@ -74,36 +74,33 @@ class block_executor : private grid_executor
     future<void> then_execute(future<void>& dependency, Function f, shape_type shape, T&& shared_init)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      return traits::then_execute(dependency, g, super_t::shape_type{1,shape}, agency::detail::ignore, std::forward<T>(shared_init));
+      return super_traits::then_execute(*this, dependency, g, super_t::shape_type{1,shape}, agency::detail::ignore, std::forward<T>(shared_init));
     }
 
-    // XXX eliminate these -- executor_traits should give them to us
+    template<class Function, class T>
+    future<void> async_execute(Function f, shape_type shape, T&& shared_init)
+    {
+      auto ready = make_ready_future();
+      return this->then_execute(ready, f, shape, std::forward<T>(shared_init));
+    }
+
     template<class Function>
     future<void> async_execute(Function f, shape_type shape)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      return traits::async_execute(g, super_t::shape_type{1,shape});
+      return super_traits::async_execute(*this, g, super_t::shape_type{1,shape});
     }
 
     template<class Function>
     void execute(Function f, shape_type shape)
     {
-      auto g = detail::block_executor_helper_functor<Function>{f};
-      traits::execute(g, super_t::shape_type{1,shape});
+      this->async_execute(f, shape).wait();
     }
 
     template<class Function, class T>
-    future<void> async_execute(Function f, shape_type shape, T shared_init)
+    void execute(Function f, shape_type shape, T&& shared_init)
     {
-      auto g = detail::block_executor_helper_functor<Function>{f};
-      return traits::async_execute(*this, g, super_t::shape_type{1,shape}, agency::detail::ignore, shared_init);
-    }
-
-    template<class Function, class T>
-    void execute(Function f, shape_type shape, T shared_init)
-    {
-      auto g = detail::block_executor_helper_functor<Function>{f};
-      traits::execute(*this, g, super_t::shape_type{1,shape}, agency::detail::ignore, shared_init);
+      this->async_execute(f, shape, std::forward<T>(shared_init)).wait();
     }
 };
 

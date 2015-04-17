@@ -626,12 +626,6 @@ class flattened_executor<cuda::grid_executor>
     template<class T>
     using future = cuda::grid_executor::template future<T>;
 
-    // XXX eliminate this when executor_traits implements the correct default for make_ready_future()
-    future<void> make_ready_future()
-    {
-      return executor_traits<base_executor_type>::make_ready_future(base_executor());
-    }
-
     // XXX initialize outer_subscription_ correctly
     __host__ __device__
     flattened_executor(const base_executor_type& base_executor = base_executor_type())
