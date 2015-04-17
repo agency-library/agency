@@ -1,6 +1,6 @@
 #pragma once
 
-#include <future>
+#include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/bind.hpp>
 #include <agency/execution_categories.hpp>
@@ -16,6 +16,7 @@ namespace detail
 __DEFINE_HAS_NESTED_TYPE(has_index_type, index_type);
 __DEFINE_HAS_NESTED_TYPE(has_shape_type, shape_type);
 __DEFINE_HAS_NESTED_TYPE(has_execution_category, execution_category);
+__DEFINE_HAS_NESTED_CLASS_TEMPLATE(has_future_template, future);
 
 
 template<class Executor1>
@@ -35,16 +36,62 @@ struct nested_index_type_with_default
 {};
 
 
+template<class T>
+struct nested_future_template
+{
+  template<class U>
+  using type_template = typename T::template future<U>;
+};
+
+
+template<bool condition, class Then, class Else>
+struct lazy_conditional_template
+{
+  template<class T>
+  using type_template = typename Then::template type_template<T>;
+};
+
+template<class Then, class Else>
+struct lazy_conditional_template<false, Then, Else>
+{
+  template<class T>
+  using type_template = typename Else::template type_template<T>;
+};
+
+
+template<template<class> class T>
+struct identity_template
+{
+  template<class U>
+  using type_template = T<U>;
+};
+
+
+template<class T, template<class> class Default = std::future>
+struct nested_future_with_default
+  : agency::detail::lazy_conditional_template<
+      agency::detail::has_future_template<T,void>::value,
+      nested_future_template<T>,
+      identity_template<Default>
+    >
+{};
+
+
 template<class Executor, class TypeList>
-struct has_async_execute_impl;
+struct has_then_execute_impl;
 
 
 template<class Executor, class... Types>
-struct has_async_execute_impl<Executor, type_list<Types...>>
+struct has_then_execute_impl<Executor, type_list<Types...>>
 {
   using index_type = typename nested_index_type_with_default<
     Executor
   >::type;
+
+  template<class T>
+  using future = typename nested_future_with_default<
+    Executor
+  >::template type_template<T>;
 
   struct dummy_functor
   {
@@ -53,7 +100,8 @@ struct has_async_execute_impl<Executor, type_list<Types...>>
 
   template<class Executor1,
            class = decltype(
-             std::declval<Executor1>().async_execute(
+             std::declval<Executor1>().then_execute(
+               *std::declval<future<void>*>(),
                std::declval<dummy_functor>(),
                std::declval<index_type>(),
                *std::declval<Types*>()...
@@ -69,17 +117,48 @@ struct has_async_execute_impl<Executor, type_list<Types...>>
 
 
 template<class T, bool = has_execution_category<T>::value>
-struct has_async_execute : std::false_type {};
+struct has_then_execute : std::false_type {};
 
 template<class T>
-struct has_async_execute<T,true> 
-  : has_async_execute_impl<
+struct has_then_execute<T,true> 
+  : has_then_execute_impl<
       T,
       repeat_type<
         int, execution_depth<typename T::execution_category>::value
       >
     >::type
 {};
+
+
+template<class Executor, class T>
+struct has_make_ready_future
+{
+  template<
+    class Executor2,
+    typename = decltype(std::declval<Executor2*>()->make_ready_future(std::declval<T>()))
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor>
+struct has_make_ready_future<Executor, void>
+{
+  template<
+    class Executor2,
+    typename = decltype(std::declval<Executor2*>()->make_ready_future())
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
 
 
 } // end detail
@@ -90,7 +169,7 @@ struct is_executor
   : std::integral_constant<
       bool,
       detail::has_execution_category<T>::value &&
-      detail::has_async_execute<T>::value
+      detail::has_then_execute<T>::value
     >
 {};
 
@@ -156,13 +235,133 @@ struct executor_traits
     template<class T>
     using future = typename executor_future<executor_type,T>::type;
 
-    // XXX we could make .async_execute(f, shape, shared_inits...) optional
-    //     the default implementation could create a launcher agent to own the shared inits and wait for the
-    //     workers
+  private:
+    template<class T>
+    using has_make_ready_future = typename detail::has_make_ready_future<executor_type,T>::type;
+
+    static future<void> make_ready_future_impl(executor_type& ex, std::true_type)
+    {
+      return ex.make_ready_future();
+    }
+
+    static future<void> make_ready_future_impl(executor_type&, std::false_type)
+    {
+      return future_traits<future<void>>::make_ready();
+    }
+
+  public:
+    static future<void> make_ready_future(executor_type& ex)
+    {
+      return make_ready_future_impl(ex, has_make_ready_future<void>());
+    }
+
+    template<class Function, class T, class... Types>
+    static future<void> then_execute(executor_type& ex, future<void>& fut, Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
+    {
+      return ex.then_execute(fut, f, shape, std::forward<T>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
+    }
+
+  private:
+    template<class Function>
+    struct test_for_then_execute_without_shared_inits
+    {
+      template<
+        class Executor2,
+        typename = decltype(std::declval<Executor2*>()->then_execute(
+        *std::declval<future<void>*>(),
+        std::declval<Function>(),
+        std::declval<shape_type>()))
+      >
+      static std::true_type test(int);
+
+      template<class>
+      static std::false_type test(...);
+
+      using type = decltype(test<executor_type>(0));
+    };
+
+    template<class Function>
+    using has_then_execute_without_shared_inits = typename test_for_then_execute_without_shared_inits<Function>::type;
+
+    template<class Function>
+    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, future<void>& fut, Function f, shape_type shape, std::true_type)
+    {
+      return ex.then_execute(fut, f, shape);
+    }
+
+    template<class Function, class... Types, size_t... Indices>
+    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, future<void>& fut, Function f, shape_type shape, const detail::tuple<Types...>& dummy_shared_inits, detail::index_sequence<Indices...>)
+    {
+      return executor_traits::then_execute(ex, fut, [=](index_type index, Types&...) mutable
+      {
+        f(index);
+      },
+      shape,
+      detail::get<Indices>(dummy_shared_inits)...
+      );
+    }
+
+    template<class Function>
+    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, future<void>& fut, Function f, shape_type shape, std::false_type)
+    {
+      constexpr size_t depth = detail::execution_depth<execution_category>::value;
+
+      // create dummy shared initializers
+      auto dummy_tuple = detail::tuple_repeat<depth>(detail::ignore);
+
+      return executor_traits::then_execute_without_shared_inits_impl(ex, fut, f, shape, dummy_tuple, detail::make_index_sequence<depth>());
+    }
+
+  public:
+    template<class Function>
+    static future<void> then_execute(executor_type& ex, std::future<void>& fut, Function f, shape_type shape)
+    {
+      return executor_traits::then_execute_without_shared_inits_impl(ex, fut, f, shape, has_then_execute_without_shared_inits<Function>());
+    }
+
+  private:
+    template<class Function, class... T>
+    struct test_for_async_execute_with_shared_inits
+    {
+      template<
+        class Executor2,
+        typename = decltype(
+          std::declval<Executor2*>()->async_execute(
+            std::declval<Function>(),
+            std::declval<shape_type>(),
+            std::declval<T>()...
+          )
+        )
+      >
+      static std::true_type test(int);
+
+      template<class>
+      static std::false_type test(...);
+
+      using type = decltype(test<executor_type>(0));
+    };
+
+    template<class Function, class... T>
+    using has_async_execute_with_shared_inits = typename test_for_async_execute_with_shared_inits<Function,T...>::type;
+
+    template<class Function, class... T>
+    static future<void> async_execute_with_shared_inits_impl(std::true_type, executor_type& ex, Function f, shape_type shape, T&&... shared_inits)
+    {
+      return ex.async_execute(f, shape, std::forward<T>(shared_inits)...);
+    }
+
+    template<class Function, class... T>
+    static future<void> async_execute_with_shared_inits_impl(std::false_type, executor_type& ex, Function f, shape_type shape, T&&... shared_inits)
+    {
+      auto ready = executor_traits::make_ready_future(ex);
+      return executor_traits::then_execute(ex, ready, f, shape, std::forward<T>(shared_inits)...);
+    }
+
+  public:
     template<class Function, class T, class... Types>
     static future<void> async_execute(executor_type& ex, Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
     {
-      return ex.async_execute(f, shape, std::forward<T>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
+      return executor_traits::async_execute_with_shared_inits_impl(has_execute_with_shared_inits<Function,T,Types...>(), ex, f, shape, std::forward<T>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
     }
 
   private:

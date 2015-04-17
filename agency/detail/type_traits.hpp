@@ -16,6 +16,18 @@ template<typename T> \
   typedef std::integral_constant<bool, value> type;\
 };
 
+#define __DEFINE_HAS_NESTED_CLASS_TEMPLATE(trait_name, nested_class_template_name) \
+template<typename T, typename... Types> \
+  struct trait_name         \
+{                           \
+  typedef char yes_type;    \
+  typedef int  no_type;     \
+  template<typename S> static yes_type test(typename S::template nested_class_template_name<Types...> *); \
+  template<typename S> static no_type  test(...); \
+  static bool const value = sizeof(test<T>(0)) == sizeof(yes_type);\
+  typedef std::integral_constant<bool, value> type;\
+};
+
 #ifdef __NVCC__
 #define __DEFINE_HAS_NESTED_MEMBER(trait_name, nested_member_name) \
 template<typename T> \

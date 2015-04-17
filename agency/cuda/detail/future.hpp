@@ -29,9 +29,6 @@ namespace detail
 {
 
 
-struct future_core_access;
-
-
 template<typename T> class future;
 
 
@@ -46,11 +43,17 @@ class future<void>
     {}
 
     __host__ __device__
+    future(cudaEvent_t e)
+      : stream_{0}, event_{e}
+    {
+    } // end future()
+
+    __host__ __device__
     future(cudaStream_t s)
       : stream_{s}
     {
 #if __cuda_lib_has_cudart
-      detail::throw_on_error(cudaEventCreateWithFlags(&event_, create_flags), "cudaEventCreateWithFlags in future ctor");
+      detail::throw_on_error(cudaEventCreateWithFlags(&event_, event_create_flags), "cudaEventCreateWithFlags in future ctor");
       detail::throw_on_error(cudaEventRecord(event_, stream_), "cudaEventRecord in future ctor");
 #else
       detail::terminate_with_message("agency::cuda::detail::future ctor requires CUDART");
@@ -118,9 +121,27 @@ class future<void>
       return event_ != 0;
     } // end valid()
 
-  private:
-    friend struct detail::future_core_access;
+    __host__ __device__
+    cudaEvent_t event() const
+    {
+      return event_;
+    } // end event()
 
+    __host__ __device__
+    static future<void> make_ready()
+    {
+      cudaEvent_t ready_event = 0;
+
+#if __cuda_lib_has_cudart
+      detail::throw_on_error(cudaEventCreateWithFlags(&ready_event, event_create_flags), "cudaEventCreateWithFlags in future<void>::make_ready_future");
+#else
+      detail::terminate_with_message("agency::cuda::detail::future::make_ready() requires CUDART");
+#endif
+
+      return future<void>{ready_event};
+    }
+
+  private:
     // implement swap to avoid depending on thrust::swap
     template<class T>
     __host__ __device__
@@ -131,11 +152,18 @@ class future<void>
       b = tmp;
     }
 
-    static const int create_flags = cudaEventDisableTiming;
+    static const int event_create_flags = cudaEventDisableTiming;
 
     cudaStream_t stream_;
     cudaEvent_t event_;
 }; // end future<void>
+
+
+inline __host__ __device__
+future<void> make_ready_future()
+{
+  return future<void>::make_ready();
+} // end make_ready_future()
 
 
 } // end namespace detail

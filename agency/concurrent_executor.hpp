@@ -3,7 +3,7 @@
 #include <thread>
 #include <vector>
 #include <memory>
-#include <agency/detail/future.hpp>
+#include <agency/future.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/functional.hpp>
 #include <algorithm>
@@ -19,13 +19,13 @@ class concurrent_executor
     using execution_category = concurrent_execution_tag;
 
     template<class Function, class T>
-    std::future<void> async_execute(Function f, size_t n, T&& shared_init)
+    std::future<void> then_execute(std::future<void>& fut, Function f, size_t n, T&& shared_init)
     {
       std::future<void> result = detail::make_ready_future();
 
       if(n > 0)
       {
-        result = std::async(std::launch::async, [=]() mutable
+        result = detail::then(fut, std::launch::async, [=](std::future<void>&) mutable
         {
           // put the shared parameter on the first thread's stack
           auto shared_parm = agency::decay_construct(shared_init);

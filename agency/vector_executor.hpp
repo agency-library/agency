@@ -42,6 +42,20 @@ class vector_executor
         this->execute(f, n, shared_init);
       });
     }
+
+    inline std::future<void> make_ready_future()
+    {
+      return detail::make_ready_future();
+    }
+
+    template<class Function, class T>
+    std::future<void> then_execute(std::future<void>& fut, Function f, size_t n, T&& shared_init)
+    {
+      return detail::then(fut, std::launch::deferred, [=](std::future<void>& predecessor)
+      {
+        this->execute(f, n, shared_init);
+      });
+    }
 };
 
 

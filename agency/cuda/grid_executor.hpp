@@ -256,12 +256,19 @@ class basic_grid_executor
       return gpu_;
     }
 
+    
+    __host__ __device__
+    future<void> make_ready_future()
+    {
+      return detail::make_ready_future();
+    }
+
 
     template<class Function>
     __host__ __device__
-    future<void> async_execute(Function f, shape_type shape)
+    future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
     {
-      this->launch(global_function_pointer(f), f, shape);
+      this->launch(global_function_pointer(f), f, shape, shared_memory_size(), stream(), dependency.event());
 
       return future<void>{stream()};
     }
@@ -269,10 +276,10 @@ class basic_grid_executor
   private:
     template<class Function, class T1, class T2>
     __host__ __device__
-    future<void> async_execute_with_shared_inits(Function f, shape_type shape, const T1& outer_shared_init, const T2& inner_shared_init,
-                                                 typename std::enable_if<
-                                                   is_ignorable_shared_parameter<T1>::value
-                                                 >::type* = 0)
+    future<void> then_execute_with_shared_inits(future<void>& dependency, Function f, shape_type shape, const T1& outer_shared_init, const T2& inner_shared_init,
+                                                typename std::enable_if<
+                                                  is_ignorable_shared_parameter<T1>::value
+                                                >::type* = 0)
     {
       // no need to marshal the outer arg through gmem because it is empty
       
@@ -280,15 +287,15 @@ class basic_grid_executor
       // note the .release()
       auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_init, inner_shared_init);
 
-      return this->async_execute(g, shape);
+      return this->then_execute(dependency, g, shape);
     }
 
     template<class Function, class T1, class T2>
     __host__ __device__
-    future<void> async_execute_with_shared_inits(Function f, shape_type shape, const T1& outer_shared_init, const T2& inner_shared_init,
-                                                 typename std::enable_if<
-                                                   !is_ignorable_shared_parameter<T1>::value
-                                                 >::type* = 0)
+    future<void> then_execute_with_shared_inits(future<void>& dependency, Function f, shape_type shape, const T1& outer_shared_init, const T2& inner_shared_init,
+                                                typename std::enable_if<
+                                                  !is_ignorable_shared_parameter<T1>::value
+                                                >::type* = 0)
     {
       // XXX move decay_construct inside of make_unique
       auto outer_shared_arg = agency::decay_construct(outer_shared_init);
@@ -301,10 +308,11 @@ class basic_grid_executor
       // note the .release()
       auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_arg_ptr.release(), inner_shared_init);
 
-      // XXX to deallocate & destroy the outer_shared_arg, we need to do a async_execute(...).then(...)
-      //     for now it just leaks :(
+      // XXX to destroy the outer_shared_arg, we need to do another then_execute(...)
+      // XXX to deallocate the outer_shared_arg's storage, we need to enqueue a free after the 2nd then_execute somehow
+      // XXX for now the memory just leaks :(
 
-      return this->async_execute(g, shape);
+      return this->then_execute(dependency, g, shape);
     }
 
   public:
@@ -335,17 +343,35 @@ class basic_grid_executor
         detail::function_with_shared_arguments<Function,T1,T2>
       >;
     }
+
+
+    template<class Function, class T1, class T2>
+    __host__ __device__
+    future<void> then_execute(future<void>& dependency, Function f, shape_type shape, T1&& outer_shared_init, T2&& inner_shared_init)
+    {
+      return then_execute_with_shared_inits(dependency, f, shape, std::forward<T1>(outer_shared_init), std::forward<T2>(inner_shared_init));
+    }
+
+
+    // XXX we should eliminate these since executor_traits implements them for us
+    template<class Function>
+    __host__ __device__
+    future<void> async_execute(Function f, shape_type shape)
+    {
+      auto ready = make_ready_future();
+      return then_execute(ready, f, shape);
+    }
     
 
     template<class Function, class T1, class T2>
     __host__ __device__
     future<void> async_execute(Function f, shape_type shape, T1&& outer_shared_init, T2&& inner_shared_init)
     {
-      return async_execute_with_shared_inits(f, shape, std::forward<T1>(outer_shared_init), std::forward<T2>(inner_shared_init));
+      auto ready = make_ready_future();
+      return then_execute(ready, f, shape, std::forward<T1>(outer_shared_init), std::forward<T2>(inner_shared_init));
     }
 
 
-    // XXX we can potentially eliminate these since executor_traits should implement them for us
     template<class Function>
     __host__ __device__
     void execute(Function f, shape_type shape)
@@ -380,12 +406,19 @@ class basic_grid_executor
     __host__ __device__
     void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream)
     {
-      launch(kernel, arg, shape, shared_memory_size, stream, gpu());
+      launch(kernel, arg, shape, shared_memory_size, stream, 0);
     }
 
     template<class Arg>
     __host__ __device__
-    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, gpu_id gpu)
+    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, cudaEvent_t dependency)
+    {
+      launch(kernel, arg, shape, shared_memory_size, stream, dependency, gpu());
+    }
+
+    template<class Arg>
+    __host__ __device__
+    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, cudaEvent_t dependency, gpu_id gpu)
     {
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
@@ -393,7 +426,7 @@ class basic_grid_executor
       ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
       ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
 
-      detail::checked_launch_kernel_on_device(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream, gpu.native_handle(), arg);
+      detail::checked_launch_kernel_after_event_on_device(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream, dependency, gpu.native_handle(), arg);
     }
 
     int shared_memory_size_;
@@ -601,7 +634,7 @@ class flattened_executor<cuda::grid_executor>
     {}
 
     template<class Function>
-    future<void> async_execute(Function f, shape_type shape)
+    future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
@@ -612,11 +645,11 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().async_execute(execute_me, partitioning);
+      return base_executor().then_execute(dependency, execute_me, partitioning);
     }
 
     template<class Function, class T>
-    future<void> async_execute(Function f, shape_type shape, T shared_init)
+    future<void> then_execute(future<void>& dependency, Function f, shape_type shape, T shared_init)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
@@ -627,7 +660,7 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().async_execute(execute_me, partitioning, shared_init, agency::detail::ignore);
+      return base_executor().then_execute(dependency, execute_me, partitioning, shared_init, agency::detail::ignore);
     }
 
     __host__ __device__
