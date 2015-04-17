@@ -128,14 +128,14 @@ class future<void>
     } // end event()
 
     __host__ __device__
-    static future<void> make_ready_future()
+    static future<void> make_ready()
     {
       cudaEvent_t ready_event = 0;
 
 #if __cuda_lib_has_cudart
       detail::throw_on_error(cudaEventCreateWithFlags(&ready_event, event_create_flags), "cudaEventCreateWithFlags in future<void>::make_ready_future");
 #else
-      detail::terminate_with_message("agency::cuda::detail::future::make_ready_future() requires CUDART");
+      detail::terminate_with_message("agency::cuda::detail::future::make_ready() requires CUDART");
 #endif
 
       return future<void>{ready_event};
@@ -162,7 +162,7 @@ class future<void>
 inline __host__ __device__
 future<void> make_ready_future()
 {
-  return future<void>::make_ready_future();
+  return future<void>::make_ready();
 } // end make_ready_future()
 
 

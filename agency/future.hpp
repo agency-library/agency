@@ -116,16 +116,16 @@ struct future_traits
   using rebind = typename detail::rebind_future_value<future_type,U>::type;
 
   __AGENCY_ANNOTATION
-  static rebind<void> make_ready_future()
+  static rebind<void> make_ready()
   {
-    return rebind<void>::make_ready_future();
+    return rebind<void>::make_ready();
   }
 
   template<class T>
   __AGENCY_ANNOTATION
-  static rebind<T> make_ready_future(T&& value)
+  static rebind<T> make_ready(T&& value)
   {
-    return rebind<T>::make_ready_future();
+    return rebind<T>::make_ready();
   }
 };
 
@@ -140,13 +140,13 @@ struct future_traits<std::future<T>>
   template<class U>
   using rebind = typename detail::rebind_future_value<future_type,U>::type;
 
-  static rebind<void> make_ready_future()
+  static rebind<void> make_ready()
   {
     return detail::make_ready_future();
   }
 
   template<class U>
-  static rebind<U> make_ready_future(U&& value)
+  static rebind<U> make_ready(U&& value)
   {
     return detail::make_ready_future(std::forward<U>(value));
   }

@@ -246,7 +246,7 @@ struct executor_traits
 
     static future<void> make_ready_future_impl(executor_type&, std::false_type)
     {
-      return future_traits<future<void>>::make_ready_future();
+      return future_traits<future<void>>::make_ready();
     }
 
   public:
