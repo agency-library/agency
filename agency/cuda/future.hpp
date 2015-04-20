@@ -27,8 +27,6 @@ namespace agency
 {
 namespace cuda
 {
-namespace detail
-{
 
 
 template<typename T> class future;
@@ -187,7 +185,7 @@ class future
     __host__ __device__
     future(U&& value, future<void>& e)
       : event_(std::move(e)),
-        value_(make_unique<T>(event_.stream(), std::forward<U>(value)))
+        value_(detail::make_unique<T>(event_.stream(), std::forward<U>(value)))
     {
     } // end future()
 
@@ -249,7 +247,7 @@ class future
 
   private:
     future<void> event_;
-    unique_ptr<T> value_;
+    detail::unique_ptr<T> value_;
 }; // end future<T>
 
 
@@ -268,7 +266,6 @@ future<T> make_ready_future(T&& value)
 } // end make_ready_future()
 
 
-} // end namespace detail
 } // end namespace cuda
 } // end namespace agency
 
