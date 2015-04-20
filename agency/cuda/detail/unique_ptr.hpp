@@ -134,6 +134,12 @@ class unique_ptr
       return deleter_;
     }
 
+    __host__ __device__
+    T operator*() const
+    {
+      return *ptr_;
+    }
+
   private:
     thrust::cuda::pointer<T> ptr_;
     default_delete<T> deleter_;
