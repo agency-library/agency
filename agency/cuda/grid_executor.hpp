@@ -25,7 +25,7 @@
 #include <agency/functional.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_tuple.hpp>
-#include <agency/cuda/detail/future.hpp>
+#include <agency/cuda/future.hpp>
 
 
 namespace agency
@@ -225,7 +225,7 @@ class basic_grid_executor
 
 
     template<class T>
-    using future = detail::future<T>;
+    using future = cuda::future<T>;
 
 
     __host__ __device__
@@ -260,7 +260,7 @@ class basic_grid_executor
     __host__ __device__
     future<void> make_ready_future()
     {
-      return detail::make_ready_future();
+      return cuda::make_ready_future();
     }
 
 

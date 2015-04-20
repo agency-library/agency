@@ -19,13 +19,13 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
+#include <agency/cuda/detail/unique_ptr.hpp>
+#include <utility>
 
 
 namespace agency
 {
 namespace cuda
-{
-namespace detail
 {
 
 
@@ -36,12 +36,13 @@ template<>
 class future<void>
 {
   public:
-
+    // XXX stream_ should default to per-thread default stream
     __host__ __device__
     future()
       : stream_{0}, event_{0}
     {}
 
+    // XXX stream_ should default to per-thread default stream
     __host__ __device__
     future(cudaEvent_t e)
       : stream_{0}, event_{e}
@@ -116,6 +117,12 @@ class future<void>
     } // end wait()
 
     __host__ __device__
+    void get() const
+    {
+      wait();
+    } // end get()
+
+    __host__ __device__
     bool valid() const
     {
       return event_ != 0;
@@ -126,6 +133,12 @@ class future<void>
     {
       return event_;
     } // end event()
+
+    __host__ __device__
+    cudaStream_t stream() const
+    {
+      return stream_;
+    } // end stream()
 
     __host__ __device__
     static future<void> make_ready()
@@ -159,6 +172,85 @@ class future<void>
 }; // end future<void>
 
 
+template<class T>
+class future
+{
+  public:
+    __host__ __device__
+    future()
+      : event_()
+    {}
+
+    template<class U>
+    __host__ __device__
+    future(U&& value, future<void>& e)
+      : event_(std::move(e)),
+        value_(detail::make_unique<T>(event_.stream(), std::forward<U>(value)))
+    {
+    } // end future()
+
+    __host__ __device__
+    future(cudaStream_t s)
+      : event_(s)
+    {
+    } // end future()
+
+    __host__ __device__
+    future(future&& other)
+      : event_(std::move(other.event_)),
+        value_(std::move(other.value_))
+    {
+    } // end future()
+
+    __host__ __device__
+    future &operator=(future&& other)
+    {
+      event_ = std::move(other.event_);
+      value_ = std::move(other.value_);
+      return *this;
+    } // end operator=()
+
+    __host__ __device__
+    void wait() const
+    {
+      event_.wait();
+    } // end wait()
+
+    __host__ __device__
+    T get() const
+    {
+      wait();
+
+      return *value_;
+    } // end get()
+
+    __host__ __device__
+    bool valid() const
+    {
+      return event_.valid();
+    } // end valid()
+
+    __host__ __device__
+    cudaEvent_t event() const
+    {
+      return event_.event();
+    } // end event()
+
+    template<class U>
+    __host__ __device__
+    static future<T> make_ready(U&& value)
+    {
+      auto event = future<void>::make_ready();
+
+      return future<T>{std::forward<U>(value), event};
+    }
+
+  private:
+    future<void> event_;
+    detail::unique_ptr<T> value_;
+}; // end future<T>
+
+
 inline __host__ __device__
 future<void> make_ready_future()
 {
@@ -166,7 +258,14 @@ future<void> make_ready_future()
 } // end make_ready_future()
 
 
-} // end namespace detail
+template<class T>
+inline __host__ __device__
+future<T> make_ready_future(T&& value)
+{
+  return future<T>::make_ready(std::forward<T>(value));
+} // end make_ready_future()
+
+
 } // end namespace cuda
 } // end namespace agency
 
