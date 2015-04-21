@@ -45,20 +45,126 @@ struct is_ignorable_shared_parameter
 {};
 
 
-template<class Function, class OuterSharedInit, class InnerSharedInit, class Enable1 = void, class Enable2 = void>
+template<class InitT, bool = is_ignorable_shared_parameter<InitT>::value>
+struct outer_shared_parameter
+{
+  using value_type = decay_construct_result_t<InitT>;
+
+  __device__
+  outer_shared_parameter(value_type* outer_shared_param_ptr)
+    : param_(*outer_shared_param_ptr)
+  {}
+
+  __device__
+  value_type& get()
+  {
+    return param_;
+  }
+
+  value_type& param_;
+};
+
+
+template<class InitT>
+struct outer_shared_parameter<InitT,true>
+{
+  using value_type = decay_construct_result_t<InitT>;
+
+  __device__
+  outer_shared_parameter(value_type*) {}
+
+  __device__
+  value_type& get()
+  {
+    return param_;
+  }
+
+  // the parameter is "ignorable" so we needn't store a reference to an object in global memory
+  value_type param_;
+};
+
+
+template<class InitT, bool = is_ignorable_shared_parameter<InitT>::value>
+struct inner_shared_parameter
+{
+  using value_type = decay_construct_result_t<InitT>;
+
+  __device__
+  inner_shared_parameter(bool is_leader, const InitT& init)
+    : is_leader_(is_leader)
+  {
+    __shared__ uninitialized<value_type> inner_shared_param;
+
+    if(is_leader_)
+    {
+      // XXX should avoid the move construction here
+      inner_shared_param.construct(agency::decay_construct(init));
+    }
+    __syncthreads();
+
+    inner_shared_param_ = &inner_shared_param;
+  }
+
+  inner_shared_parameter(const inner_shared_parameter&) = delete;
+  inner_shared_parameter(inner_shared_parameter&&) = delete;
+
+  __device__
+  ~inner_shared_parameter()
+  {
+    __syncthreads();
+
+    if(is_leader_)
+    {
+      inner_shared_param_->destroy();
+    }
+  }
+
+  __device__
+  value_type& get()
+  {
+    return inner_shared_param_->get();
+  }
+
+  const bool is_leader_;
+  uninitialized<value_type>* inner_shared_param_;
+};
+
+
+template<class InitT>
+struct inner_shared_parameter<InitT,true>
+{
+  using value_type = decay_construct_result_t<InitT>;
+
+  __device__
+  inner_shared_parameter(bool is_leader_, const InitT& init) {}
+
+  inner_shared_parameter(const inner_shared_parameter&) = delete;
+  inner_shared_parameter(inner_shared_parameter&&) = delete;
+
+  __device__
+  value_type& get()
+  {
+    return param_;
+  }
+
+  value_type param_;
+};
+
+
+template<class Function, class OuterSharedInit, class InnerSharedInit>
 struct function_with_shared_arguments
 {
   using outer_shared_type = decay_construct_result_t<OuterSharedInit>;
   using inner_shared_type = decay_construct_result_t<InnerSharedInit>;
 
   Function           f_;
-  outer_shared_type* outer_shared_param_ptr_;
-  InnerSharedInit    inner_shared_init_;
+  outer_shared_parameter<OuterSharedInit> outer_shared_param_;
+  InnerSharedInit                         inner_shared_init_;
 
   __host__ __device__
   function_with_shared_arguments(Function f, outer_shared_type* outer_shared_param_ptr, InnerSharedInit inner_shared_init)
     : f_(f),
-      outer_shared_param_ptr_(outer_shared_param_ptr),
+      outer_shared_param_(outer_shared_param_ptr),
       inner_shared_init_(inner_shared_init)
   {}
 
@@ -66,129 +172,12 @@ struct function_with_shared_arguments
   __device__
   void operator()(const Index& idx)
   {
-    // can't rely on a default constructor
-    __shared__ uninitialized<inner_shared_type> inner_shared_param;
+    // XXX i don't think we're doing the leader calculation in a portable way
+    //     this wouldn't work for ND CTAs
+    inner_shared_parameter<InnerSharedInit> inner_shared_param(idx[1] == 0, inner_shared_init_);
 
-    // initialize the inner shared parameter
-    if(idx[1] == 0)
-    {
-      // XXX should avoid the move construction here
-      inner_shared_param.construct(agency::decay_construct(inner_shared_init_));
-    }
-    __syncthreads();
-
-    f_(idx, *outer_shared_param_ptr_, inner_shared_param.get());
-
-    __syncthreads();
-
-    // destroy the inner shared parameter
-    if(idx[1] == 0)
-    {
-      inner_shared_param.destroy();
-    }
+    f_(idx, outer_shared_param_.get(), inner_shared_param.get());
   }
-};
-
-
-template<class Function, class OuterSharedInit, class InnerSharedInit>
-struct function_with_shared_arguments<Function, OuterSharedInit, InnerSharedInit,
-  typename std::enable_if<is_ignorable_shared_parameter<OuterSharedInit>::value>::type,
-  typename std::enable_if<!is_ignorable_shared_parameter<InnerSharedInit>::value>::type>
-{
-  using outer_shared_type = decay_construct_result_t<OuterSharedInit>;
-  using inner_shared_type = decay_construct_result_t<InnerSharedInit>;
-
-  Function         f_;
-  InnerSharedInit  inner_shared_init_;
-
-  __host__ __device__
-  function_with_shared_arguments(Function f, OuterSharedInit, InnerSharedInit inner_shared_init)
-    : f_(f),
-      inner_shared_init_(inner_shared_init)
-  {}
-
-  template<class Index>
-  __device__
-  void operator()(const Index& idx)
-  {
-    // can't rely on a default constructor
-    __shared__ uninitialized<inner_shared_type> inner_shared_param;
-
-    // initialize the inner shared parameter
-    if(idx[1] == 0)
-    {
-      // XXX should avoid the move construction here
-      inner_shared_param.construct(agency::decay_construct(inner_shared_init_));
-    }
-    __syncthreads();
-
-    outer_shared_type outer_shared_param;
-
-    f_(idx, outer_shared_param, inner_shared_param.get());
-
-    __syncthreads();
-
-    // destroy the inner shared parameter
-    if(idx[1] == 0)
-    {
-      inner_shared_param.destroy();
-    }
-  }
-};
-
-
-template<class Function, class OuterSharedInit, class InnerSharedInit>
-struct function_with_shared_arguments<Function,OuterSharedInit,InnerSharedInit,
-  typename std::enable_if<!is_ignorable_shared_parameter<OuterSharedInit>::value>::type,
-  typename std::enable_if<is_ignorable_shared_parameter<InnerSharedInit>::value>::type>
-{
-  using outer_shared_type = decay_construct_result_t<OuterSharedInit>;
-  using inner_shared_type = decay_construct_result_t<InnerSharedInit>;
-
-  Function           f_;
-  outer_shared_type* outer_shared_param_ptr_;
-
-  __host__ __device__
-  function_with_shared_arguments(Function f, outer_shared_type* outer_shared_param_ptr, InnerSharedInit)
-    : f_(f),
-      outer_shared_param_ptr_(outer_shared_param_ptr)
-  {}
-
-  template<class Index>
-  __device__
-  void operator()(const Index& idx)
-  {
-    inner_shared_type inner_shared_param;
-
-    f_(idx, *outer_shared_param_ptr_, inner_shared_param);
-  }
-};
-
-
-template<class Function, class OuterSharedInit, class InnerSharedInit>
-struct function_with_shared_arguments<Function,OuterSharedInit,InnerSharedInit,
-  typename std::enable_if<is_ignorable_shared_parameter<OuterSharedInit>::value>::type,
-  typename std::enable_if<is_ignorable_shared_parameter<InnerSharedInit>::value>::type>
-{
-  using outer_shared_type = decay_construct_result_t<OuterSharedInit>;
-  using inner_shared_type = decay_construct_result_t<InnerSharedInit>;
-
-  __host__ __device__
-  function_with_shared_arguments(Function f, OuterSharedInit, InnerSharedInit)
-    : f_(f)
-  {}
-
-  template<class Index>
-  __device__
-  void operator()(const Index& idx)
-  {
-    outer_shared_type outer_shared_param;
-    inner_shared_type inner_shared_param;
-
-    f_(idx, outer_shared_param, inner_shared_param);
-  }
-
-  Function f_;
 };
 
 
@@ -285,7 +274,7 @@ class basic_grid_executor
       
       // wrap up f in a thing that will marshal the shared arguments to it
       // note the .release()
-      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_init, inner_shared_init);
+      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, 0, inner_shared_init);
 
       return this->then_execute(dependency, g, shape);
     }
