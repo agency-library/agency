@@ -190,7 +190,7 @@ struct future_traits
   __AGENCY_ANNOTATION
   static rebind<typename std::decay<T>::type> make_ready(T&& value)
   {
-    return rebind<typename std::decay<T>::type>::make_ready();
+    return rebind<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
   }
 };
 
