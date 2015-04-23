@@ -88,18 +88,83 @@ struct rebind_future_value<Future<FromType>,ToType>
 __DEFINE_HAS_NESTED_TYPE(has_value_type, value_type);
 
 
-template<class Future, bool Enable = has_value_type<Future>::value>
+template<class Future>
 struct future_value
 {
-  using type = typename Future::value_type;
+  using type = decltype(std::declval<Future>().get());
 };
 
 
-template<template<class> class Future, class T>
-struct future_value<Future<T>, false>
+namespace is_future_detail
 {
-  using type = T;
+
+
+template<class T>
+struct has_wait_impl
+{
+  template<class Future,
+           class = decltype(
+             std::declval<Future>().wait()
+           )>
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<T>(0));
 };
+
+
+template<class T>
+using has_wait = typename has_wait_impl<T>::type;
+
+
+template<class T>
+struct has_get_impl
+{
+  template<class Future,
+           class = decltype(std::declval<Future>().get())
+           >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<T>(0));
+};
+
+
+template<class T>
+using has_get = typename has_get_impl<T>::type;
+
+
+} // end is_future_detail
+
+
+template<class T>
+struct is_future
+  : std::integral_constant<
+      bool,
+      is_future_detail::has_wait<T>::value && is_future_detail::has_get<T>::value
+    >
+{};
+
+
+template<class T, template<class> class Future, class Enable = void>
+struct is_instance_of_future : std::false_type {};
+
+template<class T, template<class> class Future>
+struct is_instance_of_future<T,Future,
+  typename std::enable_if<
+    is_future<T>::value
+  >::type
+> : std::is_same<
+  T,
+  Future<
+    typename future_value<T>::type
+  >
+>
+{};
 
 
 } // end detail
@@ -123,9 +188,9 @@ struct future_traits
 
   template<class T>
   __AGENCY_ANNOTATION
-  static rebind<T> make_ready(T&& value)
+  static rebind<typename std::decay<T>::type> make_ready(T&& value)
   {
-    return rebind<T>::make_ready();
+    return rebind<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
   }
 };
 
@@ -146,7 +211,7 @@ struct future_traits<std::future<T>>
   }
 
   template<class U>
-  static rebind<U> make_ready(U&& value)
+  static rebind<typename std::decay<U>::type> make_ready(U&& value)
   {
     return detail::make_ready_future(std::forward<U>(value));
   }

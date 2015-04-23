@@ -4,6 +4,7 @@
 #include <agency/execution_categories.hpp>
 #include <agency/functional.hpp>
 #include <functional>
+#include <utility>
 
 namespace agency
 {
@@ -40,6 +41,23 @@ class sequential_executor
       return detail::then(fut, std::launch::deferred, [=](std::future<void>& predecessor)
       {
         this->execute(f, n, shared_init);
+      });
+    }
+
+    template<class T1, class Function, class T2>
+    std::future<void> then_execute(std::future<T1>& fut, Function f, size_t n, T2&& shared_init)
+    {
+      return detail::then(fut, std::launch::deferred, [=](std::future<T1>& predecessor) mutable
+      {
+        using second_type = typename std::decay<T2>::type;
+
+        this->execute([=](size_t idx, std::pair<T1,second_type>& p) mutable
+        {
+          f(idx, p.first, p.second);
+        },
+        n,
+        std::make_pair(std::move(predecessor.get()), std::move(shared_init))
+        );
       });
     }
 };

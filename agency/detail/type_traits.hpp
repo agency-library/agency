@@ -329,6 +329,14 @@ struct lazy_add_lvalue_reference
 };
 
 
+template<class T, template<class...> class Template>
+struct is_instance_of : std::false_type {};
+
+
+template<class... Types, template<class...> class Template>
+struct is_instance_of<Template<Types...>,Template> : std::true_type {};
+
+
 } // end detail
 } // end agency
 

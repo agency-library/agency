@@ -157,7 +157,7 @@ struct function_with_shared_arguments
   using outer_shared_type = decay_construct_result_t<OuterSharedInit>;
   using inner_shared_type = decay_construct_result_t<InnerSharedInit>;
 
-  Function           f_;
+  Function                                f_;
   outer_shared_parameter<OuterSharedInit> outer_shared_param_;
   InnerSharedInit                         inner_shared_init_;
 
@@ -168,15 +168,30 @@ struct function_with_shared_arguments
       inner_shared_init_(inner_shared_init)
   {}
 
-  template<class Index>
+  template<class Index, class... Args>
   __device__
-  void operator()(const Index& idx)
+  void operator()(const Index& idx, Args&&... args)
   {
     // XXX i don't think we're doing the leader calculation in a portable way
     //     this wouldn't work for ND CTAs
     inner_shared_parameter<InnerSharedInit> inner_shared_param(idx[1] == 0, inner_shared_init_);
 
-    f_(idx, outer_shared_param_.get(), inner_shared_param.get());
+    f_(idx, std::forward<Args>(args)..., outer_shared_param_.get(), inner_shared_param.get());
+  }
+};
+
+
+template<class Function, class T>
+struct function_with_past_parameter
+{
+  Function f_;
+  T* past_param_ptr_;
+
+  template<class Index>
+  __device__
+  void operator()(const Index& idx)
+  {
+    f_(idx, *past_param_ptr_);
   }
 };
 
@@ -186,6 +201,49 @@ __global__ void grid_executor_kernel(Function f)
 {
   f(ThisIndexFunction{}());
 }
+
+
+template<class ThisIndexFunction, class Function, class PastParameterType = void, class OuterSharedInitType = void, class InnerSharedInitType = void>
+struct global_function_pointer_map;
+
+
+template<class ThisIndexFunction, class Function>
+struct global_function_pointer_map<ThisIndexFunction,Function,void,void,void>
+{
+  using function_ptr_type = decltype(&grid_executor_kernel<ThisIndexFunction,Function>);
+
+  __host__ __device__
+  static function_ptr_type get()
+  {
+    return &grid_executor_kernel<ThisIndexFunction,Function>;
+  }
+};
+
+
+template<class ThisIndexFunction, class Function, class PastParameterType>
+struct global_function_pointer_map<ThisIndexFunction,Function,PastParameterType,void,void>
+{
+  using function_ptr_type = decltype(global_function_pointer_map<ThisIndexFunction, detail::function_with_past_parameter<Function,PastParameterType>>::get());
+
+  __host__ __device__
+  static function_ptr_type get()
+  {
+    return global_function_pointer_map<ThisIndexFunction, detail::function_with_past_parameter<Function,PastParameterType>>::get();
+  }
+};
+
+
+template<class ThisIndexFunction, class Function, class PastParameterType, class OuterSharedInitType, class InnerSharedInitType>
+struct global_function_pointer_map
+{
+  using function_ptr_type = decltype(global_function_pointer_map<ThisIndexFunction,detail::function_with_shared_arguments<Function,OuterSharedInitType,InnerSharedInitType>,PastParameterType>::get());
+
+  __host__ __device__
+  static function_ptr_type get()
+  {
+    return global_function_pointer_map<ThisIndexFunction, detail::function_with_shared_arguments<Function,OuterSharedInitType,InnerSharedInitType>, PastParameterType>::get();
+  }
+};
 
 
 void grid_executor_notify(cudaStream_t stream, cudaError_t status, void* data)
@@ -257,45 +315,59 @@ class basic_grid_executor
     __host__ __device__
     future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
     {
-      this->launch(global_function_pointer(f), f, shape, shared_memory_size(), stream(), dependency.event());
+      this->launch(global_function_pointer<Function>(), f, shape, shared_memory_size(), stream(), dependency.event());
 
+      // XXX should we use this->stream() or dependency->stream()?
+      //     we should really move the resources from dependency into the result since then_execute should consume the dependency
       return future<void>{stream()};
     }
 
-  private:
-    template<class Function, class T1, class T2>
+    template<class T, class Function>
     __host__ __device__
-    future<void> then_execute_with_shared_inits(future<void>& dependency, Function f, shape_type shape, const T1& outer_shared_init, const T2& inner_shared_init,
+    future<void> then_execute(future<T>& dependency, Function f, shape_type shape)
+    {
+      detail::function_with_past_parameter<Function,T> g{f, dependency.ptr()};
+
+      // XXX we need to enqueue a destructor & deallocate for the dependency
+      return then_execute(dependency.void_future(), g, shape);
+    }
+
+  private:
+    template<class T1, class Function, class T2, class T3>
+    __host__ __device__
+    future<void> then_execute_with_shared_inits(future<T1>& dependency, Function f, shape_type shape, const T2& outer_shared_init, const T3& inner_shared_init,
                                                 typename std::enable_if<
-                                                  is_ignorable_shared_parameter<T1>::value
+                                                  is_ignorable_shared_parameter<T2>::value
                                                 >::type* = 0)
     {
       // no need to marshal the outer arg through gmem because it is empty
       
       // wrap up f in a thing that will marshal the shared arguments to it
       // note the .release()
-      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, 0, inner_shared_init);
+      auto g = detail::function_with_shared_arguments<Function, T2, T3>(f, 0, inner_shared_init);
 
       return this->then_execute(dependency, g, shape);
     }
 
-    template<class Function, class T1, class T2>
+    template<class T1, class Function, class T2, class T3>
     __host__ __device__
-    future<void> then_execute_with_shared_inits(future<void>& dependency, Function f, shape_type shape, const T1& outer_shared_init, const T2& inner_shared_init,
+    future<void> then_execute_with_shared_inits(future<T1>& dependency, Function f, shape_type shape, const T2& outer_shared_init, const T3& inner_shared_init,
                                                 typename std::enable_if<
-                                                  !is_ignorable_shared_parameter<T1>::value
+                                                  !is_ignorable_shared_parameter<T2>::value
                                                 >::type* = 0)
     {
+      // XXX couldn't we implement outer_shared_init as a ready future?
+      
       // XXX move decay_construct inside of make_unique
       auto outer_shared_arg = agency::decay_construct(outer_shared_init);
-      using outer_shared_arg_t = typename decay_construct_result<T1>::type;
+      using outer_shared_arg_t = typename decay_construct_result<T2>::type;
 
       // make outer shared argument
       auto outer_shared_arg_ptr = detail::make_unique<outer_shared_arg_t>(stream(), outer_shared_arg);
 
       // wrap up f in a thing that will marshal the shared arguments to it
       // note the .release()
-      auto g = detail::function_with_shared_arguments<Function, T1, T2>(f, outer_shared_arg_ptr.release(), inner_shared_init);
+      auto g = detail::function_with_shared_arguments<Function, T2, T3>(f, outer_shared_arg_ptr.release(), inner_shared_init);
 
       // XXX to destroy the outer_shared_arg, we need to do another then_execute(...)
       // XXX to deallocate the outer_shared_arg's storage, we need to enqueue a free after the 2nd then_execute somehow
@@ -310,35 +382,36 @@ class basic_grid_executor
     // XXX probably shouldn't expose this -- max_shape() seems good enough
     template<class Function>
     __host__ __device__
-    static decltype(&detail::grid_executor_kernel<ThisIndexFunction,Function>)
-      global_function_pointer(const Function&)
+    static typename detail::global_function_pointer_map<ThisIndexFunction, Function>::function_ptr_type
+      global_function_pointer()
     {
-      return &detail::grid_executor_kernel<ThisIndexFunction, Function>;
+      return detail::global_function_pointer_map<ThisIndexFunction, Function>::get();
     }
 
 
-    template<class Function, class T1, class T2>
+    template<class Function, class PastParameterType>
     __host__ __device__
-    static decltype(
-      &detail::grid_executor_kernel<
-        ThisIndexFunction,
-        detail::function_with_shared_arguments<Function, T1, T2>
-      >
-    )
-      global_function_pointer(const Function&, const T1&, const T2&)
+    static typename detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType>::function_ptr_type
+      global_function_pointer()
     {
-      return &detail::grid_executor_kernel<
-        ThisIndexFunction,
-        detail::function_with_shared_arguments<Function,T1,T2>
-      >;
+      return detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType>::get();
     }
 
 
-    template<class Function, class T1, class T2>
+    template<class Function, class PastParameterType, class OuterSharedInitType, class InnerSharedInitType>
     __host__ __device__
-    future<void> then_execute(future<void>& dependency, Function f, shape_type shape, T1&& outer_shared_init, T2&& inner_shared_init)
+    static typename detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType, OuterSharedInitType, InnerSharedInitType>::function_ptr_type
+      global_function_pointer()
     {
-      return then_execute_with_shared_inits(dependency, f, shape, std::forward<T1>(outer_shared_init), std::forward<T2>(inner_shared_init));
+      return detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType, OuterSharedInitType, InnerSharedInitType>::get();
+    }
+
+
+    template<class T1, class Function, class T2, class T3>
+    __host__ __device__
+    future<void> then_execute(future<T1>& dependency, Function f, shape_type shape, T2&& outer_shared_init, T3&& inner_shared_init)
+    {
+      return then_execute_with_shared_inits(dependency, f, shape, std::forward<T2>(outer_shared_init), std::forward<T3>(inner_shared_init));
     }
 
 
@@ -502,16 +575,23 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
   public:
     template<class Function>
     __host__ __device__
-    shape_type max_shape(const Function& f) const
+    shape_type max_shape(const Function&) const
     {
-      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer(f)));
+      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function>()));
     }
 
-    template<class Function, class T1, class T2>
+    template<class T, class Function>
     __host__ __device__
-    shape_type max_shape(const Function& f, const T1& outer_shared_init, const T2& inner_shared_init) const
+    shape_type max_shape(const future<T>&, const Function&)
     {
-      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer(f, outer_shared_init, inner_shared_init)));
+      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function,T>()));
+    }
+
+    template<class T1, class Function, class T2, class T3>
+    __host__ __device__
+    shape_type max_shape(const future<T1>&, const Function&, const T2&, const T3&) const
+    {
+      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function,T1,T2,T3>()));
     }
 };
 
@@ -622,14 +702,14 @@ class flattened_executor<cuda::grid_executor>
         base_executor_(base_executor)
     {}
 
-    template<class Function>
-    future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
+    template<class T, class Function>
+    future<void> then_execute(future<T>& dependency, Function f, shape_type shape)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
 
       // partition up the iteration space
-      auto partitioning = partition(dummy_function, shape);
+      auto partitioning = partition(dependency, dummy_function, shape);
 
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
@@ -637,14 +717,14 @@ class flattened_executor<cuda::grid_executor>
       return base_executor().then_execute(dependency, execute_me, partitioning);
     }
 
-    template<class Function, class T>
-    future<void> then_execute(future<void>& dependency, Function f, shape_type shape, T shared_init)
+    template<class T1, class Function, class T2>
+    future<void> then_execute(future<T1>& dependency, Function f, shape_type shape, T2 shared_init)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
 
       // partition up the iteration space
-      auto partitioning = partition(dummy_function, shape, shared_init, agency::detail::ignore);
+      auto partitioning = partition(dependency, dummy_function, shape, shared_init, agency::detail::ignore);
 
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
@@ -692,11 +772,11 @@ class flattened_executor<cuda::grid_executor>
     }
 
     // returns (outer size, inner size)
-    template<class Function, class T1, class T2>
+    template<class T1, class Function, class T2, class T3>
     __host__ __device__
-    partition_type partition(const Function& f, shape_type shape, const T1& outer_shared_init, const T2& inner_shared_init) const
+    partition_type partition(const future<T1>& dependency, const Function& f, shape_type shape, const T2& outer_shared_init, const T3& inner_shared_init) const
     {
-      return partition_impl(base_executor().max_shape(f,outer_shared_init,inner_shared_init), shape);
+      return partition_impl(base_executor().max_shape(dependency,f,outer_shared_init,inner_shared_init), shape);
     }
 
     size_t min_inner_size_;

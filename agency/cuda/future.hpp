@@ -42,6 +42,7 @@ class future<void>
       : stream_{0}, event_{0}
     {}
 
+    // XXX this should be private
     // XXX stream_ should default to per-thread default stream
     __host__ __device__
     future(cudaEvent_t e)
@@ -54,10 +55,10 @@ class future<void>
       : stream_{s}
     {
 #if __cuda_lib_has_cudart
-      detail::throw_on_error(cudaEventCreateWithFlags(&event_, event_create_flags), "cudaEventCreateWithFlags in future ctor");
-      detail::throw_on_error(cudaEventRecord(event_, stream_), "cudaEventRecord in future ctor");
+      detail::throw_on_error(cudaEventCreateWithFlags(&event_, event_create_flags), "cudaEventCreateWithFlags in agency::cuda::future<void> ctor");
+      detail::throw_on_error(cudaEventRecord(event_, stream_), "cudaEventRecord in agency::cuda::future<void> ctor");
 #else
-      detail::terminate_with_message("agency::cuda::detail::future ctor requires CUDART");
+      detail::terminate_with_message("agency::cuda::future<void> ctor requires CUDART");
 #endif // __cuda_lib_has_cudart
     } // end future()
 
@@ -89,7 +90,7 @@ class future<void>
 #if __cuda_lib_has_printf
         if(e)
         {
-          printf("CUDA error after cudaEventDestroy in future dtor: %s", cudaGetErrorString(e));
+          printf("CUDA error after cudaEventDestroy in agency::cuda::future<void> dtor: %s", cudaGetErrorString(e));
         } // end if
 #endif // __cuda_lib_has_printf
 #endif // __cuda_lib_has_cudart
@@ -105,14 +106,14 @@ class future<void>
 
 #ifndef __CUDA_ARCH__
       // XXX need to capture the error as an exception and then throw it in .get()
-      detail::throw_on_error(cudaEventSynchronize(event_), "cudaEventSynchronize in future::wait");
+      detail::throw_on_error(cudaEventSynchronize(event_), "cudaEventSynchronize in agency::cuda<void>::future::wait");
 #else
       // XXX need to capture the error as an exception and then throw it in .get()
-      detail::throw_on_error(cudaDeviceSynchronize(), "cudaDeviceSynchronize in future::wait");
+      detail::throw_on_error(cudaDeviceSynchronize(), "cudaDeviceSynchronize in agency::cuda<void>::future::wait");
 #endif // __CUDA_ARCH__
 
 #else
-      detail::terminate_with_message("agency::cuda::detail::future::wait() requires CUDART");
+      detail::terminate_with_message("agency::cuda::future<void>::wait() requires CUDART");
 #endif // __cuda_lib_has_cudart
     } // end wait()
 
@@ -146,12 +147,19 @@ class future<void>
       cudaEvent_t ready_event = 0;
 
 #if __cuda_lib_has_cudart
-      detail::throw_on_error(cudaEventCreateWithFlags(&ready_event, event_create_flags), "cudaEventCreateWithFlags in future<void>::make_ready_future");
+      detail::throw_on_error(cudaEventCreateWithFlags(&ready_event, event_create_flags), "cudaEventCreateWithFlags in agency::cuda::future<void>::make_ready");
 #else
-      detail::terminate_with_message("agency::cuda::detail::future::make_ready() requires CUDART");
+      detail::terminate_with_message("agency::cuda::future<void>::make_ready() requires CUDART");
 #endif
 
       return future<void>{ready_event};
+    }
+
+    // XXX this is only used by grid_executor::then_execute()
+    __host__ __device__
+    std::nullptr_t ptr()
+    {
+      return nullptr;
     }
 
   private:
@@ -181,6 +189,7 @@ class future
       : event_()
     {}
 
+    // XXX this should be private
     template<class U>
     __host__ __device__
     future(U&& value, future<void>& e)
@@ -230,11 +239,13 @@ class future
       return event_.valid();
     } // end valid()
 
+    // XXX only used by grid_executor
+    //     think of a better way to expose this
     __host__ __device__
-    cudaEvent_t event() const
+    future<void>& void_future()
     {
-      return event_.event();
-    } // end event()
+      return event_;
+    } // end void_future()
 
     template<class U>
     __host__ __device__
@@ -243,6 +254,13 @@ class future
       auto event = future<void>::make_ready();
 
       return future<T>{std::forward<U>(value), event};
+    }
+
+    // XXX this is only used by grid_executor::then_execute()
+    __host__ __device__
+    T* ptr()
+    {
+      return value_.get();
     }
 
   private:
@@ -260,9 +278,9 @@ future<void> make_ready_future()
 
 template<class T>
 inline __host__ __device__
-future<T> make_ready_future(T&& value)
+future<typename std::decay<T>::type> make_ready_future(T&& value)
 {
-  return future<T>::make_ready(std::forward<T>(value));
+  return future<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
 } // end make_ready_future()
 
 

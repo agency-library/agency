@@ -106,10 +106,31 @@ class nested_executor
         }
       };
 
+      template<class OuterIndex, class PastSharedType, class OuterSharedType>
+      struct then_execute_inner_functor_with_past_parameter
+      {
+        Function f;
+        OuterIndex outer_idx;
+        PastSharedType& past_shared;
+        OuterSharedType& outer_shared;
+
+        template<class InnerIndex, class... T>
+        void operator()(const InnerIndex& inner_idx, T&... inner_shared)
+        {
+          f(make_index(outer_idx, inner_idx), past_shared, outer_shared, inner_shared...);
+        }
+      };
+
       template<size_t... Indices, class OuterIndex, class T>
       void invoke_execute(detail::index_sequence<Indices...>, const OuterIndex& outer_idx, T& outer_shared)
       {
         inner_traits::execute(exec.inner_executor(), then_execute_inner_functor<OuterIndex,T>{f, outer_idx, outer_shared}, inner_shape, detail::get<Indices>(inner_shared_inits)...);
+      }
+
+      template<size_t... Indices, class OuterIndex, class T1, class T2>
+      void invoke_execute(detail::index_sequence<Indices...>, const OuterIndex& outer_idx, T1& past_shared, T2& outer_shared)
+      {
+        inner_traits::execute(exec.inner_executor(), then_execute_inner_functor_with_past_parameter<OuterIndex,T1,T2>{f, outer_idx, past_shared, outer_shared}, inner_shape, detail::get<Indices>(inner_shared_inits)...);
       }
 
       template<class OuterIndex, class T>
@@ -117,12 +138,19 @@ class nested_executor
       {
         invoke_execute(detail::index_sequence_for<InnerSharedType...>(), outer_idx, outer_shared);
       }
+
+      template<class OuterIndex, class T1, class T2>
+      void operator()(const OuterIndex& outer_idx, T1& past_shared, T2& outer_shared)
+      {
+        invoke_execute(detail::index_sequence_for<InnerSharedType...>(), outer_idx, past_shared, outer_shared);
+      }
     };
     
 
   public:
-    template<class Function, class T, class... Types>
-    future<void> then_execute(future<void>& fut, Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
+    // XXX Future is a template parameter because future<T> is an alias, which interferes with template deduction
+    template<class Future, class Function, class T1, class... Types>
+    future<void> then_execute(Future& fut, Function f, shape_type shape, T1&& outer_shared_init, Types&&... inner_shared_inits)
     {
       static_assert(detail::execution_depth<execution_category>::value == 1 + sizeof...(Types), "Number of shared arguments must be the same as the depth of execution_category.");
 
@@ -135,15 +163,15 @@ class nested_executor
         fut,
         then_execute_outer_functor<Function,typename std::decay<Types>::type...>{*this, f, inner_shape, detail::forward_as_tuple(inner_shared_inits...)},
         outer_shape,
-        std::forward<T>(outer_shared_init)
+        std::forward<T1>(outer_shared_init)
       );
 
       // XXX use this implementation upon c++14:
-      //return outer_traits::then_execute(outer_executor(), fut, [=](const auto& outer_idx, auto& outer_shared_param)
+      //return outer_traits::then_execute(outer_executor(), fut, [=](const auto& outer_idx, auto& past_shared_param, auto& outer_shared_param)
       //{
       //  inner_traits::execute(inner_executor(), [=,&outer_shared_param](const auto& inner_idx, auto&... inner_shared_parms)
       //  {
-      //    f(make_index(outer_idx, inner_idx), outer_shared_param, inner_shared_params...);
+      //    f(make_index(outer_idx, inner_idx), past_shared_param, outer_shared_param, inner_shared_params...);
       //  },
       //  inner_shape,
       //  inner_shared_inits...
