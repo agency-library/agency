@@ -203,6 +203,49 @@ __global__ void grid_executor_kernel(Function f)
 }
 
 
+template<class ThisIndexFunction, class Function, class PastParameterType = void, class OuterSharedInitType = void, class InnerSharedInitType = void>
+struct global_function_pointer_map;
+
+
+template<class ThisIndexFunction, class Function>
+struct global_function_pointer_map<ThisIndexFunction,Function,void,void,void>
+{
+  using function_ptr_type = decltype(&grid_executor_kernel<ThisIndexFunction,Function>);
+
+  __host__ __device__
+  static function_ptr_type get()
+  {
+    return &grid_executor_kernel<ThisIndexFunction,Function>;
+  }
+};
+
+
+template<class ThisIndexFunction, class Function, class PastParameterType>
+struct global_function_pointer_map<ThisIndexFunction,Function,PastParameterType,void,void>
+{
+  using function_ptr_type = decltype(global_function_pointer_map<ThisIndexFunction, detail::function_with_past_parameter<Function,PastParameterType>>::get());
+
+  __host__ __device__
+  static function_ptr_type get()
+  {
+    return global_function_pointer_map<ThisIndexFunction, detail::function_with_past_parameter<Function,PastParameterType>>::get();
+  }
+};
+
+
+template<class ThisIndexFunction, class Function, class PastParameterType, class OuterSharedInitType, class InnerSharedInitType>
+struct global_function_pointer_map
+{
+  using function_ptr_type = decltype(global_function_pointer_map<ThisIndexFunction,detail::function_with_shared_arguments<Function,OuterSharedInitType,InnerSharedInitType>,PastParameterType>::get());
+
+  __host__ __device__
+  static function_ptr_type get()
+  {
+    return global_function_pointer_map<ThisIndexFunction, detail::function_with_shared_arguments<Function,OuterSharedInitType,InnerSharedInitType>, PastParameterType>::get();
+  }
+};
+
+
 void grid_executor_notify(cudaStream_t stream, cudaError_t status, void* data)
 {
   std::unique_ptr<std::promise<void>> promise(reinterpret_cast<std::promise<void>*>(data));
@@ -272,7 +315,7 @@ class basic_grid_executor
     __host__ __device__
     future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
     {
-      this->launch(global_function_pointer(f), f, shape, shared_memory_size(), stream(), dependency.event());
+      this->launch(global_function_pointer<Function>(), f, shape, shared_memory_size(), stream(), dependency.event());
 
       // XXX should we use this->stream() or dependency->stream()?
       //     we should really move the resources from dependency into the result since then_execute should consume the dependency
@@ -337,104 +380,30 @@ class basic_grid_executor
     // this is exposed because it's necessary if a client wants to compute occupancy
     // alternatively, cuda_executor could report occupancy of a Function for a given block size
     // XXX probably shouldn't expose this -- max_shape() seems good enough
-    // XXX if we do expose these functions, we really, really need to clean up their implementation
-    //     they should just lower onto one another
     template<class Function>
     __host__ __device__
-    static decltype(&detail::grid_executor_kernel<ThisIndexFunction,Function>)
-      global_function_pointer(const Function&)
+    static typename detail::global_function_pointer_map<ThisIndexFunction, Function>::function_ptr_type
+      global_function_pointer()
     {
-      return &detail::grid_executor_kernel<ThisIndexFunction, Function>;
+      return detail::global_function_pointer_map<ThisIndexFunction, Function>::get();
     }
 
 
-    template<class Function>
+    template<class Function, class PastParameterType>
     __host__ __device__
-    static decltype(
-      &detail::grid_executor_kernel<
-        ThisIndexFunction,
-        Function
-      >
-    )
-      global_function_pointer(const future<void>&, const Function&)
+    static typename detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType>::function_ptr_type
+      global_function_pointer()
     {
-      return &detail::grid_executor_kernel<
-        ThisIndexFunction,
-        Function
-      >;
+      return detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType>::get();
     }
 
 
-    template<class T, class Function>
+    template<class Function, class PastParameterType, class OuterSharedInitType, class InnerSharedInitType>
     __host__ __device__
-    static decltype(
-      &detail::grid_executor_kernel<
-        ThisIndexFunction,
-        detail::function_with_past_parameter<Function,T>
-      >
-    )
-      global_function_pointer(const future<T>&, const Function&)
+    static typename detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType, OuterSharedInitType, InnerSharedInitType>::function_ptr_type
+      global_function_pointer()
     {
-      return &detail::grid_executor_kernel<
-        ThisIndexFunction,
-        detail::function_with_past_parameter<Function,T>
-      >;
-    }
-
-
-    template<class Function, class T1, class T2>
-    __host__ __device__
-    static decltype(
-      &detail::grid_executor_kernel<
-        ThisIndexFunction,
-        detail::function_with_shared_arguments<
-          Function,
-          T1,
-          T2
-        >
-      >
-    )
-      global_function_pointer(const future<void>&, const Function&, const T1&, const T2&)
-    {
-      return &detail::grid_executor_kernel<
-        ThisIndexFunction,
-        detail::function_with_shared_arguments<
-          Function,
-          T1,
-          T2
-        >
-      >;
-    }
-
-
-    template<class T1, class Function, class T2, class T3>
-    __host__ __device__
-    static decltype(
-      &detail::grid_executor_kernel<
-        ThisIndexFunction,
-        detail::function_with_shared_arguments<
-          detail::function_with_past_parameter<
-            Function,
-            T1
-          >,
-          T2,
-          T3
-        >
-      >
-    )
-      global_function_pointer(const future<T1>&, const Function&, const T2&, const T3&)
-    {
-      return &detail::grid_executor_kernel<
-        ThisIndexFunction,
-        detail::function_with_shared_arguments<
-          detail::function_with_past_parameter<
-            Function,
-            T1
-          >,
-          T2,
-          T3
-        >
-      >;
+      return detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType, OuterSharedInitType, InnerSharedInitType>::get();
     }
 
 
@@ -606,23 +575,23 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
   public:
     template<class Function>
     __host__ __device__
-    shape_type max_shape(const Function& f) const
+    shape_type max_shape(const Function&) const
     {
-      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer(f)));
+      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function>()));
     }
 
     template<class T, class Function>
     __host__ __device__
-    shape_type max_shape(const future<T>& dependency, const Function& f)
+    shape_type max_shape(const future<T>&, const Function&)
     {
-      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer(dependency, f)));
+      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function,T>()));
     }
 
     template<class T1, class Function, class T2, class T3>
     __host__ __device__
-    shape_type max_shape(const future<T1>& dependency, const Function& f, const T2& outer_shared_init, const T3& inner_shared_init) const
+    shape_type max_shape(const future<T1>&, const Function&, const T2&, const T3&) const
     {
-      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer(dependency, f, outer_shared_init, inner_shared_init)));
+      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function,T1,T2,T3>()));
     }
 };
 
