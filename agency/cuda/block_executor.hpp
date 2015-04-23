@@ -50,7 +50,7 @@ class block_executor : private grid_executor
     using index_type = unsigned int;
 
     template<class T>
-    using future = typename super_traits::template future<T>;
+    using future = super_traits::future<T>;
 
     future<void> make_ready_future()
     {
@@ -70,8 +70,8 @@ class block_executor : private grid_executor
       return super_t::max_shape(f).y;
     }
 
-    template<class Function, class T>
-    future<void> then_execute(future<void>& dependency, Function f, shape_type shape, T&& shared_init)
+    template<class Future, class Function, class T>
+    future<void> then_execute(Future& dependency, Function f, shape_type shape, T&& shared_init)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
       return super_traits::then_execute(*this, dependency, g, super_t::shape_type{1,shape}, agency::detail::ignore, std::forward<T>(shared_init));

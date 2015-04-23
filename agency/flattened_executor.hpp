@@ -29,7 +29,7 @@ class flattened_executor
     using shape_type = size_t;
 
     template<class T>
-    using future = typename executor_traits<Executor>::template future<T>;
+    using future = typename executor_traits<base_executor_type>::template future<T>;
 
     future<void> make_ready_future()
     {
@@ -42,8 +42,8 @@ class flattened_executor
         base_executor_(base_executor)
     {}
 
-    template<class Function, class T>
-    future<void> then_execute(future<void>& dependency, Function f, shape_type shape, T&& shared_arg)
+    template<class Future, class Function, class T>
+    future<void> then_execute(Future& dependency, Function f, shape_type shape, T&& shared_arg)
     {
       return this->then_execute_impl(base_executor(), dependency, f, shape, std::forward<T>(shared_arg));
     }
@@ -61,15 +61,15 @@ class flattened_executor
   private:
     using partition_type = typename executor_traits<base_executor_type>::shape_type;
 
-    template<class OtherExecutor, class Function, class T>
-    future<void> then_execute_impl(OtherExecutor& exec, future<void>& dependency, Function f, shape_type shape, T&& shared_init)
+    template<class Function>
+    struct then_execute_generic_functor
     {
-      auto partitioning = partition(shape);
+      Function f;
+      shape_type shape;
+      partition_type partitioning;
 
-      using index_type = typename executor_traits<OtherExecutor>::index_type;
-      using outer_shared_param_type = decay_construct_result_t<typename std::decay<T>::type>;
-
-      return executor_traits<OtherExecutor>::then_execute(exec, dependency, [=](const index_type& idx, outer_shared_param_type& outer_shared_param, const agency::detail::ignore_t&) mutable
+      template<class Index, class T>
+      void operator()(const Index& idx, T& outer_shared_param, const agency::detail::ignore_t&)
       {
         auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning) + agency::detail::get<1>(idx);
 
@@ -77,23 +77,38 @@ class flattened_executor
         {
           f(flat_idx, outer_shared_param);
         }
-      },
-      partitioning,
-      std::forward<T>(shared_init),
-      agency::detail::ignore
-      );
-    }
+      }
 
-    // we can avoid the if(flat_idx < shape) branch above by providing a specialization for nested_executor
-    template<class OuterExecutor, class InnerExecutor, class Function, class T>
-    future<void> then_execute_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, future<void>& dependency, Function f, shape_type shape, T&& shared_init)
+      template<class Index, class T1, class T2>
+      void operator()(const Index& idx, T1& past_shared_param, T2& outer_shared_param, const agency::detail::ignore_t&)
+      {
+        auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning) + agency::detail::get<1>(idx);
+
+        if(flat_idx < shape)
+        {
+          f(flat_idx, past_shared_param, outer_shared_param);
+        }
+      }
+    };
+
+    template<class OtherExecutor, class Future, class Function, class T>
+    future<void> then_execute_impl(OtherExecutor& exec, Future& dependency, Function f, shape_type shape, T&& shared_init)
     {
       auto partitioning = partition(shape);
 
-      using outer_index_type = typename executor_traits<OuterExecutor>::index_type;
-      using shared_param_type = decay_construct_result_t<typename std::decay<T>::type>;
+      return executor_traits<OtherExecutor>::then_execute(exec, dependency, then_execute_generic_functor<Function>{f, shape, partitioning}, partitioning, std::forward<T>(shared_init), agency::detail::ignore);
+    }
 
-      return executor_traits<OuterExecutor>::then_execute(exec.outer_executor(), dependency, [=,&exec](const outer_index_type& outer_idx, shared_param_type& shared_param) mutable
+    template<class Function, class OuterExecutor, class InnerExecutor>
+    struct then_execute_nested_functor
+    {
+      nested_executor<OuterExecutor,InnerExecutor>& exec;
+      Function                                      f;
+      shape_type                                    shape;
+      partition_type                                partitioning;
+
+      template<class Index, class T>
+      void operator()(const Index& outer_idx, T& shared_param)
       {
         auto subgroup_begin = outer_idx * agency::detail::get<1>(partitioning);
         auto subgroup_end   = std::min(shape, subgroup_begin + agency::detail::get<1>(partitioning));
@@ -108,10 +123,37 @@ class flattened_executor
         },
         subgroup_end - subgroup_begin
         );
-      },
-      agency::detail::get<0>(partitioning),
-      std::forward<T>(shared_init)
-      );
+      }
+
+      template<class Index, class T1, class T2>
+      void operator()(const Index& outer_idx, T1& past_shared_param, T2& shared_param)
+      {
+        auto subgroup_begin = outer_idx * agency::detail::get<1>(partitioning);
+        auto subgroup_end   = std::min(shape, subgroup_begin + agency::detail::get<1>(partitioning));
+
+        using inner_index_type = typename executor_traits<InnerExecutor>::index_type;
+
+        executor_traits<InnerExecutor>::execute(exec.inner_executor(), [=,&past_shared_param,&shared_param](const inner_index_type& inner_idx) mutable
+        {
+          auto index = subgroup_begin + inner_idx;
+    
+          f(index, past_shared_param, shared_param);
+        },
+        subgroup_end - subgroup_begin
+        );
+      }
+    };
+
+    // we can avoid the if(flat_idx < shape) branch above by providing a specialization for nested_executor
+    template<class OuterExecutor, class InnerExecutor, class Future, class Function, class T>
+    future<void> then_execute_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Future& dependency, Function f, shape_type shape, T&& shared_init)
+    {
+      auto partitioning = partition(shape);
+      return executor_traits<OuterExecutor>::then_execute(exec.outer_executor(),
+                                                          dependency,
+                                                          then_execute_nested_functor<Function,OuterExecutor,InnerExecutor>{exec,f,shape,partitioning},
+                                                          agency::detail::get<0>(partitioning),
+                                                          std::forward<T>(shared_init));
     }
 
     // returns (outer size, inner size)
