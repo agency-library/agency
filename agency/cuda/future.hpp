@@ -124,6 +124,12 @@ class future<void>
     } // end get()
 
     __host__ __device__
+    future<void> discard_value()
+    {
+      return std::move(*this);
+    } // end discard_value()
+
+    __host__ __device__
     bool valid() const
     {
       return event_ != 0;
@@ -232,6 +238,12 @@ class future
 
       return *value_;
     } // end get()
+
+    __host__ __device__
+    future<void> discard_value()
+    {
+      return std::move(event_);
+    } // end discard_value()
 
     __host__ __device__
     bool valid() const
