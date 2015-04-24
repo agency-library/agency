@@ -192,6 +192,34 @@ struct future_traits
   {
     return rebind<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
   }
+
+  private:
+  template<class Future1>
+  struct has_discard_value
+  {
+    template<class Future2,
+             class = decltype(std::declval<Future2*>->discard_value())
+            >
+    static std::true_type test(int);
+
+    template<class>
+    static std::false_type test(...);
+
+    using type = decltype(test<Future1>);
+  };
+
+  static rebind<void> discard_value(future_type& fut, std::true_type)
+  {
+    return fut.discard_value();
+  }
+
+  public:
+
+  __AGENCY_ANNOTATION
+  static rebind<void> discard_value(future_type& fut)
+  {
+    return future_traits::discard_value(fut, typename has_discard_value<future_type>::type());
+  }
 };
 
 
@@ -214,6 +242,16 @@ struct future_traits<std::future<T>>
   static rebind<typename std::decay<U>::type> make_ready(U&& value)
   {
     return detail::make_ready_future(std::forward<U>(value));
+  }
+
+  template<class Future,
+           class = typename std::enable_if<
+             std::is_same<Future,future_type>::value &&
+             std::is_empty<typename future_traits<Future>::value_type>::value
+           >::type>
+  static std::future<void> discard_value(Future& fut)
+  {
+    return std::move(*reinterpret_cast<std::future<void>*>(&fut));
   }
 };
 

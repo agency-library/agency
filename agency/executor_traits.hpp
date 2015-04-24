@@ -5,6 +5,7 @@
 #include <agency/detail/bind.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/detail/tuple.hpp>
+#include <agency/detail/shape_cast.hpp>
 
 
 namespace agency
@@ -302,6 +303,96 @@ struct executor_traits
       return make_ready_future_impl(ex, std::forward<T>(value), has_make_ready_future<typename std::decay<T>::type>());
     }
 
+
+  private:
+    template<class Executor1, class T, class Future>
+    struct has_future_cast_impl
+    {
+      template<
+        class Executor2,
+        typename = decltype(std::declval<Executor2*>()->template future_cast<T>(std::declval<Future>()))
+      >
+      static std::true_type test(int);
+    
+      template<class>
+      static std::false_type test(...);
+    
+      using type = decltype(test<Executor1>(0));
+    };
+
+    template<class T, class Future>
+    using has_future_cast = typename has_future_cast_impl<executor_type,T,Future>::type;
+
+    template<class T, class Future>
+    static future<T> future_cast_impl2(executor_type& ex, Future& from, std::true_type)
+    {
+      return ex.template future_cast<T>(from);
+    }
+
+    template<class T, class Future>
+    static future<T> future_cast_impl2(executor_type& ex, Future& from, std::false_type)
+    {
+      using value_type = typename future_traits<Future>::value_type;
+
+      return executor_traits::then_execute(ex, from, [](index_type, value_type& from_value)
+      {
+        return static_cast<T>(std::move(from_value));
+      },
+      detail::shape_cast<shape_type>(1)
+      );
+    }
+
+    template<class Future>
+    struct has_discard_value_impl
+    {
+      template<class Future1,
+               typename = decltype(future_traits<Future1>::discard_value())
+              >
+      static std::true_type test(int);
+
+      template<class>
+      static std::false_type test(...);
+
+      using type = decltype(test<Future>(0));
+    };
+
+    template<class Future>
+    using has_discard_value = typename has_discard_value_impl<Future>::type;
+
+    // check for cheap cast to void
+    template<class T, class Future,
+             class = typename std::enable_if<
+               is_future<Future>::value && std::is_void<T>::value
+             >::type,
+             class = typename std::enable_if<
+               has_discard_value<Future>::value
+             >::type
+            >
+    static future<T> future_cast_impl1(executor_type&, Future& from)
+    {
+      // we don't need to involve the executor at all
+      return future_traits<Future>::discard_value(from);
+    }
+
+    template<class T, class Future,
+             class = typename std::enable_if<
+               !is_future<Future>::value || !std::is_void<T>::value || !has_discard_value<Future>::value
+             >::type
+            >
+    static future<T> future_cast_impl1(executor_type& ex, Future& from)
+    {
+      return future_cast_impl2<T>(ex, from, has_future_cast<T,Future>());
+    }
+
+  public:
+    template<class T, class Future>
+    static future<T> future_cast(executor_type& ex, Future& from)
+    {
+      return future_cast_impl1<T>(ex, from);
+    }
+
+    // XXX generalize this to interoperate with other Futures
+    // XXX we can use async_execute & call fut.get() when depending on foreign Futures
     template<class Future, class Function, class T1, class... Types,
              class = typename std::enable_if<
                is_future<Future>::value
