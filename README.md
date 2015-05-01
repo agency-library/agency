@@ -11,19 +11,16 @@ The `bulk_invoke` function creates groups of execution agents which all invoke a
       using namespace agency;
       auto n = std::distance(first, last);
 
-      // chop up data into partitions
-      auto partition_size = 10000;
-      auto num_partitions = (n + partition_size - 1) / partition_size;
-      std::vector<T> partial_sums(num_partitions);
-
-      bulk_invoke(par(num_partitions), [=,&partial_sums](parallel_agent& g)
+      // reduce partitions of data into partial sums
+      auto partial_sums = bulk_invoke(par, [=](parallel_agent& g)
       {
         auto i = g.index();
+        auto partition_size = (n + g.group_size() - 1) / g.group_size();
 
         auto partition_begin = first + partition_size * i;
         auto partition_end   = std::min(last, partition_begin + partition_size);
 
-        partial_sums[i] = reduce(seq, partition_begin + 1, partition_end, *partition_begin, binary_op);
+        return reduce(seq, partition_begin + 1, partition_end, *partition_begin, binary_op);
       });
 
       return reduce(seq, partial_sums.begin(), partial_sums.end(), init, binary_op);
