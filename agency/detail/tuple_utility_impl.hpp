@@ -1082,10 +1082,43 @@ auto tuple_repeat(const T& x)
 }
 
 
+template<size_t... Indices, class Tuple, class Function>
+TUPLE_UTILITY_ANNOTATION
+auto __tuple_gather_invoke_impl(Tuple&& t, Function f)
+  -> decltype(
+       f(__get<Indices>(std::forward<Tuple>(t))...)
+     )
+{
+  return f(__get<Indices>(std::forward<Tuple>(t))...);
+}
+
+
+template<size_t... Indices, class Tuple, class Function>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_gather_invoke(Tuple&& t, Function f)
+  -> decltype(
+       __tuple_gather_invoke_impl<Indices...>(std::forward<Tuple>(t), f)
+     )
+{
+  return __tuple_gather_invoke_impl<Indices...>(std::forward<Tuple>(t), f);
+}
+
+
+template<size_t... Indices, class Tuple>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_gather(Tuple&& t)
+  -> decltype(
+       tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), __std_tuple_maker{})
+     )
+{
+  return tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), __std_tuple_maker{});
+}
+
+
 #ifndef TUPLE_UTILITY_NAMESPACE_NEEDS_UNDEF
 // if the user defined TUPLE_UTILITY_NAMESPACE, then we need to close the namespace
 } // close namespace
-#endif // TUPLE_UTILITY_NAMESPACE_NEEDS_UNDER
+#endif // TUPLE_UTILITY_NAMESPACE_NEEDS_UNDEF
 
 
 #ifdef TUPLE_UTILITY_ANNOTATION_NEEDS_UNDEF
