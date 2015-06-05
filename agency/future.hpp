@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/exception_list.hpp>
+#include <agency/detail/tuple.hpp>
 #include <future>
 #include <utility>
 
@@ -254,6 +255,181 @@ struct future_traits<std::future<T>>
     return std::move(*reinterpret_cast<std::future<void>*>(&fut));
   }
 };
+
+
+namespace detail
+{
+
+template<class Tuple, size_t = std::tuple_size<Tuple>::value>
+struct unwrap_small_tuple_result
+{
+  using type = Tuple;
+};
+
+template<class Tuple>
+struct unwrap_small_tuple_result<Tuple,0>
+{
+  using type = void;
+};
+
+template<class Tuple>
+struct unwrap_small_tuple_result<Tuple,1>
+{
+  using type = typename std::tuple_element<0,Tuple>::type;
+};
+
+template<class Tuple>
+using unwrap_small_tuple_result_t = typename unwrap_small_tuple_result<Tuple>::type;
+
+
+template<class Tuple>
+void unwrap_small_tuple(Tuple&&,
+                        typename std::enable_if<
+                          std::tuple_size<
+                            typename std::decay<Tuple>::type
+                          >::value == 0
+                        >::type* = 0)
+{}
+
+template<class Tuple>
+unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
+  unwrap_small_tuple(Tuple&& t,
+                     typename std::enable_if<
+                       std::tuple_size<
+                         typename std::decay<Tuple>::type
+                       >::value == 1
+                     >::type* = 0)
+{
+  return std::move(std::get<0>(t));
+}
+
+template<class Tuple>
+unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
+  unwrap_small_tuple(Tuple&& t,
+                     typename std::enable_if<
+                       (std::tuple_size<
+                         typename std::decay<Tuple>::type
+                       >::value > 1)
+                     >::type* = 0)
+{
+  return std::move(t);
+}
+
+
+template<class TypeList>
+struct make_tuple_for_impl;
+
+template<class... Types>
+struct make_tuple_for_impl<type_list<Types...>>
+{
+  using type = detail::tuple<Types...>;
+};
+
+template<class TypeList>
+using make_tuple_for = typename make_tuple_for_impl<TypeList>::type;
+
+
+template<class... Futures>
+struct tuple_of_future_values_impl
+{
+  // want to create type_list<future_value_t<Future>, future_value_t<Futures>...>
+  // and filter void
+
+  // create a list of the value types
+  using value_types = type_list<
+    typename future_traits<Futures>::value_type...
+  >;
+
+  template<class T>
+  struct is_not_void : std::integral_constant<bool, !std::is_void<T>::value> {};
+
+  // get the list of types which are not void
+  using non_void_value_types = type_list_filter<is_not_void, value_types>;
+
+  // create a tuple from the list of types
+  using type = make_tuple_for<non_void_value_types>;
+};
+
+
+template<class... Futures>
+using tuple_of_future_values = typename tuple_of_future_values_impl<Futures...>::type;
+
+
+template<template<class> class FutureTemplate, class... Futures>
+using when_all_result_t = FutureTemplate<
+  unwrap_small_tuple_result_t<tuple_of_future_values<Futures...>>
+>;
+
+
+template<class Future,
+         class = typename std::enable_if<
+           std::is_void<
+             typename future_traits<Future>::value_type
+           >::value
+         >::type
+        >
+detail::tuple<> wrap_value_in_tuple(Future& fut)
+{
+  fut.get();
+  return detail::make_tuple();
+}
+
+
+template<class Future,
+         class = typename std::enable_if<
+           !std::is_void<
+             typename future_traits<Future>::value_type
+           >::value
+         >::type
+        >
+detail::tuple<typename future_traits<Future>::value_type> wrap_value_in_tuple(Future& fut)
+{
+  return detail::make_tuple(fut.get());
+}
+
+
+inline tuple_of_future_values<> get_tuple_of_future_values()
+{
+  return tuple_of_future_values<>();
+}
+
+
+template<class Future, class... Futures>
+tuple_of_future_values<Future,Futures...>
+  get_tuple_of_future_values(Future& future, Futures&... futures)
+{
+  auto head = wrap_value_in_tuple(future);
+  return detail::tuple_cat(head, get_tuple_of_future_values(futures...));
+}
+
+
+struct when_all_functor
+{
+  template<class... Futures>
+  unwrap_small_tuple_result_t<
+    tuple_of_future_values<
+      typename std::decay<Futures>::type...
+    >
+  >
+    operator()(Futures&&... futures)
+  {
+    return unwrap_small_tuple(get_tuple_of_future_values(futures...));
+  }
+};
+
+
+} // end detail
+
+
+template<class... Futures>
+detail::when_all_result_t<
+  std::future,
+  typename std::decay<Futures>::type...
+>
+  when_all(Futures&&... futures)
+{
+  return std::async(std::launch::deferred | std::launch::async, detail::when_all_functor(), std::move(futures)...);
+} // end when_all_result()
 
 
 } // end agency
