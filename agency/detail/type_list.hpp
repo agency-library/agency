@@ -57,6 +57,37 @@ using type_list_cat = typename type_list_cat_impl<TypeList1,TypeList2>::type;
 
 
 template<template<class> class MetaFunction, class TypeList>
+struct type_list_map_impl;
+
+template<template<class> class MetaFunction, class... Types>
+struct type_list_map_impl<MetaFunction,type_list<Types...>>
+{
+  using type = type_list<
+    typename MetaFunction<Types>::type...
+  >;
+};
+
+
+template<template<class> class MetaFunction, class... Types>
+using type_list_map = typename type_list_map_impl<MetaFunction,Types...>::type;
+
+
+template<class IndexSequence, class TypeList>
+struct type_list_gather_impl;
+
+template<size_t... Indices, class... Types>
+struct type_list_gather_impl<index_sequence<Indices...>,type_list<Types...>>
+{
+  using type = type_list<
+    type_list_element<Indices,type_list<Types...>>...
+  >;
+};
+
+template<class IndexSequence, class TypeList>
+using type_list_gather = typename type_list_gather_impl<IndexSequence,TypeList>::type;
+
+
+template<template<class> class MetaFunction, class TypeList>
 struct type_list_filter_impl;
 
 // an empty type_list filters to the empty type_list
