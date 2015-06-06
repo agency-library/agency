@@ -284,6 +284,28 @@ auto tuple_repeat(const T& x)
 }
 
 
+template<template<class T> class MetaFunction, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_filter(Tuple&& t)
+  -> decltype(
+       __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<size_t... Indices, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_gather(Tuple&& t)
+  -> decltype(
+       __tu::tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
 } // end detail
 } // end agency
 
