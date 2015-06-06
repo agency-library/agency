@@ -329,36 +329,33 @@ template<class TypeList>
 using make_tuple_for = typename make_tuple_for_impl<TypeList>::type;
 
 
+struct void_value {};
+
+
+template<class T>
+struct is_not_void_value : std::integral_constant<bool, !std::is_same<T,void_value>::value> {};
+
+
+template<class T>
+struct void_to_void_value : std::conditional<std::is_void<T>::value, void_value, T> {};
+
+
 template<class... Futures>
 struct tuple_of_future_values_impl
 {
-  // want to create type_list<future_value_t<Future>, future_value_t<Futures>...>
-  // and filter void
-
-  // create a list of the value types
   using value_types = type_list<
     typename future_traits<Futures>::value_type...
   >;
 
-  template<class T>
-  struct is_not_void : std::integral_constant<bool, !std::is_void<T>::value> {};
-
-  // get the list of types which are not void
-  using non_void_value_types = type_list_filter<is_not_void, value_types>;
+  // map void to void_value
+  using mapped_value_types = type_list_map<void_to_void_value, value_types>;
 
   // create a tuple from the list of types
-  using type = make_tuple_for<non_void_value_types>;
+  using type = make_tuple_for<mapped_value_types>;
 };
-
 
 template<class... Futures>
 using tuple_of_future_values = typename tuple_of_future_values_impl<Futures...>::type;
-
-
-template<template<class> class FutureTemplate, class... Futures>
-using when_all_result_t = FutureTemplate<
-  unwrap_small_tuple_result_t<tuple_of_future_values<Futures...>>
->;
 
 
 template<class Future,
@@ -368,10 +365,10 @@ template<class Future,
            >::value
          >::type
         >
-detail::tuple<> wrap_value_in_tuple(Future& fut)
+void_value get_value(Future& fut)
 {
   fut.get();
-  return detail::make_tuple();
+  return void_value{};
 }
 
 
@@ -382,54 +379,104 @@ template<class Future,
            >::value
          >::type
         >
-detail::tuple<typename future_traits<Future>::value_type> wrap_value_in_tuple(Future& fut)
+typename future_traits<Future>::value_type
+  get_value(Future& fut)
 {
-  return detail::make_tuple(fut.get());
+  return fut.get();
 }
 
 
-inline tuple_of_future_values<> get_tuple_of_future_values()
+template<class... Futures>
+tuple_of_future_values<Futures...>
+  get_tuple_of_future_values(Futures&... futures)
 {
-  return tuple_of_future_values<>();
+  return detail::make_tuple(detail::get_value(futures)...);
 }
 
 
-template<class Future, class... Futures>
-tuple_of_future_values<Future,Futures...>
-  get_tuple_of_future_values(Future& future, Futures&... futures)
+template<class IndexSequence, class... Futures>
+struct when_all_and_select_result_impl;
+
+template<size_t... Indices, class... Futures>
+struct when_all_and_select_result_impl<index_sequence<Indices...>,Futures...>
 {
-  auto head = wrap_value_in_tuple(future);
-  return detail::tuple_cat(head, get_tuple_of_future_values(futures...));
-}
+  using type = decltype(
+    detail::unwrap_small_tuple(
+      detail::tuple_filter<is_not_void_value>(
+        detail::tuple_gather<Indices...>(
+          detail::get_tuple_of_future_values(
+            *std::declval<Futures*>()...
+          )
+        )
+      )
+    )
+  );
+};
 
 
-struct when_all_functor
+template<class IndexSequence, class... Futures>
+using when_all_and_select_result = typename when_all_and_select_result_impl<IndexSequence,Futures...>::type;
+
+
+template<size_t... Indices>
+struct when_all_and_select_functor
 {
   template<class... Futures>
-  unwrap_small_tuple_result_t<
-    tuple_of_future_values<
-      typename std::decay<Futures>::type...
-    >
+  when_all_and_select_result<
+    index_sequence<Indices...>, typename std::decay<Futures>::type...
   >
     operator()(Futures&&... futures)
   {
-    return unwrap_small_tuple(get_tuple_of_future_values(futures...));
+    return detail::unwrap_small_tuple(
+      detail::tuple_filter<is_not_void_value>(
+        detail::tuple_gather<Indices...>(
+          detail::get_tuple_of_future_values(futures...)
+        )
+      )
+    );
   }
 };
+
+
+template<class... Futures>
+using when_all_result = when_all_and_select_result<index_sequence_for<Futures...>,Futures...>;
+
+
+template<size_t... Indices, class... Futures>
+std::future<
+  detail::when_all_and_select_result<
+    detail::index_sequence<Indices...>, typename std::decay<Futures>::type...
+  >
+>
+  when_all_and_select(index_sequence<Indices...>, Futures&&... futures)
+{
+  return std::async(std::launch::deferred | std::launch::async, detail::when_all_and_select_functor<Indices...>(), std::move(futures)...);
+} // end when_all()
 
 
 } // end detail
 
 
+template<size_t... Indices, class... Futures>
+std::future<
+  detail::when_all_and_select_result<
+    detail::index_sequence<Indices...>, typename std::decay<Futures>::type...
+  >
+>
+  when_all_and_select(Futures&&... futures)
+{
+  return detail::when_all_and_select(detail::index_sequence<Indices...>(), std::forward<Futures>(futures)...);
+} // end when_all()
+
+
 template<class... Futures>
-detail::when_all_result_t<
-  std::future,
-  typename std::decay<Futures>::type...
+std::future<
+  detail::when_all_result<typename std::decay<Futures>::type...>
 >
   when_all(Futures&&... futures)
 {
-  return std::async(std::launch::deferred | std::launch::async, detail::when_all_functor(), std::move(futures)...);
-} // end when_all_result()
+  return detail::when_all_and_select(detail::index_sequence_for<Futures...>(), std::forward<Futures>(futures)...);
+} // end when_all()
 
 
 } // end agency
