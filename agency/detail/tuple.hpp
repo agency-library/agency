@@ -9,6 +9,7 @@
 #include <agency/detail/tuple_impl.hpp>
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/detail/integer_sequence.hpp>
+#include <agency/detail/type_list.hpp>
 #include <agency/detail/host_device_cast.hpp>
 #include <utility>
 #include <type_traits>
@@ -295,6 +296,17 @@ auto tuple_filter(Tuple&& t)
 }
 
 
+template<template<class T> class MetaFunction, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_filter_view(Tuple&& t)
+  -> decltype(
+        __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), forwarder())
+     )
+{
+  return __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), forwarder());
+}
+
+
 template<size_t... Indices, class Tuple>
 __AGENCY_ANNOTATION
 auto tuple_gather(Tuple&& t)
@@ -304,6 +316,43 @@ auto tuple_gather(Tuple&& t)
 {
   return __tu::tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), agency_tuple_maker());
 }
+
+
+template<class Tuple>
+using tuple_indices = make_index_sequence<std::tuple_size<Tuple>::value>;
+
+
+template<class Tuple>
+__AGENCY_ANNOTATION
+detail::make_index_sequence<
+  std::tuple_size<
+    typename std::decay<Tuple>::type
+  >::value
+> 
+  make_tuple_indices(Tuple&&)
+{
+  return detail::make_index_sequence<
+    std::tuple_size<
+      typename std::decay<Tuple>::type
+    >::value
+  >();
+}
+
+
+template<class IndexSequence, class Tuple>
+struct tuple_elements_impl;
+
+template<size_t... Indices, class Tuple>
+struct tuple_elements_impl<index_sequence<Indices...>,Tuple>
+{
+  using type = type_list<
+    typename std::tuple_element<Indices,Tuple>::type...
+  >;
+};
+
+
+template<class Tuple>
+using tuple_elements = typename tuple_elements_impl<tuple_indices<Tuple>,Tuple>::type;
 
 
 } // end detail
