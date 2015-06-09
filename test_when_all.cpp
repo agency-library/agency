@@ -1,6 +1,9 @@
 #include <agency/future.hpp>
+#include <agency/new_executor_traits.hpp>
 #include <iostream>
 #include <cassert>
+
+struct my_executor {};
 
 int main()
 {
@@ -70,6 +73,26 @@ int main()
     auto futures = std::make_tuple(std::move(int_ready), std::move(void_ready), std::move(float_ready));
 
     std::future<agency::detail::tuple<float,int>> fut = agency::when_all_execute_and_select<2,0>(std::move(futures), [](int& x, float& y)
+    {
+      x += 1;
+      y += 2;
+    });
+
+    auto got = fut.get();
+
+    assert(std::get<0>(got) == 9.f);
+    assert(std::get<1>(got) == 14);
+  }
+
+  {
+    auto int_ready   = agency::detail::make_ready_future(13);
+    auto void_ready  = agency::detail::make_ready_future();
+    auto float_ready = agency::detail::make_ready_future(7.f);
+
+    auto futures = std::make_tuple(std::move(int_ready), std::move(void_ready), std::move(float_ready));
+
+    my_executor exec;
+    std::future<agency::detail::tuple<float,int>> fut = agency::new_executor_traits<my_executor>::when_all_execute_and_select<2,0>(exec, std::move(futures), [](int& x, float& y)
     {
       x += 1;
       y += 2;

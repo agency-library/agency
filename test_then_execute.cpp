@@ -17,7 +17,7 @@ void test(Shape shape)
   executor_type exec;
   
   {
-    auto f1 = traits::make_ready_future(exec);
+    auto f1 = traits::template make_ready_future<void>(exec);
     
     std::mutex mut;
     auto f2 = traits::then_execute(exec, f1, [&mut](index_type idx)
@@ -33,7 +33,7 @@ void test(Shape shape)
   }
 
   {
-    auto f1 = traits::make_ready_future(exec, 13);
+    auto f1 = traits::template make_ready_future<int>(exec, 13);
 
     std::mutex mut;
     auto f2 = traits::then_execute(exec, f1, [&mut](index_type idx, int& past_parameter)

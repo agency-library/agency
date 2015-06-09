@@ -156,12 +156,16 @@ struct has_then_execute<T,true>
 {};
 
 
-template<class Executor, class T>
-struct has_make_ready_future
+template<class Executor, class T, class... Args>
+struct has_make_ready_future_impl
 {
   template<
     class Executor2,
-    typename = decltype(std::declval<Executor2*>()->make_ready_future(std::declval<T>()))
+    typename = decltype(
+      std::declval<Executor2*>()->template make_ready_future<T>(
+        std::declval<Args>()...
+      )
+    )
   >
   static std::true_type test(int);
 
@@ -171,20 +175,9 @@ struct has_make_ready_future
   using type = decltype(test<Executor>(0));
 };
 
-template<class Executor>
-struct has_make_ready_future<Executor, void>
-{
-  template<
-    class Executor2,
-    typename = decltype(std::declval<Executor2*>()->make_ready_future())
-  >
-  static std::true_type test(int);
 
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
+template<class Executor, class T, class... Args>
+using has_make_ready_future = typename has_make_ready_future_impl<Executor,T,Args...>::type;
 
 
 } // end detail
@@ -262,9 +255,6 @@ struct executor_traits
     using future = typename executor_future<executor_type,T>::type;
 
   private:
-    template<class T>
-    using has_make_ready_future = typename detail::has_make_ready_future<executor_type,T>::type;
-
     static future<void> make_ready_future_impl(executor_type& ex, std::true_type)
     {
       return ex.make_ready_future();
@@ -275,32 +265,26 @@ struct executor_traits
       return future_traits<future<void>>::make_ready();
     }
 
-    template<class T>
-    static future<typename std::decay<T>::type> make_ready_future_impl(executor_type& ex, T&& value, std::true_type)
+    template<class T, class... Args>
+    static future<T> make_ready_future_impl(std::true_type, executor_type& ex, Args&&... args)
     {
-      return ex.make_ready_future(std::forward<T>(value));
+      return ex.template make_ready_future<T>(std::forward<Args>(args)...);
     }
 
-    template<class T>
-    static future<typename std::decay<T>::type> make_ready_future_impl(executor_type&, T&& value, std::false_type)
+    template<class T, class... Args>
+    static future<T> make_ready_future_impl(std::false_type, executor_type&, Args&&... args)
     {
-      using value_type = typename std::decay<T>::type;
-      return future_traits<future<value_type>>::make_ready(std::forward<T>(value));
+      return future_traits<future<T>>::template make_ready<T>(std::forward<Args>(args)...);
     }
 
     template<class T>
     struct is_future : detail::is_instance_of_future<T,future> {};
 
   public:
-    static future<void> make_ready_future(executor_type& ex)
+    template<class T, class... Args>
+    static future<T> make_ready_future(executor_type& ex, Args&&... args)
     {
-      return make_ready_future_impl(ex, has_make_ready_future<void>());
-    }
-
-    template<class T>
-    static future<typename std::decay<T>::type> make_ready_future(executor_type& ex, T&& value)
-    {
-      return make_ready_future_impl(ex, std::forward<T>(value), has_make_ready_future<typename std::decay<T>::type>());
+      return make_ready_future_impl<T>(detail::has_make_ready_future<executor_type,T,Args&&...>(), ex, std::forward<Args>(args)...);
     }
 
 
@@ -516,7 +500,7 @@ struct executor_traits
     template<class Function, class... T>
     static future<void> async_execute_with_shared_inits_impl(std::false_type, executor_type& ex, Function f, shape_type shape, T&&... shared_inits)
     {
-      auto ready = executor_traits::make_ready_future(ex);
+      auto ready = executor_traits::template make_ready_future<void>(ex);
       return executor_traits::then_execute(ex, ready, f, shape, std::forward<T>(shared_inits)...);
     }
 

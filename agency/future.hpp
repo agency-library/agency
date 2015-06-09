@@ -13,11 +13,38 @@ namespace detail
 {
 
 
+template<class T, class... Args,
+         class = typename std::enable_if<
+           !std::is_void<T>::value
+         >::type>
+std::future<T> make_ready_future(Args&&... args)
+{
+  std::promise<T> p;
+  p.set_value(T(std::forward<Args>(args)...));
+
+  return p.get_future();
+}
+
+
+template<class T, class... Args,
+         class = typename std::enable_if<
+           std::is_void<T>::value
+         >::type>
+std::future<T> make_ready_future()
+{
+  std::promise<T> p;
+  p.set_value();
+
+  return p.get_future();
+}
+
+
 template<class T>
 std::future<decay_t<T>> make_ready_future(T&& value)
 {
-  std::promise<decay_t<T>> p;
+  std::promise<T> p;
   p.set_value(std::forward<T>(value));
+
   return p.get_future();
 }
 
@@ -168,6 +195,22 @@ struct is_instance_of_future<T,Future,
 {};
 
 
+template<class Function, class Future, bool = std::is_void<typename future_value<Future>::type>::value>
+struct future_result_of
+  : std::result_of<
+      Function(typename std::add_lvalue_reference<typename future_value<Future>::type>::type)
+    >
+{};
+
+
+template<class Function, class Future>
+struct future_result_of<Function,Future,true>
+  : std::result_of<
+      Function()
+    >
+{};
+
+
 } // end detail
 
 
@@ -185,6 +228,13 @@ struct future_traits
   static rebind<void> make_ready()
   {
     return rebind<void>::make_ready();
+  }
+
+  template<class T, class... Args>
+  __AGENCY_ANNOTATION
+  static rebind<T> make_ready(Args&&... args)
+  {
+    return rebind<T>::make_ready(std::forward<Args>(args)...);
   }
 
   template<class T>
@@ -239,10 +289,11 @@ struct future_traits<std::future<T>>
     return detail::make_ready_future();
   }
 
-  template<class U>
-  static rebind<typename std::decay<U>::type> make_ready(U&& value)
+  template<class U, class... Args>
+  __AGENCY_ANNOTATION
+  static rebind<U> make_ready(Args&&... args)
   {
-    return detail::make_ready_future(std::forward<U>(value));
+    return detail::make_ready_future<U>(std::forward<Args>(args)...);
   }
 
   template<class Future,
@@ -395,10 +446,10 @@ tuple_of_future_values<Futures...>
 
 
 template<class IndexSequence, class... Futures>
-struct when_all_and_select_result_impl;
+struct when_all_and_select_result;
 
 template<size_t... Indices, class... Futures>
-struct when_all_and_select_result_impl<index_sequence<Indices...>,Futures...>
+struct when_all_and_select_result<index_sequence<Indices...>,Futures...>
 {
   using type = decltype(
     detail::unwrap_small_tuple(
@@ -415,21 +466,21 @@ struct when_all_and_select_result_impl<index_sequence<Indices...>,Futures...>
 
 
 template<class IndexSequence, class... Futures>
-using when_all_and_select_result = typename when_all_and_select_result_impl<IndexSequence,Futures...>::type;
+using when_all_and_select_result_t = typename when_all_and_select_result<IndexSequence,Futures...>::type;
 
 
 template<class IndexSequence, class TypeList>
-struct when_all_execute_and_select_result_impl;
+struct when_all_execute_and_select_result;
 
 template<class IndexSequence, class... Futures>
-struct when_all_execute_and_select_result_impl<IndexSequence, type_list<Futures...>>
+struct when_all_execute_and_select_result<IndexSequence, type_list<Futures...>>
 {
-  using type = when_all_and_select_result<IndexSequence,Futures...>;
+  using type = when_all_and_select_result_t<IndexSequence,Futures...>;
 };
 
 
 template<class IndexSequence, class TupleOfFutures>
-using when_all_execute_and_select_result = typename when_all_execute_and_select_result_impl<IndexSequence, tuple_elements<TupleOfFutures>>::type;
+using when_all_execute_and_select_result_t = typename when_all_execute_and_select_result<IndexSequence, tuple_elements<TupleOfFutures>>::type;
 
 
 template<size_t... Indices>
@@ -437,7 +488,7 @@ struct when_all_execute_and_select_functor
 {
   template<class Function, class... Futures>
   __AGENCY_ANNOTATION
-  when_all_and_select_result<
+  when_all_and_select_result_t<
     index_sequence<Indices...>, typename std::decay<Futures>::type...
   >
     operator()(Function f, Futures&&... futures)
@@ -463,7 +514,7 @@ struct when_all_execute_and_select_functor
 
 template<size_t... Indices, class Function, class... Futures>
 std::future<
-  detail::when_all_and_select_result<
+  detail::when_all_and_select_result_t<
     detail::index_sequence<Indices...>, typename std::decay<Futures>::type...
   >
 >
@@ -475,7 +526,7 @@ std::future<
 
 template<size_t... SelectedIndices, size_t... TupleIndices, class TupleOfFutures, class Function>
 std::future<
-  detail::when_all_execute_and_select_result<
+  detail::when_all_execute_and_select_result_t<
     detail::index_sequence<SelectedIndices...>,
     typename std::decay<TupleOfFutures>::type
   >
@@ -487,7 +538,11 @@ std::future<
 
 
 template<class... Futures>
-using when_all_result = when_all_and_select_result<index_sequence_for<Futures...>,Futures...>;
+struct when_all_result : when_all_and_select_result<index_sequence_for<Futures...>,Futures...> {};
+
+
+template<class... Futures>
+using when_all_result_t = typename when_all_result<Futures...>::type;
 
 
 struct swallower
@@ -502,7 +557,7 @@ struct swallower
 
 template<size_t... Indices, class TupleOfFutures, class Function>
 std::future<
-  detail::when_all_execute_and_select_result<
+  detail::when_all_execute_and_select_result_t<
     detail::index_sequence<Indices...>,
     typename std::decay<TupleOfFutures>::type
   >
@@ -520,7 +575,7 @@ std::future<
 
 template<size_t... Indices, class... Futures>
 std::future<
-  detail::when_all_and_select_result<
+  detail::when_all_and_select_result_t<
     detail::index_sequence<Indices...>, typename std::decay<Futures>::type...
   >
 >
@@ -536,7 +591,7 @@ namespace detail
 
 template<size_t... Indices, class... Futures>
 std::future<
-  detail::when_all_result<typename std::decay<Futures>::type...>
+  detail::when_all_result_t<typename std::decay<Futures>::type...>
 >
   when_all_impl(index_sequence<Indices...>, Futures&&... futures)
 {
@@ -549,7 +604,7 @@ std::future<
 
 template<class... Futures>
 std::future<
-  detail::when_all_result<typename std::decay<Futures>::type...>
+  detail::when_all_result_t<typename std::decay<Futures>::type...>
 >
   when_all(Futures&&... futures)
 {

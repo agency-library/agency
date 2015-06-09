@@ -54,7 +54,7 @@ class block_executor : private grid_executor
 
     future<void> make_ready_future()
     {
-      return super_traits::make_ready_future(*this);
+      return super_traits::template make_ready_future<void>(*this);
     }
 
     using super_t::super_t;
