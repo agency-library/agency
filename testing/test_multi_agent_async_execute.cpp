@@ -52,29 +52,27 @@ int main()
     assert(std::equal(ref.begin(), ref.end(), result.begin()));
   }
 
-//  {
-//    // then_execute returning void
-//    
-//    my_executor exec;
-//
-//    size_t n = 100;
-//
-//    auto past = agency::detail::make_ready_future(13);
-//
-//    int increment_me = 0;
-//    std::mutex mut;
-//    auto fut = agency::new_executor_traits<my_executor>::then_execute(exec, past, [&](int& past, size_t idx)
-//    {
-//      mut.lock();
-//      increment_me += past;
-//      mut.unlock();
-//    },
-//    n);
-//
-//    fut.wait();
-//
-//    assert(increment_me == n * 13);
-//  }
+  {
+    // async_execute returning void
+    
+    my_executor exec;
+
+    size_t n = 100;
+
+    int increment_me = 0;
+    std::mutex mut;
+    auto fut = agency::new_executor_traits<my_executor>::async_execute(exec, [&](size_t idx)
+    {
+      mut.lock();
+      increment_me += 13;
+      mut.unlock();
+    },
+    n);
+
+    fut.wait();
+
+    assert(increment_me == n * 13);
+  }
 
   std::cout << "OK" << std::endl;
 

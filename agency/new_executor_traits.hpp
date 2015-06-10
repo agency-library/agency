@@ -292,13 +292,27 @@ struct new_executor_traits
     static future<Container> async_execute(executor_type& ex, Function f, shape_type shape);
 
     // multi-agent async_execute() returning default container
-    template<class Function>
+    template<class Function,
+             class = typename std::enable_if<
+               !std::is_void<
+                typename std::result_of<Function(index_type)>::type
+               >::value
+             >::type>
     static future<
       container<
         typename std::result_of<Function(index_type)>::type
       >
     >
       async_execute(executor_type& ex, Function f, shape_type shape);
+
+    // multi-agent async_execute() returning void
+    template<class Function,
+             class = typename std::enable_if<
+              std::is_void<
+                typename std::result_of<Function(index_type)>::type
+              >::value
+             >::type>
+    static future<void> async_execute(executor_type& ex, Function f, shape_type shape);
 }; // end new_executor_traits
 
 
