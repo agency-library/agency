@@ -14,6 +14,28 @@ namespace new_executor_traits_detail
 
 
 template<class Executor, class Future, class Function>
+struct has_single_agent_then_execute_impl
+{
+  template<class Executor1,
+           class = decltype(
+             std::declval<Executor1>().then_execute(
+               *std::declval<Future*>(),
+               std::declval<Function>()
+             )
+           )>
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(int);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor, class Future, class Function>
+using has_single_agent_then_execute = typename has_single_agent_then_execute_impl<Executor,Future,Function>::type;
+
+
+template<class Executor, class Future, class Function>
 typename new_executor_traits<Executor>::template future<
   typename detail::future_result_of<Function,Future>::type
 >

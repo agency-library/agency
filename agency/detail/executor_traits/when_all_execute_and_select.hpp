@@ -13,6 +13,52 @@ namespace new_executor_traits_detail
 {
 
 
+template<class Executor, class TupleOfFutures, class Function, size_t... Indices>
+struct has_single_agent_when_all_execute_and_select_impl
+{
+  template<class Executor1,
+           class = decltype(
+             std::declval<Executor1>().template when_all_execute_and_select<Indices...>(
+               std::declval<TupleOfFutures>(),
+               std::declval<Function>()
+             )
+           )>
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor, class TupleOfFutures, class Function, size_t... Indices>
+using has_single_agent_when_all_execute_and_select = typename has_single_agent_when_all_execute_and_select_impl<Executor, TupleOfFutures, Function, Indices...>::type;
+
+
+template<class Executor, class TupleOfFutures, class Function>
+struct has_single_agent_when_all_execute_impl
+{
+  template<class Executor1,
+           class = decltype(
+             std::declval<Executor1>().when_all_execute(
+               std::declval<TupleOfFutures>(),
+               std::declval<Function>()
+             )
+           )>
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor, class TupleOfFutures, class Function>
+using has_single_agent_when_all_execute = typename has_single_agent_when_all_execute_impl<Executor, TupleOfFutures, Function>::type;
+
+
+
+
 template<size_t... Indices, class Executor, class TupleOfFutures, class Function>
 typename new_executor_traits<Executor>::template future<
   detail::when_all_execute_and_select_result_t<

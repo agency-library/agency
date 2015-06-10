@@ -13,6 +13,30 @@ namespace new_executor_traits_detail
 {
 
 
+template<class Executor, class T, class... Args>
+struct has_make_ready_future_impl
+{
+  template<
+    class Executor2,
+    typename = decltype(
+      std::declval<Executor2*>()->template make_ready_future<T>(
+        std::declval<Args>()...
+      )
+    )
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+
+template<class Executor, class T, class... Args>
+using has_make_ready_future = typename has_make_ready_future_impl<Executor,T,Args...>::type;
+
+
 template<class T, class Executor, class... Args>
 typename new_executor_traits<Executor>::template future<T>
   make_ready_future(std::true_type, Executor& ex, Args&&... args)
