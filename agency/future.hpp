@@ -195,20 +195,47 @@ struct is_instance_of_future<T,Future,
 {};
 
 
-template<class Function, class Future, bool = std::is_void<typename future_value<Future>::type>::value>
-struct future_result_of
-  : std::result_of<
-      Function(typename std::add_lvalue_reference<typename future_value<Future>::type>::type)
-    >
-{};
+// figure out the result of applying Function to a list of parameters
+// when a parameter is a future, it gets unwrapped into an lvalue of its value_type
+template<class Function, class... FutureOrT>
+struct result_of_continuation
+{
+  using types = type_list<FutureOrT...>;
+
+  template<class T>
+  struct lazy_add_lvalue_reference
+  {
+    using type = typename std::add_lvalue_reference<typename T::type>::type;
+  };
+
+  template<class T>
+  struct map_futures_to_lvalue_reference_to_value_type
+    : lazy_conditional<
+        is_future<T>::value,
+        lazy_add_lvalue_reference<future_value<T>>,
+        identity<T>
+      >
+  {};
+
+  // turn futures into lvalue references to their values
+  using value_types = type_list_map<map_futures_to_lvalue_reference_to_value_type,types>;
+
+  template<class T>
+  struct is_not_void : std::integral_constant<bool, !std::is_void<T>::value> {};
+
+  // filter out void
+  using non_void_value_types = type_list_filter<is_not_void,value_types>;
+
+  // add lvalue reference
+  using references = type_list_map<std::add_lvalue_reference,non_void_value_types>;
+
+  // get the type of the result of applying the Function to the references 
+  using type = typename type_list_result_of<Function, references>::type;
+};
 
 
-template<class Function, class Future>
-struct future_result_of<Function,Future,true>
-  : std::result_of<
-      Function()
-    >
-{};
+template<class Function, class... FutureOrT>
+using result_of_continuation_t = typename result_of_continuation<Function,FutureOrT...>::type;
 
 
 } // end detail

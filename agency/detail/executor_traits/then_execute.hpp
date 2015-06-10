@@ -37,7 +37,7 @@ using has_single_agent_then_execute = typename has_single_agent_then_execute_imp
 
 template<class Executor, class Future, class Function>
 typename new_executor_traits<Executor>::template future<
-  typename detail::future_result_of<Function,Future>::type
+  detail::result_of_continuation_t<Function,Future>
 >
   single_agent_then_execute(std::true_type, Executor& ex, Future& fut, Function f)
 {
@@ -91,7 +91,7 @@ struct single_agent_then_execute_functor
 
 template<class Executor, class Future, class Function>
 typename new_executor_traits<Executor>::template future<
-  typename detail::future_result_of<Function,Future>::type
+  detail::result_of_continuation_t<Function,Future>
 >
   single_agent_then_execute(std::false_type, Executor& ex, Future& fut, Function f)
 {
@@ -100,7 +100,7 @@ typename new_executor_traits<Executor>::template future<
   // XXX future_traits<Future>::then(f);
 
   using arg_type = typename future_traits<Future>::value_type;
-  using result_type = typename detail::future_result_of<Function,Future>::type;
+  using result_type = detail::result_of_continuation_t<Function,Future>;
 
   auto result_future = new_executor_traits<Executor>::template make_ready_future<result_type>(ex);
 
@@ -119,7 +119,7 @@ typename new_executor_traits<Executor>::template future<
 template<class Executor>
   template<class Future, class Function>
 typename new_executor_traits<Executor>::template future<
-  typename detail::future_result_of<Function,Future>::type
+  detail::result_of_continuation_t<Function,Future>
 >
   new_executor_traits<Executor>
     ::then_execute(typename new_executor_traits<Executor>::executor_type& ex,
@@ -133,6 +133,206 @@ typename new_executor_traits<Executor>::template future<
   >;
 
   return detail::new_executor_traits_detail::single_agent_then_execute(check_for_member_function(), ex, fut, f);
+} // end new_executor_traits::then_execute()
+
+
+namespace detail
+{
+namespace new_executor_traits_detail
+{
+
+
+template<class Container, class Executor, class Future, class Function, class Shape>
+struct has_multi_agent_then_execute_with_user_specified_container_impl
+{
+  template<class Executor1,
+           class = decltype(
+             std::declval<Executor1>().template then_execute<Container>(
+               *std::declval<Future*>(),
+               std::declval<Function>(),
+               std::declval<Shape>()
+             )
+           )>
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(int);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Container, class Executor, class Future, class Function, class Shape>
+using has_multi_agent_then_execute_with_user_specified_container = typename has_multi_agent_then_execute_with_user_specified_container_impl<Container,Executor,Future,Function,Shape>::type;
+
+
+template<class Container, class Executor, class Future, class Function>
+typename new_executor_traits<Executor>::template future<Container>
+  multi_agent_then_execute_with_user_specified_container(std::true_type, Executor& ex, Future& fut, Function f, typename new_executor_traits<Executor>::shape_type shape)
+{
+  return ex.template then_execute<Container>(ex, fut, f, shape);
+} // end multi_agent_then_execute_with_user_specified_container()
+
+
+template<class Function>
+struct multi_agent_then_execute_with_user_specified_container_functor
+{
+  mutable Function f;
+
+  template<class Container, class Arg, class Index>
+  __AGENCY_ANNOTATION
+  void operator()(Container& c, Arg& arg, const Index& idx) const
+  {
+    c[idx] = f(arg, idx);
+  }
+
+  template<class Container, class Index>
+  __AGENCY_ANNOTATION
+  void operator()(Container& c, const Index& idx) const
+  {
+    c[idx] = f(idx);
+  }
+};
+
+
+template<class Container, class Executor, class Future, class Function>
+typename new_executor_traits<Executor>::template future<Container>
+  multi_agent_then_execute_with_user_specified_container(std::false_type, Executor& ex, Future& fut, Function f, typename new_executor_traits<Executor>::shape_type shape)
+{
+  using traits = new_executor_traits<Executor>;
+
+  auto results = traits::template make_ready_future<Container>(ex, shape);
+
+  auto results_and_fut = detail::make_tuple(std::move(results), std::move(fut));
+
+  return traits::template when_all_execute_and_select<0>(ex, results_and_fut, multi_agent_then_execute_with_user_specified_container_functor<Function>{f}, shape);
+} // end multi_agent_then_execute_with_user_specified_container()
+
+
+} // end new_executor_traits_detail
+} // end detail
+
+
+template<class Executor>
+  template<class Container, class Future, class Function>
+typename new_executor_traits<Executor>::template future<Container>
+  new_executor_traits<Executor>
+    ::then_execute(typename new_executor_traits<Executor>::executor_type& ex,
+                   Future& fut,
+                   Function f,
+                   typename new_executor_traits<Executor>::shape_type shape)
+{
+  using check_for_member_function = detail::new_executor_traits_detail::has_multi_agent_then_execute_with_user_specified_container<
+    Container,
+    Executor,
+    Future,
+    Function,
+    typename new_executor_traits<Executor>::shape_type
+  >;
+
+  return detail::new_executor_traits_detail::multi_agent_then_execute_with_user_specified_container<Container>(check_for_member_function(), ex, fut, f, shape);
+} // end new_executor_traits::then_execute()
+
+
+namespace detail
+{
+namespace new_executor_traits_detail
+{
+
+
+template<class Executor, class Future, class Function>
+typename new_executor_traits<Executor>::template future<
+  typename new_executor_traits<Executor>::template container<
+    detail::result_of_continuation_t<
+      Function,
+      Future,
+      typename new_executor_traits<Executor>::shape_type
+    >
+  >
+>
+  multi_agent_then_execute_with_default_container(std::true_type, Executor& ex, Future& fut, Function f, typename new_executor_traits<Executor>::shape_type shape)
+{
+  return ex.then_execute(fut, f, shape);
+} // end multi_agent_then_execute_with_default_container()
+
+
+template<class Executor, class Future, class Function>
+typename new_executor_traits<Executor>::template future<
+  typename new_executor_traits<Executor>::template container<
+    detail::result_of_continuation_t<
+      Function,
+      Future,
+      typename new_executor_traits<Executor>::shape_type
+    >
+  >
+>
+  multi_agent_then_execute_with_default_container(std::false_type, Executor& ex, Future& fut, Function f, typename new_executor_traits<Executor>::shape_type shape)
+{
+  using container_type = typename new_executor_traits<Executor>::template container<
+    detail::result_of_continuation_t<
+      Function,
+      Future,
+      typename new_executor_traits<Executor>::shape_type
+    >
+  >;
+
+  return new_executor_traits<Executor>::template then_execute<container_type>(ex, fut, f, shape);
+} // end multi_agent_then_execute_with_default_container()
+
+
+template<class Executor, class Future, class Function, class Shape>
+struct has_multi_agent_then_execute_with_default_container_impl
+{
+  template<class Executor1,
+           class = decltype(
+             std::declval<Executor1>().then_execute(
+               *std::declval<Future*>(),
+               std::declval<Function>(),
+               std::declval<Shape>()
+             )
+           )>
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(int);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor, class Future, class Function, class Shape>
+using has_multi_agent_then_execute_with_default_container = typename has_multi_agent_then_execute_with_default_container_impl<Executor,Future,Function,Shape>::type;
+
+
+} // end new_executor_traits_detail
+} // end detail
+
+
+template<class Executor>
+  template<class Future, class Function,
+           class EnableIf
+          >
+typename new_executor_traits<Executor>::template future<
+  typename new_executor_traits<Executor>::template container<
+    detail::result_of_continuation_t<
+      Function,
+      Future,
+      typename new_executor_traits<Executor>::shape_type
+    >
+  >
+>
+  new_executor_traits<Executor>
+    ::then_execute(typename new_executor_traits<Executor>::executor_type& ex,
+                   Future& fut,
+                   Function f,
+                   typename new_executor_traits<Executor>::shape_type shape)
+{
+  using check_for_member_function = detail::new_executor_traits_detail::has_multi_agent_then_execute_with_default_container<
+    Executor,
+    Future,
+    Function,
+    typename new_executor_traits<Executor>::shape_type
+  >;
+
+  return detail::new_executor_traits_detail::multi_agent_then_execute_with_default_container(check_for_member_function(), ex, fut, f, shape);
 } // end new_executor_traits::then_execute()
 
 

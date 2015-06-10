@@ -201,6 +201,19 @@ struct type_list_prepend<T0, type_list<Types...>>
 };
 
 
+template<class Function, class TypeList>
+struct type_list_result_of;
+
+template<class Function, class... Types>
+struct type_list_result_of<Function, type_list<Types...>>
+{
+  using type = typename std::result_of<Function(Types...)>::type;
+};
+
+template<class Function, class TypeList>
+using type_list_result_of_t = typename type_list_result_of<Function,TypeList>::type;
+
+
 } // end detail
 } // end agency
 

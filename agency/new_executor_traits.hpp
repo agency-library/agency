@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <vector>
 
 namespace agency
 {
@@ -16,6 +17,7 @@ namespace new_executor_traits_detail
 __DEFINE_HAS_NESTED_TYPE(has_execution_category, execution_category);
 __DEFINE_HAS_NESTED_TYPE(has_index_type, index_type);
 __DEFINE_HAS_NESTED_TYPE(has_shape_type, shape_type);
+__DEFINE_HAS_NESTED_CLASS_TEMPLATE(has_container_template, container);
 
 
 template<class T>
@@ -95,6 +97,47 @@ struct executor_future<Executor,T,false>
 };
 
 
+template<class T>
+struct nested_container_template
+{
+  template<class U>
+  using type_template = typename T::template container<U>;
+};
+
+
+template<bool condition, class Then, class Else>
+struct lazy_conditional_template
+{
+  template<class... T>
+  using type_template = typename Then::template type_template<T...>;
+};
+
+template<class Then, class Else>
+struct lazy_conditional_template<false, Then, Else>
+{
+  template<class... T>
+  using type_template = typename Else::template type_template<T...>;
+};
+
+
+template<template<class...> class T>
+struct identity_template
+{
+  template<class... U>
+  using type_template = T<U...>;
+};
+
+
+template<class T, template<class,class> class Default = std::vector>
+struct nested_container_with_default
+  : lazy_conditional_template<
+      has_container_template<T,int>::value,
+      nested_container_template<T>,
+      identity_template<Default>
+    >
+{};
+
+
 template<class Executor, class TupleOfFutures, class Function>
 struct has_single_agent_when_all_execute_impl
 {
@@ -167,6 +210,12 @@ struct new_executor_traits
     template<class T>
     using future = typename detail::new_executor_traits_detail::executor_future<executor_type,T>::type;
 
+    template<class T>
+    using container = typename detail::new_executor_traits_detail::nested_container_with_default<
+      executor_type,
+      std::vector
+    >::template type_template<T>;
+
     template<class T, class... Args>
     static future<T> make_ready_future(executor_type& ex, Args&&... args);
 
@@ -193,8 +242,25 @@ struct new_executor_traits
     // single-agent then_execute()
     template<class Future, class Function>
     static future<
-      typename detail::future_result_of<Function,Future>::type
-    > then_execute(executor_type& ex, Future& fut, Function f);
+      detail::result_of_continuation_t<Function,Future>
+    >
+      then_execute(executor_type& ex, Future& fut, Function f);
+
+    // multi-agent then_execute() returning user-specified Container
+    template<class Container, class Future, class Function>
+    static future<Container> then_execute(executor_type& ex, Future& fut, Function f, shape_type shape);
+
+    // multi-agent then_execute() returning default container
+    template<class Future, class Function,
+             class = typename std::enable_if<
+               detail::is_future<Future>::value
+             >::type>
+    static future<
+      container<
+        detail::result_of_continuation_t<Function,Future,shape_type>
+      >
+    >
+      then_execute(executor_type& ex, Future& fut, Function f, shape_type shape);
 }; // end new_executor_traits
 
 
