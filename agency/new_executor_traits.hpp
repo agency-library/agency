@@ -266,6 +266,19 @@ struct new_executor_traits
       >
     >
       then_execute(executor_type& ex, Future& fut, Function f, shape_type shape);
+
+    // multi-agent then_execute() returning void
+    template<class Future, class Function,
+             class = typename std::enable_if<
+               detail::is_future<Future>::value
+             >::type,
+             class = typename std::enable_if<
+               std::is_void<
+                 detail::result_of_continuation_t<Function,Future,index_type>
+               >::value
+             >::type>
+    static future<void>
+      then_execute(executor_type& ex, Future& fut, Function f, shape_type shape);
 }; // end new_executor_traits
 
 
