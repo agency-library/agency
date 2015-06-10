@@ -31,27 +31,27 @@ int main()
     assert(std::equal(ref.begin(), ref.end(), result.begin()));
   }
 
-//  {
-//    // then_execute returning default container
-//    
-//    my_executor exec;
-//
-//    size_t n = 100;
-//
-//    auto past = agency::detail::make_ready_future(13);
-//
-//    auto fut = agency::new_executor_traits<my_executor>::then_execute(exec, past, [](int& past, size_t idx)
-//    {
-//      return past;
-//    },
-//    n);
-//
-//    auto result = fut.get();
-//
-//    std::vector<int> ref(n, 13);
-//    assert(std::equal(ref.begin(), ref.end(), result.begin()));
-//  }
-//
+  {
+    // async_execute returning default container
+    
+    my_executor exec;
+
+    size_t n = 100;
+
+    auto fut = agency::new_executor_traits<my_executor>::async_execute(exec, [](size_t idx)
+    {
+      return idx;
+    },
+    n);
+
+    auto result = fut.get();
+
+    std::vector<int> ref(n);
+    std::iota(ref.begin(), ref.end(), 0);
+
+    assert(std::equal(ref.begin(), ref.end(), result.begin()));
+  }
+
 //  {
 //    // then_execute returning void
 //    

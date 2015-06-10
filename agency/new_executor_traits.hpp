@@ -290,6 +290,15 @@ struct new_executor_traits
     // multi-agent async_execute() returning user-specified Container
     template<class Container, class Function>
     static future<Container> async_execute(executor_type& ex, Function f, shape_type shape);
+
+    // multi-agent async_execute() returning default container
+    template<class Function>
+    static future<
+      container<
+        typename std::result_of<Function(index_type)>::type
+      >
+    >
+      async_execute(executor_type& ex, Function f, shape_type shape);
 }; // end new_executor_traits
 
 
