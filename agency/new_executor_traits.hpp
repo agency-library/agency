@@ -254,10 +254,15 @@ struct new_executor_traits
     template<class Future, class Function,
              class = typename std::enable_if<
                detail::is_future<Future>::value
+             >::type,
+             class = typename std::enable_if<
+               !std::is_void<
+                 detail::result_of_continuation_t<Function,Future,index_type>
+               >::value
              >::type>
     static future<
       container<
-        detail::result_of_continuation_t<Function,Future,shape_type>
+        detail::result_of_continuation_t<Function,Future,index_type>
       >
     >
       then_execute(executor_type& ex, Future& fut, Function f, shape_type shape);

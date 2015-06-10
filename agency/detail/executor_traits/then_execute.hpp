@@ -308,14 +308,15 @@ using has_multi_agent_then_execute_with_default_container = typename has_multi_a
 
 template<class Executor>
   template<class Future, class Function,
-           class EnableIf
+           class Enable1,
+           class Enable2
           >
 typename new_executor_traits<Executor>::template future<
   typename new_executor_traits<Executor>::template container<
     detail::result_of_continuation_t<
       Function,
       Future,
-      typename new_executor_traits<Executor>::shape_type
+      typename new_executor_traits<Executor>::index_type
     >
   >
 >
