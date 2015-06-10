@@ -313,6 +313,11 @@ struct new_executor_traits
               >::value
              >::type>
     static future<void> async_execute(executor_type& ex, Function f, shape_type shape);
+
+    // single-agent execute()
+    template<class Function>
+    static typename std::result_of<Function()>::type
+      execute(executor_type& ex, Function f);
 }; // end new_executor_traits
 
 
@@ -322,4 +327,5 @@ struct new_executor_traits
 #include <agency/detail/executor_traits/when_all_execute_and_select.hpp>
 #include <agency/detail/executor_traits/then_execute.hpp>
 #include <agency/detail/executor_traits/async_execute.hpp>
+#include <agency/detail/executor_traits/execute.hpp>
 
