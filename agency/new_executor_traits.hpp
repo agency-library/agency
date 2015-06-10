@@ -95,6 +95,28 @@ struct executor_future<Executor,T,false>
 };
 
 
+template<class Executor, class TupleOfFutures, class Function>
+struct has_single_agent_when_all_execute_impl
+{
+  template<class Executor1,
+           class = decltype(
+             std::declval<Executor1>().when_all_execute(
+               std::declval<TupleOfFutures>(),
+               std::declval<Function>()
+             )
+           )>
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor, class TupleOfFutures, class Function>
+using has_single_agent_when_all_execute = typename has_single_agent_when_all_execute_impl<Executor, TupleOfFutures, Function>::type;
+
+
 template<class Executor, class... Futures>
 struct has_when_all_impl
 {
@@ -148,6 +170,7 @@ struct new_executor_traits
     template<class T, class... Args>
     static future<T> make_ready_future(executor_type& ex, Args&&... args);
 
+    // single-agent when_all_execute_and_select()
     template<size_t... Indices, class TupleOfFutures, class Function>
     static future<
       detail::when_all_execute_and_select_result_t<
@@ -157,6 +180,7 @@ struct new_executor_traits
     >
       when_all_execute_and_select(executor_type& ex, TupleOfFutures&& futures, Function f);
 
+    // multi-agent when_all_execute_and_select()
     template<size_t... Indices, class TupleOfFutures, class Function>
     static future<
       detail::when_all_execute_and_select_result_t<
@@ -166,6 +190,7 @@ struct new_executor_traits
     >
       when_all_execute_and_select(executor_type& ex, TupleOfFutures&& futures, Function f, shape_type shape);
 
+    // single-agent then_execute()
     template<class Future, class Function>
     static future<
       typename detail::future_result_of<Function,Future>::type
