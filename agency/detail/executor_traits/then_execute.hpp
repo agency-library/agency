@@ -147,13 +147,16 @@ template<class Container, class Executor, class Future, class Function, class Sh
 struct has_multi_agent_then_execute_returning_user_specified_container_impl
 {
   template<class Executor1,
-           class = decltype(
+           class ReturnType = decltype(
              std::declval<Executor1>().template then_execute<Container>(
                *std::declval<Future*>(),
                std::declval<Function>(),
                std::declval<Shape>()
              )
-           )>
+           ),
+           class = typename std::enable_if<
+             std::is_same<Container,ReturnType>::value
+           >::type>
   static std::true_type test(int);
 
   template<class>
@@ -280,17 +283,20 @@ typename new_executor_traits<Executor>::template future<
 } // end multi_agent_then_execute_returning_default_container()
 
 
-template<class Executor, class Future, class Function, class Shape>
+template<class Executor, class Future, class Function, class Shape, class ExpectedReturnType>
 struct has_multi_agent_then_execute_returning_default_container_impl
 {
   template<class Executor1,
-           class = decltype(
+           class ReturnType = decltype(
              std::declval<Executor1>().then_execute(
                *std::declval<Future*>(),
                std::declval<Function>(),
                std::declval<Shape>()
              )
-           )>
+           ),
+           class = typename std::enable_if<
+             std::is_same<ReturnType, ExpectedReturnType>::value
+           >::type>
   static std::true_type test(int);
 
   template<class>
@@ -299,8 +305,8 @@ struct has_multi_agent_then_execute_returning_default_container_impl
   using type = decltype(test<Executor>(0));
 };
 
-template<class Executor, class Future, class Function, class Shape>
-using has_multi_agent_then_execute_returning_default_container = typename has_multi_agent_then_execute_returning_default_container_impl<Executor,Future,Function,Shape>::type;
+template<class Executor, class Future, class Function, class Shape, class ExpectedReturnType>
+using has_multi_agent_then_execute_returning_default_container = typename has_multi_agent_then_execute_returning_default_container_impl<Executor,Future,Function,Shape,ExpectedReturnType>::type;
 
 
 } // end new_executor_traits_detail
@@ -327,11 +333,20 @@ typename new_executor_traits<Executor>::template future<
                    Function f,
                    typename new_executor_traits<Executor>::shape_type shape)
 {
+  using expected_return_type = typename new_executor_traits<Executor>::template container<
+    detail::result_of_continuation_t<
+      Function,
+      Future,
+      typename new_executor_traits<Executor>::index_type
+    >
+  >;
+
   using check_for_member_function = detail::new_executor_traits_detail::has_multi_agent_then_execute_returning_default_container<
     Executor,
     Future,
     Function,
-    typename new_executor_traits<Executor>::shape_type
+    typename new_executor_traits<Executor>::shape_type,
+    expected_return_type
   >;
 
   return detail::new_executor_traits_detail::multi_agent_then_execute_returning_default_container(check_for_member_function(), ex, fut, f, shape);

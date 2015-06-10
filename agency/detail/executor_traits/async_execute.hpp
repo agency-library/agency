@@ -105,11 +105,14 @@ template<class Container, class Executor, class Function>
 struct has_multi_agent_async_execute_returning_user_specified_container_impl
 {
   template<class Executor1,
-           class = decltype(
+           class ReturnType = decltype(
              std::declval<Executor1>().template async_execute<Container>(
                std::declval<Function>()
              )
-           )>
+           ),
+           class = typename std::enable_if<
+             std::is_same<ReturnType,Container>::value
+           >::type>
   static std::true_type test(int);
 
   template<class>
@@ -184,15 +187,18 @@ typename new_executor_traits<Executor>::template future<
 } // end multi_agent_async_returning_default_specified_container()
 
 
-template<class Executor, class Function>
+template<class Executor, class Function, class ExpectedReturnType>
 struct has_multi_agent_async_execute_returning_default_container_impl
 {
   template<class Executor1,
-           class = decltype(
+           class ReturnType = decltype(
              std::declval<Executor1>().async_execute(
                std::declval<Function>()
              )
-           )>
+           ),
+           class = typename std::enable_if<
+             std::is_same<ReturnType,ExpectedReturnType>::value
+           >::type>
   static std::true_type test(int);
 
   template<class>
@@ -201,8 +207,8 @@ struct has_multi_agent_async_execute_returning_default_container_impl
   using type = decltype(test<Executor>(0));
 };
 
-template<class Executor, class Function>
-using has_multi_agent_async_execute_returning_default_container = typename has_multi_agent_async_execute_returning_default_container_impl<Executor,Function>::type;
+template<class Executor, class Function, class ExpectedReturnType>
+using has_multi_agent_async_execute_returning_default_container = typename has_multi_agent_async_execute_returning_default_container_impl<Executor,Function,ExpectedReturnType>::type;
 
 
 } // end new_executor_traits_detail
@@ -224,9 +230,16 @@ typename new_executor_traits<Executor>::template future<
                     Function f,
                     typename new_executor_traits<Executor>::shape_type shape)
 {
+  using expected_return_type = typename new_executor_traits<Executor>::template container<
+    typename std::result_of<
+      Function(typename new_executor_traits<Executor>::index_type)
+    >::type
+  >;
+
   using check_for_member_function = detail::new_executor_traits_detail::has_multi_agent_async_execute_returning_default_container<
     Executor,
-    Function
+    Function,
+    expected_return_type
   >;
 
   return detail::new_executor_traits_detail::multi_agent_async_execute_returning_default_container(check_for_member_function(), ex, f, shape);
