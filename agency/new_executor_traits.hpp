@@ -353,8 +353,12 @@ struct new_executor_traits
 } // end agency
 
 #include <agency/detail/executor_traits/make_ready_future.hpp>
-#include <agency/detail/executor_traits/when_all_execute_and_select.hpp>
-#include <agency/detail/executor_traits/then_execute.hpp>
-#include <agency/detail/executor_traits/async_execute.hpp>
-#include <agency/detail/executor_traits/execute.hpp>
+#include <agency/detail/executor_traits/single_agent_when_all_execute_and_select.hpp>
+#include <agency/detail/executor_traits/multi_agent_when_all_execute_and_select.hpp>
+#include <agency/detail/executor_traits/single_agent_then_execute.hpp>
+#include <agency/detail/executor_traits/multi_agent_then_execute.hpp>
+#include <agency/detail/executor_traits/single_agent_async_execute.hpp>
+#include <agency/detail/executor_traits/multi_agent_async_execute.hpp>
+#include <agency/detail/executor_traits/single_agent_execute.hpp>
+#include <agency/detail/executor_traits/multi_agent_execute.hpp>
 
