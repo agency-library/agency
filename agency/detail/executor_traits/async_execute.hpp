@@ -97,7 +97,7 @@ typename new_executor_traits<Executor>::template future<Container>
 {
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
   return new_executor_traits<Executor>::template then_execute<Container>(ex, ready, f, shape);
-} // end multi_agent_async_returning_user_specified_container()
+} // end multi_agent_async_execute_returning_user_specified_container()
 
 
 template<class Container, class Executor, class Function>
@@ -272,11 +272,14 @@ template<class Executor, class Function>
 struct has_multi_agent_async_execute_returning_void_impl
 {
   template<class Executor1,
-           class = decltype(
+           class ReturnType = decltype(
              std::declval<Executor1>().async_execute(
                std::declval<Function>()
              )
-           )>
+           ),
+           class = typename std::enable_if<
+             std::is_void<ReturnType>::value
+           >::type>
   static std::true_type test(int);
 
   template<class>

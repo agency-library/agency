@@ -379,13 +379,16 @@ template<class Executor, class Future, class Function, class Shape>
 struct has_multi_agent_then_execute_returning_void_impl
 {
   template<class Executor1,
-           class = decltype(
+           class ReturnType = decltype(
              std::declval<Executor1>().then_execute(
                *std::declval<Future*>(),
                std::declval<Function>(),
                std::declval<Shape>()
              )
-           )>
+           ),
+           class = typename std::enable_if<
+             std::is_void<ReturnType>::value
+           >::type>
   static std::true_type test(int);
 
   template<class>

@@ -318,6 +318,35 @@ struct new_executor_traits
     template<class Function>
     static typename std::result_of<Function()>::type
       execute(executor_type& ex, Function f);
+
+    // multi-agent execute returning user-specified Container
+    template<class Container, class Function>
+    static Container execute(executor_type& ex, Function f, shape_type shape);
+
+    // multi-agent execute returning default container
+    template<class Function,
+             class = typename std::enable_if<
+               !std::is_void<
+                 typename std::result_of<
+                   Function(index_type)
+                 >::type
+               >::value
+             >::type>
+    static container<
+      typename std::result_of<Function(index_type)>::type
+    >
+      execute(executor_type& ex, Function f, shape_type shape);
+
+    // multi-agent execute returning void
+    template<class Function,
+             class = typename std::enable_if<
+               std::is_void<
+                 typename std::result_of<
+                   Function(index_type)
+                 >::type
+               >::value
+             >::type>
+    static void execute(executor_type& ex, Function f, shape_type shape);
 }; // end new_executor_traits
 
 
