@@ -28,22 +28,22 @@ struct my_scoped_executor
       {
         for(size_t j = 0; j < shape[1]; ++j)
         {
-          f(args..., agency::size2(i,j));
+          f(agency::size2(i,j), args...);
         }
       }
     }
   };
 
-  template<size_t... Indices, class TupleOfFutures, class Function>
+  template<size_t... Indices, class Function, class TupleOfFutures>
   std::future<
     agency::detail::when_all_execute_and_select_result_t<
       agency::detail::index_sequence<Indices...>,
       typename std::decay<TupleOfFutures>::type
     >
   >
-    when_all_execute_and_select(TupleOfFutures&& futures, Function f, shape_type shape)
+    when_all_execute_and_select(Function f, shape_type shape, TupleOfFutures&& futures)
   {
-    return agency::when_all_execute_and_select<Indices...>(std::forward<TupleOfFutures>(futures), functor<Function>{f,shape});
+    return agency::when_all_execute_and_select<Indices...>(functor<Function>{f,shape}, std::forward<TupleOfFutures>(futures));
   }
 };
 
@@ -61,7 +61,7 @@ int main()
 
     std::mutex mut;
     my_executor exec;
-    std::future<int> fut = agency::new_executor_traits<my_executor>::when_all_execute_and_select<0>(exec, futures, [&](int& addend, size_t idx, int& current_sum)
+    std::future<int> fut = agency::new_executor_traits<my_executor>::when_all_execute_and_select<0>(exec, [&](size_t idx, int& addend, int& current_sum)
     {
       mut.lock();
       current_sum += addend;
@@ -76,6 +76,7 @@ int main()
       }
     },
     n,
+    futures,
     current_sum);
 
     auto got = fut.get();
@@ -101,7 +102,7 @@ int main()
     int result = 0;
 
     std::mutex mut;
-    auto fut = agency::new_executor_traits<my_scoped_executor>::when_all_execute_and_select<0>(exec, futures, [&](int& addend, agency::size2 idx, int& current_total_sum, int& current_group_sum)
+    auto fut = agency::new_executor_traits<my_scoped_executor>::when_all_execute_and_select<0>(exec, [&](agency::size2 idx, int& addend, int& current_total_sum, int& current_group_sum)
     {
       mut.lock();
       current_group_sum += addend;
@@ -126,6 +127,7 @@ int main()
       }
     },
     shape,
+    futures,
     0,
     0);
 

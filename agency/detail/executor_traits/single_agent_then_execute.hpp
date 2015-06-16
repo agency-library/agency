@@ -109,7 +109,7 @@ typename new_executor_traits<Executor>::template future<
 
   auto g = single_agent_then_execute_functor<Function,result_type>{f};
 
-  return new_executor_traits<Executor>::template when_all_execute_and_select<0>(ex, futures, g);
+  return new_executor_traits<Executor>::template when_all_execute_and_select<0>(ex, g, futures);
 } // end single_agent_then_execute()
 
 

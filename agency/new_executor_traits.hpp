@@ -138,14 +138,14 @@ struct nested_container_with_default
 {};
 
 
-template<class Executor, class TupleOfFutures, class Function>
+template<class Executor, class Function, class TupleOfFutures>
 struct has_single_agent_when_all_execute_impl
 {
   template<class Executor1,
            class = decltype(
              std::declval<Executor1>().when_all_execute(
-               std::declval<TupleOfFutures>(),
-               std::declval<Function>()
+               std::declval<Function>(),
+               std::declval<TupleOfFutures>()
              )
            )>
   static std::true_type test(int);
@@ -156,8 +156,8 @@ struct has_single_agent_when_all_execute_impl
   using type = decltype(test<Executor>(0));
 };
 
-template<class Executor, class TupleOfFutures, class Function>
-using has_single_agent_when_all_execute = typename has_single_agent_when_all_execute_impl<Executor, TupleOfFutures, Function>::type;
+template<class Executor, class Function, class TupleOfFutures>
+using has_single_agent_when_all_execute = typename has_single_agent_when_all_execute_impl<Executor, Function, TupleOfFutures>::type;
 
 
 template<class Executor, class... Futures>
@@ -222,34 +222,34 @@ struct new_executor_traits
     static future<T> make_ready_future(executor_type& ex, Args&&... args);
 
     // single-agent when_all_execute_and_select()
-    template<size_t... Indices, class TupleOfFutures, class Function>
+    template<size_t... Indices, class Function, class TupleOfFutures>
     static future<
       detail::when_all_execute_and_select_result_t<
         detail::index_sequence<Indices...>,
         typename std::decay<TupleOfFutures>::type
       >
     >
-      when_all_execute_and_select(executor_type& ex, TupleOfFutures&& futures, Function f);
+      when_all_execute_and_select(executor_type& ex, Function f, TupleOfFutures&& futures);
 
     // multi-agent when_all_execute_and_select()
-    template<size_t... Indices, class TupleOfFutures, class Function>
+    template<size_t... Indices, class Function, class TupleOfFutures>
     static future<
       detail::when_all_execute_and_select_result_t<
         detail::index_sequence<Indices...>,
         typename std::decay<TupleOfFutures>::type
       >
     >
-      when_all_execute_and_select(executor_type& ex, TupleOfFutures&& futures, Function f, shape_type shape);
+      when_all_execute_and_select(executor_type& ex, Function f, shape_type shape, TupleOfFutures&& futures);
 
     // multi-agent when_all_execute_and_select() with shared parameters
-    template<size_t... Indices, class TupleOfFutures, class Function, class T1, class... Types>
+    template<size_t... Indices, class Function, class TupleOfFutures, class T1, class... Types>
     static future<
       detail::when_all_execute_and_select_result_t<
         detail::index_sequence<Indices...>,
         typename std::decay<TupleOfFutures>::type
       >
     >
-      when_all_execute_and_select(executor_type& ex, TupleOfFutures&& futures, Function f, shape_type shape, T1&& outer_shared_init, Types&&... inner_shared_inits);
+      when_all_execute_and_select(executor_type& ex, Function f, shape_type shape, TupleOfFutures&& futures, T1&& outer_shared_init, Types&&... inner_shared_inits);
 
     // single-agent then_execute()
     template<class Future, class Function>

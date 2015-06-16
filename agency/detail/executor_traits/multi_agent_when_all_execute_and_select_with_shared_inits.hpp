@@ -16,16 +16,16 @@ namespace new_executor_traits_detail
 {
 
 
-template<size_t... Indices, class Executor, class TupleOfFutures, class Function, class... Types>
+template<size_t... Indices, class Executor, class Function, class TupleOfFutures, class... Types>
 typename new_executor_traits<Executor>::template future<
   detail::when_all_execute_and_select_result_t<
     detail::index_sequence<Indices...>,
     typename std::decay<TupleOfFutures>::type
   >
 >
-  multi_agent_when_all_execute_and_select_with_shared_inits(std::true_type, Executor& ex, TupleOfFutures&& futures, Function f, typename new_executor_traits<Executor>::shape_type shape, Types&&... shared_inits)
+  multi_agent_when_all_execute_and_select_with_shared_inits(std::true_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures, Types&&... shared_inits)
 {
-  return ex.template when_all_execute_and_select<Indices...>(std::forward<TupleOfFutures>(futures), f, shape, std::forward<Types>(shared_inits)...);
+  return ex.template when_all_execute_and_select<Indices...>(f, shape, std::forward<TupleOfFutures>(futures), std::forward<Types>(shared_inits)...);
 } // end multi_agent_when_all_execute_and_select_with_shared_inits()
 
 
@@ -52,22 +52,22 @@ struct multi_agent_when_all_execute_and_select_with_shared_inits_functor
                                       detail::shape_size(detail::tuple_take<depth+1>(augmented_shape)));
   }
 
-  // XXX generalize this to handle a variadic number of past args
-  template<size_t... ContainerIndices, class T1, class TupleOfContainers, class AgentIndex>
+  template<size_t... ContainerIndices, class AgentIndex, class TupleOfContainers, class... Types>
   __AGENCY_ANNOTATION
-  void impl(detail::index_sequence<ContainerIndices...>, T1& past_arg, TupleOfContainers& shared_arg_containers, AgentIndex&& agent_idx) const
+  void impl(detail::index_sequence<ContainerIndices...>, AgentIndex&& agent_idx, TupleOfContainers&& shared_arg_containers, Types&... past_args) const
   {
-    f(past_arg, std::forward<AgentIndex>(agent_idx), std::get<ContainerIndices>(shared_arg_containers)[rank_in_group<ContainerIndices>(agent_idx)]...);
+    f(std::forward<AgentIndex>(agent_idx),                                                             // pass the agent index
+      past_args...,                                                                                    // pass the arguments coming in from futures
+      std::get<ContainerIndices>(shared_arg_containers)[rank_in_group<ContainerIndices>(agent_idx)]... // pass the arguments coming in from shared parameters
+    );
   }
 
-  // XXX generalize this to handle a variadic number of past args
-  template<class T1, class TupleOfContainers, class Index>
+  template<class Index, class TupleOfContainers, class... Types>
   __AGENCY_ANNOTATION
-  void operator()(T1& past_arg, TupleOfContainers& shared_arg_containers, Index&& idx) const
+  void operator()(Index&& idx, TupleOfContainers& shared_arg_containers, Types&... past_args) const
   {
     static const size_t num_containers = std::tuple_size<TupleOfContainers>::value;
-
-    impl(detail::make_index_sequence<num_containers>(), past_arg, shared_arg_containers, std::forward<Index>(idx));
+    impl(detail::make_index_sequence<num_containers>(), std::forward<Index>(idx), shared_arg_containers, past_args...);
   }
 };
 
@@ -113,14 +113,14 @@ detail::tuple<
 }
 
 
-template<size_t... Indices, class Executor, class TupleOfFutures, class Function, class... Types>
+template<size_t... Indices, class Executor, class Function, class TupleOfFutures, class... Types>
 typename new_executor_traits<Executor>::template future<
   detail::when_all_execute_and_select_result_t<
     detail::index_sequence<Indices...>,
     typename std::decay<TupleOfFutures>::type
   >
 >
-  multi_agent_when_all_execute_and_select_with_shared_inits(std::false_type, Executor& ex, TupleOfFutures&& futures, Function f, typename new_executor_traits<Executor>::shape_type shape, Types&&... shared_inits)
+  multi_agent_when_all_execute_and_select_with_shared_inits(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures, Types&&... shared_inits)
 {
   // create a tuple of containers holding a shared parameter for each group
   auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, std::forward<Types>(shared_inits)...);
@@ -129,28 +129,30 @@ typename new_executor_traits<Executor>::template future<
   auto shared_param_containers_tuple_fut = new_executor_traits<Executor>::template make_ready_future<decltype(shared_param_containers_tuple)>(ex, std::move(shared_param_containers_tuple));
 
   // combine the shared parameters with the incoming futures
-  auto futures_and_shared = detail::tuple_append(std::move(futures), std::move(shared_param_containers_tuple_fut));
+  // the tuple of containers goes in front of the incoming futures
+  auto shared_and_futures = detail::tuple_prepend(std::move(futures), std::move(shared_param_containers_tuple_fut));
 
   // wrap f with a functor to map container elements to shared parameters
   auto g = multi_agent_when_all_execute_and_select_with_shared_inits_functor<Function, typename new_executor_traits<Executor>::shape_type>{f, shape};
 
-  return new_executor_traits<Executor>::template when_all_execute_and_select<Indices...>(ex, std::move(futures_and_shared), g, shape);
+  // add one to the indices to skip the tuple of containers which was prepended to the tuple of futures
+  return new_executor_traits<Executor>::template when_all_execute_and_select<(Indices+1)...>(ex, g, shape, std::move(shared_and_futures));
 } // end multi_agent_when_all_execute_and_select_with_shared_inits()
 
 
-template<class IndexSequence, class Executor, class TupleOfFutures, class Function, class Shape, class TypeList>
+template<class IndexSequence, class Executor, class Function, class Shape, class TupleOfFutures, class TypeList>
 struct has_multi_agent_when_all_execute_and_select_with_shared_inits_impl;
 
 
-template<size_t... Indices, class Executor, class TupleOfFutures, class Function, class Shape, class... Types>
-struct has_multi_agent_when_all_execute_and_select_with_shared_inits_impl<index_sequence<Indices...>, Executor, TupleOfFutures, Function, Shape, type_list<Types...>>
+template<size_t... Indices, class Executor, class Function, class Shape, class TupleOfFutures, class... Types>
+struct has_multi_agent_when_all_execute_and_select_with_shared_inits_impl<index_sequence<Indices...>, Executor, Function, Shape, TupleOfFutures, type_list<Types...>>
 {
   template<class Executor1,
            class = decltype(
              std::declval<Executor1>().template when_all_execute_and_select<Indices...>(
-               std::declval<TupleOfFutures>(),
                std::declval<Function>(),
                std::declval<Shape>(),
+               std::declval<TupleOfFutures>(),
                std::declval<Types>()...
              )
            )>
@@ -162,8 +164,8 @@ struct has_multi_agent_when_all_execute_and_select_with_shared_inits_impl<index_
   using type = decltype(test<Executor>(0));
 };
 
-template<class IndexSequence, class Executor, class TupleOfFutures, class Function, class Shape, class TypeList>
-using has_multi_agent_when_all_execute_and_select_with_shared_inits = typename has_multi_agent_when_all_execute_and_select_with_shared_inits_impl<IndexSequence, Executor, TupleOfFutures, Function, Shape, TypeList>::type;
+template<class IndexSequence, class Executor, class Function, class Shape, class TupleOfFutures, class TypeList>
+using has_multi_agent_when_all_execute_and_select_with_shared_inits = typename has_multi_agent_when_all_execute_and_select_with_shared_inits_impl<IndexSequence, Executor, Function, Shape, TupleOfFutures, TypeList>::type;
 
 
 } // end detail
@@ -171,7 +173,7 @@ using has_multi_agent_when_all_execute_and_select_with_shared_inits = typename h
 
 
 template<class Executor>
-template<size_t... Indices, class TupleOfFutures, class Function, class T1, class... Types>
+template<size_t... Indices, class Function, class TupleOfFutures, class T1, class... Types>
   typename new_executor_traits<Executor>::template future<
     detail::when_all_execute_and_select_result_t<
       detail::index_sequence<Indices...>,
@@ -180,9 +182,9 @@ template<size_t... Indices, class TupleOfFutures, class Function, class T1, clas
   >
   new_executor_traits<Executor>
     ::when_all_execute_and_select(typename new_executor_traits<Executor>::executor_type& ex,
-                                  TupleOfFutures&& futures,
                                   Function f,
                                   typename new_executor_traits<Executor>::shape_type shape,
+                                  TupleOfFutures&& futures,
                                   T1&& outer_shared_init,
                                   Types&&... inner_shared_inits)
 {
@@ -191,13 +193,13 @@ template<size_t... Indices, class TupleOfFutures, class Function, class T1, clas
   using check_for_member_function = detail::new_executor_traits_detail::has_multi_agent_when_all_execute_and_select_with_shared_inits<
     detail::index_sequence<Indices...>,
     Executor,
-    typename std::decay<TupleOfFutures>::type,
     Function,
     typename new_executor_traits<Executor>::shape_type,
+    typename std::decay<TupleOfFutures>::type,
     detail::type_list<T1,Types...>
   >;
 
-  return detail::new_executor_traits_detail::multi_agent_when_all_execute_and_select_with_shared_inits<Indices...>(check_for_member_function(), ex, std::forward<TupleOfFutures>(futures), f, shape, std::forward<T1>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
+  return detail::new_executor_traits_detail::multi_agent_when_all_execute_and_select_with_shared_inits<Indices...>(check_for_member_function(), ex, f, shape, std::forward<TupleOfFutures>(futures), std::forward<T1>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
 } // end new_executor_traits::when_all_execute_and_select()
 
 

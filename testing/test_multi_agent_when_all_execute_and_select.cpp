@@ -18,7 +18,7 @@ int main()
 
     std::mutex mut;
     my_executor exec;
-    std::future<agency::detail::tuple<std::vector<int>,int>> fut = agency::new_executor_traits<my_executor>::when_all_execute_and_select<2,0>(exec, std::move(futures), [&mut](int& x, std::vector<int>& vec, size_t idx)
+    std::future<agency::detail::tuple<std::vector<int>,int>> fut = agency::new_executor_traits<my_executor>::when_all_execute_and_select<2,0>(exec, [&mut](size_t idx, int& x, std::vector<int>& vec)
     {
       mut.lock();
       x += 1;
@@ -26,7 +26,8 @@ int main()
 
       vec[idx] = 13;
     },
-    n);
+    n,
+    std::move(futures));
 
     auto got = fut.get();
 

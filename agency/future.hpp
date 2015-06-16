@@ -551,14 +551,14 @@ std::future<
 } // end when_all_execute_and_select_impl()
 
 
-template<size_t... SelectedIndices, size_t... TupleIndices, class TupleOfFutures, class Function>
+template<size_t... SelectedIndices, size_t... TupleIndices, class Function, class TupleOfFutures>
 std::future<
   detail::when_all_execute_and_select_result_t<
     detail::index_sequence<SelectedIndices...>,
     typename std::decay<TupleOfFutures>::type
   >
 >
-  when_all_execute_and_select(index_sequence<SelectedIndices...> indices, index_sequence<TupleIndices...>, TupleOfFutures&& futures, Function f)
+  when_all_execute_and_select(index_sequence<SelectedIndices...> indices, index_sequence<TupleIndices...>, Function f, TupleOfFutures&& futures)
 {
   return detail::when_all_execute_and_select_impl(indices, f, std::get<TupleIndices>(std::forward<TupleOfFutures>(futures))...);
 } // end when_all_execute_and_select()
@@ -582,20 +582,20 @@ struct swallower
 } // end detail
 
 
-template<size_t... Indices, class TupleOfFutures, class Function>
+template<size_t... Indices, class Function, class TupleOfFutures>
 std::future<
   detail::when_all_execute_and_select_result_t<
     detail::index_sequence<Indices...>,
     typename std::decay<TupleOfFutures>::type
   >
 >
-  when_all_execute_and_select(TupleOfFutures&& futures, Function f)
+  when_all_execute_and_select(Function f, TupleOfFutures&& futures)
 {
   return detail::when_all_execute_and_select(
     detail::index_sequence<Indices...>(),
     detail::make_tuple_indices(futures),
-    std::forward<TupleOfFutures>(futures),
-    f
+    f,
+    std::forward<TupleOfFutures>(futures)
   );
 } // end when_all_execute_and_select()
 
@@ -608,7 +608,7 @@ std::future<
 >
   when_all_and_select(Futures&&... futures)
 {
-  return agency::when_all_execute_and_select<Indices...>(std::make_tuple(std::move(futures)...), detail::swallower());
+  return agency::when_all_execute_and_select<Indices...>(detail::swallower(), std::make_tuple(std::move(futures)...));
 } // end when_all()
 
 

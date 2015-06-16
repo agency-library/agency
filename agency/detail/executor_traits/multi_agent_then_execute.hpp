@@ -54,16 +54,16 @@ struct multi_agent_then_execute_returning_user_specified_container_functor
 {
   mutable Function f;
 
-  template<class Container, class Arg, class Index>
+  template<class Index, class Container, class Arg>
   __AGENCY_ANNOTATION
-  void operator()(Container& c, Arg& arg, const Index& idx) const
+  void operator()(const Index& idx, Container& c, Arg& arg) const
   {
     c[idx] = f(arg, idx);
   }
 
-  template<class Container, class Index>
+  template<class Index, class Container>
   __AGENCY_ANNOTATION
-  void operator()(Container& c, const Index& idx) const
+  void operator()(const Index& idx, Container& c) const
   {
     c[idx] = f(idx);
   }
@@ -80,7 +80,7 @@ typename new_executor_traits<Executor>::template future<Container>
 
   auto results_and_fut = detail::make_tuple(std::move(results), std::move(fut));
 
-  return traits::template when_all_execute_and_select<0>(ex, results_and_fut, multi_agent_then_execute_returning_user_specified_container_functor<Function>{f}, shape);
+  return traits::template when_all_execute_and_select<0>(ex, multi_agent_then_execute_returning_user_specified_container_functor<Function>{f}, shape, results_and_fut);
 } // end multi_agent_then_execute_returning_user_specified_container()
 
 
@@ -243,7 +243,15 @@ template<class Executor, class Future, class Function>
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_then_execute_returning_void(std::false_type, Executor& ex, Future& fut, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
-  return new_executor_traits<Executor>::when_all_execute_and_select(ex, detail::make_tuple(std::move(fut)), f, shape);
+  //return new_executor_traits<Executor>::when_all_execute_and_select(ex, f, shape, detail::make_tuple(std::move(fut)));
+
+  // XXX eliminate g and just pass f once we make then_execute's parameter order match when_all_execute_and_select()
+  auto g = [=](const typename new_executor_traits<Executor>::index_type& idx, typename future_traits<Future>::value_type& arg)
+  {
+    f(arg, idx);
+  };
+
+  return new_executor_traits<Executor>::when_all_execute_and_select(ex, g, shape, detail::make_tuple(std::move(fut)));
 } // end multi_agent_then_execute_returning_default_container()
 
 
