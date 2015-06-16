@@ -355,6 +355,28 @@ template<class Tuple>
 using tuple_elements = typename tuple_elements_impl<tuple_indices<Tuple>,Tuple>::type;
 
 
+template<class Tuple, class T>
+__AGENCY_ANNOTATION
+auto tuple_append(Tuple&& t, T&& val)
+  -> decltype(
+       __tu::tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker());
+}
+
+
+template<class Tuple, class T>
+__AGENCY_ANNOTATION
+auto tuple_prepend(Tuple&& t, T&& val)
+  -> decltype(
+       __tu::tuple_prepend_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_prepend_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker());
+}
+
+
 } // end detail
 } // end agency
 
