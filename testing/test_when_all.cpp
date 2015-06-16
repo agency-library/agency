@@ -72,11 +72,12 @@ int main()
 
     auto futures = std::make_tuple(std::move(int_ready), std::move(void_ready), std::move(float_ready));
 
-    std::future<agency::detail::tuple<float,int>> fut = agency::when_all_execute_and_select<2,0>(std::move(futures), [](int& x, float& y)
+    std::future<agency::detail::tuple<float,int>> fut = agency::when_all_execute_and_select<2,0>([](int& x, float& y)
     {
       x += 1;
       y += 2;
-    });
+    },
+    std::move(futures));
 
     auto got = fut.get();
 
@@ -92,11 +93,12 @@ int main()
     auto futures = std::make_tuple(std::move(int_ready), std::move(void_ready), std::move(float_ready));
 
     my_executor exec;
-    std::future<agency::detail::tuple<float,int>> fut = agency::new_executor_traits<my_executor>::when_all_execute_and_select<2,0>(exec, std::move(futures), [](int& x, float& y)
+    std::future<agency::detail::tuple<float,int>> fut = agency::new_executor_traits<my_executor>::when_all_execute_and_select<2,0>(exec, [](int& x, float& y)
     {
       x += 1;
       y += 2;
-    });
+    },
+    std::move(futures));
 
     auto got = fut.get();
 

@@ -202,6 +202,32 @@ struct type_list_prepend<T0, type_list<Types...>>
 
 
 template<class Function, class TypeList>
+struct type_list_is_callable_impl;
+
+template<class Function, class... Types>
+struct type_list_is_callable_impl<Function, type_list<Types...>>
+{
+  template<class Function1,
+           class = decltype(
+             std::declval<Function1>()(
+               std::declval<Types>()...
+             )
+           )
+          >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Function>(0));
+};
+
+
+template<class Function, class TypeList>
+using type_list_is_callable = typename type_list_is_callable_impl<Function,TypeList>::type;
+
+
+template<class Function, class TypeList>
 struct type_list_result_of;
 
 template<class Function, class... Types>
