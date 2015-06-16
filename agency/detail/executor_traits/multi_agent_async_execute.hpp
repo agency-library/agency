@@ -26,7 +26,7 @@ typename new_executor_traits<Executor>::template future<Container>
   multi_agent_async_execute_returning_user_specified_container(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
-  return new_executor_traits<Executor>::template then_execute<Container>(ex, ready, f, shape);
+  return new_executor_traits<Executor>::template then_execute<Container>(ex, f, shape, ready);
 } // end multi_agent_async_execute_returning_user_specified_container()
 
 
@@ -194,7 +194,7 @@ typename new_executor_traits<Executor>::template future<void>
   multi_agent_async_execute_returning_void(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
-  return new_executor_traits<Executor>::then_execute(ex, ready, f, shape);
+  return new_executor_traits<Executor>::then_execute(ex, f, shape, ready);
 } // end multi_agent_async_returning_default_void()
 
 

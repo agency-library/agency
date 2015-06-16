@@ -30,7 +30,7 @@ typename new_executor_traits<Executor>::template future<
   single_agent_async_execute(std::false_type, Executor& ex, Function f)
 {
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
-  return new_executor_traits<Executor>::then_execute(ex, ready, f);
+  return new_executor_traits<Executor>::then_execute(ex, f, ready);
 } // end single_agent_async_execute()
 
 

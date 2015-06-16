@@ -20,6 +20,31 @@ __DEFINE_HAS_NESTED_TYPE(has_shape_type, shape_type);
 __DEFINE_HAS_NESTED_CLASS_TEMPLATE(has_container_template, container);
 
 
+template<class T, class Index>
+struct is_container_impl
+{
+  // test if T is a container by trying to index it using the bracket operator
+  // XXX should also check that it is constructible from Shape
+  template<class T1,
+           class Reference = decltype(
+             (*std::declval<T*>())[std::declval<Index>()]
+           ),
+           class = typename std::enable_if<
+             !std::is_void<Reference>::value
+           >::type>
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<T>(0));
+};
+
+
+template<class T, class Index>
+using is_container = typename is_container_impl<T,Index>::type;
+
+
 template<class T>
 struct nested_execution_category
 {
@@ -252,45 +277,63 @@ struct new_executor_traits
       when_all_execute_and_select(executor_type& ex, Function f, shape_type shape, TupleOfFutures&& futures, T1&& outer_shared_init, Types&&... inner_shared_inits);
 
     // single-agent then_execute()
-    template<class Future, class Function>
+    template<class Function, class Future>
     static future<
       detail::result_of_continuation_t<Function,Future>
     >
-      then_execute(executor_type& ex, Future& fut, Function f);
+      then_execute(executor_type& ex, Function f, Future& fut);
 
     // multi-agent then_execute() returning user-specified Container
-    template<class Container, class Future, class Function>
-    static future<Container> then_execute(executor_type& ex, Future& fut, Function f, shape_type shape);
+    template<class Container, class Function, class Future,
+             class = typename std::enable_if<
+               detail::new_executor_traits_detail::is_container<Container,index_type>::value
+             >::type,
+             class = typename std::enable_if<
+               detail::is_future<Future>::value
+             >::type,
+             class = detail::result_of_continuation_t<
+               Function,
+               index_type,
+               Future
+             >
+            >
+    static future<Container> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut);
 
     // multi-agent then_execute() returning default container
-    template<class Future, class Function,
+    template<class Function, class Future,
              class = typename std::enable_if<
                detail::is_future<Future>::value
              >::type,
              class = typename std::enable_if<
+               detail::is_callable_continuation<Function,index_type,Future>::value
+             >::type,
+             class = typename std::enable_if<
                !std::is_void<
-                 detail::result_of_continuation_t<Function,Future,index_type>
+                 detail::result_of_continuation_t<Function,index_type,Future>
                >::value
              >::type>
     static future<
       container<
-        detail::result_of_continuation_t<Function,Future,index_type>
+        detail::result_of_continuation_t<Function,index_type,Future>
       >
     >
-      then_execute(executor_type& ex, Future& fut, Function f, shape_type shape);
+      then_execute(executor_type& ex, Function f, shape_type shape, Future& fut);
 
     // multi-agent then_execute() returning void
-    template<class Future, class Function,
+    template<class Function, class Future,
              class = typename std::enable_if<
                detail::is_future<Future>::value
              >::type,
              class = typename std::enable_if<
+               detail::is_callable_continuation<Function,index_type,Future>::value
+             >::type,
+             class = typename std::enable_if<
                std::is_void<
-                 detail::result_of_continuation_t<Function,Future,index_type>
+                 detail::result_of_continuation_t<Function,index_type,Future>
                >::value
              >::type>
     static future<void>
-      then_execute(executor_type& ex, Future& fut, Function f, shape_type shape);
+      then_execute(executor_type& ex, Function f, shape_type shape, Future& fut);
 
     // single-agent async_execute()
     template<class Function>

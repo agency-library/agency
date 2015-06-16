@@ -18,11 +18,12 @@ int main()
 
     auto past = agency::detail::make_ready_future(13);
 
-    std::future<std::vector<int>> fut = agency::new_executor_traits<my_executor>::template then_execute<std::vector<int>>(exec, past, [](int& past, size_t idx)
+    std::future<std::vector<int>> fut = agency::new_executor_traits<my_executor>::template then_execute<std::vector<int>>(exec, [](size_t idx, int& past)
     {
       return past;
     },
-    n);
+    n,
+    past);
 
     auto got = fut.get();
 
@@ -38,11 +39,12 @@ int main()
 
     auto past = agency::detail::make_ready_future(13);
 
-    auto fut = agency::new_executor_traits<my_executor>::then_execute(exec, past, [](int& past, size_t idx)
+    auto fut = agency::new_executor_traits<my_executor>::then_execute(exec, [](size_t idx, int& past)
     {
       return past;
     },
-    n);
+    n,
+    past);
 
     auto result = fut.get();
 
@@ -61,13 +63,14 @@ int main()
 
     int increment_me = 0;
     std::mutex mut;
-    auto fut = agency::new_executor_traits<my_executor>::then_execute(exec, past, [&](int& past, size_t idx)
+    auto fut = agency::new_executor_traits<my_executor>::then_execute(exec, [&](size_t idx, int& past)
     {
       mut.lock();
       increment_me += past;
       mut.unlock();
     },
-    n);
+    n,
+    past);
 
     fut.wait();
 
