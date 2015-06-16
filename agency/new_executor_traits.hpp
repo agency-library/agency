@@ -197,6 +197,8 @@ struct new_executor_traits
       parallel_execution_tag
     >::type;
 
+    constexpr static size_t execution_depth = detail::execution_depth<execution_category>::value;
+
     using index_type = typename detail::new_executor_traits_detail::nested_index_type_with_default<
       executor_type,
       size_t
@@ -238,6 +240,16 @@ struct new_executor_traits
       >
     >
       when_all_execute_and_select(executor_type& ex, TupleOfFutures&& futures, Function f, shape_type shape);
+
+    // multi-agent when_all_execute_and_select() with shared parameters
+    template<size_t... Indices, class TupleOfFutures, class Function, class T1, class... Types>
+    static future<
+      detail::when_all_execute_and_select_result_t<
+        detail::index_sequence<Indices...>,
+        typename std::decay<TupleOfFutures>::type
+      >
+    >
+      when_all_execute_and_select(executor_type& ex, TupleOfFutures&& futures, Function f, shape_type shape, T1&& outer_shared_init, Types&&... inner_shared_inits);
 
     // single-agent then_execute()
     template<class Future, class Function>
@@ -355,6 +367,7 @@ struct new_executor_traits
 #include <agency/detail/executor_traits/make_ready_future.hpp>
 #include <agency/detail/executor_traits/single_agent_when_all_execute_and_select.hpp>
 #include <agency/detail/executor_traits/multi_agent_when_all_execute_and_select.hpp>
+#include <agency/detail/executor_traits/multi_agent_when_all_execute_and_select_with_shared_inits.hpp>
 #include <agency/detail/executor_traits/single_agent_then_execute.hpp>
 #include <agency/detail/executor_traits/multi_agent_then_execute.hpp>
 #include <agency/detail/executor_traits/single_agent_async_execute.hpp>
