@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/new_executor_traits.hpp>
+#include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <type_traits>
 
 namespace agency
@@ -29,27 +30,6 @@ typename std::result_of<Function()>::type
   // XXX should use an executor_traits operation on the future rather than .get()
   return fut.get();
 } // end single_agent_execute()
-
-
-template<class Executor, class Function>
-struct has_single_agent_execute_impl
-{
-  template<class Executor1,
-           class = decltype(
-             std::declval<Executor1>().execute(
-               std::declval<Function>()
-             )
-           )>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-template<class Executor, class Function>
-using has_single_agent_execute = typename has_single_agent_execute_impl<Executor,Function>::type;
 
 
 } // end detail

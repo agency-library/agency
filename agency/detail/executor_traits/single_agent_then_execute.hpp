@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/future.hpp>
 #include <agency/new_executor_traits.hpp>
+#include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -12,28 +13,6 @@ namespace detail
 {
 namespace new_executor_traits_detail
 {
-
-
-template<class Executor, class Function, class Future>
-struct has_single_agent_then_execute_impl
-{
-  template<class Executor1,
-           class = decltype(
-             std::declval<Executor1>().then_execute(
-               std::declval<Function>(),
-               *std::declval<Future*>()
-             )
-           )>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-template<class Executor, class Function, class Future>
-using has_single_agent_then_execute = typename has_single_agent_then_execute_impl<Executor,Function,Future>::type;
 
 
 template<class Executor, class Function, class Future>

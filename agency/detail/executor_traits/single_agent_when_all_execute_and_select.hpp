@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/new_executor_traits.hpp>
+#include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/future.hpp>
 #include <type_traits>
 #include <iostream>
@@ -40,29 +41,6 @@ typename new_executor_traits<Executor>::template future<
   // XXX then_execute(when_all(), select<Indices...>()))
   return agency::when_all_execute_and_select<Indices...>(f, std::forward<TupleOfFutures>(futures));
 } // end single_agent_when_all_execute_and_select()
-
-
-// check for single-agent .when_all_execute_and_select()
-template<class Executor, class Function, class TupleOfFutures, size_t... Indices>
-struct has_single_agent_when_all_execute_and_select_impl
-{
-  template<class Executor1,
-           class = decltype(
-             std::declval<Executor1>().template when_all_execute_and_select<Indices...>(
-               std::declval<Function>(),
-               std::declval<TupleOfFutures>()
-             )
-           )>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-template<class Executor, class Function, class TupleOfFutures, size_t... Indices>
-using has_single_agent_when_all_execute_and_select = typename has_single_agent_when_all_execute_and_select_impl<Executor, Function, TupleOfFutures, Indices...>::type;
 
 
 } // end new_executor_traits_detail

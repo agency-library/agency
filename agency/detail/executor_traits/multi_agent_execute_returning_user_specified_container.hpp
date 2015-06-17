@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/new_executor_traits.hpp>
+#include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <type_traits>
 
 namespace agency
@@ -27,30 +28,6 @@ Container multi_agent_execute_returning_user_specified_container(std::false_type
   // XXX should use an executor_traits operation on the future rather than .get()
   return fut.get();
 } // end multi_agent_execute_returning_user_specified_container()
-
-
-template<class Container, class Executor, class Function>
-struct has_multi_agent_execute_returning_user_specified_container_impl
-{
-  template<class Executor1,
-           class ReturnType = decltype(
-             std::declval<Executor1>().template execute<Container>(
-               std::declval<Function>()
-             )
-           ),
-           class = typename std::enable_if<
-             std::is_same<ReturnType,Container>::value
-           >::type>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-template<class Container, class Executor, class Function>
-using has_multi_agent_execute_returning_user_specified_container = typename has_multi_agent_execute_returning_user_specified_container_impl<Container,Executor,Function>::type;
 
 
 } // end new_executor_traits_detail

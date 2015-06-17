@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/new_executor_traits.hpp>
+#include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <type_traits>
 
 namespace agency
@@ -51,30 +52,6 @@ void multi_agent_execute_returning_void(std::false_type, Executor& ex, Function 
 
   new_executor_traits<Executor>::template execute<discarding_container>(ex, g, shape);
 } // end multi_agent_execute_returning_void()
-
-
-template<class Executor, class Function>
-struct has_multi_agent_execute_returning_void_impl
-{
-  template<class Executor1,
-           class ReturnType = decltype(
-             std::declval<Executor1>().execute(
-               std::declval<Function>()
-             )
-           ),
-           class = typename std::enable_if<
-             std::is_void<ReturnType>::value
-           >::type>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-template<class Executor, class Function>
-using has_multi_agent_execute_returning_void = typename has_multi_agent_execute_returning_void_impl<Executor,Function>::type;
 
 
 } // end new_executor_traits_detail

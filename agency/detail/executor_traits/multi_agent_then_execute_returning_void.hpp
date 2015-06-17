@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/future.hpp>
 #include <agency/new_executor_traits.hpp>
+#include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -29,32 +30,6 @@ typename new_executor_traits<Executor>::template future<void>
 {
   return new_executor_traits<Executor>::when_all_execute_and_select(ex, f, shape, detail::make_tuple(std::move(fut)));
 } // end multi_agent_then_execute_returning_void()
-
-
-template<class Executor, class Function, class Shape, class Future>
-struct has_multi_agent_then_execute_returning_void_impl
-{
-  template<class Executor1,
-           class ReturnType = decltype(
-             std::declval<Executor1>().then_execute(
-               std::declval<Function>(),
-               std::declval<Shape>(),
-               *std::declval<Future*>()
-             )
-           ),
-           class = typename std::enable_if<
-             std::is_void<ReturnType>::value
-           >::type>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-template<class Executor, class Function, class Shape, class Future>
-using has_multi_agent_then_execute_returning_void = typename has_multi_agent_then_execute_returning_void_impl<Executor,Function,Shape,Future>::type;
 
 
 } // end new_executor_traits_detail
