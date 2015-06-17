@@ -416,7 +416,9 @@ struct new_executor_traits
 #include <agency/detail/executor_traits/multi_agent_then_execute_returning_default_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_then_execute_returning_void.hpp>
 #include <agency/detail/executor_traits/single_agent_async_execute.hpp>
-#include <agency/detail/executor_traits/multi_agent_async_execute.hpp>
+#include <agency/detail/executor_traits/multi_agent_async_execute_returning_user_specified_container.hpp>
+#include <agency/detail/executor_traits/multi_agent_async_execute_returning_default_container.hpp>
+#include <agency/detail/executor_traits/multi_agent_async_execute_returning_void.hpp>
 #include <agency/detail/executor_traits/single_agent_execute.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute.hpp>
 
