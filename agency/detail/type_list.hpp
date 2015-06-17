@@ -201,6 +201,19 @@ struct type_list_prepend<T0, type_list<Types...>>
 };
 
 
+template<class TypeList, class T>
+struct type_list_append_impl;
+
+template<class... Types, class T>
+struct type_list_append_impl<type_list<Types...>, T>
+{
+  using type = type_list<Types..., T>;
+};
+
+template<class TypeList, class T>
+using type_list_append = typename type_list_append_impl<TypeList, T>::type;
+
+
 template<class Function, class TypeList>
 struct type_list_is_callable_impl;
 
@@ -238,6 +251,23 @@ struct type_list_result_of<Function, type_list<Types...>>
 
 template<class Function, class TypeList>
 using type_list_result_of_t = typename type_list_result_of<Function,TypeList>::type;
+
+
+template<size_t n, class T>
+struct type_list_repeat_impl
+{
+  using rest = typename type_list_repeat_impl<n-1,T>::type;
+  using type = type_list_append<rest, T>;
+};
+
+template<class T>
+struct type_list_repeat_impl<0,T>
+{
+  using type = type_list<>;
+};
+
+template<size_t n, class T>
+using type_list_repeat = typename type_list_repeat_impl<n,T>::type;
 
 
 } // end detail

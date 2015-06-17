@@ -76,6 +76,50 @@ struct simple_multi_agent_when_all_execute_and_select_executor
   {
     return function_called;
   }
+};
 
+
+struct simple_multi_agent_when_all_execute_and_select_with_shared_inits_executor
+{
+  simple_multi_agent_when_all_execute_and_select_with_shared_inits_executor() : function_called{} {};
+
+  template<class Function, class T>
+  struct functor
+  {
+    mutable Function f;
+    size_t n;
+    T shared_arg;
+
+    template<class... Args>
+    void operator()(Args&&... args) const
+    {
+      for(size_t idx = 0; idx < n; ++idx)
+      {
+        f(idx, std::forward<Args>(args)..., shared_arg);
+      }
+    }
+  };
+
+  template<size_t... SelectedIndices, class Function, class TupleOfFutures, class T>
+  std::future<
+    agency::detail::when_all_execute_and_select_result_t<
+      agency::detail::index_sequence<SelectedIndices...>,
+      typename std::decay<TupleOfFutures>::type
+    >
+  >
+    when_all_execute_and_select(Function f, size_t n, TupleOfFutures&& futures, T&& shared_init)
+  {
+    function_called = true;
+
+    auto g = functor<Function, typename std::decay<T>::type>{f, n, std::forward<T>(shared_init)};
+    return agency::when_all_execute_and_select<SelectedIndices...>(std::move(g), std::forward<TupleOfFutures>(futures));
+  }
+
+  bool function_called;
+
+  bool valid()
+  {
+    return function_called;
+  }
 };
 
