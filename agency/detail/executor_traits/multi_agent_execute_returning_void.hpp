@@ -1,0 +1,102 @@
+#pragma once
+
+#include <agency/detail/config.hpp>
+#include <agency/new_executor_traits.hpp>
+#include <type_traits>
+
+namespace agency
+{
+namespace detail
+{
+namespace new_executor_traits_detail
+{
+
+
+template<class Executor, class Function>
+void multi_agent_execute_returning_void(std::true_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
+{
+  return ex.execute(f, shape);
+} // end multi_agent_execute_returning_void()
+
+
+struct discarding_container
+{
+  struct reference
+  {
+    template<class T>
+    reference& operator=(const T&) { return *this; }
+  };
+
+  template<class... Args>
+  discarding_container(Args&&...) {}
+
+  template<class Index>
+  reference operator[](const Index&) const
+  {
+    return reference();
+  }
+};
+
+
+template<class Executor, class Function>
+void multi_agent_execute_returning_void(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
+{
+  auto g = [=](const typename new_executor_traits<Executor>::index_type& idx)
+  {
+    f(idx);
+
+    // return something which can be cheaply discarded
+    return 0;
+  };
+
+  new_executor_traits<Executor>::template execute<discarding_container>(ex, g, shape);
+} // end multi_agent_execute_returning_void()
+
+
+template<class Executor, class Function>
+struct has_multi_agent_execute_returning_void_impl
+{
+  template<class Executor1,
+           class ReturnType = decltype(
+             std::declval<Executor1>().execute(
+               std::declval<Function>()
+             )
+           ),
+           class = typename std::enable_if<
+             std::is_void<ReturnType>::value
+           >::type>
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor, class Function>
+using has_multi_agent_execute_returning_void = typename has_multi_agent_execute_returning_void_impl<Executor,Function>::type;
+
+
+} // end new_executor_traits_detail
+} // end detail
+
+
+template<class Executor>
+  template<class Function,
+           class Enable>
+void new_executor_traits<Executor>
+  ::execute(typename new_executor_traits<Executor>::executor_type& ex,
+            Function f,
+            typename new_executor_traits<Executor>::shape_type shape)
+{
+  using check_for_member_function = detail::new_executor_traits_detail::has_multi_agent_execute_returning_void<
+    Executor,
+    Function
+  >;
+
+  return detail::new_executor_traits_detail::multi_agent_execute_returning_void(check_for_member_function(), ex, f, shape);
+} // end new_executor_traits::execute()
+
+
+} // end agency
+
