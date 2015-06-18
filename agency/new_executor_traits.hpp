@@ -246,6 +246,9 @@ struct new_executor_traits
     template<class T, class... Args>
     static future<T> make_ready_future(executor_type& ex, Args&&... args);
 
+    template<class T, class Future>
+    static future<T> future_cast(executor_type& ex, Future& fut);
+
     // single-agent when_all_execute_and_select()
     template<size_t... Indices, class Function, class TupleOfFutures>
     static future<
@@ -408,6 +411,7 @@ struct new_executor_traits
 } // end agency
 
 #include <agency/detail/executor_traits/make_ready_future.hpp>
+#include <agency/detail/executor_traits/future_cast.hpp>
 #include <agency/detail/executor_traits/single_agent_when_all_execute_and_select.hpp>
 #include <agency/detail/executor_traits/multi_agent_when_all_execute_and_select.hpp>
 #include <agency/detail/executor_traits/multi_agent_when_all_execute_and_select_with_shared_inits.hpp>

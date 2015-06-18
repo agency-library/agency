@@ -204,19 +204,34 @@ typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
   single_agent_then_execute(single_agent_then_execute_implementation_strategies::use_future_traits_then,
-                            Executor&, Function f, Future& fut,
+                            Executor& ex, Function f, Future& fut,
                             typename std::enable_if<
                               !std::is_void<
                                 typename future_value<Future>::type
                               >::value
                             >::type* = 0)
 {
-  // XXX should actually use future_traits here
-  return agency::detail::then(fut, [=](Future& fut)
+//  // XXX should do:
+//  // auto f = future_traits<Future>::then(...);
+//  // return future_cast<value_type>(ex, f);
+//
+//  // XXX should actually use future_traits here
+//  return agency::detail::then(fut, [=](Future& fut)
+//  {
+//    auto arg = fut.get();
+//    return f(arg);
+//  });
+
+  // launch f as continuation
+  auto fut2 = future_traits<Future>::then(fut, [=](Future& fut)
   {
     auto arg = fut.get();
     return f(arg);
   });
+
+  // cast to the right type of future
+  using value_type = typename future_traits<decltype(fut2)>::value_type;
+  return new_executor_traits<Executor>::template future_cast<value_type>(ex, fut2);
 } // end single_agent_then_execute()
 
 
@@ -225,18 +240,28 @@ typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
   single_agent_then_execute(single_agent_then_execute_implementation_strategies::use_future_traits_then,
-                            Executor&, Function f, Future& fut,
+                            Executor& ex, Function f, Future& fut,
                             typename std::enable_if<
                               std::is_void<
                                 typename future_value<Future>::type
                               >::value
                             >::type* = 0)
 {
-  // XXX should actually use future_traits here
-  return agency::detail::then(fut, [=](Future& fut)
+//  // XXX should actually use future_traits here
+//  return agency::detail::then(fut, [=](Future& fut)
+//  {
+//    return f();
+//  });
+
+  // launch f as continuation
+  auto fut2 = future_traits<Future>::then(fut, [=](Future& fut)
   {
     return f();
   });
+
+  // cast to the right type of future
+  using value_type = typename future_traits<decltype(fut2)>::value_type;
+  return new_executor_traits<Executor>::template future_cast<value_type>(ex, fut2);
 } // end single_agent_then_execute()
 
 

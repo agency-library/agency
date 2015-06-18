@@ -348,6 +348,36 @@ struct future_traits
   {
     return fut.then(std::forward<Function>(f));
   }
+
+  private:
+  template<class OtherFuture>
+  static future_type cast_impl(OtherFuture& fut,
+                               typename std::enable_if<
+                                 std::is_constructible<future_type,OtherFuture&&>::value
+                               >::type* = 0)
+  {
+    return future_type(std::move(fut));
+  }
+
+  template<class OtherFuture>
+  static future_type cast_impl(OtherFuture& fut,
+                               typename std::enable_if<
+                                 !std::is_constructible<future_type,OtherFuture&&>::value
+                               >::type* = 0)
+  {
+    return future_traits<Future>::then(fut, [](OtherFuture& fut)
+    {
+      return fut.get();
+    });
+  }
+
+  public:
+
+  template<class OtherFuture>
+  static future_type cast(OtherFuture& fut)
+  {
+    return cast_impl(fut);
+  }
 };
 
 
