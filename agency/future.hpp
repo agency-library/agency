@@ -339,6 +339,15 @@ struct future_traits
   {
     return future_traits::discard_value(fut, typename has_discard_value<future_type>::type());
   }
+
+  template<class Function>
+  static auto then(future_type& fut, Function&& f)
+    -> decltype(
+         fut.then(std::forward<Function>(f))
+       )
+  {
+    return fut.then(std::forward<Function>(f));
+  }
 };
 
 
@@ -372,6 +381,15 @@ struct future_traits<std::future<T>>
   static std::future<void> discard_value(Future& fut)
   {
     return std::move(*reinterpret_cast<std::future<void>*>(&fut));
+  }
+
+  template<class Function>
+  static auto then(future_type& fut, Function&& f)
+    -> decltype(
+         detail::then(fut, std::forward<Function>(f))
+       )
+  {
+    return detail::then(fut, std::forward<Function>(f));
   }
 };
 
