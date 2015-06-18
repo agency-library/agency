@@ -14,5 +14,5 @@ particular `executor_traits` member function is named
 `select_`*function-overload-name*`_implementation`. The result of this
 metafunction is a tag type selected from the corresponding namespace.
 
-The selected implementation of each executor_traits operation is invoked via tag-based dispatch.
+The selected implementation of each `executor_traits` member function is invoked via tag-based dispatch.
 
