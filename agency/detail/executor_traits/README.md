@@ -1,6 +1,6 @@
 This directory contains the implementations of `executor_traits`' member functions.
 
-Each member function's implementation is selected from a set set of
+Each member function's implementation is selected from a set of
 implementation strategies. The selection is made depending on the existence of
 executor member functions and other criteria known at compile time.
 
