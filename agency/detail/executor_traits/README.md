@@ -7,7 +7,7 @@ executor member functions and other criteria known at compile time.
 Each implementation strategy is represented in the type system using an empty
 tag type. For a particular `executor_traits` member function overload, these
 tags are defined in the namespace
-`agency::detail::`*function-overload-name*`_implementation_strategies`
+`agency::detail::`*function-overload-name*`_implementation_strategies`. The order in which these types are defined is also the priority with which the corresponding implementation strategies are selected.
 
 The compile-time metafunction used to select the implementation strategy for a
 particular `executor_traits` member function is named
