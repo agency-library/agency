@@ -123,3 +123,40 @@ struct simple_multi_agent_when_all_execute_and_select_with_shared_inits_executor
   }
 };
 
+struct simple_single_agent_then_execute_executor
+{
+  simple_single_agent_then_execute_executor() : function_called{} {};
+
+  template<class Function, class T>
+  std::future<typename std::result_of<Function(T&)>::type>
+    then_execute(Function f, std::future<T>& fut)
+  {
+    function_called = true;
+
+    return agency::detail::then(fut, [=](std::future<T>& fut)
+    {
+      auto arg = fut.get();
+      return f(arg);
+    });
+  }
+
+  template<class Function>
+  std::future<typename std::result_of<Function()>::type>
+    then_execute(Function f, std::future<void>& fut)
+  {
+    function_called = true;
+
+    return agency::detail::then(fut, [=](std::future<void>& fut)
+    {
+      return f();
+    });
+  }
+
+  bool function_called;
+
+  bool valid()
+  {
+    return function_called;
+  }
+};
+
