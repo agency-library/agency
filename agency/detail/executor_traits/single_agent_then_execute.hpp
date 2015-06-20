@@ -211,17 +211,6 @@ typename new_executor_traits<Executor>::template future<
                               >::value
                             >::type* = 0)
 {
-//  // XXX should do:
-//  // auto f = future_traits<Future>::then(...);
-//  // return future_cast<value_type>(ex, f);
-//
-//  // XXX should actually use future_traits here
-//  return agency::detail::then(fut, [=](Future& fut)
-//  {
-//    auto arg = fut.get();
-//    return f(arg);
-//  });
-
   // launch f as continuation
   auto fut2 = future_traits<Future>::then(fut, [=](Future& fut)
   {

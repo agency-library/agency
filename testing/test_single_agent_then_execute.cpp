@@ -84,10 +84,12 @@ void test()
 
 int main()
 {
+  using namespace test_executors;
+
   test<empty_executor>();
-  test<simple_single_agent_when_all_execute_and_select_executor>();
-  test<simple_multi_agent_when_all_execute_and_select_executor>();
-  test<simple_single_agent_then_execute_executor>();
+  test<single_agent_when_all_execute_and_select_executor>();
+  test<multi_agent_when_all_execute_and_select_executor>();
+  test<single_agent_then_execute_executor>();
 
   std::cout << "OK" << std::endl;
 

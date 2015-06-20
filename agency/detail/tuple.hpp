@@ -377,6 +377,78 @@ auto tuple_prepend(Tuple&& t, T&& val)
 }
 
 
+template<class Tuple, class T>
+struct tuple_prepend_result
+{
+  using type = decltype(
+    detail::tuple_prepend(
+      std::declval<Tuple>(),
+      std::declval<T>()
+    )
+  );
+};
+
+template<class Tuple, class T>
+using tuple_prepend_result_t = typename tuple_prepend_result<Tuple,T>::type;
+
+
+template<class Tuple,
+         class = typename std::enable_if<
+           (std::tuple_size<
+             typename std::decay<Tuple>::type
+           >::value > 1)
+         >::type
+        >
+Tuple&& unwrap_single_element_tuple(Tuple&& t)
+{
+  return std::forward<Tuple>(t);
+}
+
+
+template<class Tuple,
+         class = typename std::enable_if<
+           (std::tuple_size<
+              typename std::decay<Tuple>::type
+           >::value == 1)
+         >::type
+        >
+auto unwrap_single_element_tuple(Tuple&& t)
+  -> decltype(
+       detail::get<0>(std::forward<Tuple>(t))
+     )
+{
+  return detail::get<0>(std::forward<Tuple>(t));
+}
+
+
+template<class TupleReference, class IndexSequence>
+struct decay_tuple_impl;
+
+
+template<class TupleReference, size_t... Indices>
+struct decay_tuple_impl<TupleReference, index_sequence<Indices...>>
+{
+  using tuple_type = typename std::decay<TupleReference>::type;
+
+  using type = detail::tuple<
+    typename std::decay<
+      typename std::tuple_element<
+        Indices,
+        tuple_type
+      >::type
+    >::type...
+  >;
+};
+
+
+template<class TupleReference>
+struct decay_tuple : decay_tuple_impl<TupleReference, tuple_indices<typename std::decay<TupleReference>::type>> {};
+
+template<class TupleReference>
+using decay_tuple_t = typename decay_tuple<TupleReference>::type;
+
+
+
 } // end detail
 } // end agency
 

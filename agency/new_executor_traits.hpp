@@ -185,28 +185,6 @@ template<class Executor, class Function, class TupleOfFutures>
 using has_single_agent_when_all_execute = typename has_single_agent_when_all_execute_impl<Executor, Function, TupleOfFutures>::type;
 
 
-template<class Executor, class... Futures>
-struct has_when_all_impl
-{
-  template<class Executor1,
-           class = decltype(
-             std::declval<Executor1>().when_all(
-               *std::declval<Futures*>()...
-             )
-           )>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-
-template<class Executor, class... Futures>
-using has_when_all = typename has_when_all_impl<Executor, Futures...>::type;
-
-
 } // end new_executor_traits_detail
 } // end detail
 
@@ -248,6 +226,11 @@ struct new_executor_traits
 
     template<class T, class Future>
     static future<T> future_cast(executor_type& ex, Future& fut);
+
+    template<class... Futures>
+    static future<
+      detail::when_all_result_t<typename std::decay<Futures>::type...>
+    > when_all(executor_type& ex, Futures&&... futures);
 
     // single-agent when_all_execute_and_select()
     template<size_t... Indices, class Function, class TupleOfFutures>
@@ -427,4 +410,5 @@ struct new_executor_traits
 #include <agency/detail/executor_traits/multi_agent_execute_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_returning_default_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_returning_void.hpp>
+#include <agency/detail/executor_traits/when_all.hpp>
 

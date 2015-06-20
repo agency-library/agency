@@ -416,6 +416,28 @@ template<class Executor, class Function, class TupleOfFutures, size_t... Indices
 using has_single_agent_when_all_execute_and_select = typename has_single_agent_when_all_execute_and_select_impl<Executor, Function, TupleOfFutures, Indices...>::type;
 
 
+template<class Executor, class... Futures>
+struct has_when_all_impl
+{
+  template<class Executor1,
+           class = decltype(
+             std::declval<Executor1>().when_all(
+               std::declval<Futures>()...
+             )
+           )
+          >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor, class... Futures>
+using has_when_all = typename has_when_all_impl<Executor,Futures...>::type;
+
+
 } // end new_executor_traits_detail
 } // end detail
 } // end agency

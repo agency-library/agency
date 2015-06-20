@@ -270,6 +270,26 @@ template<size_t n, class T>
 using type_list_repeat = typename type_list_repeat_impl<n,T>::type;
 
 
+template<class Integer, template<class> class MetaFunction, class TypeList>
+struct type_list_integer_map_impl;
+
+template<class Integer, template<class> class MetaFunction, class... Types>
+struct type_list_integer_map_impl<Integer,MetaFunction,type_list<Types...>>
+{
+  using type = integer_sequence<
+    Integer,
+    MetaFunction<Types>::value...
+  >;
+};
+
+
+template<class Integer, template<class> class MetaFunction, class... Types>
+using type_list_integer_map = typename type_list_integer_map_impl<Integer, MetaFunction,Types...>::type;
+
+template<template<class> class MetaFunction, class... Types>
+using type_list_index_map = type_list_integer_map<size_t, MetaFunction, Types...>;
+
+
 } // end detail
 } // end agency
 

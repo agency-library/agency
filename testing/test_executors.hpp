@@ -3,15 +3,19 @@
 #include <agency/future.hpp>
 
 
+namespace test_executors
+{
+
+
 struct empty_executor
 {
   bool valid() { return true; }
 };
 
 
-struct simple_single_agent_when_all_execute_and_select_executor
+struct single_agent_when_all_execute_and_select_executor
 {
-  simple_single_agent_when_all_execute_and_select_executor() : function_called{} {};
+  single_agent_when_all_execute_and_select_executor() : function_called{} {};
 
   template<size_t... SelectedIndices, class Function, class TupleOfFutures>
   std::future<
@@ -36,9 +40,9 @@ struct simple_single_agent_when_all_execute_and_select_executor
 };
 
 
-struct simple_multi_agent_when_all_execute_and_select_executor
+struct multi_agent_when_all_execute_and_select_executor
 {
-  simple_multi_agent_when_all_execute_and_select_executor() : function_called{} {};
+  multi_agent_when_all_execute_and_select_executor() : function_called{} {};
 
   template<class Function>
   struct functor
@@ -79,9 +83,9 @@ struct simple_multi_agent_when_all_execute_and_select_executor
 };
 
 
-struct simple_multi_agent_when_all_execute_and_select_with_shared_inits_executor
+struct multi_agent_when_all_execute_and_select_with_shared_inits_executor
 {
-  simple_multi_agent_when_all_execute_and_select_with_shared_inits_executor() : function_called{} {};
+  multi_agent_when_all_execute_and_select_with_shared_inits_executor() : function_called{} {};
 
   template<class Function, class T>
   struct functor
@@ -123,9 +127,9 @@ struct simple_multi_agent_when_all_execute_and_select_with_shared_inits_executor
   }
 };
 
-struct simple_single_agent_then_execute_executor
+struct single_agent_then_execute_executor
 {
-  simple_single_agent_then_execute_executor() : function_called{} {};
+  single_agent_then_execute_executor() : function_called{} {};
 
   template<class Function, class T>
   std::future<typename std::result_of<Function(T&)>::type>
@@ -159,4 +163,33 @@ struct simple_single_agent_then_execute_executor
     return function_called;
   }
 };
+
+
+struct when_all_executor
+{
+  when_all_executor() : function_called{} {};
+
+  template<class... Futures>
+  std::future<
+    agency::detail::when_all_result_t<
+      typename std::decay<Futures>::type...
+    >
+  >
+    when_all(Futures&&... futures)
+  {
+    function_called = true;
+
+    return agency::when_all(std::forward<Futures>(futures)...);
+  }
+
+  bool function_called;
+
+  bool valid()
+  {
+    return function_called;
+  }
+};
+
+
+} // end test_executors 
 

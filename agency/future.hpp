@@ -123,6 +123,10 @@ struct future_value
 };
 
 
+template<class Future>
+using future_value_t = typename future_value<Future>::type;
+
+
 namespace is_future_detail
 {
 
@@ -279,6 +283,29 @@ template<class Function, class... FutureOrT>
 using result_of_continuation_t = typename result_of_continuation<Function,FutureOrT...>::type;
 
 
+template<class Future, class Function>
+struct has_then_impl
+{
+  template<
+    class Future2,
+    typename = decltype(
+      std::declval<Future*>()->then(
+        std::declval<Function>()
+      )
+    )
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Future>(0));
+};
+
+template<class Future, class Function>
+using has_then = typename has_then_impl<Future,Function>::type;
+
+
 } // end detail
 
 
@@ -340,11 +367,16 @@ struct future_traits
     return future_traits::discard_value(fut, typename has_discard_value<future_type>::type());
   }
 
-  template<class Function>
-  static auto then(future_type& fut, Function&& f)
-    -> decltype(
-         fut.then(std::forward<Function>(f))
-       )
+  template<class Function,
+           class = typename std::enable_if<
+             detail::has_then<future_type,Function&&>::value
+           >::type>
+  static rebind<
+    typename std::result_of<
+      typename std::decay<Function>::type(future_type&)
+    >::type
+  >
+    then(future_type& fut, Function&& f)
   {
     return fut.then(std::forward<Function>(f));
   }
