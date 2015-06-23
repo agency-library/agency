@@ -16,4 +16,6 @@ metafunction is a tag type selected from the corresponding namespace.
 
 The selected implementation of each `executor_traits` member function is invoked via tag-based dispatch.
 
+Most implementation strategies first attempt to call the operation of interest via `ex.`*function-overload-name*`(args)`. If the member function of interest does not exist, other member functions may be tried next. Failing that, an implementation will recurse through an operation called via `executor_traits`, whose invocation always succeeds.
+
 `then_execute` is the terminal operation -- its implementation does not attempt to continue recursion through `executor_traits`.
