@@ -16,3 +16,4 @@ metafunction is a tag type selected from the corresponding namespace.
 
 The selected implementation of each `executor_traits` member function is invoked via tag-based dispatch.
 
+`then_execute` is the terminal operation -- its implementation does not attempt to continue recursion through `executor_traits`.
