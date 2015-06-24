@@ -6,7 +6,7 @@
 #include <type_traits>
 
 
-// this is a version of multi-agent execute() which does not attempt to recurse to async_execute() + wait()
+// this is a version of multi-agent execute() returning user-specified container which does not attempt to recurse to async_execute() + wait()
 
 
 namespace agency
