@@ -2,6 +2,7 @@
 
 #include <type_traits>
 #include <agency/new_executor_traits.hpp>
+#include <agency/future.hpp>
 
 namespace agency
 {
@@ -9,9 +10,6 @@ namespace detail
 {
 namespace new_executor_traits_detail
 {
-
-
-// XXX we shouldn't require the ExpectedReturnType from the checks for operations returning a default container
 
 
 template<class Executor, class T, class Future>
@@ -61,9 +59,13 @@ template<class Executor, class T, class... Args>
 using has_make_ready_future = typename has_make_ready_future_impl<Executor,T,Args...>::type;
 
 
-template<class Executor, class Function, class ExpectedReturnType>
+template<class Executor, class Function>
 struct has_multi_agent_async_execute_returning_default_container_impl
 {
+  using index_type = typename new_executor_traits<Executor>::index_type;
+  using container_value_type = typename std::result_of<Function(index_type)>::type;
+  using expected_return_type = typename new_executor_traits<Executor>::template container<container_value_type>;
+
   template<class Executor1,
            class ReturnType = decltype(
              std::declval<Executor1>().async_execute(
@@ -71,7 +73,7 @@ struct has_multi_agent_async_execute_returning_default_container_impl
              )
            ),
            class = typename std::enable_if<
-             std::is_same<ReturnType,ExpectedReturnType>::value
+             std::is_same<ReturnType,expected_return_type>::value
            >::type>
   static std::true_type test(int);
 
@@ -81,8 +83,8 @@ struct has_multi_agent_async_execute_returning_default_container_impl
   using type = decltype(test<Executor>(0));
 };
 
-template<class Executor, class Function, class ExpectedReturnType>
-using has_multi_agent_async_execute_returning_default_container = typename has_multi_agent_async_execute_returning_default_container_impl<Executor,Function,ExpectedReturnType>::type;
+template<class Executor, class Function>
+using has_multi_agent_async_execute_returning_default_container = typename has_multi_agent_async_execute_returning_default_container_impl<Executor,Function>::type;
 
 
 template<class Container, class Executor, class Function>
@@ -133,9 +135,13 @@ template<class Executor, class Function>
 using has_multi_agent_async_execute_returning_void = typename has_multi_agent_async_execute_returning_void_impl<Executor,Function>::type;
 
 
-template<class Executor, class Function, class ExpectedReturnType>
+template<class Executor, class Function>
 struct has_multi_agent_execute_returning_default_container_impl
 {
+  using index_type = typename new_executor_traits<Executor>::index_type;
+  using container_value_type = typename std::result_of<Function(index_type)>::type;
+  using expected_return_type = typename new_executor_traits<Executor>::template container<container_value_type>;
+
   template<class Executor1,
            class ReturnType = decltype(
              std::declval<Executor1>().execute(
@@ -144,7 +150,7 @@ struct has_multi_agent_execute_returning_default_container_impl
              )
            ),
            class = typename std::enable_if<
-             std::is_same<ReturnType,ExpectedReturnType>::value
+             std::is_same<ReturnType,expected_return_type>::value
            >::type>
   static std::true_type test(int);
 
@@ -154,8 +160,8 @@ struct has_multi_agent_execute_returning_default_container_impl
   using type = decltype(test<Executor>(0));
 };
 
-template<class Executor, class Function, class ExpectedReturnType>
-using has_multi_agent_execute_returning_default_container = typename has_multi_agent_execute_returning_default_container_impl<Executor,Function,ExpectedReturnType>::type;
+template<class Executor, class Function>
+using has_multi_agent_execute_returning_default_container = typename has_multi_agent_execute_returning_default_container_impl<Executor,Function>::type;
 
 
 template<class Container, class Executor, class Function>
@@ -208,9 +214,13 @@ template<class Executor, class Function>
 using has_multi_agent_execute_returning_void = typename has_multi_agent_execute_returning_void_impl<Executor,Function>::type;
 
 
-template<class Executor, class Future, class Function, class ExpectedReturnType>
+template<class Executor, class Function, class Future>
 struct has_multi_agent_then_execute_returning_default_container_impl
 {
+  using index_type = typename new_executor_traits<Executor>::index_type;
+  using container_value_type = typename detail::result_of_continuation<Function,index_type,Future>::type;
+  using expected_return_type = typename new_executor_traits<Executor>::template container<container_value_type>;
+
   template<class Executor1,
            class ReturnType = decltype(
              std::declval<Executor1>().then_execute(
@@ -220,7 +230,7 @@ struct has_multi_agent_then_execute_returning_default_container_impl
              )
            ),
            class = typename std::enable_if<
-             std::is_same<ReturnType, ExpectedReturnType>::value
+             std::is_same<ReturnType, expected_return_type>::value
            >::type>
   static std::true_type test(int);
 
@@ -230,8 +240,8 @@ struct has_multi_agent_then_execute_returning_default_container_impl
   using type = decltype(test<Executor>(0));
 };
 
-template<class Executor, class Function, class Future, class ExpectedReturnType>
-using has_multi_agent_then_execute_returning_default_container = typename has_multi_agent_then_execute_returning_default_container_impl<Executor,Function,Future,ExpectedReturnType>::type;
+template<class Executor, class Function, class Future>
+using has_multi_agent_then_execute_returning_default_container = typename has_multi_agent_then_execute_returning_default_container_impl<Executor,Function,Future>::type;
 
 
 template<class Container, class Executor, class Function, class Future>

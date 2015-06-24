@@ -81,19 +81,10 @@ typename new_executor_traits<Executor>::template future<
                    typename new_executor_traits<Executor>::shape_type shape,
                    Future& fut)
 {
-  using expected_return_type = typename new_executor_traits<Executor>::template container<
-    detail::result_of_continuation_t<
-      Function,
-      typename new_executor_traits<Executor>::index_type,
-      Future
-    >
-  >;
-
   using check_for_member_function = detail::new_executor_traits_detail::has_multi_agent_then_execute_returning_default_container<
     Executor,
     Function,
-    Future,
-    expected_return_type
+    Future
   >;
 
   return detail::new_executor_traits_detail::multi_agent_then_execute_returning_default_container(check_for_member_function(), ex, f, shape, fut);

@@ -53,12 +53,9 @@ struct use_for_loop {};
 template<class Container, class Executor, class Function>
 struct has_multi_agent_execute_returning_default_container_impl
 {
-  using expected_return_type = typename new_executor_traits<Executor>::template container<empty>;
-
   using type = new_executor_traits_detail::has_multi_agent_execute_returning_default_container<
     Executor,
-    invoke_and_assign_result_to_container<Container, Function>,
-    expected_return_type
+    invoke_and_assign_result_to_container<Container, Function>
   >;
 };
 
