@@ -1,8 +1,6 @@
 #pragma once
 
 #include <agency/future.hpp>
-#include <stdexcept>
-
 
 namespace test_executors
 {
@@ -14,21 +12,13 @@ struct test_executor
 
   test_executor() : function_called(false) {};
 
-  ~test_executor()
-  {
-    if(!valid())
-    {
-      throw std::runtime_error("Executor member function not called.");
-    }
-  }
-
   bool valid() { return function_called; }
 };
 
 
 struct empty_executor : test_executor
 {
-  empty_executor() : test_executor()
+  empty_executor()
   {
     function_called = true;
   }
@@ -121,6 +111,7 @@ struct multi_agent_when_all_execute_and_select_with_shared_inits_executor : test
     return agency::when_all_execute_and_select<SelectedIndices...>(std::move(g), std::forward<TupleOfFutures>(futures));
   }
 };
+
 
 struct single_agent_then_execute_executor : test_executor
 {
