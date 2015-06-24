@@ -10,10 +10,6 @@ namespace detail
 namespace new_executor_traits_detail
 {
 
-// XXX we should remove the Shape parameter from these checks
-//     because the shape argument's type can be gotten from executor_traits
-
-
 template<class Executor, class T, class Future>
 struct has_future_cast_impl
 {
@@ -208,14 +204,14 @@ template<class Executor, class Function>
 using has_multi_agent_execute_returning_void = typename has_multi_agent_execute_returning_void_impl<Executor,Function>::type;
 
 
-template<class Executor, class Future, class Function, class Shape, class ExpectedReturnType>
+template<class Executor, class Future, class Function, class ExpectedReturnType>
 struct has_multi_agent_then_execute_returning_default_container_impl
 {
   template<class Executor1,
            class ReturnType = decltype(
              std::declval<Executor1>().then_execute(
                std::declval<Function>(),
-               std::declval<Shape>(),
+               std::declval<typename new_executor_traits<Executor1>::shape_type>(),
                *std::declval<Future*>()
              )
            ),
@@ -230,18 +226,18 @@ struct has_multi_agent_then_execute_returning_default_container_impl
   using type = decltype(test<Executor>(0));
 };
 
-template<class Executor, class Function, class Shape, class Future, class ExpectedReturnType>
-using has_multi_agent_then_execute_returning_default_container = typename has_multi_agent_then_execute_returning_default_container_impl<Executor,Function,Shape,Future,ExpectedReturnType>::type;
+template<class Executor, class Function, class Future, class ExpectedReturnType>
+using has_multi_agent_then_execute_returning_default_container = typename has_multi_agent_then_execute_returning_default_container_impl<Executor,Function,Future,ExpectedReturnType>::type;
 
 
-template<class Container, class Executor, class Function, class Shape, class Future>
+template<class Container, class Executor, class Function, class Future>
 struct has_multi_agent_then_execute_returning_user_specified_container_impl
 {
   template<class Executor1,
            class ReturnType = decltype(
              std::declval<Executor1>().template then_execute<Container>(
                std::declval<Function>(),
-               std::declval<Shape>(),
+               std::declval<typename new_executor_traits<Executor1>::shape_type>(),
                *std::declval<Future*>()
              )
            ),
@@ -256,18 +252,18 @@ struct has_multi_agent_then_execute_returning_user_specified_container_impl
   using type = decltype(test<Executor>(0));
 };
 
-template<class Container, class Executor, class Function, class Shape, class Future>
-using has_multi_agent_then_execute_returning_user_specified_container = typename has_multi_agent_then_execute_returning_user_specified_container_impl<Container,Executor,Function,Shape,Future>::type;
+template<class Container, class Executor, class Function, class Future>
+using has_multi_agent_then_execute_returning_user_specified_container = typename has_multi_agent_then_execute_returning_user_specified_container_impl<Container,Executor,Function,Future>::type;
 
 
-template<class Executor, class Function, class Shape, class Future>
+template<class Executor, class Function, class Future>
 struct has_multi_agent_then_execute_returning_void_impl
 {
   template<class Executor1,
            class ReturnType = decltype(
              std::declval<Executor1>().then_execute(
                std::declval<Function>(),
-               std::declval<Shape>(),
+               std::declval<typename new_executor_traits<Executor1>::shape_type>(),
                *std::declval<Future*>()
              )
            ),
@@ -282,18 +278,18 @@ struct has_multi_agent_then_execute_returning_void_impl
   using type = decltype(test<Executor>(0));
 };
 
-template<class Executor, class Function, class Shape, class Future>
-using has_multi_agent_then_execute_returning_void = typename has_multi_agent_then_execute_returning_void_impl<Executor,Function,Shape,Future>::type;
+template<class Executor, class Function, class Future>
+using has_multi_agent_then_execute_returning_void = typename has_multi_agent_then_execute_returning_void_impl<Executor,Function,Future>::type;
 
 
-template<class Executor, class Function, class Shape, class TupleOfFutures, size_t... Indices>
+template<class Executor, class Function, class TupleOfFutures, size_t... Indices>
 struct has_multi_agent_when_all_execute_and_select_impl
 {
   template<class Executor1,
            class = decltype(
              std::declval<Executor1>().template when_all_execute_and_select<Indices...>(
                std::declval<Function>(),
-               std::declval<Shape>(),
+               std::declval<typename new_executor_traits<Executor1>::shape_type>(),
                std::declval<TupleOfFutures>()
              )
            )>
@@ -305,22 +301,22 @@ struct has_multi_agent_when_all_execute_and_select_impl
   using type = decltype(test<Executor>(0));
 };
 
-template<class Executor, class Function, class Shape, class TupleOfFutures, size_t... Indices>
-using has_multi_agent_when_all_execute_and_select = typename has_multi_agent_when_all_execute_and_select_impl<Executor, Function, Shape, TupleOfFutures, Indices...>::type;
+template<class Executor, class Function, class TupleOfFutures, size_t... Indices>
+using has_multi_agent_when_all_execute_and_select = typename has_multi_agent_when_all_execute_and_select_impl<Executor, Function, TupleOfFutures, Indices...>::type;
 
 
-template<class IndexSequence, class Executor, class Function, class Shape, class TupleOfFutures, class TypeList>
+template<class IndexSequence, class Executor, class Function, class TupleOfFutures, class TypeList>
 struct has_multi_agent_when_all_execute_and_select_with_shared_inits_impl;
 
 
-template<size_t... Indices, class Executor, class Function, class Shape, class TupleOfFutures, class... Types>
-struct has_multi_agent_when_all_execute_and_select_with_shared_inits_impl<index_sequence<Indices...>, Executor, Function, Shape, TupleOfFutures, type_list<Types...>>
+template<size_t... Indices, class Executor, class Function, class TupleOfFutures, class... Types>
+struct has_multi_agent_when_all_execute_and_select_with_shared_inits_impl<index_sequence<Indices...>, Executor, Function, TupleOfFutures, type_list<Types...>>
 {
   template<class Executor1,
            class = decltype(
              std::declval<Executor1>().template when_all_execute_and_select<Indices...>(
                std::declval<Function>(),
-               std::declval<Shape>(),
+               std::declval<typename new_executor_traits<Executor1>::shape_type>(),
                std::declval<TupleOfFutures>(),
                std::declval<Types>()...
              )
@@ -333,8 +329,8 @@ struct has_multi_agent_when_all_execute_and_select_with_shared_inits_impl<index_
   using type = decltype(test<Executor>(0));
 };
 
-template<class IndexSequence, class Executor, class Function, class Shape, class TupleOfFutures, class TypeList>
-using has_multi_agent_when_all_execute_and_select_with_shared_inits = typename has_multi_agent_when_all_execute_and_select_with_shared_inits_impl<IndexSequence, Executor, Function, Shape, TupleOfFutures, TypeList>::type;
+template<class IndexSequence, class Executor, class Function, class TupleOfFutures, class TypeList>
+using has_multi_agent_when_all_execute_and_select_with_shared_inits = typename has_multi_agent_when_all_execute_and_select_with_shared_inits_impl<IndexSequence, Executor, Function, TupleOfFutures, TypeList>::type;
 
 
 template<class Executor, class Function>

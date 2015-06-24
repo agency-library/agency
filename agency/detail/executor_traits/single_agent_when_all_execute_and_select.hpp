@@ -32,7 +32,7 @@ using select_single_agent_when_all_execute_and_select_implementation =
       has_single_agent_when_all_execute_and_select<Executor, Function, TupleOfFutures, Indices...>::value,
       use_single_agent_when_all_execute_and_select_member_function,
       typename std::conditional<
-        has_multi_agent_when_all_execute_and_select<Executor, Function, typename new_executor_traits<Executor>::shape_type, TupleOfFutures, Indices...>::value,
+        has_multi_agent_when_all_execute_and_select<Executor, Function, TupleOfFutures, Indices...>::value,
         use_multi_agent_when_all_execute_and_select_member_function,
         use_when_all_and_single_agent_then_execute
       >::type

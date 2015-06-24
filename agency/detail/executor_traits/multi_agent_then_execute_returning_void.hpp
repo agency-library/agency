@@ -31,7 +31,6 @@ using has_multi_agent_when_all_execute_and_select =
   new_executor_traits_detail::has_multi_agent_when_all_execute_and_select<
     Executor,
     Function,
-    typename new_executor_traits<Executor>::shape_type,
     detail::tuple<Future>
   >;
 
@@ -39,7 +38,7 @@ using has_multi_agent_when_all_execute_and_select =
 template<class Executor, class Function, class Future>
 using select_multi_agent_then_execute_returning_void_implementation_strategy =
   typename std::conditional<
-    has_multi_agent_then_execute_returning_void<Executor,Function,typename new_executor_traits<Executor>::shape_type, Future>::value,
+    has_multi_agent_then_execute_returning_void<Executor,Function, Future>::value,
     use_multi_agent_then_execute_returning_void_member_function,
     typename std::conditional<
       has_multi_agent_when_all_execute_and_select<Executor,Function,Future>::value,

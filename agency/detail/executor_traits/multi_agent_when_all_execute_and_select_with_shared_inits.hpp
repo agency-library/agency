@@ -167,7 +167,6 @@ template<size_t... Indices, class Function, class TupleOfFutures, class T1, clas
     detail::index_sequence<Indices...>,
     Executor,
     Function,
-    typename new_executor_traits<Executor>::shape_type,
     typename std::decay<TupleOfFutures>::type,
     detail::type_list<T1,Types...>
   >;

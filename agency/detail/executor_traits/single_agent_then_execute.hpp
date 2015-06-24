@@ -32,7 +32,6 @@ using has_multi_agent_when_all_execute_and_select =
   new_executor_traits_detail::has_multi_agent_when_all_execute_and_select<
     Executor,
     Function,
-    typename new_executor_traits<Executor>::shape_type,
     detail::tuple<Future>,
     0
   >;

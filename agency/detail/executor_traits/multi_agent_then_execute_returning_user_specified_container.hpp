@@ -52,7 +52,6 @@ using has_multi_agent_when_all_execute_and_select =
   new_executor_traits_detail::has_multi_agent_when_all_execute_and_select<
     Executor,
     multi_agent_then_execute_returning_user_specified_container_functor<Function>,
-    typename new_executor_traits<Executor>::shape_type,
     detail::tuple<
       typename new_executor_traits<Executor>::template future<Container>,
       Future
@@ -64,7 +63,7 @@ using has_multi_agent_when_all_execute_and_select =
 template<class Container, class Executor, class Function, class Future>
 using select_multi_agent_then_execute_returning_user_specified_container_implementation =
   typename std::conditional<
-    has_multi_agent_then_execute_returning_user_specified_container<Container,Executor,Function,typename new_executor_traits<Executor>::shape_type,Future>::value,
+    has_multi_agent_then_execute_returning_user_specified_container<Container,Executor,Function,Future>::value,
     use_multi_agent_then_execute_returning_user_specified_container_member_function,
     typename std::conditional<
       has_multi_agent_when_all_execute_and_select<Container,Executor,Function,Future>::value,

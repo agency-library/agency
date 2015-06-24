@@ -92,7 +92,6 @@ typename new_executor_traits<Executor>::template future<
   using check_for_member_function = detail::new_executor_traits_detail::has_multi_agent_then_execute_returning_default_container<
     Executor,
     Function,
-    typename new_executor_traits<Executor>::shape_type,
     Future,
     expected_return_type
   >;

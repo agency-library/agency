@@ -23,13 +23,12 @@ struct use_multi_agent_when_all_execute_and_select_with_shared_inits_member_func
 struct use_single_agent_when_all_execute_and_select_with_nested_terminal_multi_agent_execute {};
 
 
-template<class IndexSequence, class Executor, class Function, class Shape, class TupleOfFutures>
+template<class IndexSequence, class Executor, class Function, class TupleOfFutures>
 using has_multi_agent_when_all_execute_and_select_with_ignored_shared_inits = 
   has_multi_agent_when_all_execute_and_select_with_shared_inits<
     IndexSequence,
     Executor,
     Function,
-    Shape,
     TupleOfFutures,
     detail::type_list_repeat<new_executor_traits<Executor>::execution_depth, detail::ignore_t>
   >;
@@ -51,13 +50,13 @@ using has_multi_agent_execute_returning_void =
   >;
 
 
-template<class Executor, class Function, class Shape, class TupleOfFutures, size_t... Indices>
-using select_multi_agent_when_all_execute_and_select_implemention =
+template<class Executor, class Function, class TupleOfFutures, size_t... Indices>
+using select_multi_agent_when_all_execute_and_select_implementation =
   typename std::conditional<
-    has_multi_agent_when_all_execute_and_select<Executor, Function, Shape, TupleOfFutures, Indices...>::value,
+    has_multi_agent_when_all_execute_and_select<Executor, Function, TupleOfFutures, Indices...>::value,
     use_multi_agent_when_all_execute_and_select_member_function,
     typename std::conditional<
-      has_multi_agent_when_all_execute_and_select_with_ignored_shared_inits<detail::index_sequence<Indices...>, Executor, Function, Shape, TupleOfFutures>::value,
+      has_multi_agent_when_all_execute_and_select_with_ignored_shared_inits<detail::index_sequence<Indices...>, Executor, Function, TupleOfFutures>::value,
       use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function,
       use_single_agent_when_all_execute_and_select_with_nested_terminal_multi_agent_execute
     >::type
@@ -215,10 +214,9 @@ template<size_t... Indices, class Function, class TupleOfFutures>
 {
   namespace ns = detail::new_executor_traits_detail::multi_agent_when_all_execute_and_select_implementation_strategies;
 
-  using implementation_strategy = ns::select_multi_agent_when_all_execute_and_select_implemention<
+  using implementation_strategy = ns::select_multi_agent_when_all_execute_and_select_implementation<
     Executor,
     Function,
-    typename new_executor_traits<Executor>::shape_type,
     typename std::decay<TupleOfFutures>::type,
     Indices...
   >;

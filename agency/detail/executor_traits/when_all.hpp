@@ -68,7 +68,6 @@ struct has_multi_agent_when_all_execute_and_select_impl<index_sequence<Indices..
   using type = new_executor_traits_detail::has_multi_agent_when_all_execute_and_select<
     Executor,
     swallow,
-    typename new_executor_traits<Executor>::shape_type,
     detail::tuple<Futures...>,
     Indices...
   >;
