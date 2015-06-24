@@ -4,6 +4,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/discarding_container.hpp>
+#include <agency/detail/executor_traits/terminal_multi_agent_execute_returning_user_specified_container.hpp>
 #include <type_traits>
 
 
@@ -22,17 +23,14 @@ namespace terminal_multi_agent_execute_returning_void_implementation_strategies
 
 struct use_multi_agent_execute_returning_void_member_function {};
 
-struct use_multi_agent_execute_returning_discarding_container_member_function {};
-
-struct use_for_loop {};
-
-
-struct empty {};
+struct use_terminal_multi_agent_execute_returning_user_specified_container {};
 
 
 template<class Function>
 struct invoke_and_return_empty
 {
+  struct empty {};
+
   mutable Function f;
 
   template<class Index, class... Args>
@@ -48,24 +46,11 @@ struct invoke_and_return_empty
 
 
 template<class Executor, class Function>
-using has_multi_agent_execute_returning_discarding_container = 
-  has_multi_agent_execute_returning_user_specified_container<
-    discarding_container,
-    Executor,
-    invoke_and_return_empty<Function>
-  >;
-
-
-template<class Executor, class Function>
 using select_multi_agent_terminal_execute_returning_void_implementation = 
   typename std::conditional<
     has_multi_agent_execute_returning_void<Executor,Function>::value,
     use_multi_agent_execute_returning_void_member_function,
-    typename std::conditional<
-      has_multi_agent_execute_returning_discarding_container<Executor,Function>::value,
-      use_multi_agent_execute_returning_discarding_container_member_function,
-      use_for_loop
-    >::type
+    use_terminal_multi_agent_execute_returning_user_specified_container
   >::type;
 
 
@@ -78,25 +63,11 @@ void terminal_multi_agent_execute_returning_void(use_multi_agent_execute_returni
 
 
 template<class Executor, class Function>
-void terminal_multi_agent_execute_returning_void(use_multi_agent_execute_returning_discarding_container_member_function,
+void terminal_multi_agent_execute_returning_void(use_terminal_multi_agent_execute_returning_user_specified_container,
                                                  Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
-  ex.template execute<discarding_container>(invoke_and_return_empty<Function>{f}, shape);
+  new_executor_traits_detail::terminal_multi_agent_execute_returning_user_specified_container<discarding_container>(ex, invoke_and_return_empty<Function>{f}, shape);
 } // end terminal_multi_agent_execute_returning_void()
-
-
-template<class Executor, class Function>
-void terminal_multi_agent_execute_returning_void(use_for_loop,
-                                                 Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
-{
-  using index_type = typename new_executor_traits<Executor>::index_type;
-
-  // XXX generalize to multidimensions or just use sequential_executor
-  for(index_type idx = 0; idx < shape; ++idx)
-  {
-    f(idx);
-  }
-} // end multi_agent_execute_returning_void()
 
 
 } // end terminal_multi_agent_execute_returning_void_implementation_strategies
