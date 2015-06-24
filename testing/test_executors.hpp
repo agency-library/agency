@@ -1,22 +1,42 @@
 #pragma once
 
 #include <agency/future.hpp>
+#include <stdexcept>
 
 
 namespace test_executors
 {
 
 
-struct empty_executor
+struct test_executor
 {
-  bool valid() { return true; }
+  bool function_called;
+
+  test_executor() : function_called(false) {};
+
+  ~test_executor()
+  {
+    if(!valid())
+    {
+      throw std::runtime_error("Executor member function not called.");
+    }
+  }
+
+  bool valid() { return function_called; }
 };
 
 
-struct single_agent_when_all_execute_and_select_executor
+struct empty_executor : test_executor
 {
-  single_agent_when_all_execute_and_select_executor() : function_called{} {};
+  empty_executor() : test_executor()
+  {
+    function_called = true;
+  }
+};
 
+
+struct single_agent_when_all_execute_and_select_executor : test_executor
+{
   template<size_t... SelectedIndices, class Function, class TupleOfFutures>
   std::future<
     agency::detail::when_all_execute_and_select_result_t<
@@ -30,20 +50,11 @@ struct single_agent_when_all_execute_and_select_executor
 
     return agency::when_all_execute_and_select<SelectedIndices...>(f, std::forward<TupleOfFutures>(futures));
   }
-
-  bool function_called;
-
-  bool valid()
-  {
-    return function_called;
-  }
 };
 
 
-struct multi_agent_when_all_execute_and_select_executor
+struct multi_agent_when_all_execute_and_select_executor : test_executor
 {
-  multi_agent_when_all_execute_and_select_executor() : function_called{} {};
-
   template<class Function>
   struct functor
   {
@@ -73,26 +84,17 @@ struct multi_agent_when_all_execute_and_select_executor
 
     return agency::when_all_execute_and_select<SelectedIndices...>(functor<Function>{f, n}, std::forward<TupleOfFutures>(futures));
   }
-
-  bool function_called;
-
-  bool valid()
-  {
-    return function_called;
-  }
 };
 
 
-struct multi_agent_when_all_execute_and_select_with_shared_inits_executor
+struct multi_agent_when_all_execute_and_select_with_shared_inits_executor : test_executor
 {
-  multi_agent_when_all_execute_and_select_with_shared_inits_executor() : function_called{} {};
-
   template<class Function, class T>
   struct functor
   {
     mutable Function f;
     size_t n;
-    T shared_arg;
+    mutable T shared_arg;
 
     template<class... Args>
     void operator()(Args&&... args) const
@@ -118,19 +120,10 @@ struct multi_agent_when_all_execute_and_select_with_shared_inits_executor
     auto g = functor<Function, typename std::decay<T>::type>{f, n, std::forward<T>(shared_init)};
     return agency::when_all_execute_and_select<SelectedIndices...>(std::move(g), std::forward<TupleOfFutures>(futures));
   }
-
-  bool function_called;
-
-  bool valid()
-  {
-    return function_called;
-  }
 };
 
-struct single_agent_then_execute_executor
+struct single_agent_then_execute_executor : test_executor
 {
-  single_agent_then_execute_executor() : function_called{} {};
-
   template<class Function, class T>
   std::future<typename std::result_of<Function(T&)>::type>
     then_execute(Function f, std::future<T>& fut)
@@ -155,20 +148,11 @@ struct single_agent_then_execute_executor
       return f();
     });
   }
-
-  bool function_called;
-
-  bool valid()
-  {
-    return function_called;
-  }
 };
 
 
-struct when_all_executor
+struct when_all_executor : test_executor
 {
-  when_all_executor() : function_called{} {};
-
   template<class... Futures>
   std::future<
     agency::detail::when_all_result_t<
@@ -181,20 +165,11 @@ struct when_all_executor
 
     return agency::when_all(std::forward<Futures>(futures)...);
   }
-
-  bool function_called;
-
-  bool valid()
-  {
-    return function_called;
-  }
 };
 
 
-struct multi_agent_execute_returning_user_defined_container_executor
+struct multi_agent_execute_returning_user_defined_container_executor : test_executor
 {
-  multi_agent_execute_returning_user_defined_container_executor() : function_called{} {};
-
   template<class Container, class Function>
   Container execute(Function f, size_t n)
   {
@@ -208,13 +183,6 @@ struct multi_agent_execute_returning_user_defined_container_executor
     }
 
     return result;
-  }
-
-  bool function_called;
-
-  bool valid()
-  {
-    return function_called;
   }
 };
 
