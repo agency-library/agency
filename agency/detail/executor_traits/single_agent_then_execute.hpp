@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/executor_traits/terminal_single_agent_execute.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -24,7 +25,7 @@ struct use_single_agent_when_all_execute_and_select_member_function {};
 
 struct use_multi_agent_when_all_execute_and_select_member_function {};
 
-struct use_future_traits_then {};
+struct use_future_traits_then_with_nested_terminal_single_agent_execute {};
 
 
 template<class Executor, class Function, class Future>
@@ -48,7 +49,7 @@ using select_single_agent_then_execute_implementation =
       typename std::conditional<
         has_multi_agent_when_all_execute_and_select<Executor,Function,Future>::value,
         use_multi_agent_when_all_execute_and_select_member_function,
-        use_future_traits_then
+        use_future_traits_then_with_nested_terminal_single_agent_execute
       >::type
     >::type
   >::type;
@@ -202,7 +203,7 @@ template<class Executor, class Function, class Future>
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
-  single_agent_then_execute(single_agent_then_execute_implementation_strategies::use_future_traits_then,
+  single_agent_then_execute(single_agent_then_execute_implementation_strategies::use_future_traits_then_with_nested_terminal_single_agent_execute,
                             Executor& ex, Function f, Future& fut,
                             typename std::enable_if<
                               !std::is_void<
@@ -211,10 +212,11 @@ typename new_executor_traits<Executor>::template future<
                             >::type* = 0)
 {
   // launch f as continuation
-  auto fut2 = future_traits<Future>::then(fut, [=](Future& fut)
+  auto fut2 = future_traits<Future>::then(fut, [=,&ex](Future& fut)
   {
     auto arg = fut.get();
-    return f(arg);
+    auto g = [&]{ return f(arg); };
+    return new_executor_traits_detail::terminal_single_agent_execute(ex, g);
   });
 
   // cast to the right type of future
@@ -227,7 +229,7 @@ template<class Executor, class Function, class Future>
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
-  single_agent_then_execute(single_agent_then_execute_implementation_strategies::use_future_traits_then,
+  single_agent_then_execute(single_agent_then_execute_implementation_strategies::use_future_traits_then_with_nested_terminal_single_agent_execute,
                             Executor& ex, Function f, Future& fut,
                             typename std::enable_if<
                               std::is_void<
@@ -235,16 +237,10 @@ typename new_executor_traits<Executor>::template future<
                               >::value
                             >::type* = 0)
 {
-//  // XXX should actually use future_traits here
-//  return agency::detail::then(fut, [=](Future& fut)
-//  {
-//    return f();
-//  });
-
   // launch f as continuation
-  auto fut2 = future_traits<Future>::then(fut, [=](Future& fut)
+  auto fut2 = future_traits<Future>::then(fut, [=,&ex](Future& fut)
   {
-    return f();
+    return new_executor_traits_detail::terminal_single_agent_execute(ex, f);
   });
 
   // cast to the right type of future
