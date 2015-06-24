@@ -10,6 +10,9 @@ namespace detail
 namespace new_executor_traits_detail
 {
 
+// XXX we should remove the Shape parameter from these checks
+//     because the shape argument's type can be gotten from executor_traits
+
 
 template<class Executor, class T, class Future>
 struct has_future_cast_impl

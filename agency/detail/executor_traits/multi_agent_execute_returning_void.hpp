@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/executor_traits/discarding_container.hpp>
 #include <type_traits>
 
 namespace agency
@@ -18,25 +19,6 @@ void multi_agent_execute_returning_void(std::true_type, Executor& ex, Function f
 {
   return ex.execute(f, shape);
 } // end multi_agent_execute_returning_void()
-
-
-struct discarding_container
-{
-  struct reference
-  {
-    template<class T>
-    reference& operator=(const T&) { return *this; }
-  };
-
-  template<class... Args>
-  discarding_container(Args&&...) {}
-
-  template<class Index>
-  reference operator[](const Index&) const
-  {
-    return reference();
-  }
-};
 
 
 template<class Executor, class Function>

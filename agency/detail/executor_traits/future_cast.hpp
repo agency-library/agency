@@ -57,16 +57,22 @@ typename new_executor_traits<Executor>::template future<T>
 } // end future_cast()
 
 
-template<class Future>
+template<class T>
 struct future_cast_then_execute_functor
 {
-  mutable Future fut;
-
+  // cast from U -> T
+  template<class U>
   __AGENCY_ANNOTATION
-  typename future_traits<Future>::value_type
-    operator()() const
+  T operator()(U& arg) const
   {
-    return fut.get();
+    return static_cast<T>(std::move(arg));
+  }
+
+  // cast from void -> void
+  // T would be void in this case
+  __AGENCY_ANNOTATION
+  T operator()() const
+  {
   }
 };
 
@@ -75,8 +81,7 @@ template<class T, class Executor, class Future>
 typename new_executor_traits<Executor>::template future<T>
   future_cast(future_cast_implementation_strategies::use_then_execute, Executor& ex, Future& fut)
 {
-  auto f = future_cast_then_execute_functor<Future>{std::move(fut)};
-  return new_executor_traits<Executor>::then_execute(ex, std::move(f));
+  return new_executor_traits<Executor>::then_execute(ex, future_cast_then_execute_functor<T>{}, fut);
 } // end future_cast()
 
 
