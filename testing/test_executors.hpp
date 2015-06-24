@@ -191,5 +191,33 @@ struct when_all_executor
 };
 
 
+struct multi_agent_execute_returning_user_defined_container_executor
+{
+  multi_agent_execute_returning_user_defined_container_executor() : function_called{} {};
+
+  template<class Container, class Function>
+  Container execute(Function f, size_t n)
+  {
+    function_called = true;
+
+    Container result(n);
+
+    for(size_t i = 0; i < n; ++i)
+    {
+      result[i] = f(i);
+    }
+
+    return result;
+  }
+
+  bool function_called;
+
+  bool valid()
+  {
+    return function_called;
+  }
+};
+
+
 } // end test_executors 
 

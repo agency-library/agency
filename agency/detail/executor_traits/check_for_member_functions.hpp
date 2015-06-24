@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <agency/new_executor_traits.hpp>
 
 namespace agency
 {
@@ -135,7 +136,8 @@ struct has_multi_agent_execute_returning_default_container_impl
   template<class Executor1,
            class ReturnType = decltype(
              std::declval<Executor1>().execute(
-               std::declval<Function>()
+               std::declval<Function>(),
+               std::declval<typename new_executor_traits<Executor1>::shape_type>()
              )
            ),
            class = typename std::enable_if<
@@ -159,7 +161,8 @@ struct has_multi_agent_execute_returning_user_specified_container_impl
   template<class Executor1,
            class ReturnType = decltype(
              std::declval<Executor1>().template execute<Container>(
-               std::declval<Function>()
+               std::declval<Function>(),
+               std::declval<typename new_executor_traits<Executor1>::shape_type>()
              )
            ),
            class = typename std::enable_if<
@@ -183,7 +186,8 @@ struct has_multi_agent_execute_returning_void_impl
   template<class Executor1,
            class ReturnType = decltype(
              std::declval<Executor1>().execute(
-               std::declval<Function>()
+               std::declval<Function>(),
+               std::declval<typename new_executor_traits<Executor1>::shape_type>()
              )
            ),
            class = typename std::enable_if<
