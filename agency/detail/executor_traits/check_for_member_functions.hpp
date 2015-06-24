@@ -10,6 +10,10 @@ namespace detail
 namespace new_executor_traits_detail
 {
 
+
+// XXX we shouldn't require the ExpectedReturnType from the checks for operations returning a default container
+
+
 template<class Executor, class T, class Future>
 struct has_future_cast_impl
 {

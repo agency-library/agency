@@ -178,5 +178,26 @@ struct multi_agent_execute_returning_user_defined_container_executor : test_exec
 };
 
 
+struct multi_agent_execute_returning_default_container_executor : test_executor
+{
+  template<class Function>
+  std::vector<
+    typename std::result_of<Function(size_t)>::type
+  > execute(Function f, size_t n)
+  {
+    function_called = true;
+
+    std::vector<typename std::result_of<Function(size_t)>::type> result(n);
+
+    for(size_t i = 0; i < n; ++i)
+    {
+      result[i] = f(i);
+    }
+
+    return result;
+  }
+};
+
+
 } // end test_executors 
 

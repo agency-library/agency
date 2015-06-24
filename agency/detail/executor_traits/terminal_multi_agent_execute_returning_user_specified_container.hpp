@@ -19,11 +19,52 @@ namespace terminal_multi_agent_execute_returning_user_specified_container_implem
 {
 
 
+struct empty {};
+
+
+template<class Container, class Function>
+struct invoke_and_assign_result_to_container
+{
+  Container &c;
+  mutable Function f;
+
+  template<class Index>
+  __AGENCY_ANNOTATION
+  empty operator()(const Index& idx) const
+  {
+    // XXX should use std::invoke(f, idx);
+    c[idx] = f(idx);
+
+    // return something cheap to allocate
+    return empty();
+  }
+};
+
+
 struct use_multi_agent_execute_returning_user_specified_container_member_function {};
 
 struct use_multi_agent_execute_returning_void_member_function {};
 
+struct use_multi_agent_execute_returning_default_container_member_function {};
+
 struct use_for_loop {};
+
+
+template<class Container, class Executor, class Function>
+struct has_multi_agent_execute_returning_default_container_impl
+{
+  using expected_return_type = typename new_executor_traits<Executor>::template container<empty>;
+
+  using type = new_executor_traits_detail::has_multi_agent_execute_returning_default_container<
+    Executor,
+    invoke_and_assign_result_to_container<Container, Function>,
+    expected_return_type
+  >;
+};
+
+
+template<class Container, class Executor, class Function>
+using has_multi_agent_execute_returning_default_container = typename has_multi_agent_execute_returning_default_container_impl<Container, Executor, Function>::type;
 
 
 template<class Container, class Executor, class Function>
@@ -34,7 +75,11 @@ using select_multi_agent_terminal_execute_returning_user_specified_container_imp
     typename std::conditional<
       has_multi_agent_execute_returning_void<Executor,Function>::value,
       use_multi_agent_execute_returning_void_member_function,
-      use_for_loop
+      typename std::conditional<
+        has_multi_agent_execute_returning_default_container<Container,Executor,Function>::value,
+        use_multi_agent_execute_returning_default_container_member_function,
+        use_for_loop
+      >::type
     >::type
   >::type;
 
@@ -60,6 +105,21 @@ Container terminal_multi_agent_execute_returning_user_specified_container(use_mu
     result[idx] = f(idx);
   },
   shape);
+
+  return result;
+} // end terminal_multi_agent_execute_returning_user_specified_container()
+
+
+template<class Container, class Executor, class Function>
+Container terminal_multi_agent_execute_returning_user_specified_container(use_multi_agent_execute_returning_default_container_member_function,
+                                                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
+{
+  Container result(shape);
+
+  // ignore the container returned by this call
+  // XXX the alternative would be to do a conversion to the user's preferred container
+  //     seems like either of these options involves the same number of allocations
+  ex.execute(invoke_and_assign_result_to_container<Container,Function>{result,f}, shape);
 
   return result;
 } // end terminal_multi_agent_execute_returning_user_specified_container()
