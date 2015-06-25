@@ -46,6 +46,7 @@ void test()
 
     assert(got == 13);
     assert(result == addend * n);
+    assert(exec.valid());
   }
 }
 
