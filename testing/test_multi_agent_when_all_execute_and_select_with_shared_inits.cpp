@@ -59,6 +59,7 @@ int main()
   test<multi_agent_when_all_execute_and_select_with_shared_inits_executor>();
   test<when_all_executor>();
   test<multi_agent_execute_returning_user_defined_container_executor>();
+  test<multi_agent_execute_returning_default_container_executor>();
 
   std::cout << "OK" << std::endl;
 }
