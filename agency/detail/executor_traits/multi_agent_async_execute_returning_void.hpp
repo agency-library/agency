@@ -22,13 +22,36 @@ typename new_executor_traits<Executor>::template future<void>
 } // end multi_agent_async_execute_returning_void()
 
 
+template<class Function>
+struct invoke_and_return_empty
+{
+  struct empty {};
+
+  mutable Function f;
+
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  empty operator()(Args&&... args) const
+  {
+    // XXX should use std::invoke()
+    f(std::forward<Args>(args)...);
+
+    // return something which can be cheaply discarded
+    return empty();
+  }
+};
+
+
 template<class Executor, class Function>
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_async_execute_returning_void(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
-  auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
-  return new_executor_traits<Executor>::then_execute(ex, f, shape, ready);
-} // end multi_agent_async_returning_default_void()
+  // invoke f and generate dummy results into a discarding_container
+  auto fut2 = new_executor_traits<Executor>::async_execute(ex, invoke_and_return_empty<Function>{f}, shape);
+
+  // cast the discarding_container to void
+  return new_executor_traits<Executor>::template future_cast<void>(ex, fut2);
+} // end multi_agent_async_execute_returning_void()
 
 
 } // end new_executor_traits_detail

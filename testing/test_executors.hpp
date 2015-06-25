@@ -214,5 +214,22 @@ struct multi_agent_execute_returning_void_executor : test_executor
 };
 
 
+struct multi_agent_async_execute_returning_user_defined_container_executor : test_executor
+{
+  template<class Container, class Function>
+  std::future<Container> async_execute(Function f, size_t n)
+  {
+    function_called = true;
+
+    return std::async([=]
+    {
+      multi_agent_execute_returning_user_defined_container_executor exec;
+
+      return exec.execute<Container>(f, n);
+    });
+  }
+};
+
+
 } // end test_executors 
 
