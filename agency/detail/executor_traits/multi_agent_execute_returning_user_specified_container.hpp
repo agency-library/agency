@@ -47,8 +47,6 @@ Container new_executor_traits<Executor>
     Function
   >;
 
-  std::cout << "hi" << std::endl;
-
   return detail::new_executor_traits_detail::multi_agent_execute_returning_user_specified_container<Container>(check_for_member_function(), ex, f, shape);
 } // end new_executor_traits::execute()
 
