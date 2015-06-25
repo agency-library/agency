@@ -90,14 +90,18 @@ using has_multi_agent_async_execute_returning_default_container = typename has_m
 template<class Container, class Executor, class Function>
 struct has_multi_agent_async_execute_returning_user_specified_container_impl
 {
+  using shape_type = typename new_executor_traits<Executor>::shape_type;
+  using expected_return_type = typename new_executor_traits<Executor>::template future<Container>;
+
   template<class Executor1,
            class ReturnType = decltype(
              std::declval<Executor1>().template async_execute<Container>(
-               std::declval<Function>()
+               std::declval<Function>(),
+               std::declval<shape_type>()
              )
            ),
            class = typename std::enable_if<
-             std::is_same<ReturnType,Container>::value
+             std::is_same<ReturnType,expected_return_type>::value
            >::type>
   static std::true_type test(int);
 
