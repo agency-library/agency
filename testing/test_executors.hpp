@@ -199,5 +199,20 @@ struct multi_agent_execute_returning_default_container_executor : test_executor
 };
 
 
+struct multi_agent_execute_returning_void_executor : test_executor
+{
+  template<class Function>
+  void execute(Function f, size_t n)
+  {
+    function_called = true;
+
+    for(size_t i = 0; i < n; ++i)
+    {
+      f(i);
+    }
+  }
+};
+
+
 } // end test_executors 
 
