@@ -148,11 +148,13 @@ template<class Container, class Executor, class Function>
 Container terminal_multi_agent_execute_returning_user_specified_container(use_multi_agent_execute_returning_default_container_member_function,
                                                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
+  // XXX the alternative to this implementation would be to do a conversion to the user's preferred container
+  //     that alternative would allocate 2 * shape * sizeof(result_type) allocations
+  //     the current implementation allocates shape * (sizeof(empty) + sizeof(result_type))
+  
   Container result(shape);
 
   // ignore the container returned by this call
-  // XXX the alternative would be to do a conversion to the user's preferred container
-  //     seems like either of these options involves the same number of allocations
   ex.execute(invoke_and_assign_result_to_container<Container,Function>{result,f}, shape);
 
   return result;
@@ -163,11 +165,13 @@ template<class Container, class Executor, class Function>
 Container terminal_multi_agent_execute_returning_user_specified_container(use_multi_agent_async_execute_returning_default_container_member_function,
                                                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
+  // XXX the alternative to this implementation would be to do a conversion to the user's preferred container
+  //     that alternative would allocate 2 * shape * sizeof(result_type) allocations
+  //     the current implementation allocates shape * (sizeof(empty) + sizeof(result_type))
+
   Container result(shape);
 
   // ignore the container returned by this call
-  // XXX the alternative would be to do a conversion to the user's preferred container
-  //     seems like either of these options involves the same number of allocations
   ex.async_execute(invoke_and_assign_result_to_container<Container,Function>{result,f}, shape).wait();
 
   return result;
