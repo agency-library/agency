@@ -24,6 +24,7 @@ void test()
     f.wait();
 
     assert(set_me_to_thirteen == 13);
+    assert(exec.valid());
   }
 
   {
@@ -37,6 +38,7 @@ void test()
     });
 
     assert(f.get() == 13);
+    assert(exec.valid());
   }
 }
 
