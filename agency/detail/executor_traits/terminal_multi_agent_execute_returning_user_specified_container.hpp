@@ -47,6 +47,8 @@ struct use_multi_agent_async_execute_returning_user_specified_container_member_f
 
 struct use_multi_agent_execute_returning_void_member_function {};
 
+struct use_multi_agent_async_execute_returning_void_member_function {};
+
 struct use_multi_agent_execute_returning_default_container_member_function {};
 
 struct use_multi_agent_async_execute_returning_default_container_member_function {};
@@ -94,12 +96,16 @@ using select_multi_agent_terminal_execute_returning_user_specified_container_imp
         has_multi_agent_execute_returning_void<Executor,Function>::value,
         use_multi_agent_execute_returning_void_member_function,
         typename std::conditional<
-          has_multi_agent_execute_returning_default_container<Container,Executor,Function>::value,
-          use_multi_agent_execute_returning_default_container_member_function,
+          has_multi_agent_async_execute_returning_void<Executor,Function>::value,
+          use_multi_agent_async_execute_returning_void_member_function,
           typename std::conditional<
-            has_multi_agent_async_execute_returning_default_container<Container,Executor,Function>::value,
-            use_multi_agent_async_execute_returning_default_container_member_function,
-            use_for_loop
+            has_multi_agent_execute_returning_default_container<Container,Executor,Function>::value,
+            use_multi_agent_execute_returning_default_container_member_function,
+            typename std::conditional<
+              has_multi_agent_async_execute_returning_default_container<Container,Executor,Function>::value,
+              use_multi_agent_async_execute_returning_default_container_member_function,
+              use_for_loop
+            >::type
           >::type
         >::type
       >::type
@@ -139,6 +145,24 @@ Container terminal_multi_agent_execute_returning_user_specified_container(use_mu
     result[idx] = f(idx);
   },
   shape);
+
+  return result;
+} // end terminal_multi_agent_execute_returning_user_specified_container()
+
+
+template<class Container, class Executor, class Function>
+Container terminal_multi_agent_execute_returning_user_specified_container(use_multi_agent_async_execute_returning_void_member_function,
+                                                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
+{
+  Container result(shape);
+
+  using index_type = typename new_executor_traits<Executor>::index_type;
+
+  ex.async_execute([=,&result](const index_type& idx)
+  {
+    result[idx] = f(idx);
+  },
+  shape).wait();
 
   return result;
 } // end terminal_multi_agent_execute_returning_user_specified_container()
