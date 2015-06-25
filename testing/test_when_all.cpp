@@ -18,6 +18,7 @@ void test()
     auto void_future2 = traits::when_all(exec, void_future1);
 
     void_future2.get();
+    assert(exec.valid());
   }
 
   {
@@ -32,6 +33,7 @@ void test()
 
     assert(std::get<0>(int_float) == 13);
     assert(std::get<1>(int_float) == 7.f);
+    assert(exec.valid());
   }
 
   {
@@ -47,6 +49,7 @@ void test()
 
     assert(std::get<0>(int_float) == 13);
     assert(std::get<1>(int_float) == 7.f);
+    assert(exec.valid());
   }
 }
 
