@@ -62,14 +62,17 @@ using has_make_ready_future = typename has_make_ready_future_impl<Executor,T,Arg
 template<class Executor, class Function>
 struct has_multi_agent_async_execute_returning_default_container_impl
 {
-  using index_type = typename new_executor_traits<Executor>::index_type;
+  using index_type           = typename new_executor_traits<Executor>::index_type;
+  using shape_type           = typename new_executor_traits<Executor>::shape_type;
   using container_value_type = typename std::result_of<Function(index_type)>::type;
-  using expected_return_type = typename new_executor_traits<Executor>::template container<container_value_type>;
+  using container_type       = typename new_executor_traits<Executor>::template container<container_value_type>;
+  using expected_return_type = typename new_executor_traits<Executor>::template future<container_type>;
 
   template<class Executor1,
            class ReturnType = decltype(
              std::declval<Executor1>().async_execute(
-               std::declval<Function>()
+               std::declval<Function>(),
+               std::declval<shape_type>()
              )
            ),
            class = typename std::enable_if<
