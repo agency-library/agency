@@ -231,5 +231,27 @@ struct multi_agent_async_execute_returning_user_defined_container_executor : tes
 };
 
 
+struct multi_agent_async_execute_returning_default_container_executor : test_executor
+{
+  template<class Function>
+  std::future<
+    std::vector<
+      typename std::result_of<Function(size_t)>::type
+    >
+  > async_execute(Function f, size_t n)
+  {
+    function_called = true;
+
+    multi_agent_async_execute_returning_user_defined_container_executor exec;
+
+    using container_type = std::vector<
+      typename std::result_of<Function(size_t)>::type
+    >;
+
+    return exec.async_execute<container_type>(f, n);
+  }
+};
+
+
 } // end test_executors 
 
