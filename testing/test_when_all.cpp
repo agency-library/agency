@@ -59,6 +59,8 @@ int main()
   test<multi_agent_when_all_execute_and_select_executor>();
   test<single_agent_then_execute_executor>();
   test<when_all_executor>();
+  test<multi_agent_execute_returning_user_defined_container_executor>();
+  test<multi_agent_execute_returning_default_container_executor>();
 
   std::cout << "OK" << std::endl;
 
