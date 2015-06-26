@@ -14,8 +14,36 @@ void test()
 {
   using executor_type = Executor;
 
+//  {
+//    // execute with shared inits returning user-specified container
+//    
+//    executor_type exec;
+//
+//    size_t n = 100;
+//
+//    int shared_arg = 0;
+//
+//    std::mutex mut;
+//    std::vector<int> result = agency::new_executor_traits<executor_type>::template execute<std::vector<int>>(exec, [&mut](size_t idx, int& shared_arg)
+//    {
+//      mut.lock();
+//      ++shared_arg;
+//      mut.unlock();
+//      return idx;
+//    },
+//    n,
+//    std::ref(shared_arg));
+//
+//    std::vector<int> ref(n);
+//    std::iota(ref.begin(), ref.end(), 0);
+//
+//    assert(std::equal(ref.begin(), ref.end(), result.begin()));
+//    assert(shared_arg == n);
+//    assert(exec.valid());
+//  }
+
   {
-    // execute with shared inits returning user-specified container
+    // execute returning default container
     
     executor_type exec;
 
@@ -24,7 +52,7 @@ void test()
     int shared_arg = 0;
 
     std::mutex mut;
-    std::vector<int> result = agency::new_executor_traits<executor_type>::template execute<std::vector<int>>(exec, [&mut](size_t idx, int& shared_arg)
+    auto result = agency::new_executor_traits<executor_type>::execute(exec, [&mut](size_t idx, int& shared_arg)
     {
       mut.lock();
       ++shared_arg;
@@ -42,46 +70,30 @@ void test()
     assert(exec.valid());
   }
 
-  {
-    // execute returning default container
-    
-    executor_type exec;
-
-    size_t n = 100;
-
-    auto result = agency::new_executor_traits<executor_type>::execute(exec, [](size_t idx)
-    {
-      return idx;
-    },
-    n);
-
-    std::vector<int> ref(n);
-    std::iota(ref.begin(), ref.end(), 0);
-
-    assert(std::equal(ref.begin(), ref.end(), result.begin()));
-    assert(exec.valid());
-  }
-
-  {
-    // execute returning void
-    
-    executor_type exec;
-
-    size_t n = 100;
-
-    int increment_me = 0;
-    std::mutex mut;
-    agency::new_executor_traits<executor_type>::execute(exec, [&](size_t idx)
-    {
-      mut.lock();
-      increment_me += 13;
-      mut.unlock();
-    },
-    n);
-
-    assert(increment_me == n * 13);
-    assert(exec.valid());
-  }
+//  {
+//    // execute returning void
+//    
+//    executor_type exec;
+//
+//    size_t n = 100;
+//
+//    int shared_arg = 0;
+//
+//    int increment_me = 0;
+//    std::mutex mut;
+//    agency::new_executor_traits<executor_type>::execute(exec, [&](size_t idx, int& shared_arg)
+//    {
+//      mut.lock();
+//      ++shared_arg;
+//      increment_me += 13;
+//      mut.unlock();
+//    },
+//    n);
+//
+//    assert(increment_me == n * 13);
+//    assert(shared_arg == n);
+//    assert(exec.valid());
+//  }
 }
 
 int main()
