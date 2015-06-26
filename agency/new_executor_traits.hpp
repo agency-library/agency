@@ -419,6 +419,21 @@ struct new_executor_traits
                >::value
              >::type>
     static void execute(executor_type& ex, Function f, shape_type shape);
+
+    // multi-agent execute with shared inits returning void
+    template<class Function,
+             class T1, class... Types,
+             class = typename std::enable_if<
+               std::is_void<
+                 typename std::result_of<
+                   Function(index_type, typename std::decay<T1>::type&, typename std::decay<Types>::type&&...)
+                 >::type
+               >::value
+             >::type,
+             class = typename std::enable_if<
+               execution_depth == 1 + sizeof...(Types)
+             >::type>
+    static void execute(executor_type& ex, Function f, shape_type shape, T1&& outer_shared_init, Types&&... inner_shared_inits);
 }; // end new_executor_traits
 
 
@@ -443,5 +458,6 @@ struct new_executor_traits
 #include <agency/detail/executor_traits/multi_agent_execute_returning_void.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_with_shared_inits_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_with_shared_inits_returning_default_container.hpp>
+#include <agency/detail/executor_traits/multi_agent_execute_with_shared_inits_returning_void.hpp>
 #include <agency/detail/executor_traits/when_all.hpp>
 
