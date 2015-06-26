@@ -448,6 +448,27 @@ template<class TupleReference>
 using decay_tuple_t = typename decay_tuple<TupleReference>::type;
 
 
+template<class TypeList>
+struct homogeneous_tuple_impl;
+
+template<class... Types>
+struct homogeneous_tuple_impl<type_list<Types...>>
+{
+  using type = tuple<Types...>;
+};
+
+template<class T, size_t size>
+using homogeneous_tuple = typename homogeneous_tuple_impl<type_list_repeat<size,T>>:: type;
+
+
+template<size_t size, class T>
+__AGENCY_ANNOTATION
+homogeneous_tuple<T,size> make_homogeneous_tuple(const T& val)
+{
+  return detail::tuple_repeat<size>(val);
+}
+
+
 
 } // end detail
 } // end agency
