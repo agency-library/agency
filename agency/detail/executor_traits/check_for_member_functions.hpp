@@ -251,6 +251,37 @@ template<class Container, class Executor, class Function, class... Types>
 using has_multi_agent_execute_with_shared_inits_returning_user_specified_container = typename has_multi_agent_execute_with_shared_inits_returning_user_specified_container_impl<Container,Executor,Function,Types...>::type;
 
 
+template<class Executor, class Function, class... Types>
+struct has_multi_agent_execute_with_shared_inits_returning_default_container_impl
+{
+  using shape_type = typename new_executor_traits<Executor>::shape_type;
+  using index_type = typename new_executor_traits<Executor>::index_type;
+  using container_value_type = typename std::result_of<Function(index_type, Types...)>::type;
+  using expected_return_type = typename new_executor_traits<Executor>::template container<container_value_type>;
+
+  template<class Executor1,
+           class ReturnType = decltype(
+             std::declval<Executor1>().execute(
+               std::declval<Function>(),
+               std::declval<shape_type>(),
+               std::declval<Types>()...
+             )
+           ),
+           class = typename std::enable_if<
+             std::is_same<ReturnType,expected_return_type>::value
+           >::type>
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor, class Function, class... Types>
+using has_multi_agent_execute_with_shared_inits_returning_default_container = typename has_multi_agent_execute_with_shared_inits_returning_default_container_impl<Executor,Function,Types...>::type;
+
+
 template<class Executor, class Function, class Future>
 struct has_multi_agent_then_execute_returning_default_container_impl
 {
