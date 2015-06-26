@@ -92,6 +92,8 @@ int main()
   test<multi_agent_async_execute_returning_default_container_executor>();
   test<multi_agent_async_execute_returning_void_executor>();
 
+  test<multi_agent_execute_with_shared_inits_returning_user_defined_container_executor>();
+
   std::cout << "OK" << std::endl;
 
   return 0;
