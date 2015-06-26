@@ -364,6 +364,13 @@ struct new_executor_traits
     template<class Container, class Function>
     static Container execute(executor_type& ex, Function f, shape_type shape);
 
+    // multi-agent execute with shared inits returning user-specified Container
+    template<class Container, class Function, class T1, class... Types,
+             class = typename std::enable_if<
+               execution_depth == 1 + sizeof...(Types)
+             >::type>
+    static Container execute(executor_type& ex, Function f, shape_type shape, T1&& outer_shared_init, Types&&... inner_shared_inits);
+
     // multi-agent execute returning default container
     template<class Function,
              class = typename std::enable_if<
@@ -410,5 +417,6 @@ struct new_executor_traits
 #include <agency/detail/executor_traits/multi_agent_execute_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_returning_default_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_returning_void.hpp>
+#include <agency/detail/executor_traits/multi_agent_execute_with_shared_inits_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/when_all.hpp>
 
