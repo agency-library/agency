@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/tuple.hpp>
 #include <type_traits>
 
 
@@ -41,7 +42,15 @@ struct invoke_and_assign_result_to_container
 };
 
 
+// XXX this is getting unwieldy
+//     we should break these up into separate headers
+//     the headers could define functions like
+//     invoke_multi_agent_execute_returning_user_specified_container_member_function()
+//       it would first try the overload without shared params
+//       failing that, it would use the one with shared params
 struct use_multi_agent_execute_returning_user_specified_container_member_function {};
+
+struct use_multi_agent_execute_with_shared_inits_returning_user_specified_container_member_function {};
 
 struct use_multi_agent_async_execute_returning_user_specified_container_member_function {};
 
@@ -54,6 +63,55 @@ struct use_multi_agent_execute_returning_default_container_member_function {};
 struct use_multi_agent_async_execute_returning_default_container_member_function {};
 
 struct use_for_loop {};
+
+
+template<class Function>
+struct invoke_and_ignore_tail_parameters
+{
+  mutable Function f;
+
+  template<class Index, class... Args>
+  __AGENCY_ANNOTATION
+  typename std::result_of<
+    Function(Index)
+  >::type
+    operator()(const Index& idx, Args&&...) const
+  {
+    // XXX use std::invoke
+    return f(idx);
+  }
+};
+
+
+template<class Container, class IndexSequence, class Executor, class Function, class TupleOfIgnoredParameters>
+struct has_multi_agent_execute_with_ignored_shared_inits_returning_user_specified_container_impl;
+
+
+template<class Container, size_t... Indices, class Executor, class Function, class TupleOfIgnoredParameters>
+struct has_multi_agent_execute_with_ignored_shared_inits_returning_user_specified_container_impl<
+  Container, detail::index_sequence<Indices...>, Executor, Function, TupleOfIgnoredParameters
+>
+{
+  using type = typename has_multi_agent_execute_with_shared_inits_returning_user_specified_container<
+    Container,
+    Executor,
+    Function,
+    typename std::tuple_element<Indices,TupleOfIgnoredParameters>::type...
+  >::type;
+};
+
+
+template<class Container, class Executor, class Function>
+using has_multi_agent_execute_with_ignored_shared_inits_returning_user_specified_container =
+  typename has_multi_agent_execute_with_ignored_shared_inits_returning_user_specified_container_impl<
+    Container,
+    detail::make_index_sequence<
+      new_executor_traits<Executor>::execution_depth
+    >,
+    Executor,
+    invoke_and_ignore_tail_parameters<Function>,
+    detail::homogeneous_tuple<detail::ignore_t, new_executor_traits<Executor>::execution_depth>
+  >::type;
 
 
 template<class Container, class Executor, class Function>
@@ -90,21 +148,25 @@ using select_multi_agent_terminal_execute_returning_user_specified_container_imp
     has_multi_agent_execute_returning_user_specified_container<Container,Executor,Function>::value,
     use_multi_agent_execute_returning_user_specified_container_member_function,
     typename std::conditional<
-      has_multi_agent_async_execute_returning_user_specified_container<Container,Executor,Function>::value,
-      use_multi_agent_async_execute_returning_user_specified_container_member_function,
+      has_multi_agent_execute_with_ignored_shared_inits_returning_user_specified_container<Container,Executor,Function>::value,
+      use_multi_agent_execute_with_shared_inits_returning_user_specified_container_member_function,
       typename std::conditional<
-        has_multi_agent_execute_returning_void<Executor,Function>::value,
-        use_multi_agent_execute_returning_void_member_function,
+        has_multi_agent_async_execute_returning_user_specified_container<Container,Executor,Function>::value,
+        use_multi_agent_async_execute_returning_user_specified_container_member_function,
         typename std::conditional<
-          has_multi_agent_async_execute_returning_void<Executor,Function>::value,
-          use_multi_agent_async_execute_returning_void_member_function,
+          has_multi_agent_execute_returning_void<Executor,Function>::value,
+          use_multi_agent_execute_returning_void_member_function,
           typename std::conditional<
-            has_multi_agent_execute_returning_default_container<Container,Executor,Function>::value,
-            use_multi_agent_execute_returning_default_container_member_function,
+            has_multi_agent_async_execute_returning_void<Executor,Function>::value,
+            use_multi_agent_async_execute_returning_void_member_function,
             typename std::conditional<
-              has_multi_agent_async_execute_returning_default_container<Container,Executor,Function>::value,
-              use_multi_agent_async_execute_returning_default_container_member_function,
-              use_for_loop
+              has_multi_agent_execute_returning_default_container<Container,Executor,Function>::value,
+              use_multi_agent_execute_returning_default_container_member_function,
+              typename std::conditional<
+                has_multi_agent_async_execute_returning_default_container<Container,Executor,Function>::value,
+                use_multi_agent_async_execute_returning_default_container_member_function,
+                use_for_loop
+              >::type
             >::type
           >::type
         >::type
@@ -118,6 +180,27 @@ Container terminal_multi_agent_execute_returning_user_specified_container(use_mu
                                                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
   return ex.template execute<Container>(f, shape);
+} // end terminal_multi_agent_execute_returning_user_specified_container()
+
+
+template<class Container, size_t... Indices, class Executor, class Function, class TupleOfIgnoredParameters>
+Container terminal_multi_agent_execute_returning_user_specified_container_impl(detail::index_sequence<Indices...>,
+                                                                               Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
+                                                                               const TupleOfIgnoredParameters& tuple_of_ignored_parameters)
+{
+  return ex.template execute<Container>(f, shape, std::get<Indices>(tuple_of_ignored_parameters)...);
+} // end terminal_multi_agent_execute_returning_user_specified_container()
+
+
+template<class Container, class Executor, class Function>
+Container terminal_multi_agent_execute_returning_user_specified_container(use_multi_agent_execute_with_shared_inits_returning_user_specified_container_member_function,
+                                                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
+{
+  auto g = invoke_and_ignore_tail_parameters<Function>{f};
+
+  constexpr size_t num_shared_params = new_executor_traits<Executor>::execution_depth;
+  return terminal_multi_agent_execute_returning_user_specified_container_impl<Container>(detail::make_index_sequence<num_shared_params>(),
+                                                                                         ex, g, shape, detail::make_homogeneous_tuple<num_shared_params>(detail::ignore));
 } // end terminal_multi_agent_execute_returning_user_specified_container()
 
 

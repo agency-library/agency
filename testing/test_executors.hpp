@@ -178,6 +178,25 @@ struct multi_agent_execute_returning_user_defined_container_executor : test_exec
 };
 
 
+struct multi_agent_execute_with_shared_inits_returning_user_defined_container_executor : test_executor
+{
+  template<class Container, class Function, class T>
+  Container execute(Function f, size_t n, T&& shared_init)
+  {
+    function_called = true;
+
+    Container result(n);
+
+    for(size_t i = 0; i < n; ++i)
+    {
+      result[i] = f(i, shared_init);
+    }
+
+    return result;
+  }
+};
+
+
 struct multi_agent_execute_returning_default_container_executor : test_executor
 {
   template<class Function>
