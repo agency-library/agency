@@ -220,6 +220,29 @@ struct multi_agent_execute_returning_default_container_executor : test_executor
 };
 
 
+struct multi_agent_execute_with_shared_inits_returning_default_container_executor : test_executor
+{
+  template<class Function, class T>
+  std::vector<
+    typename std::result_of<Function(size_t, typename std::decay<T>::type&)>::type
+  > execute(Function f, size_t n, T&& shared_init)
+  {
+    function_called = true;
+
+    std::vector<typename std::result_of<Function(size_t, typename std::decay<T>::type&)>::type> result(n);
+
+    auto shared_arg = std::forward<T>(shared_init);
+
+    for(size_t i = 0; i < n; ++i)
+    {
+      result[i] = f(i, shared_arg);
+    }
+
+    return result;
+  }
+};
+
+
 struct multi_agent_execute_returning_void_executor : test_executor
 {
   template<class Function>
