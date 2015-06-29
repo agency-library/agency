@@ -187,9 +187,11 @@ struct multi_agent_execute_with_shared_inits_returning_user_defined_container_ex
 
     Container result(n);
 
+    auto shared_arg = std::forward<T>(shared_init);
+
     for(size_t i = 0; i < n; ++i)
     {
-      result[i] = f(i, shared_init);
+      result[i] = f(i, shared_arg);
     }
 
     return result;
