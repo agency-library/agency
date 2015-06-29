@@ -42,7 +42,7 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
                                                                                    T1&& outer_shared_init, Types&&... inner_shared_inits)
 {
-  return ex.template execute<Container>(f, std::forward<T1>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
+  return ex.template execute<Container>(f, shape, std::forward<T1>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
