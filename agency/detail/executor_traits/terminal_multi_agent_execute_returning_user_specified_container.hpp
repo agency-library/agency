@@ -41,6 +41,13 @@ struct invoke_and_assign_result_to_container
   }
 };
 
+template<class Container, class Function>
+__AGENCY_ANNOTATION
+invoke_and_assign_result_to_container<Container, Function> make_invoke_and_assign_result_to_container(Container& c, const Function& f)
+{
+  return invoke_and_assign_result_to_container<Container,Function>{c,f};
+}
+
 
 // XXX this is getting unwieldy
 //     we should break these up into separate headers
@@ -59,6 +66,8 @@ struct use_multi_agent_execute_returning_void_member_function {};
 struct use_multi_agent_async_execute_returning_void_member_function {};
 
 struct use_multi_agent_execute_returning_default_container_member_function {};
+
+struct use_multi_agent_execute_with_shared_inits_returning_default_container_member_function {};
 
 struct use_multi_agent_async_execute_returning_default_container_member_function {};
 
@@ -81,6 +90,13 @@ struct invoke_and_ignore_tail_parameters
     return f(idx);
   }
 };
+
+template<class Function>
+__AGENCY_ANNOTATION
+invoke_and_ignore_tail_parameters<Function> make_invoke_and_ignore_tail_parameters(const Function& f)
+{
+  return invoke_and_ignore_tail_parameters<Function>{f};
+}
 
 
 template<class Container, class IndexSequence, class Executor, class Function, class TupleOfIgnoredParameters>
@@ -138,6 +154,27 @@ struct has_multi_agent_async_execute_returning_default_container_impl
 };
 
 
+template<class Container, class Executor, class Function, class TypeList>
+struct has_multi_agent_execute_with_shared_inits_returning_default_container_impl;
+
+template<class Container, class Executor, class Function, class... IgnoredTailParameterTypes>
+struct has_multi_agent_execute_with_shared_inits_returning_default_container_impl<Container, Executor, Function, type_list<IgnoredTailParameterTypes...>>
+{
+  using type = new_executor_traits_detail::has_multi_agent_execute_with_shared_inits_returning_default_container<
+    Executor,
+    invoke_and_ignore_tail_parameters<
+      invoke_and_assign_result_to_container<Container, Function>
+    >,
+    IgnoredTailParameterTypes...
+  >;
+};
+
+template<class Container, class Executor, class Function>
+using has_multi_agent_execute_with_shared_inits_returning_default_container = typename has_multi_agent_execute_with_shared_inits_returning_default_container_impl<
+  Container, Executor, Function, type_list_repeat<new_executor_traits<Executor>::execution_depth, detail::ignore_t>
+>::type;
+
+
 template<class Container, class Executor, class Function>
 using has_multi_agent_async_execute_returning_default_container = typename has_multi_agent_async_execute_returning_default_container_impl<Container, Executor, Function>::type;
 
@@ -163,9 +200,13 @@ using select_multi_agent_terminal_execute_returning_user_specified_container_imp
               has_multi_agent_execute_returning_default_container<Container,Executor,Function>::value,
               use_multi_agent_execute_returning_default_container_member_function,
               typename std::conditional<
-                has_multi_agent_async_execute_returning_default_container<Container,Executor,Function>::value,
-                use_multi_agent_async_execute_returning_default_container_member_function,
-                use_for_loop
+                has_multi_agent_execute_with_shared_inits_returning_default_container<Container,Executor,Function>::value,
+                use_multi_agent_execute_with_shared_inits_returning_default_container_member_function,
+                typename std::conditional<
+                  has_multi_agent_async_execute_returning_default_container<Container,Executor,Function>::value,
+                  use_multi_agent_async_execute_returning_default_container_member_function,
+                  use_for_loop
+                >::type
               >::type
             >::type
           >::type
@@ -265,6 +306,45 @@ Container terminal_multi_agent_execute_returning_user_specified_container(use_mu
   ex.execute(invoke_and_assign_result_to_container<Container,Function>{result,f}, shape);
 
   return result;
+} // end terminal_multi_agent_execute_returning_user_specified_container()
+
+
+template<class Container, size_t... Indices, class Executor, class Function, class IgnoredSharedParameterTuple>
+Container terminal_multi_agent_execute_returning_user_specified_container_impl(use_multi_agent_execute_with_shared_inits_returning_default_container_member_function,
+                                                                               detail::index_sequence<Indices...>,
+                                                                               Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, const IgnoredSharedParameterTuple& ignored_shared_parameters)
+{
+  // XXX the alternative to this implementation would be to do a conversion to the user's preferred container
+  //     that alternative would allocate 2 * shape * sizeof(result_type) allocations
+  //     the current implementation allocates shape * (sizeof(empty) + sizeof(result_type))
+  
+  Container result(shape);
+
+  auto g = make_invoke_and_ignore_tail_parameters(
+    make_invoke_and_assign_result_to_container<Container>(result,f)
+  );
+
+  // ignore the container returned by this call
+  ex.execute(g, shape, std::get<Indices>(ignored_shared_parameters)...);
+
+  return result;
+}
+
+
+template<class Container, class Executor, class Function>
+Container terminal_multi_agent_execute_returning_user_specified_container(use_multi_agent_execute_with_shared_inits_returning_default_container_member_function implementation_strategy,
+                                                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
+{
+  constexpr size_t num_ignored_parameters = new_executor_traits<Executor>::execution_depth;
+
+  return terminal_multi_agent_execute_returning_user_specified_container_impl<Container>(
+    implementation_strategy,
+    detail::make_index_sequence<num_ignored_parameters>(),
+    ex,
+    f,
+    shape,
+    detail::make_homogeneous_tuple<num_ignored_parameters>(detail::ignore)
+  );
 } // end terminal_multi_agent_execute_returning_user_specified_container()
 
 
