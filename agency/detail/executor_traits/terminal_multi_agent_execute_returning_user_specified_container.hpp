@@ -349,6 +349,24 @@ Container terminal_multi_agent_execute_returning_user_specified_container(use_mu
 
 
 template<class Container, class Executor, class Function>
+Container terminal_multi_agent_execute_returning_user_specified_container(use_multi_agent_async_execute_returning_void_member_function,
+                                                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
+{
+  Container result(shape);
+
+  using index_type = typename new_executor_traits<Executor>::index_type;
+
+  ex.async_execute([=,&result](const index_type& idx)
+  {
+    result[idx] = f(idx);
+  },
+  shape).wait();
+
+  return result;
+} // end terminal_multi_agent_execute_returning_user_specified_container()
+
+
+template<class Container, class Executor, class Function>
 Container terminal_multi_agent_execute_returning_user_specified_container(use_multi_agent_execute_returning_default_container_member_function,
                                                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
