@@ -258,6 +258,23 @@ struct multi_agent_execute_returning_void_executor : test_executor
 };
 
 
+struct multi_agent_execute_with_shared_inits_returning_void_executor : test_executor
+{
+  template<class Function, class T>
+  void execute(Function f, size_t n, T&& shared_init)
+  {
+    function_called = true;
+
+    auto shared_arg = std::forward<T>(shared_init);
+
+    for(size_t i = 0; i < n; ++i)
+    {
+      f(i, shared_arg);
+    }
+  }
+};
+
+
 struct multi_agent_async_execute_returning_user_defined_container_executor : test_executor
 {
   template<class Container, class Function>
