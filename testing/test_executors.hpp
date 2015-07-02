@@ -25,6 +25,62 @@ struct empty_executor : test_executor
 };
 
 
+struct single_agent_execute_executor : test_executor
+{
+  template<class Function>
+  typename std::result_of<Function()>::type execute(Function&& f)
+  {
+    function_called = true;
+
+    return std::forward<Function>(f)();
+  }
+};
+
+
+struct single_agent_async_execute_executor : test_executor
+{
+  template<class Function>
+  std::future<
+    typename std::result_of<Function()>::type
+  >
+    async_execute(Function&& f)
+  {
+    function_called = true;
+
+    return std::async(std::forward<Function>(f));
+  }
+};
+
+
+struct single_agent_then_execute_executor : test_executor
+{
+  template<class Function, class T>
+  std::future<typename std::result_of<Function(T&)>::type>
+    then_execute(Function f, std::future<T>& fut)
+  {
+    function_called = true;
+
+    return agency::detail::then(fut, [=](std::future<T>& fut)
+    {
+      auto arg = fut.get();
+      return f(arg);
+    });
+  }
+
+  template<class Function>
+  std::future<typename std::result_of<Function()>::type>
+    then_execute(Function f, std::future<void>& fut)
+  {
+    function_called = true;
+
+    return agency::detail::then(fut, [=](std::future<void>& fut)
+    {
+      return f();
+    });
+  }
+};
+
+
 struct single_agent_when_all_execute_and_select_executor : test_executor
 {
   template<size_t... SelectedIndices, class Function, class TupleOfFutures>
@@ -109,35 +165,6 @@ struct multi_agent_when_all_execute_and_select_with_shared_inits_executor : test
 
     auto g = functor<Function, typename std::decay<T>::type>{f, n, std::forward<T>(shared_init)};
     return agency::when_all_execute_and_select<SelectedIndices...>(std::move(g), std::forward<TupleOfFutures>(futures));
-  }
-};
-
-
-struct single_agent_then_execute_executor : test_executor
-{
-  template<class Function, class T>
-  std::future<typename std::result_of<Function(T&)>::type>
-    then_execute(Function f, std::future<T>& fut)
-  {
-    function_called = true;
-
-    return agency::detail::then(fut, [=](std::future<T>& fut)
-    {
-      auto arg = fut.get();
-      return f(arg);
-    });
-  }
-
-  template<class Function>
-  std::future<typename std::result_of<Function()>::type>
-    then_execute(Function f, std::future<void>& fut)
-  {
-    function_called = true;
-
-    return agency::detail::then(fut, [=](std::future<void>& fut)
-    {
-      return f();
-    });
   }
 };
 
@@ -292,6 +319,23 @@ struct multi_agent_async_execute_returning_user_defined_container_executor : tes
 };
 
 
+struct multi_agent_async_execute_with_shared_inits_returning_user_defined_container_executor : test_executor
+{
+  template<class Container, class Function, class T>
+  std::future<Container> async_execute(Function f, size_t n, T&& shared_init)
+  {
+    function_called = true;
+
+    return std::async([=]
+    {
+      multi_agent_execute_with_shared_inits_returning_user_defined_container_executor exec;
+
+      return exec.execute<Container>(f, n, shared_init);
+    });
+  }
+};
+
+
 struct multi_agent_async_execute_returning_default_container_executor : test_executor
 {
   template<class Function>
@@ -314,6 +358,28 @@ struct multi_agent_async_execute_returning_default_container_executor : test_exe
 };
 
 
+struct multi_agent_async_execute_with_shared_inits_returning_default_container_executor : test_executor
+{
+  template<class Function, class T>
+  std::future<
+    std::vector<
+      typename std::result_of<Function(size_t, typename std::decay<T>::type&)>::type
+    >
+  > async_execute(Function f, size_t n, T&& shared_init)
+  {
+    function_called = true;
+
+    multi_agent_async_execute_with_shared_inits_returning_user_defined_container_executor exec;
+
+    using container_type = std::vector<
+      typename std::result_of<Function(size_t, typename std::decay<T>::type&)>::type
+    >;
+
+    return exec.async_execute<container_type>(f, n, std::forward<T>(shared_init));
+  }
+};
+
+
 struct multi_agent_async_execute_returning_void_executor : test_executor
 {
   template<class Function>
@@ -327,6 +393,250 @@ struct multi_agent_async_execute_returning_void_executor : test_executor
 
       exec.execute(f, n);
     });
+  }
+};
+
+
+struct multi_agent_async_execute_with_shared_inits_returning_void_executor : test_executor
+{
+  template<class Function, class T>
+  std::future<void> async_execute(Function f, size_t n, T&& shared_init)
+  {
+    function_called = true;
+
+    return std::async([=]
+    {
+      multi_agent_execute_with_shared_inits_returning_void_executor exec;
+
+      exec.execute(f, n, shared_init);
+    });
+  }
+};
+
+
+struct multi_agent_then_execute_returning_user_defined_container_executor : test_executor
+{
+  template<class Container, class Function, class T>
+  std::future<Container> then_execute(Function f, size_t n, std::future<T>& fut)
+  {
+    function_called = true;
+
+    T val = fut.get(); 
+
+    multi_agent_async_execute_returning_user_defined_container_executor exec;
+
+    return exec.async_execute<Container>([=,&val](const size_t& idx)
+    {
+      return f(idx, val);
+    },
+    n);
+  }
+
+  template<class Container, class Function>
+  std::future<Container> then_execute(Function f, size_t n, std::future<void>& fut)
+  {
+    function_called = true;
+
+    fut.get(); 
+
+    multi_agent_async_execute_returning_user_defined_container_executor exec;
+
+    return exec.async_execute<Container>(f, n);
+  }
+};
+
+
+struct multi_agent_then_execute_returning_default_container_executor : test_executor
+{
+  template<class Function, class T>
+  std::future<
+    std::vector<
+      typename std::result_of<Function(size_t,T&)>::type
+    >
+  >
+    then_execute(Function f, size_t n, std::future<T>& fut)
+  {
+    function_called = true;
+
+    multi_agent_then_execute_returning_user_defined_container_executor exec;
+
+    using container_type = std::vector<
+      typename std::result_of<Function(size_t,T&)>::type
+    >;
+
+    return exec.then_execute<container_type>(f, n, fut);
+  }
+
+  template<class Function>
+  std::future<
+    std::vector<
+      typename std::result_of<Function(size_t)>::type
+    >
+  >
+    then_execute(Function f, size_t n, std::future<void>& fut)
+  {
+    function_called = true;
+
+    multi_agent_then_execute_returning_user_defined_container_executor exec;
+
+    using container_type = std::vector<
+      typename std::result_of<Function(size_t)>::type
+    >;
+
+    return exec.then_execute<container_type>(f, n, fut);
+  }
+};
+
+
+struct multi_agent_then_execute_returning_void_executor : test_executor
+{
+  template<class Function, class T>
+  std::future<void>
+    then_execute(Function f, size_t n, std::future<T>& fut)
+  {
+    function_called = true;
+
+    auto val = fut.get();
+
+    multi_agent_async_execute_returning_void_executor exec;
+
+    return exec.async_execute([=](size_t idx)
+    {
+      f(idx, val);
+    },
+    n);
+  }
+
+  template<class Function>
+  std::future<void>
+    then_execute(Function f, size_t n, std::future<void>& fut)
+  {
+    function_called = true;
+
+    fut.get();
+
+    multi_agent_async_execute_returning_void_executor exec;
+
+    return exec.async_execute([=](size_t idx)
+    {
+      f(idx);
+    },
+    n);
+  }
+};
+
+
+struct multi_agent_then_execute_with_shared_inits_returning_user_defined_container_executor : test_executor
+{
+  template<class Container, class Function, class T, class U>
+  std::future<Container> then_execute(Function f, size_t n, std::future<T>& fut, U&& shared_init)
+  {
+    function_called = true;
+
+    T val = fut.get(); 
+
+    multi_agent_async_execute_with_shared_inits_returning_user_defined_container_executor exec;
+
+    return exec.async_execute<Container>([=,&val](const size_t& idx)
+    {
+      return f(idx, val);
+    },
+    n,
+    std::forward<U>(shared_init));
+  }
+
+  template<class Container, class Function, class T>
+  std::future<Container> then_execute(Function f, size_t n, std::future<void>& fut, T&& shared_init)
+  {
+    function_called = true;
+
+    fut.get(); 
+
+    multi_agent_async_execute_with_shared_inits_returning_user_defined_container_executor exec;
+
+    return exec.async_execute<Container>(f, n, std::forward<T>(shared_init));
+  }
+};
+
+
+struct multi_agent_then_execute_with_shared_inits_returning_default_container_executor : test_executor
+{
+  template<class Function, class T, class U>
+  std::future<
+    std::vector<
+      typename std::result_of<Function(size_t, T&, typename std::decay<U>::type&)>::type
+    >
+  >
+    then_execute(Function f, size_t n, std::future<T>& fut, U&& shared_init)
+  {
+    function_called = true;
+
+    multi_agent_then_execute_with_shared_inits_returning_user_defined_container_executor exec;
+
+    using container_type = std::vector<
+      typename std::result_of<Function(size_t, T&, typename std::decay<U>::type&)>::type
+    >;
+
+    return exec.then_execute<container_type>(f, n, fut, std::forward<U>(shared_init));
+  }
+
+  template<class Function, class T>
+  std::future<
+    std::vector<
+      typename std::result_of<Function(size_t, typename std::decay<T>::type&)>::type
+    >
+  >
+    then_execute(Function f, size_t n, std::future<void>& fut, T&& shared_init)
+  {
+    function_called = true;
+
+    multi_agent_then_execute_with_shared_inits_returning_user_defined_container_executor exec;
+
+    using container_type = std::vector<
+      typename std::result_of<Function(size_t, typename std::decay<T>::type&)>::type
+    >;
+
+    return exec.then_execute<container_type>(f, n, fut, std::forward<T>(shared_init));
+  }
+};
+
+
+struct multi_agent_then_execute_with_shared_inits_returning_void_executor : test_executor
+{
+  template<class Function, class T, class U>
+  std::future<void>
+    then_execute(Function f, size_t n, std::future<T>& fut, U&& shared_init)
+  {
+    function_called = true;
+
+    auto val = fut.get();
+
+    multi_agent_async_execute_with_shared_inits_returning_void_executor exec;
+
+    return exec.async_execute([=](size_t idx, U& shared_arg)
+    {
+      f(idx, val, shared_arg);
+    },
+    n,
+    std::forward<U>(shared_init));
+  }
+
+  template<class Function, class T>
+  std::future<void>
+    then_execute(Function f, size_t n, std::future<void>& fut, T&& shared_init)
+  {
+    function_called = true;
+
+    fut.get();
+
+    multi_agent_async_execute_with_shared_inits_returning_void_executor exec;
+
+    return exec.async_execute([=](size_t idx, T& shared_arg)
+    {
+      f(idx, shared_arg);
+    },
+    n,
+    std::forward<T>(shared_init));
   }
 };
 
