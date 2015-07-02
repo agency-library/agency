@@ -101,6 +101,7 @@ using use_strategy_9 = use_multi_agent_then_execute_returning_user_specified_con
 template<class Executor, class Container, class Function, class... Types>
 using has_strategy_9 = has_multi_agent_then_execute_returning_user_specified_container<Container, Executor, Function, typename new_executor_traits<Executor>::template future<void>>;
 
+
 // 10.
 struct use_multi_agent_when_all_execute_and_select_member_function {};
 
@@ -115,6 +116,7 @@ using has_strategy_10 = has_multi_agent_when_all_execute_and_select<
   >,
   0
 >;
+
 
 // 11.
 struct use_multi_agent_async_execute_with_shared_inits_returning_void_member_function {};
@@ -255,6 +257,7 @@ struct use_bare_for_loop {};
 using use_strategy_25 = use_bare_for_loop;
 
 
+// XXX find a cleaner way to express this
 template<class Executor, class Container, class Function, class... Types>
 using select_multi_agent_execute_with_shared_inits_returning_user_specified_container_implementation =
   typename std::conditional<
