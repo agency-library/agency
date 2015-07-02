@@ -291,7 +291,7 @@ using select_multi_agent_execute_with_shared_inits_returning_user_specified_cont
                                                 typename std::conditional<
                                                   has_strategy_24<Executor,Container,Function,Types...>::value,
                                                   use_strategy_24,
-                                                  use_bare_for_loop
+                                                  use_strategy_25
                                                 >::type
                                               >::type
                                             >::type
