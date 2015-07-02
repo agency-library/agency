@@ -20,13 +20,39 @@ Container multi_agent_execute_returning_user_specified_container(std::true_type,
 } // end multi_agent_execute_returning_user_specified_container()
 
 
+template<class Function>
+struct ignore_tail_parameters_and_invoke
+{
+  mutable Function f;
+
+  template<class Index, class... Args>
+  __AGENCY_ANNOTATION
+  typename std::result_of<Function(Index)>::type
+  operator()(const Index& idx, Args&&...) const
+  {
+    // XXX should use std::invoke
+    return f(idx);
+  }
+};
+
+
+template<class Container, size_t... Indices, class Executor, class Function, class Tuple>
+Container multi_agent_execute_returning_user_specified_container_impl(detail::index_sequence<Indices...>,
+                                                                      Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
+                                                                      const Tuple& tuple_of_ignored_parameters)
+{
+  return new_executor_traits<Executor>::template execute<Container>(ex, ignore_tail_parameters_and_invoke<Function>{f}, shape, std::get<Indices>(tuple_of_ignored_parameters)...);
+} // end multi_agent_execute_returning_user_specified_container()
+
+
 template<class Container, class Executor, class Function>
 Container multi_agent_execute_returning_user_specified_container(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
-  auto fut = new_executor_traits<Executor>::template async_execute<Container>(ex, f, shape);
+  constexpr size_t num_ignored_parameters = new_executor_traits<Executor>::execution_depth;
 
-  // XXX should use an executor_traits operation on the future rather than .get()
-  return fut.get();
+  auto tuple_of_ignored_parameters = detail::make_homogeneous_tuple<num_ignored_parameters>(detail::ignore);
+
+  return multi_agent_execute_returning_user_specified_container_impl<Container>(detail::make_index_sequence<num_ignored_parameters>(), ex, f, shape, tuple_of_ignored_parameters);
 } // end multi_agent_execute_returning_user_specified_container()
 
 
