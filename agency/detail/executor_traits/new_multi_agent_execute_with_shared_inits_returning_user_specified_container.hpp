@@ -216,6 +216,8 @@ using has_strategy_24 = has_single_agent_when_all_execute_and_select<
 // 25.
 struct use_bare_for_loop {};
 
+using use_strategy_25 = use_bare_for_loop;
+
 
 template<class Executor, class Container, class Function, class... Types>
 using select_multi_agent_execute_with_shared_inits_returning_user_specified_container_implementation =
