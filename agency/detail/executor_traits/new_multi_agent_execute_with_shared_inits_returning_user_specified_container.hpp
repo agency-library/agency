@@ -16,20 +16,56 @@ namespace multi_agent_execute_with_shared_inits_returning_user_specified_contain
 // 1.
 struct use_multi_agent_execute_with_shared_inits_returning_user_specified_container_member_function {};
 
+using use_strategy_1 = use_multi_agent_execute_with_shared_inits_returning_user_specified_container_member_function;
+
+template<class Executor, class Container, class Function, class... Types>
+using has_strategy_1 = has_multi_agent_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,Types...>;
+
+
 // 2.
 struct use_multi_agent_execute_returning_user_specified_container_member_function {};
+
+using use_strategy_2 = use_multi_agent_execute_returning_user_specified_container_member_function;
+
+template<class Executor, class Container, class Function, class... Types>
+using has_strategy_2 = has_multi_agent_execute_returning_user_specified_container<Container,Executor,test_function_returning_int>;
+
 
 // 3.
 struct use_multi_agent_execute_with_shared_inits_returning_void_member_function {};
 
+using use_strategy_3 = use_multi_agent_execute_with_shared_inits_returning_void_member_function;
+
+template<class Executor, class Container, class Function, class... Types>
+using has_strategy_3 = has_multi_agent_execute_with_shared_inits_returning_void<Executor,Function,Types...>;
+
+
 // 4.
 struct use_multi_agent_execute_returning_void_member_function {};
+
+using use_strategy_4 = use_multi_agent_execute_returning_void_member_function;
+
+template<class Executor, class Container, class Function, class... Types>
+using has_strategy_4 = has_multi_agent_execute_returning_void<Executor>;
+
 
 // 5.
 struct use_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_member_function {};
 
+using use_strategy_5 = use_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_member_function;
+
+template<class Executor, class Container, class Function, class... Types>
+using has_strategy_5 = has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,Types...>;
+
+
 // 6.
 struct use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_member_function {};
+
+using use_strategy_6 = use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_member_function;
+
+template<class Executor, class Container, class Function, class... Types>
+using has_strategy_6 = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,typename new_executor_traits<Executor>::template future<void>, Types...>;
+
 
 // 7.
 struct use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function {};
@@ -222,23 +258,23 @@ using use_strategy_25 = use_bare_for_loop;
 template<class Executor, class Container, class Function, class... Types>
 using select_multi_agent_execute_with_shared_inits_returning_user_specified_container_implementation =
   typename std::conditional<
-    has_multi_agent_execute_with_shared_inits_returning_user_specified_container<Container, Executor, Function, Types...>::value,
-    use_multi_agent_execute_with_shared_inits_returning_user_specified_container_member_function,                                            // 1.
+    has_strategy_1<Executor,Container,Function,Types...>::value,
+    use_strategy_1,
     typename std::conditional<
-      has_multi_agent_execute_returning_user_specified_container<Container,Executor,test_function_returning_int>::value, // XXX simplify the syntax of this check
-      use_multi_agent_execute_returning_user_specified_container_member_function,                                                            // 2.
+      has_strategy_2<Executor,Container,Function,Types...>::value,
+      use_strategy_2,
       typename std::conditional<
-        has_multi_agent_execute_with_shared_inits_returning_void<Executor,Function,Types...>::value,
-        use_multi_agent_execute_with_shared_inits_returning_void_member_function,                                                            // 3.
+        has_strategy_3<Executor,Container,Function,Types...>::value,
+        use_strategy_3,
         typename std::conditional<
-          has_multi_agent_execute_returning_void<Executor>::value,
-          use_multi_agent_execute_returning_void_member_function,                                                                            // 4.
+          has_strategy_4<Executor,Container,Function,Types...>::value,
+          use_strategy_4,
           typename std::conditional<
-            has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,Types...>::value,
-            use_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_member_function,                              // 5.
+            has_strategy_5<Executor,Container,Function,Types...>::value,
+            use_strategy_5,
             typename std::conditional<
-              has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,typename new_executor_traits<Executor>::template future<void>, Types...>::value,
-              use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_member_function,                             // 6.
+              has_strategy_6<Executor,Container,Function,Types...>::value,
+              use_strategy_6,
               typename std::conditional<
                 has_strategy_7<Executor,Container,Function,Types...>::value,
                 use_strategy_7,
