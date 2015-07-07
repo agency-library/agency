@@ -285,6 +285,25 @@ struct new_executor_traits
             >
     static future<Container> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut);
 
+    // multi-agent then_execute() with shared inits returning user-specified Container
+    template<class Container, class Function, class Future, class... Types,
+             class = typename std::enable_if<
+               detail::new_executor_traits_detail::is_container<Container,index_type>::value
+             >::type,
+             class = typename std::enable_if<
+               detail::is_future<Future>::value
+             >::type,
+             class = typename std::enable_if<
+               sizeof...(Types) == execution_depth
+             >::type,
+             class = detail::result_of_continuation_t<
+               Function,
+               index_type,
+               Future,
+               typename std::decay<Types>::type&...
+             >>
+    static future<Container> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut, Types&&... shared_inits);
+
     // multi-agent then_execute() returning default container
     template<class Function, class Future,
              class = typename std::enable_if<
@@ -305,6 +324,29 @@ struct new_executor_traits
     >
       then_execute(executor_type& ex, Function f, shape_type shape, Future& fut);
 
+    // multi-agent then_execute() with shared inits returning default container
+    template<class Function, class Future, class... Types,
+             class = typename std::enable_if<
+               detail::is_future<Future>::value
+             >::type,
+             class = typename std::enable_if<
+               sizeof...(Types) == execution_depth
+             >::type,
+             class = typename std::enable_if<
+               detail::is_callable_continuation<Function,index_type,Future,typename std::decay<Types>::type&...>::value
+             >::type,
+             class = typename std::enable_if<
+               !std::is_void<
+                 detail::result_of_continuation_t<Function,index_type,Future,typename std::decay<Types>::type&...>
+               >::value
+             >::type>
+    static future<
+      container<
+        detail::result_of_continuation_t<Function,index_type,Future,typename std::decay<Types>::type&...>
+      >
+    >
+      then_execute(executor_type& ex, Function f, shape_type shape, Future& fut, Types&&... shared_inits);
+
     // multi-agent then_execute() returning void
     template<class Function, class Future,
              class = typename std::enable_if<
@@ -320,6 +362,25 @@ struct new_executor_traits
              >::type>
     static future<void>
       then_execute(executor_type& ex, Function f, shape_type shape, Future& fut);
+
+    // multi-agent then_execute() with shared inits returning void
+    template<class Function, class Future, class... Types,
+             class = typename std::enable_if<
+               detail::is_future<Future>::value
+             >::type,
+             class = typename std::enable_if<
+               sizeof...(Types) == execution_depth
+             >::type,
+             class = typename std::enable_if<
+               detail::is_callable_continuation<Function,index_type,Future,typename std::decay<Types>::type&...>::value
+             >::type,
+             class = typename std::enable_if<
+               std::is_void<
+                 detail::result_of_continuation_t<Function,index_type,Future,typename std::decay<Types>::type&...>
+               >::value
+             >::type>
+    static future<void>
+      then_execute(executor_type& ex, Function f, shape_type shape, Future& fut, Types&&... shared_inits);
 
     // single-agent async_execute()
     template<class Function>
@@ -448,6 +509,9 @@ struct new_executor_traits
 #include <agency/detail/executor_traits/multi_agent_then_execute_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_then_execute_returning_default_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_then_execute_returning_void.hpp>
+#include <agency/detail/executor_traits/multi_agent_then_execute_with_shared_inits_returning_user_specified_container.hpp>
+#include <agency/detail/executor_traits/multi_agent_then_execute_with_shared_inits_returning_default_container.hpp>
+#include <agency/detail/executor_traits/multi_agent_then_execute_with_shared_inits_returning_void.hpp>
 #include <agency/detail/executor_traits/single_agent_async_execute.hpp>
 #include <agency/detail/executor_traits/multi_agent_async_execute_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_async_execute_returning_default_container.hpp>

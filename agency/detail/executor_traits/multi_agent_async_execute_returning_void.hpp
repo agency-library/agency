@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/executor_traits/invoke_and_return_empty.hpp>
 #include <type_traits>
 
 namespace agency
@@ -20,26 +21,6 @@ typename new_executor_traits<Executor>::template future<void>
 {
   return ex.async_execute(f, shape);
 } // end multi_agent_async_execute_returning_void()
-
-
-template<class Function>
-struct invoke_and_return_empty
-{
-  struct empty {};
-
-  mutable Function f;
-
-  template<class... Args>
-  __AGENCY_ANNOTATION
-  empty operator()(Args&&... args) const
-  {
-    // XXX should use std::invoke()
-    f(std::forward<Args>(args)...);
-
-    // return something which can be cheaply discarded
-    return empty();
-  }
-};
 
 
 template<class Executor, class Function>

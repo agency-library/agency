@@ -537,9 +537,9 @@ struct multi_agent_then_execute_with_shared_inits_returning_user_defined_contain
 
     multi_agent_async_execute_with_shared_inits_returning_user_defined_container_executor exec;
 
-    return exec.async_execute<Container>([=,&val](const size_t& idx)
+    return exec.async_execute<Container>([=,&val](const size_t& idx, U& shared_arg)
     {
-      return f(idx, val);
+      return f(idx, val, shared_arg);
     },
     n,
     std::forward<U>(shared_init));
@@ -613,7 +613,7 @@ struct multi_agent_then_execute_with_shared_inits_returning_void_executor : test
 
     multi_agent_async_execute_with_shared_inits_returning_void_executor exec;
 
-    return exec.async_execute([=](size_t idx, U& shared_arg)
+    return exec.async_execute([=](size_t idx, U& shared_arg) mutable
     {
       f(idx, val, shared_arg);
     },
