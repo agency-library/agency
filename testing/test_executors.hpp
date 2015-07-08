@@ -425,7 +425,8 @@ struct multi_agent_then_execute_returning_user_defined_container_executor : test
 
     multi_agent_async_execute_returning_user_defined_container_executor exec;
 
-    return exec.async_execute<Container>([=,&val](const size_t& idx)
+    // we need mutable on the lambda because we pass val to f via mutable reference
+    return exec.async_execute<Container>([=](const size_t& idx) mutable
     {
       return f(idx, val);
     },
@@ -500,7 +501,8 @@ struct multi_agent_then_execute_returning_void_executor : test_executor
 
     multi_agent_async_execute_returning_void_executor exec;
 
-    return exec.async_execute([=](size_t idx)
+    // we need mutable on the lambda because we pass val to f via mutable reference
+    return exec.async_execute([=](size_t idx) mutable
     {
       f(idx, val);
     },
@@ -613,6 +615,7 @@ struct multi_agent_then_execute_with_shared_inits_returning_void_executor : test
 
     multi_agent_async_execute_with_shared_inits_returning_void_executor exec;
 
+    // we need mutable on the lambda because we pass val to f via mutable reference
     return exec.async_execute([=](size_t idx, U& shared_arg) mutable
     {
       f(idx, val, shared_arg);
