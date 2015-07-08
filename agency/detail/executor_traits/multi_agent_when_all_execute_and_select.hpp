@@ -3,7 +3,6 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
-#include <agency/detail/executor_traits/terminal_multi_agent_execute_returning_void.hpp>
 #include <type_traits>
 #include <iostream>
 
@@ -20,7 +19,7 @@ struct use_multi_agent_when_all_execute_and_select_member_function {};
 
 struct use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function {};
 
-struct use_single_agent_when_all_execute_and_select_with_nested_terminal_multi_agent_execute {};
+struct use_single_agent_when_all_execute_and_select_with_nested_multi_agent_execute {};
 
 
 template<class IndexSequence, class Executor, class Function, class TupleOfFutures>
@@ -58,7 +57,7 @@ using select_multi_agent_when_all_execute_and_select_implementation =
     typename std::conditional<
       has_multi_agent_when_all_execute_and_select_with_ignored_shared_inits<detail::index_sequence<Indices...>, Executor, Function, TupleOfFutures>::value,
       use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function,
-      use_single_agent_when_all_execute_and_select_with_nested_terminal_multi_agent_execute
+      use_single_agent_when_all_execute_and_select_with_nested_multi_agent_execute
     >::type
   >::type;
 
@@ -141,7 +140,7 @@ typename new_executor_traits<Executor>::template future<
 
 
 template<class Executor, class Function>
-struct multi_agent_when_all_execute_and_select_functor_using_nested_terminal_execute
+struct multi_agent_when_all_execute_and_select_functor_using_nested_execute
 {
   Executor& ex;
   mutable Function f;
@@ -172,7 +171,7 @@ struct multi_agent_when_all_execute_and_select_functor_using_nested_terminal_exe
   __AGENCY_ANNOTATION
   void operator()(Args&... args) const
   {
-    new_executor_traits_detail::terminal_multi_agent_execute_returning_void(ex, inner_functor<Args...>{f, detail::tie(args...)}, shape);
+    new_executor_traits<Executor>::execute(ex, inner_functor<Args...>{f, detail::tie(args...)}, shape);
   }
 };
 
@@ -184,10 +183,10 @@ typename new_executor_traits<Executor>::template future<
     typename std::decay<TupleOfFutures>::type
   >
 >
-  multi_agent_when_all_execute_and_select(use_single_agent_when_all_execute_and_select_with_nested_terminal_multi_agent_execute,
+  multi_agent_when_all_execute_and_select(use_single_agent_when_all_execute_and_select_with_nested_multi_agent_execute,
                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures)
 {
-  return new_executor_traits<Executor>::template when_all_execute_and_select<Indices...>(ex, multi_agent_when_all_execute_and_select_functor_using_nested_terminal_execute<Executor,Function>{ex,f,shape}, std::forward<TupleOfFutures>(futures));
+  return new_executor_traits<Executor>::template when_all_execute_and_select<Indices...>(ex, multi_agent_when_all_execute_and_select_functor_using_nested_execute<Executor,Function>{ex,f,shape}, std::forward<TupleOfFutures>(futures));
 } // end multi_agent_when_all_execute_and_select()
 
 
