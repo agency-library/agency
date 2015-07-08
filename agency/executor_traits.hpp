@@ -6,6 +6,7 @@
 #include <agency/execution_categories.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/shape_cast.hpp>
+#include <agency/new_executor_traits.hpp>
 
 
 namespace agency
@@ -384,89 +385,16 @@ struct executor_traits
              >::type>
     static future<void> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut, T1&& outer_shared_init, Types&&... inner_shared_inits)
     {
-      return ex.then_execute(f, shape, fut, std::forward<T1>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
+      return new_executor_traits<executor_type>::then_execute(ex, f, shape, fut, std::forward<T1>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
     }
 
-  private:
-    template<class T, class Function>
-    struct test_for_then_execute_without_shared_inits
-    {
-      template<
-        class Executor2,
-        typename = decltype(std::declval<Executor2*>()->then_execute(
-        std::declval<Function>(),
-        *std::declval<future<T>*>(),
-        std::declval<shape_type>()))
-      >
-      static std::true_type test(int);
-
-      template<class>
-      static std::false_type test(...);
-
-      using type = decltype(test<executor_type>(0));
-    };
-
-    template<class T, class Function>
-    using has_then_execute_without_shared_inits = typename test_for_then_execute_without_shared_inits<T,Function>::type;
-
-    template<class T, class Function>
-    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, future<T>& fut, std::true_type)
-    {
-      return ex.then_execute(f, shape, fut);
-    }
-
-    template<class T, class Function, class... Types, size_t... Indices,
-             class = typename std::enable_if<
-               std::is_void<T>::value
-             >::type>
-    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, future<void>& fut, const detail::tuple<Types...>& dummy_shared_inits, detail::index_sequence<Indices...>)
-    {
-      return executor_traits::then_execute(ex, [=](index_type index, Types&...) mutable
-      {
-        f(index);
-      },
-      shape,
-      fut,
-      detail::get<Indices>(dummy_shared_inits)...
-      );
-    }
-
-    template<class T, class Function, class... Types, size_t... Indices,
-             class = typename std::enable_if<
-               !std::is_void<T>::value
-             >::type>
-    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, future<T>& fut, const detail::tuple<Types...>& dummy_shared_inits, detail::index_sequence<Indices...>)
-    {
-      return executor_traits::then_execute(ex, [=](index_type index, T& past_parameter, const Types&...) mutable
-      {
-        f(index, past_parameter);
-      },
-      shape,
-      fut,
-      detail::get<Indices>(dummy_shared_inits)...
-      );
-    }
-
-    template<class T, class Function>
-    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, future<T>& fut, std::false_type)
-    {
-      constexpr size_t depth = detail::execution_depth<execution_category>::value;
-
-      // create dummy shared initializers
-      auto dummy_tuple = detail::tuple_repeat<depth>(detail::ignore);
-
-      return executor_traits::then_execute_without_shared_inits_impl<T>(ex, f, shape, fut, dummy_tuple, detail::make_index_sequence<depth>());
-    }
-
-  public:
     template<class Function, class Future,
              class = typename std::enable_if<
                is_future<Future>::value
              >::type>
     static future<void> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut)
     {
-      using value_type = typename future_traits<Future>::value_type;
-      return executor_traits::then_execute_without_shared_inits_impl<value_type>(ex, f, shape, fut, has_then_execute_without_shared_inits<value_type,Function>());
+      return new_executor_traits<executor_type>::then_execute(ex, f, shape, fut);
     }
 
   private:
