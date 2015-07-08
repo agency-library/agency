@@ -24,7 +24,7 @@ void multi_agent_execute_returning_void(std::true_type, Executor& ex, Function f
 template<class Executor, class Function>
 void multi_agent_execute_returning_void(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
-  auto g = [=](const typename new_executor_traits<Executor>::index_type& idx)
+  auto g = [=](const typename new_executor_traits<Executor>::index_type& idx) mutable
   {
     f(idx);
 
