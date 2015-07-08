@@ -539,7 +539,9 @@ struct multi_agent_then_execute_with_shared_inits_returning_user_defined_contain
 
     multi_agent_async_execute_with_shared_inits_returning_user_defined_container_executor exec;
 
-    return exec.async_execute<Container>([=,&val](const size_t& idx, U& shared_arg)
+    using shared_arg_type = typename std::decay<U>::type;
+
+    return exec.async_execute<Container>([=,&val](const size_t& idx, shared_arg_type& shared_arg)
     {
       return f(idx, val, shared_arg);
     },
@@ -615,8 +617,10 @@ struct multi_agent_then_execute_with_shared_inits_returning_void_executor : test
 
     multi_agent_async_execute_with_shared_inits_returning_void_executor exec;
 
+    using shared_arg_type = typename std::decay<U>::type;
+
     // we need mutable on the lambda because we pass val to f via mutable reference
-    return exec.async_execute([=](size_t idx, U& shared_arg) mutable
+    return exec.async_execute([=](size_t idx, shared_arg_type& shared_arg) mutable
     {
       f(idx, val, shared_arg);
     },
@@ -634,7 +638,9 @@ struct multi_agent_then_execute_with_shared_inits_returning_void_executor : test
 
     multi_agent_async_execute_with_shared_inits_returning_void_executor exec;
 
-    return exec.async_execute([=](size_t idx, T& shared_arg)
+    using shared_arg_type = typename std::decay<T>::type;
+
+    return exec.async_execute([=](size_t idx, shared_arg_type& shared_arg)
     {
       f(idx, shared_arg);
     },

@@ -1039,7 +1039,7 @@ struct single_agent_when_all_execute_and_select_functor
 
 template<class Container, class Function, class Shape, class T>
 __AGENCY_ANNOTATION
-single_agent_when_all_execute_and_select_functor<Container,Function,Shape,typename std::decay<T>::type> make_single_agent_when_all_execute_and_select_function(Function f, Shape shape, T&& shared_init)
+single_agent_when_all_execute_and_select_functor<Container,Function,Shape,typename std::decay<T>::type> make_single_agent_when_all_execute_and_select_functor(Function f, Shape shape, T&& shared_init)
 {
   return single_agent_when_all_execute_and_select_functor<Container,Function,Shape,typename std::decay<T>::type>{
     make_execute_in_for_loop<Container>(f, shape, std::forward<T>(shared_init))
@@ -1060,7 +1060,7 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
   auto tuple_of_futures = detail::make_tuple(std::move(results));
 
   // XXX should call get() through executor_traits
-  return ex.template when_all_execute_and_select<0>(make_single_agent_when_all_execute_and_select_function<Container>(f, shape, std::forward<Types>(shared_inits)...), tuple_of_futures).get();
+  return ex.template when_all_execute_and_select<0>(make_single_agent_when_all_execute_and_select_functor<Container>(f, shape, std::forward<Types>(shared_inits)...), tuple_of_futures).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 

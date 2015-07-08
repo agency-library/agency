@@ -3,6 +3,8 @@
 #include <agency/detail/config.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/executor_traits/single_element_container.hpp>
+#include <agency/detail/shape_cast.hpp>
 #include <type_traits>
 
 namespace agency
@@ -23,17 +25,59 @@ typename std::result_of<Function()>::type
 
 template<class Executor, class Function>
 typename std::result_of<Function()>::type
+  single_agent_execute_impl(Executor& ex, Function f,
+                            typename std::enable_if<
+                              std::is_void<
+                                typename std::result_of<Function()>::type
+                              >::value
+                            >::type* = 0)
+{
+  using shape_type = typename new_executor_traits<Executor>::shape_type;
+  using index_type = typename new_executor_traits<Executor>::index_type;
+
+  new_executor_traits<Executor>::execute(ex, [=](const index_type&)
+  {
+    // XXX should use std::invoke()
+    f();
+  },
+  detail::shape_cast<shape_type>(1));
+}
+
+
+template<class Executor, class Function>
+typename std::result_of<Function()>::type
+  single_agent_execute_impl(Executor& ex, Function f,
+                            typename std::enable_if<
+                              !std::is_void<
+                                typename std::result_of<Function()>::type
+                              >::value
+                            >::type* = 0)
+{
+  using value_type = typename std::result_of<Function()>::type;
+  using container_type = single_element_container<value_type>;
+
+  using shape_type = typename new_executor_traits<Executor>::shape_type;
+  using index_type = typename new_executor_traits<Executor>::index_type;
+
+  return new_executor_traits<Executor>::template execute<container_type>(ex, [=](const index_type&)
+  {
+    // XXX should use std::invoke()
+    return f();
+  },
+  detail::shape_cast<shape_type>(1)).element;
+}
+
+
+template<class Executor, class Function>
+typename std::result_of<Function()>::type
   single_agent_execute(std::false_type, Executor& ex, Function f)
 {
-  auto fut = new_executor_traits<Executor>::async_execute(ex, f);
-
-  // XXX should use an executor_traits operation on the future rather than .get()
-  return fut.get();
+  return new_executor_traits_detail::single_agent_execute_impl(ex, f);
 } // end single_agent_execute()
 
 
-} // end detail
 } // end new_executor_traits_detail
+} // end detail
 
 
 template<class Executor>
