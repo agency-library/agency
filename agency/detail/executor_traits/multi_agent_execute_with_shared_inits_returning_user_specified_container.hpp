@@ -1084,13 +1084,13 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
 
 
 template<class Executor>
-  template<class Container, class Function, class T1, class... Types,
+  template<class Container, class Function, class... Types,
            class Enable>
 Container new_executor_traits<Executor>
   ::execute(typename new_executor_traits<Executor>::executor_type& ex,
             Function f,
             typename new_executor_traits<Executor>::shape_type shape,
-            T1&& outer_shared_init, Types&&... inner_shared_inits)
+            Types&&... shared_inits)
 {
   namespace ns = detail::new_executor_traits_detail::multi_agent_execute_with_shared_inits_returning_user_specified_container_implementation_strategies;
 
@@ -1098,10 +1098,10 @@ Container new_executor_traits<Executor>
     Executor,
     Container,
     Function,
-    T1&&, Types&&...
+    Types&&...
   >;
 
-  return ns::multi_agent_execute_with_shared_inits_returning_user_specified_container<Container>(implementation_strategy(), ex, f, shape, std::forward<T1>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
+  return ns::multi_agent_execute_with_shared_inits_returning_user_specified_container<Container>(implementation_strategy(), ex, f, shape, std::forward<Types>(shared_inits)...);
 } // end new_executor_traits::execute()
 
 

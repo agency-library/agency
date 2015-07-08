@@ -464,11 +464,11 @@ struct new_executor_traits
     static Container execute(executor_type& ex, Function f, shape_type shape);
 
     // multi-agent execute with shared inits returning user-specified Container
-    template<class Container, class Function, class T1, class... Types,
+    template<class Container, class Function, class... Types,
              class = typename std::enable_if<
-               execution_depth == 1 + sizeof...(Types)
+               execution_depth == sizeof...(Types)
              >::type>
-    static Container execute(executor_type& ex, Function f, shape_type shape, T1&& outer_shared_init, Types&&... inner_shared_inits);
+    static Container execute(executor_type& ex, Function f, shape_type shape, Types&&... shared_inits);
 
     // multi-agent execute returning default container
     template<class Function,
@@ -485,28 +485,26 @@ struct new_executor_traits
       execute(executor_type& ex, Function f, shape_type shape);
 
     // multi-agent execute with shared inits returning default container
-    template<class Function,
-             class T1, class... Types,
+    template<class Function, class... Types,
              class = typename std::enable_if<
                !std::is_void<
                  typename std::result_of<
-                   Function(index_type, typename std::decay<T1>::type&, typename std::decay<Types>::type&&...)
+                   Function(index_type, typename std::decay<Types>::type&...)
                  >::type
                >::value
              >::type,
              class = typename std::enable_if<
-               execution_depth == 1 + sizeof...(Types)
+               execution_depth == sizeof...(Types)
              >::type>
     static container<
       typename std::result_of<
         Function(
           index_type,
-          typename std::decay<T1>::type&,
           typename std::decay<Types>::type&...
         )
       >::type
     >
-      execute(executor_type& ex, Function f, shape_type shape, T1&& outer_shared_init, Types&&... inner_shared_inits);
+      execute(executor_type& ex, Function f, shape_type shape, Types&&... shared_inits);
 
     // multi-agent execute returning void
     template<class Function,
@@ -520,19 +518,18 @@ struct new_executor_traits
     static void execute(executor_type& ex, Function f, shape_type shape);
 
     // multi-agent execute with shared inits returning void
-    template<class Function,
-             class T1, class... Types,
+    template<class Function, class... Types,
              class = typename std::enable_if<
                std::is_void<
                  typename std::result_of<
-                   Function(index_type, typename std::decay<T1>::type&, typename std::decay<Types>::type&&...)
+                   Function(index_type, typename std::decay<Types>::type&...)
                  >::type
                >::value
              >::type,
              class = typename std::enable_if<
-               execution_depth == 1 + sizeof...(Types)
+               execution_depth == sizeof...(Types)
              >::type>
-    static void execute(executor_type& ex, Function f, shape_type shape, T1&& outer_shared_init, Types&&... inner_shared_inits);
+    static void execute(executor_type& ex, Function f, shape_type shape, Types&&... shared_inits);
 }; // end new_executor_traits
 
 

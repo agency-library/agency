@@ -78,25 +78,24 @@ void multi_agent_execute_with_shared_inits_returning_void(use_multi_agent_execut
 
 
 template<class Executor>
-  template<class Function,
-           class T1, class... Types,
+  template<class Function, class... Types,
            class Enable1,
            class Enable2>
 void new_executor_traits<Executor>
   ::execute(typename new_executor_traits<Executor>::executor_type& ex,
             Function f,
             typename new_executor_traits<Executor>::shape_type shape,
-            T1&& outer_shared_init, Types&&... inner_shared_inits)
+            Types&&... shared_inits)
 {
   namespace ns = detail::new_executor_traits_detail::multi_agent_execute_with_shared_inits_returning_void_implementation_strategies;
 
   using implementation_strategy = ns::select_multi_agent_execute_with_shared_inits_returning_void_implementation<
     Executor,
     Function,
-    T1&&, Types&&...
+    Types&&...
   >;
 
-  return ns::multi_agent_execute_with_shared_inits_returning_void(implementation_strategy(), ex, f, shape, std::forward<T1>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
+  return ns::multi_agent_execute_with_shared_inits_returning_void(implementation_strategy(), ex, f, shape, std::forward<Types>(shared_inits)...);
 } // end new_executor_traits::execute()
 
 
