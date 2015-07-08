@@ -149,8 +149,8 @@ class nested_executor
 
   public:
     // XXX Future is a template parameter because future<T> is an alias, which interferes with template deduction
-    template<class Future, class Function, class T1, class... Types>
-    future<void> then_execute(Future& fut, Function f, shape_type shape, T1&& outer_shared_init, Types&&... inner_shared_inits)
+    template<class Function, class Future, class T1, class... Types>
+    future<void> then_execute(Function f, shape_type shape, Future& fut, T1&& outer_shared_init, Types&&... inner_shared_inits)
     {
       static_assert(detail::execution_depth<execution_category>::value == 1 + sizeof...(Types), "Number of shared arguments must be the same as the depth of execution_category.");
 
@@ -160,14 +160,14 @@ class nested_executor
 
       return outer_traits::then_execute(
         outer_executor(),
-        fut,
         then_execute_outer_functor<Function,typename std::decay<Types>::type...>{*this, f, inner_shape, detail::forward_as_tuple(inner_shared_inits...)},
         outer_shape,
+        fut,
         std::forward<T1>(outer_shared_init)
       );
 
       // XXX use this implementation upon c++14:
-      //return outer_traits::then_execute(outer_executor(), fut, [=](const auto& outer_idx, auto& past_shared_param, auto& outer_shared_param)
+      //return outer_traits::then_execute(outer_executor(), [=](const auto& outer_idx, auto& past_shared_param, auto& outer_shared_param)
       //{
       //  inner_traits::execute(inner_executor(), [=,&outer_shared_param](const auto& inner_idx, auto&... inner_shared_parms)
       //  {
@@ -178,6 +178,7 @@ class nested_executor
       //  );
       //},
       //outer_shape,
+      //fut,
       //outer_shared_init
       //);
     }

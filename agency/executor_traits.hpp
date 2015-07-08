@@ -126,9 +126,9 @@ struct has_then_execute_impl<Executor, T, type_list<Types...>>
   template<class Executor1,
            class = decltype(
              std::declval<Executor1>().then_execute(
-               *std::declval<future<T>*>(),
                std::declval<dummy_functor>(),
                std::declval<shape_type>(),
+               *std::declval<future<T>*>(),
                *std::declval<Types*>()...
              )
            )>
@@ -318,11 +318,12 @@ struct executor_traits
     {
       using value_type = typename future_traits<Future>::value_type;
 
-      return executor_traits::then_execute(ex, from, [](index_type, value_type& from_value)
+      return executor_traits::then_execute(ex, [](index_type, value_type& from_value)
       {
         return static_cast<T>(std::move(from_value));
       },
-      detail::shape_cast<shape_type>(1)
+      detail::shape_cast<shape_type>(1),
+      from
       );
     }
 
@@ -377,13 +378,13 @@ struct executor_traits
 
     // XXX generalize this to interoperate with other Futures
     // XXX we can use async_execute & call fut.get() when depending on foreign Futures
-    template<class Future, class Function, class T1, class... Types,
+    template<class Function, class Future, class T1, class... Types,
              class = typename std::enable_if<
                is_future<Future>::value
              >::type>
-    static future<void> then_execute(executor_type& ex, Future& fut, Function f, shape_type shape, T1&& outer_shared_init, Types&&... inner_shared_inits)
+    static future<void> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut, T1&& outer_shared_init, Types&&... inner_shared_inits)
     {
-      return ex.then_execute(fut, f, shape, std::forward<T1>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
+      return ex.then_execute(f, shape, fut, std::forward<T1>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
     }
 
   private:
@@ -393,8 +394,8 @@ struct executor_traits
       template<
         class Executor2,
         typename = decltype(std::declval<Executor2*>()->then_execute(
-        *std::declval<future<T>*>(),
         std::declval<Function>(),
+        *std::declval<future<T>*>(),
         std::declval<shape_type>()))
       >
       static std::true_type test(int);
@@ -409,22 +410,23 @@ struct executor_traits
     using has_then_execute_without_shared_inits = typename test_for_then_execute_without_shared_inits<T,Function>::type;
 
     template<class T, class Function>
-    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, future<T>& fut, Function f, shape_type shape, std::true_type)
+    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, future<T>& fut, std::true_type)
     {
-      return ex.then_execute(fut, f, shape);
+      return ex.then_execute(f, shape, fut);
     }
 
     template<class T, class Function, class... Types, size_t... Indices,
              class = typename std::enable_if<
                std::is_void<T>::value
              >::type>
-    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, future<void>& fut, Function f, shape_type shape, const detail::tuple<Types...>& dummy_shared_inits, detail::index_sequence<Indices...>)
+    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, future<void>& fut, const detail::tuple<Types...>& dummy_shared_inits, detail::index_sequence<Indices...>)
     {
-      return executor_traits::then_execute(ex, fut, [=](index_type index, Types&...) mutable
+      return executor_traits::then_execute(ex, [=](index_type index, Types&...) mutable
       {
         f(index);
       },
       shape,
+      fut,
       detail::get<Indices>(dummy_shared_inits)...
       );
     }
@@ -433,37 +435,38 @@ struct executor_traits
              class = typename std::enable_if<
                !std::is_void<T>::value
              >::type>
-    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, future<T>& fut, Function f, shape_type shape, const detail::tuple<Types...>& dummy_shared_inits, detail::index_sequence<Indices...>)
+    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, future<T>& fut, const detail::tuple<Types...>& dummy_shared_inits, detail::index_sequence<Indices...>)
     {
-      return executor_traits::then_execute(ex, fut, [=](index_type index, T& past_parameter, const Types&...) mutable
+      return executor_traits::then_execute(ex, [=](index_type index, T& past_parameter, const Types&...) mutable
       {
         f(index, past_parameter);
       },
       shape,
+      fut,
       detail::get<Indices>(dummy_shared_inits)...
       );
     }
 
     template<class T, class Function>
-    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, future<T>& fut, Function f, shape_type shape, std::false_type)
+    static future<void> then_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, future<T>& fut, std::false_type)
     {
       constexpr size_t depth = detail::execution_depth<execution_category>::value;
 
       // create dummy shared initializers
       auto dummy_tuple = detail::tuple_repeat<depth>(detail::ignore);
 
-      return executor_traits::then_execute_without_shared_inits_impl<T>(ex, fut, f, shape, dummy_tuple, detail::make_index_sequence<depth>());
+      return executor_traits::then_execute_without_shared_inits_impl<T>(ex, f, shape, fut, dummy_tuple, detail::make_index_sequence<depth>());
     }
 
   public:
-    template<class Future, class Function,
+    template<class Function, class Future,
              class = typename std::enable_if<
                is_future<Future>::value
              >::type>
-    static future<void> then_execute(executor_type& ex, Future& fut, Function f, shape_type shape)
+    static future<void> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut)
     {
       using value_type = typename future_traits<Future>::value_type;
-      return executor_traits::then_execute_without_shared_inits_impl<value_type>(ex, fut, f, shape, has_then_execute_without_shared_inits<value_type,Function>());
+      return executor_traits::then_execute_without_shared_inits_impl<value_type>(ex, f, shape, fut, has_then_execute_without_shared_inits<value_type,Function>());
     }
 
   private:
@@ -501,7 +504,7 @@ struct executor_traits
     static future<void> async_execute_with_shared_inits_impl(std::false_type, executor_type& ex, Function f, shape_type shape, T&&... shared_inits)
     {
       auto ready = executor_traits::template make_ready_future<void>(ex);
-      return executor_traits::then_execute(ex, ready, f, shape, std::forward<T>(shared_inits)...);
+      return executor_traits::then_execute(ex, f, shape, ready, std::forward<T>(shared_inits)...);
     }
 
   public:

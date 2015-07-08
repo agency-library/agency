@@ -19,7 +19,7 @@ class concurrent_executor
     using execution_category = concurrent_execution_tag;
 
     template<class Function, class T>
-    std::future<void> then_execute(std::future<void>& fut, Function f, size_t n, T&& shared_init)
+    std::future<void> then_execute(Function f, size_t n, std::future<void>& fut, T&& shared_init)
     {
       std::future<void> result = detail::make_ready_future();
 
@@ -55,8 +55,8 @@ class concurrent_executor
     }
 
 
-    template<class T1, class Function, class T2>
-    std::future<void> then_execute(std::future<T1>& fut, Function f, size_t n, T2&& shared_init)
+    template<class Function, class T1, class T2>
+    std::future<void> then_execute(Function f, size_t n, std::future<T1>& fut, T2&& shared_init)
     {
       std::future<void> result = detail::make_ready_future();
 

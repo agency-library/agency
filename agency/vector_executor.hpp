@@ -44,7 +44,7 @@ class vector_executor
     }
 
     template<class Function, class T>
-    std::future<void> then_execute(std::future<void>& fut, Function f, size_t n, T&& shared_init)
+    std::future<void> then_execute(Function f, size_t n, std::future<void>& fut, T&& shared_init)
     {
       return detail::then(fut, std::launch::deferred, [=](std::future<void>& predecessor)
       {
@@ -52,8 +52,8 @@ class vector_executor
       });
     }
 
-    template<class T1, class Function, class T2>
-    std::future<void> then_execute(std::future<T1>& fut, Function f, size_t n, T2&& shared_init)
+    template<class Function, class T1, class T2>
+    std::future<void> then_execute(Function f, size_t n, std::future<T1>& fut, T2&& shared_init)
     {
       return detail::then(fut, std::launch::deferred, [=](std::future<T1>& predecessor) mutable
       {
