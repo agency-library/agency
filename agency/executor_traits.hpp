@@ -197,19 +197,6 @@ struct is_executor
 template<class Executor>
 struct executor_traits
 {
-  private:
-    template<class T>
-    struct executor_index
-    {
-      using type = typename T::index_type;
-    };
-
-    template<class T>
-    struct executor_shape
-    {
-      using type = typename T::shape_type;
-    };
-
   public:
     using executor_type = Executor;
 
