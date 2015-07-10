@@ -26,8 +26,9 @@ struct is_container_impl
   // test if T is a container by trying to index it using the bracket operator
   // XXX should also check that it is constructible from Shape
   template<class T1,
+           class Index1 = Index,
            class Reference = decltype(
-             (*std::declval<T*>())[std::declval<Index>()]
+             (*std::declval<T1*>())[std::declval<Index1>()]
            ),
            class = typename std::enable_if<
              !std::is_void<Reference>::value
