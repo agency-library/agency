@@ -198,7 +198,7 @@ template<class Executor>
 struct executor_traits
 {
   public:
-    using executor_type = Executor;
+    using executor_type = typename new_executor_traits<Executor>::executor_type;
 
     using execution_category = typename new_executor_traits<executor_type>::execution_category;
 
