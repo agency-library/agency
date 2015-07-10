@@ -5,6 +5,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/invoke_and_return_empty.hpp>
+#include <agency/detail/executor_traits/discarding_container.hpp>
 #include <type_traits>
 
 namespace agency
@@ -28,7 +29,7 @@ typename new_executor_traits<Executor>::template future<void>
   multi_agent_async_execute_with_shared_inits_returning_void(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Types&&... shared_inits)
 {
   // invoke f and generate dummy results into a discarding_container
-  auto fut2 = new_executor_traits<Executor>::async_execute(ex, invoke_and_return_empty<Function>{f}, shape, std::forward<Types>(shared_inits)...);
+  auto fut2 = new_executor_traits<Executor>::template async_execute<discarding_container>(ex, invoke_and_return_empty<Function>{f}, shape, std::forward<Types>(shared_inits)...);
 
   // cast the discarding_container to void
   return new_executor_traits<Executor>::template future_cast<void>(ex, fut2);
