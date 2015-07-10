@@ -220,11 +220,12 @@ struct executor_traits
       size_t
     >::type;
 
-    using shape_type = typename detail::lazy_conditional<
-      detail::has_shape_type<executor_type>::value,
-      executor_shape<executor_type>,
-      detail::identity<index_type>
-    >::type;
+    //using shape_type = typename detail::lazy_conditional<
+    //  detail::has_shape_type<executor_type>::value,
+    //  executor_shape<executor_type>,
+    //  detail::identity<index_type>
+    //>::type;
+    using shape_type = typename new_executor_traits<executor_type>::shape_type;
 
     template<class T>
     using future = typename new_executor_traits<executor_type>::template future<T>;
