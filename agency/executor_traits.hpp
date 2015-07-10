@@ -397,106 +397,16 @@ struct executor_traits
       return new_executor_traits<executor_type>::then_execute(ex, f, shape, fut);
     }
 
-  private:
-    template<class Function, class... T>
-    struct test_for_async_execute_with_shared_inits
-    {
-      template<
-        class Executor2,
-        typename = decltype(
-          std::declval<Executor2*>()->async_execute(
-            std::declval<Function>(),
-            std::declval<shape_type>(),
-            std::declval<T>()...
-          )
-        )
-      >
-      static std::true_type test(int);
-
-      template<class>
-      static std::false_type test(...);
-
-      using type = decltype(test<executor_type>(0));
-    };
-
-    template<class Function, class... T>
-    using has_async_execute_with_shared_inits = typename test_for_async_execute_with_shared_inits<Function,T...>::type;
-
-    template<class Function, class... T>
-    static future<void> async_execute_with_shared_inits_impl(std::true_type, executor_type& ex, Function f, shape_type shape, T&&... shared_inits)
-    {
-      return ex.async_execute(f, shape, std::forward<T>(shared_inits)...);
-    }
-
-    template<class Function, class... T>
-    static future<void> async_execute_with_shared_inits_impl(std::false_type, executor_type& ex, Function f, shape_type shape, T&&... shared_inits)
-    {
-      auto ready = executor_traits::template make_ready_future<void>(ex);
-      return executor_traits::then_execute(ex, f, shape, ready, std::forward<T>(shared_inits)...);
-    }
-
-  public:
     template<class Function, class T, class... Types>
     static future<void> async_execute(executor_type& ex, Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
     {
-      return executor_traits::async_execute_with_shared_inits_impl(has_execute_with_shared_inits<Function,T,Types...>(), ex, f, shape, std::forward<T>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
+      return new_executor_traits<executor_type>::async_execute(ex, f, shape, std::forward<T>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
     }
 
-  private:
-    template<class Function>
-    struct test_for_async_execute_without_shared_inits
-    {
-      template<
-        class Executor2,
-        typename = decltype(std::declval<Executor2*>()->async_execute(
-        std::declval<Function>(),
-        std::declval<shape_type>()))
-      >
-      static std::true_type test(int);
-
-      template<class>
-      static std::false_type test(...);
-
-      using type = decltype(test<executor_type>(0));
-    };
-
-    template<class Function>
-    using has_async_execute_without_shared_inits = typename test_for_async_execute_without_shared_inits<Function>::type;
-
-    template<class Function>
-    static future<void> async_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, std::true_type)
-    {
-      return ex.async_execute(f, shape);
-    }
-
-    template<class Function, class... Types, size_t... Indices>
-    static future<void> async_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, const detail::tuple<Types...>& dummy_shared_inits, detail::index_sequence<Indices...>)
-    {
-      return executor_traits::async_execute(ex, [=](index_type index, Types&...) mutable
-      {
-        f(index);
-      },
-      shape,
-      detail::get<Indices>(dummy_shared_inits)...
-      );
-    }
-
-    template<class Function>
-    static future<void> async_execute_without_shared_inits_impl(executor_type& ex, Function f, shape_type shape, std::false_type)
-    {
-      constexpr size_t depth = detail::execution_depth<execution_category>::value;
-
-      // create dummy shared initializers
-      auto dummy_tuple = detail::tuple_repeat<depth>(detail::ignore);
-
-      return executor_traits::async_execute_without_shared_inits_impl(ex, f, shape, dummy_tuple, detail::make_index_sequence<depth>());
-    }
-
-  public:
     template<class Function>
     static future<void> async_execute(executor_type& ex, Function f, shape_type shape)
     {
-      return executor_traits::async_execute_without_shared_inits_impl(ex, f, shape, has_async_execute_without_shared_inits<Function>());
+      return new_executor_traits<executor_type>::async_execute(ex, f, shape);
     }
 
   private:
