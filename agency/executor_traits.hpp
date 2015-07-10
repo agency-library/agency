@@ -409,89 +409,16 @@ struct executor_traits
       return new_executor_traits<executor_type>::async_execute(ex, f, shape);
     }
 
-  private:
-    template<class Function, class... T>
-    struct test_for_execute_with_shared_inits
-    {
-      template<
-        class Executor2,
-        typename = decltype(
-          std::declval<Executor2*>()->execute(
-            std::declval<Function>(),
-            std::declval<shape_type>(),
-            std::declval<T>()...
-          )
-        )
-      >
-      static std::true_type test(int);
-
-      template<class>
-      static std::false_type test(...);
-
-      using type = decltype(test<executor_type>(0));
-    };
-
-    template<class Function, class... T>
-    using has_execute_with_shared_inits = typename test_for_execute_with_shared_inits<Function,T...>::type;
-
-    template<class Function, class... T>
-    static void execute_with_shared_inits_impl(std::true_type, executor_type& ex, Function f, shape_type shape, T&&... shared_inits)
-    {
-      ex.execute(f, shape, std::forward<T>(shared_inits)...);
-    }
-
-    template<class Function, class... T>
-    static void execute_with_shared_inits_impl(std::false_type, executor_type& ex, Function f, shape_type shape, T&&... shared_inits)
-    {
-      executor_traits::async_execute(ex, f, shape, std::forward<T>(shared_inits)...).wait();
-    }
-
-  public:
     template<class Function, class T, class... Types>
     static void execute(executor_type& ex, Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
     {
-      executor_traits::execute_with_shared_inits_impl(has_execute_with_shared_inits<Function,T,Types...>(), ex, f, shape, std::forward<T>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
+      new_executor_traits<executor_type>::execute(ex, f, shape, std::forward<T>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
     }
 
-  private:
-    template<class Function>
-    struct test_for_execute
-    {
-      template<
-        class Executor2,
-        class Function2,
-        typename = decltype(std::declval<Executor2*>()->execute(
-        std::declval<Function2>(),
-        std::declval<shape_type>()))
-      >
-      static std::true_type test(int);
-
-      template<class,class>
-      static std::false_type test(...);
-
-      using type = decltype(test<executor_type,Function>(0));
-    };
-
-    template<class Function>
-    using has_execute = typename test_for_execute<Function>::type;
-
-    template<class Function>
-    static void execute_impl(executor_type& ex, Function f, shape_type shape, std::true_type)
-    {
-      ex.execute(f, shape);
-    }
-
-    template<class Function>
-    static void execute_impl(executor_type& ex, Function f, shape_type shape, std::false_type)
-    {
-      executor_traits::async_execute(ex, f, shape).wait();
-    }
-
-  public:
     template<class Function>
     static void execute(executor_type& ex, Function f, shape_type shape)
     {
-      executor_traits::execute_impl(ex, f, shape, has_execute<Function>());
+      new_executor_traits<executor_type>::execute(ex, f, shape);
     }
 };
 
