@@ -15,46 +15,6 @@ namespace detail
 {
 
 
-__DEFINE_HAS_NESTED_TYPE(has_index_type, index_type);
-__DEFINE_HAS_NESTED_TYPE(has_shape_type, shape_type);
-__DEFINE_HAS_NESTED_TYPE(has_execution_category, execution_category);
-__DEFINE_HAS_NESTED_CLASS_TEMPLATE(has_future_template, future);
-
-
-template<class T>
-struct nested_index_type
-{
-  using type = typename T::index_type;
-};
-
-
-template<class T, class Default = size_t>
-struct nested_index_type_with_default
-  : agency::detail::lazy_conditional<
-      agency::detail::has_index_type<T>::value,
-      nested_index_type<T>,
-      agency::detail::identity<Default>
-    >
-{};
-
-
-template<class T>
-struct nested_shape_type
-{
-  using type = typename T::shape_type;
-};
-
-
-template<class T, class Default = size_t>
-struct nested_shape_type_with_default
-  : agency::detail::lazy_conditional<
-      agency::detail::has_shape_type<T>::value,
-      nested_shape_type<T>,
-      agency::detail::identity<Default>
-    >
-{};
-
-
 template<class T>
 struct nested_future_template
 {
@@ -89,7 +49,7 @@ struct identity_template
 template<class T, template<class> class Default = std::future>
 struct nested_future_with_default
   : agency::detail::lazy_conditional_template<
-      agency::detail::has_future_template<T,void>::value,
+      agency::detail::new_executor_traits_detail::has_future<T,void>::value,
       nested_future_template<T>,
       identity_template<Default>
     >
@@ -97,17 +57,17 @@ struct nested_future_with_default
 
 
 template<class Executor, class T, class TypeList>
-struct has_then_execute_impl;
+struct has_multi_agent_then_execute_impl;
 
 
 template<class Executor, class T, class... Types>
-struct has_then_execute_impl<Executor, T, type_list<Types...>>
+struct has_multi_agent_then_execute_impl<Executor, T, type_list<Types...>>
 {
-  using index_type = typename nested_index_type_with_default<
+  using index_type = typename new_executor_traits_detail::nested_index_type_with_default<
     Executor
   >::type;
 
-  using shape_type = typename nested_shape_type_with_default<
+  using shape_type = typename new_executor_traits_detail::nested_shape_type_with_default<
     Executor
   >::type;
 
@@ -142,12 +102,12 @@ struct has_then_execute_impl<Executor, T, type_list<Types...>>
 };
 
 
-template<class T, bool = has_execution_category<T>::value>
-struct has_then_execute : std::false_type {};
+template<class T, bool = new_executor_traits_detail::has_execution_category<T>::value>
+struct has_multi_agent_then_execute : std::false_type {};
 
 template<class T>
-struct has_then_execute<T,true> 
-  : has_then_execute_impl<
+struct has_multi_agent_then_execute<T,true> 
+  : has_multi_agent_then_execute_impl<
       T,
       int,
       repeat_type<
@@ -188,88 +148,14 @@ template<class T>
 struct is_executor
   : std::integral_constant<
       bool,
-      detail::has_execution_category<T>::value &&
-      detail::has_then_execute<T>::value
+      detail::new_executor_traits_detail::has_execution_category<T>::value &&
+      detail::has_multi_agent_then_execute<T>::value
     >
 {};
 
 
 template<class Executor>
-struct executor_traits
-{
-  public:
-    using executor_type = typename new_executor_traits<Executor>::executor_type;
-
-    using execution_category = typename new_executor_traits<executor_type>::execution_category;
-
-    using index_type = typename new_executor_traits<executor_type>::index_type;
-
-    using shape_type = typename new_executor_traits<executor_type>::shape_type;
-
-    template<class T>
-    using future = typename new_executor_traits<executor_type>::template future<T>;
-
-    template<class T, class... Args>
-    static future<T> make_ready_future(executor_type& ex, Args&&... args)
-    {
-      return new_executor_traits<executor_type>::template make_ready_future<T>(ex, std::forward<Args>(args)...);
-    }
-
-    template<class T, class Future>
-    static future<T> future_cast(executor_type& ex, Future& from)
-    {
-      return new_executor_traits<executor_type>::template future_cast<T>(ex, from);
-    }
-
-  private:
-    template<class T>
-    struct is_future : detail::is_instance_of_future<T,future> {};
-
-  public:
-    // XXX generalize this to interoperate with other Futures
-    // XXX we can use async_execute & call fut.get() when depending on foreign Futures
-    template<class Function, class Future, class T1, class... Types,
-             class = typename std::enable_if<
-               is_future<Future>::value
-             >::type>
-    static future<void> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut, T1&& outer_shared_init, Types&&... inner_shared_inits)
-    {
-      return new_executor_traits<executor_type>::then_execute(ex, f, shape, fut, std::forward<T1>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
-    }
-
-    template<class Function, class Future,
-             class = typename std::enable_if<
-               is_future<Future>::value
-             >::type>
-    static future<void> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut)
-    {
-      return new_executor_traits<executor_type>::then_execute(ex, f, shape, fut);
-    }
-
-    template<class Function, class T, class... Types>
-    static future<void> async_execute(executor_type& ex, Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
-    {
-      return new_executor_traits<executor_type>::async_execute(ex, f, shape, std::forward<T>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
-    }
-
-    template<class Function>
-    static future<void> async_execute(executor_type& ex, Function f, shape_type shape)
-    {
-      return new_executor_traits<executor_type>::async_execute(ex, f, shape);
-    }
-
-    template<class Function, class T, class... Types>
-    static void execute(executor_type& ex, Function f, shape_type shape, T&& outer_shared_init, Types&&... inner_shared_inits)
-    {
-      new_executor_traits<executor_type>::execute(ex, f, shape, std::forward<T>(outer_shared_init), std::forward<Types>(inner_shared_inits)...);
-    }
-
-    template<class Function>
-    static void execute(executor_type& ex, Function f, shape_type shape)
-    {
-      new_executor_traits<executor_type>::execute(ex, f, shape);
-    }
-};
+using executor_traits = new_executor_traits<Executor>;
 
 
 namespace detail
