@@ -255,37 +255,10 @@ struct executor_traits
     template<class T>
     using future = typename executor_future<executor_type,T>::type;
 
-  private:
-    static future<void> make_ready_future_impl(executor_type& ex, std::true_type)
-    {
-      return ex.make_ready_future();
-    }
-
-    static future<void> make_ready_future_impl(executor_type&, std::false_type)
-    {
-      return future_traits<future<void>>::make_ready();
-    }
-
-    template<class T, class... Args>
-    static future<T> make_ready_future_impl(std::true_type, executor_type& ex, Args&&... args)
-    {
-      return ex.template make_ready_future<T>(std::forward<Args>(args)...);
-    }
-
-    template<class T, class... Args>
-    static future<T> make_ready_future_impl(std::false_type, executor_type&, Args&&... args)
-    {
-      return future_traits<future<T>>::template make_ready<T>(std::forward<Args>(args)...);
-    }
-
-    template<class T>
-    struct is_future : detail::is_instance_of_future<T,future> {};
-
-  public:
     template<class T, class... Args>
     static future<T> make_ready_future(executor_type& ex, Args&&... args)
     {
-      return make_ready_future_impl<T>(detail::has_make_ready_future<executor_type,T,Args&&...>(), ex, std::forward<Args>(args)...);
+      return new_executor_traits<executor_type>::template make_ready_future<T>(ex, std::forward<Args>(args)...);
     }
 
     template<class T, class Future>
@@ -294,6 +267,11 @@ struct executor_traits
       return new_executor_traits<executor_type>::template future_cast<T>(ex, from);
     }
 
+  private:
+    template<class T>
+    struct is_future : detail::is_instance_of_future<T,future> {};
+
+  public:
     // XXX generalize this to interoperate with other Futures
     // XXX we can use async_execute & call fut.get() when depending on foreign Futures
     template<class Function, class Future, class T1, class... Types,
