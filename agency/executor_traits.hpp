@@ -226,34 +226,8 @@ struct executor_traits
       detail::identity<index_type>
     >::type;
 
-  private:
-    template<class T, class U>
-    struct has_future_impl
-    {
-      template<class> static std::false_type test(...);
-      template<class X> static std::true_type  test(typename X::template future<U>* = 0);
-
-      using type = decltype(test<T>(0));
-    };
-    
-    template<class T, class U>
-    struct has_future : has_future_impl<T,U>::type {};
-
-    template<class T, class U, bool = has_future<T,U>::value>
-    struct executor_future
-    {
-      using type = typename T::template future<U>;
-    };
-
-    template<class T, class U>
-    struct executor_future<T,U,false>
-    {
-      using type = std::future<U>;
-    };
-
-  public:
     template<class T>
-    using future = typename executor_future<executor_type,T>::type;
+    using future = typename new_executor_traits<executor_type>::template future<T>;
 
     template<class T, class... Args>
     static future<T> make_ready_future(executor_type& ex, Args&&... args)
