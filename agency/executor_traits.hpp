@@ -215,16 +215,8 @@ struct executor_traits
 
     using execution_category = typename Executor::execution_category;
 
-    using index_type = typename detail::nested_index_type_with_default<
-      executor_type,
-      size_t
-    >::type;
+    using index_type = typename new_executor_traits<executor_type>::index_type;
 
-    //using shape_type = typename detail::lazy_conditional<
-    //  detail::has_shape_type<executor_type>::value,
-    //  executor_shape<executor_type>,
-    //  detail::identity<index_type>
-    //>::type;
     using shape_type = typename new_executor_traits<executor_type>::shape_type;
 
     template<class T>
