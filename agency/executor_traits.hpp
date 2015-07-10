@@ -213,7 +213,7 @@ struct executor_traits
   public:
     using executor_type = Executor;
 
-    using execution_category = typename Executor::execution_category;
+    using execution_category = typename new_executor_traits<executor_type>::execution_category;
 
     using index_type = typename new_executor_traits<executor_type>::index_type;
 
