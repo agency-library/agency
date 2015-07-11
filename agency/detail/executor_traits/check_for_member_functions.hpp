@@ -577,7 +577,7 @@ struct has_multi_agent_then_execute_with_shared_inits_returning_void_impl
 
   template<class Executor1,
            class ReturnType = decltype(
-             std::declval<Executor1>().template then_execute(
+             std::declval<Executor1>().then_execute(
                std::declval<Function>(),
                std::declval<shape_type>(),
                *std::declval<Future*>(),
