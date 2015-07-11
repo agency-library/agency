@@ -43,7 +43,7 @@ struct dummy_functor_taking_index_type
 
 template<class Executor>
 using has_multi_agent_execute_returning_void =
-  has_multi_agent_execute_returning_void<
+  new_executor_traits_detail::has_multi_agent_execute_returning_void<
     Executor,
     dummy_functor_taking_index_type<Executor>   
   >;
