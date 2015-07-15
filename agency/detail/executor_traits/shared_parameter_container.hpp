@@ -4,6 +4,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/integer_sequence.hpp>
+#include <agency/coordinate.hpp>
 #include <utility>
 #include <type_traits>
 
