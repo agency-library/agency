@@ -84,9 +84,10 @@ template<class Executor>
            class Enable1,
            class Enable2>
 typename new_executor_traits<Executor>::template container<
-  typename std::result_of<
-    Function(typename new_executor_traits<Executor>::index_type, typename std::decay<Types>::type&...)
-  >::type
+  //typename std::result_of<
+  //  Function(typename new_executor_traits<Executor>::index_type, typename std::decay<Types>::type&...)
+  //>::type
+  result_of_war_nvbug1664342_t<Function, typename new_executor_traits<Executor>::index_type, typename std::decay<Types>::type&...>
 >
   new_executor_traits<Executor>
     ::execute(typename new_executor_traits<Executor>::executor_type& ex,
