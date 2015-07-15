@@ -40,6 +40,12 @@ size_t number_of_groups_at_depth(const Shape& shape)
 template<class Executor, class... Types>
 using tuple_of_shared_parameter_containers = detail::tuple<shared_parameter_container<Types,Executor>...>;
 
+template<class Executor, class... Types>
+struct tuple_of_shared_parameter_containers_war_nvbug1665680
+{
+  using type = detail::tuple<shared_parameter_container<Types,Executor>...>;
+};
+
 
 template<size_t... Indices, class Executor, class... Types>
 tuple_of_shared_parameter_containers<Executor,Types...>
