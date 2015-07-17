@@ -33,6 +33,19 @@ using has_strategy_1 = has_multi_agent_then_execute_with_shared_inits_returning_
 >;
 
 
+template<class Executor, class Container, class Function, class Future, class... Types>
+struct has_strategy_1_workaround_nvbug_1665745
+{
+  using type = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<
+    Executor,
+    Container,
+    Future,
+    Future,
+    Types...
+  >;
+};
+
+
 // 2.
 struct use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function {};
 
@@ -60,7 +73,8 @@ using use_strategy_3 = use_single_agent_then_execute_with_nested_multi_agent_exe
 template<class Container, class Executor, class Function, class Future, class... Types>
 using select_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_implementation =
   typename std::conditional<
-    has_strategy_1<Executor, Container, Function, Future, Types...>::value,
+    //has_strategy_1<Executor, Container, Function, Future, Types...>::value,
+    has_strategy_1_workaround_nvbug_1665745<Executor, Container, Function, Future, Types...>::type::value,
     use_strategy_1,
     typename std::conditional<
       has_strategy_2<Executor, Container, Function, Future, Types...>::value,
