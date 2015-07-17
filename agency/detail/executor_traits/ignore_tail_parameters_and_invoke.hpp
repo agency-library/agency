@@ -40,7 +40,7 @@ template<class Executor>
 __AGENCY_ANNOTATION
 homogeneous_tuple<detail::ignore_t,new_executor_traits<Executor>::execution_depth> make_tuple_of_ignored_parameters(Executor&)
 {
-  return make_homogeneous_tuple<new_executor_traits<Executor>::execution_depth>(detail::ignore);
+  return make_homogeneous_tuple<new_executor_traits<Executor>::execution_depth>(detail::ignore_t());
 }
 
 
