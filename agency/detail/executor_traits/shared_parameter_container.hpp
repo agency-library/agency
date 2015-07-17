@@ -48,7 +48,8 @@ struct tuple_of_shared_parameter_containers_war_nvbug1665680
 
 
 template<size_t... Indices, class Executor, class... Types>
-tuple_of_shared_parameter_containers<Executor,Types...>
+//tuple_of_shared_parameter_containers<Executor,Types...>
+typename tuple_of_shared_parameter_containers_war_nvbug1665680<Executor,Types...>::type
   make_tuple_of_shared_parameter_containers(detail::index_sequence<Indices...>, Executor& ex, typename new_executor_traits<Executor>::shape_type shape, const Types&... shared_inits)
 {
   return detail::make_tuple(make_shared_parameter_container(ex, number_of_groups_at_depth<Indices>(shape), shared_inits)...);
@@ -56,7 +57,8 @@ tuple_of_shared_parameter_containers<Executor,Types...>
 
 
 template<class Executor, class... Types>
-tuple_of_shared_parameter_containers<Executor, typename std::decay<Types>::type...>
+//tuple_of_shared_parameter_containers<Executor, typename std::decay<Types>::type...>
+typename tuple_of_shared_parameter_containers_war_nvbug1665680<Executor,typename std::decay<Types>::type...>::type
   make_tuple_of_shared_parameter_containers(Executor& ex, typename new_executor_traits<Executor>::shape_type shape, Types&&... shared_inits)
 {
   return make_tuple_of_shared_parameter_containers(detail::make_index_sequence<sizeof...(shared_inits)>(), ex, shape, std::forward<Types>(shared_inits)...);
