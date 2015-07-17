@@ -22,6 +22,12 @@ using use_strategy_1 = use_multi_agent_execute_with_shared_inits_returning_user_
 template<class Executor, class Container, class Function, class... Types>
 using has_strategy_1 = has_multi_agent_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,Types...>;
 
+template<class Executor, class Container, class Function, class... Types>
+struct has_strategy_1_workaround_nvbug_1665745
+{
+  using type = has_multi_agent_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,Types...>;
+};
+
 
 // 2.
 struct use_multi_agent_execute_returning_user_specified_container_member_function {};
@@ -39,6 +45,12 @@ using use_strategy_3 = use_multi_agent_execute_with_shared_inits_returning_void_
 
 template<class Executor, class Container, class Function, class... Types>
 using has_strategy_3 = has_multi_agent_execute_with_shared_inits_returning_void<Executor,Function,Types...>;
+
+template<class Executor, class Container, class Function, class... Types>
+struct has_strategy_3_workaround_nvbug_1665745
+{
+  using type = has_multi_agent_execute_with_shared_inits_returning_void<Executor,Function,Types...>;
+};
 
 
 // 4.
@@ -58,6 +70,12 @@ using use_strategy_5 = use_multi_agent_async_execute_with_shared_inits_returning
 template<class Executor, class Container, class Function, class... Types>
 using has_strategy_5 = has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,Types...>;
 
+template<class Executor, class Container, class Function, class... Types>
+struct has_strategy_5_workaround_nvbug_1665745
+{
+  using type = has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,Types...>;
+};
+
 
 // 6.
 struct use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_member_function {};
@@ -66,6 +84,12 @@ using use_strategy_6 = use_multi_agent_then_execute_with_shared_inits_returning_
 
 template<class Executor, class Container, class Function, class... Types>
 using has_strategy_6 = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,typename new_executor_traits<Executor>::template future<void>, Types...>;
+
+template<class Executor, class Container, class Function, class... Types>
+struct has_strategy_6_workaround_nvbug_1665745
+{
+  using type = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,typename new_executor_traits<Executor>::template future<void>, Types...>;
+};
 
 
 // 7.
@@ -127,6 +151,12 @@ using use_strategy_11 = use_multi_agent_async_execute_with_shared_inits_returnin
 template<class Executor, class Container, class Function, class... Types>
 using has_strategy_11 = has_multi_agent_async_execute_with_shared_inits_returning_void<Executor,Function,Types...>;
 
+template<class Executor, class Container, class Function, class... Types>
+struct has_strategy_11_workaround_nvbug_1665745
+{
+  using type = has_multi_agent_async_execute_with_shared_inits_returning_void<Executor,Function,Types...>;
+};
+
 
 // 12.
 struct use_multi_agent_then_execute_with_shared_inits_returning_void_member_function {};
@@ -135,6 +165,12 @@ using use_strategy_12 = use_multi_agent_then_execute_with_shared_inits_returning
 
 template<class Executor, class Container, class Function, class... Types>
 using has_strategy_12 = has_multi_agent_then_execute_with_shared_inits_returning_void<Executor,Function,typename new_executor_traits<Executor>::template future<void>,Types...>;
+
+template<class Executor, class Container, class Function, class... Types>
+struct has_strategy_12_workaround_nvbug_1665745
+{
+  using type = has_multi_agent_then_execute_with_shared_inits_returning_void<Executor,Function,typename new_executor_traits<Executor>::template future<void>,Types...>;
+};
 
 
 // 13.
@@ -145,6 +181,12 @@ using use_strategy_13 = use_multi_agent_execute_with_shared_inits_returning_defa
 template<class Executor, class Container, class Function, class... Types>
 using has_strategy_13 = has_multi_agent_execute_with_shared_inits_returning_default_container<Executor, Function, Types...>;
 
+template<class Executor, class Container, class Function, class... Types>
+struct has_strategy_13_workaround_nvbug_1665745
+{
+  using type = has_multi_agent_execute_with_shared_inits_returning_default_container<Executor, Function, Types...>;
+};
+
 
 // 14.
 struct use_multi_agent_async_execute_with_shared_inits_returning_default_container_member_function {};
@@ -154,6 +196,12 @@ using use_strategy_14 = use_multi_agent_async_execute_with_shared_inits_returnin
 template<class Executor, class Container, class Function, class... Types>
 using has_strategy_14 = has_multi_agent_async_execute_with_shared_inits_returning_default_container<Executor, Function, Types...>;
 
+template<class Executor, class Container, class Function, class... Types>
+struct has_strategy_14_workaround_nvbug_1665745
+{
+  using type = has_multi_agent_async_execute_with_shared_inits_returning_default_container<Executor, Function, Types...>;
+};
+
 
 // 15.
 struct use_multi_agent_then_execute_with_shared_inits_returning_default_container_member_function {};
@@ -162,6 +210,12 @@ using use_strategy_15 = use_multi_agent_then_execute_with_shared_inits_returning
 
 template<class Executor, class Container, class Function, class... Types>
 using has_strategy_15 = has_multi_agent_then_execute_with_shared_inits_returning_default_container<Executor, Function, typename new_executor_traits<Executor>::template future<void>, Types...>;
+
+template<class Executor, class Container, class Function, class... Types>
+struct has_strategy_15_workaround_nvbug_1665745
+{
+  using type = has_multi_agent_then_execute_with_shared_inits_returning_default_container<Executor, Function, typename new_executor_traits<Executor>::template future<void>, Types...>;
+};
 
 
 // 16.
@@ -262,22 +316,26 @@ using use_strategy_25 = use_bare_for_loop;
 template<class Executor, class Container, class Function, class... Types>
 using select_multi_agent_execute_with_shared_inits_returning_user_specified_container_implementation =
   typename std::conditional<
-    has_strategy_1<Executor,Container,Function,Types...>::value,
+    //has_strategy_1<Executor,Container,Function,Types...>::value,
+    has_strategy_1_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
     use_strategy_1,
     typename std::conditional<
       has_strategy_2<Executor,Container,Function,Types...>::value,
       use_strategy_2,
       typename std::conditional<
-        has_strategy_3<Executor,Container,Function,Types...>::value,
+        //has_strategy_3<Executor,Container,Function,Types...>::value,
+        has_strategy_3_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
         use_strategy_3,
         typename std::conditional<
           has_strategy_4<Executor,Container,Function,Types...>::value,
           use_strategy_4,
           typename std::conditional<
-            has_strategy_5<Executor,Container,Function,Types...>::value,
+            //has_strategy_5<Executor,Container,Function,Types...>::value,
+            has_strategy_5_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
             use_strategy_5,
             typename std::conditional<
-              has_strategy_6<Executor,Container,Function,Types...>::value,
+              //has_strategy_6<Executor,Container,Function,Types...>::value,
+              has_strategy_6_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
               use_strategy_6,
               typename std::conditional<
                 has_strategy_7<Executor,Container,Function,Types...>::value,
@@ -292,19 +350,24 @@ using select_multi_agent_execute_with_shared_inits_returning_user_specified_cont
                       has_strategy_10<Executor,Container,Function,Types...>::value,
                       use_strategy_10,
                       typename std::conditional<
-                        has_strategy_11<Executor,Container,Function,Types...>::value,
+                        //has_strategy_11<Executor,Container,Function,Types...>::value,
+                        has_strategy_11_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
                         use_strategy_11,
                         typename std::conditional<
-                          has_strategy_12<Executor,Container,Function,Types...>::value,
+                          //has_strategy_12<Executor,Container,Function,Types...>::value,
+                          has_strategy_12_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
                           use_strategy_12,
                           typename std::conditional<
-                            has_strategy_13<Executor,Container,Function,Types...>::value,
+                            //has_strategy_13<Executor,Container,Function,Types...>::value,
+                            has_strategy_13_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
                             use_strategy_13,
                             typename std::conditional<
-                              has_strategy_14<Executor,Container,Function,Types...>::value,
+                              //has_strategy_14<Executor,Container,Function,Types...>::value,
+                              has_strategy_14_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
                               use_strategy_14,
                               typename std::conditional<
-                                has_strategy_15<Executor,Container,Function,Types...>::value,
+                                //has_strategy_15<Executor,Container,Function,Types...>::value,
+                                has_strategy_15_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
                                 use_strategy_15,
                                 typename std::conditional<
                                   has_strategy_16<Executor,Container,Function,Types...>::value,
@@ -334,30 +397,30 @@ using select_multi_agent_execute_with_shared_inits_returning_user_specified_cont
                                                   has_strategy_24<Executor,Container,Function,Types...>::value,
                                                   use_strategy_24,
                                                   use_strategy_25
-                                                >::type
-                                              >::type
-                                            >::type
-                                          >::type
-                                        >::type
-                                      >::type
-                                    >::type
-                                  >::type
-                                >::type
-                              >::type
-                            >::type
-                          >::type
-                        >::type
-                      >::type
-                    >::type
-                  >::type
-                >::type
-              >::type
-            >::type
-          >::type
-        >::type
-      >::type
-    >::type
-  >::type;
+                                                >::type // 24
+                                              >::type // 23
+                                            >::type // 22
+                                          >::type // 21
+                                        >::type // 20
+                                      >::type // 19
+                                    >::type // 18
+                                  >::type // 17
+                                >::type // 16
+                              >::type // 15
+                            >::type // 14
+                          >::type // 13
+                        >::type // 12
+                      >::type // 11
+                    >::type // 10
+                  >::type // 9
+                >::type // 8
+              >::type // 7
+            >::type // 6
+          >::type // 5
+        >::type // 4
+      >::type // 3
+    >::type // 2
+  >::type; // 1
 
 
 template<class Container, class Executor, class Function, class... Types>
@@ -408,7 +471,7 @@ struct multi_agent_execute_with_shared_inits_functor
   __AGENCY_ANNOTATION
   Result operator()(Index&& idx) const
   {
-    static const size_t num_containers = std::tuple_size<TupleOfContainers>::value;
+    constexpr size_t num_containers = std::tuple_size<TupleOfContainers>::value;
     return impl(detail::make_index_sequence<num_containers>(), std::forward<Index>(idx));
   }
 };
