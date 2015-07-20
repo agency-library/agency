@@ -166,9 +166,21 @@ template<class T, bool = __tuple_use_empty_base_class_optimization<T>::value>
 class __tuple_leaf_base
 {
   public:
+#if defined(__CUDACC__)
+#pragma nv_exec_check_disable
+#endif
+    __TUPLE_ANNOTATION
+    ~__tuple_leaf_base() = default;
+
+#if defined(__CUDACC__)
+#pragma nv_exec_check_disable
+#endif
     __TUPLE_ANNOTATION
     __tuple_leaf_base() = default;
 
+#if defined(__CUDACC__)
+#pragma nv_exec_check_disable
+#endif
     template<class U>
     __TUPLE_ANNOTATION
     __tuple_leaf_base(U&& arg) : val_(std::forward<U>(arg)) {}
