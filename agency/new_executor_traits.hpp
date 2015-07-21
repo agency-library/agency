@@ -123,12 +123,55 @@ struct executor_future<Executor,T,false>
 };
 
 
-template<class T>
-struct nested_container_template
+//template<class T>
+//struct nested_container_template
+//{
+//  template<class U>
+//  using type_template = typename T::template container<U>;
+//};
+
+template<class T, class U>
+using member_container_t = typename T::template container<U>;
+
+// XXX WAR problems with gcc 4.X and nvcc 7.5
+//template<class Default, class T, class U>
+//using member_container_or_t = detected_or_t<Default, member_container_t, T, U>;
+
+template<class T, class U>
+struct has_member_container_template_impl
 {
-  template<class U>
-  using type_template = typename T::template container<U>;
+  template<class T1,
+           class U1 = U,
+           class = typename T1::template container<U>
+          >
+  static std::true_type test(int);
+           
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<T>(0));
 };
+
+template<class T, class U>
+using has_member_container_template = typename has_member_container_template_impl<T,U>::type;
+
+template<class T, class U, bool = has_member_container_template<T,U>::value>
+struct member_container
+{
+};
+
+template<class T, class U>
+struct member_container<T,U,true>
+{
+  using type = typename T::template container<U>;
+};
+
+template<class Default, class T, class U>
+using member_container_or_t = typename lazy_conditional<
+  has_member_container_template<T,U>::value,
+  member_container<T,U>,
+  identity<Default>
+>::type;
 
 
 template<bool condition, class Then, class Else>
@@ -154,14 +197,20 @@ struct identity_template
 };
 
 
-template<class T, template<class,class> class Default = std::vector>
-struct nested_container_with_default
-  : lazy_conditional_template<
-      has_container_template<T,int>::value,
-      nested_container_template<T>,
-      identity_template<Default>
-    >
-{};
+//template<class T, template<class,class> class Default = std::vector>
+//struct nested_container_with_default
+//  : lazy_conditional_template<
+//      has_container_template<T,int>::value,
+//      nested_container_template<T>,
+//      identity_template<Default>
+//    >
+//{};
+
+
+template<class Default, class T, class U>
+struct member_container_or
+{
+};
 
 
 template<class Executor, class Function, class TupleOfFutures>
@@ -221,11 +270,13 @@ struct new_executor_traits
     template<class T>
     using future = typename detail::new_executor_traits_detail::executor_future<executor_type,T>::type;
 
+    //template<class T>
+    //using container = typename detail::new_executor_traits_detail::nested_container_with_default<
+    //  executor_type,
+    //  std::vector
+    //>::template type_template<T>;
     template<class T>
-    using container = typename detail::new_executor_traits_detail::nested_container_with_default<
-      executor_type,
-      std::vector
-    >::template type_template<T>;
+    using container = detail::new_executor_traits_detail::member_container_or_t<std::vector<T>, executor_type, T>;
 
     template<class T, class... Args>
     static future<T> make_ready_future(executor_type& ex, Args&&... args);
@@ -476,6 +527,7 @@ struct new_executor_traits
              class = typename std::enable_if<
                execution_depth == sizeof...(Types)
              >::type>
+    __AGENCY_ANNOTATION
     static Container execute(executor_type& ex, Function f, shape_type shape, Types&&... shared_inits);
 
     // multi-agent execute returning default container

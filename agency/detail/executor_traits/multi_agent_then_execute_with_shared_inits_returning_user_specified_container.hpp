@@ -103,11 +103,12 @@ struct strategy_2_functor
 {
   mutable Function f;
 
+  __agency_hd_warning_disable__
   template<class Index, class Container, class... Args>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Container& c, Args&&... args) const
   {
-    c[idx] = f(idx, std::forward<Args>(args)...);
+    c[idx] = agency::invoke(f, idx, std::forward<Args>(args)...);
   }
 };
 
