@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
+#include <utility>
 #include <type_traits>
 
 namespace agency
@@ -202,6 +203,16 @@ decay_construct_result_t<detail::tuple<Types...>> decay_construct(detail::tuple<
     detail::call_decay_construct{}, std::move(t)
   );
 }
+
+
+__agency_hd_warning_disable__
+template<class F, class... Args>
+inline __AGENCY_ANNOTATION
+auto invoke(F&& f, Args&&... args) -> 
+  decltype(std::forward<F>(f)(std::forward<Args>(args)...))
+{
+  return std::forward<F>(f)(std::forward<Args>(args)...);
+};
 
 
 } // end agency
