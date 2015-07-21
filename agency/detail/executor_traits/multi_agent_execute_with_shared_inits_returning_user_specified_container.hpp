@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/functional.hpp>
 
 namespace agency
 {
@@ -458,11 +459,14 @@ struct multi_agent_execute_with_shared_inits_functor
                                       detail::shape_size(detail::tuple_take<depth+1>(augmented_shape)));
   }
 
+  __agency_hd_warning_disable__
   template<size_t... ContainerIndices, class AgentIndex>
   __AGENCY_ANNOTATION
   Result impl(detail::index_sequence<ContainerIndices...>, AgentIndex&& agent_idx) const
   {
-    return f(std::forward<AgentIndex>(agent_idx),                                                      // pass the agent index
+    return agency::invoke(
+      f,
+      std::forward<AgentIndex>(agent_idx),                                                             // pass the agent index
       std::get<ContainerIndices>(shared_arg_containers)[rank_in_group<ContainerIndices>(agent_idx)]... // pass the arguments coming in from shared parameters
     );
   }
@@ -520,12 +524,12 @@ struct invoke_and_store_result_to_container
   Container& c;
   mutable Function f;
 
+  __agency_hd_warning_disable__
   template<class Index, class... Args>
   __AGENCY_ANNOTATION
   Result operator()(const Index& idx, Args&... shared_args) const
   {
-    // XXX should use std::invoke()
-    c[idx] = f(idx, shared_args...);
+    c[idx] = agency::invoke(f, idx, shared_args...);
 
     // return something easily discardable
     return Result();
@@ -618,12 +622,12 @@ struct strategy_7_functor
 {
   mutable Function f;
 
+  __agency_hd_warning_disable__
   template<class Index, class Container, class... Args>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Container& results, Args&... shared_args) const
   {
-    // XXX should use std::invoke
-    results[idx] = f(idx, shared_args...);
+    results[idx] = agency::invoke(f, idx, shared_args...);
   }
 };
 
@@ -703,12 +707,12 @@ struct invoke_and_store_to_second_parameter
 {
   mutable Function f;
 
+  __agency_hd_warning_disable__
   template<class Index, class Container>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Container& c) const
   {
-    // XXX should use std::invoke()
-    c[idx] = f(idx);
+    c[idx] = agency::invoke(f, idx);
   }
 };
 
@@ -1020,6 +1024,7 @@ struct execute_in_for_loop
   Shape shape;
   mutable T shared_arg;
 
+  __agency_hd_warning_disable__
   __AGENCY_ANNOTATION
   Container operator()() const
   {
@@ -1028,8 +1033,7 @@ struct execute_in_for_loop
     // XXX generalize to multidimensions
     for(size_t idx = 0; idx < shape; ++idx)
     {
-      // XXX use std::invoke
-      results[idx] = f(idx, shared_arg);
+      results[idx] = agency::invoke(f, idx, shared_arg);
     }
 
     return results;
@@ -1092,6 +1096,7 @@ struct single_agent_when_all_execute_and_select_functor
 {
   mutable execute_in_for_loop<Container,Function,Shape,T> implementation;
 
+  __agency_hd_warning_disable__
   __AGENCY_ANNOTATION
   void operator()(Container& results) const
   {
