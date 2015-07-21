@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/functional.hpp>
 
 namespace agency
 {
@@ -21,7 +22,7 @@ struct invoke_and_return_empty
   __AGENCY_ANNOTATION
   empty operator()(const Index& idx, Args&... args) const
   {
-    f(idx, args...);
+    agency::invoke(f, idx, args...);
 
     // return something which can be cheaply discarded
     return empty();
