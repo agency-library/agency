@@ -243,6 +243,12 @@ using has_single_agent_when_all_execute = typename has_single_agent_when_all_exe
 template<class F, class... Args>
 using result_of_war_nvbug1664342_t = decltype(std::declval<F>()(std::declval<Args>()...));
 
+template<class F, class... Args>
+struct result_of_war_nvbug1664342
+{
+  using type = result_of_war_nvbug1664342_t<F,Args...>;
+};
+
 
 template<class Executor>
 struct new_executor_traits
@@ -564,7 +570,7 @@ struct new_executor_traits
       //    typename std::decay<Types>::type&...
       //  )
       //>::type
-      result_of_war_nvbug1664342_t<Function,index_type,typename std::decay<Types>::type&...>
+      typename result_of_war_nvbug1664342<Function,index_type,typename std::decay<Types>::type&...>::type
     >
       execute(executor_type& ex, Function f, shape_type shape, Types&&... shared_inits);
 
