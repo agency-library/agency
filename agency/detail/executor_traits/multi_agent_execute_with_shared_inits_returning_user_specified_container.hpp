@@ -1065,6 +1065,15 @@ struct execute_in_for_loop
   mutable T shared_arg;
 
   __agency_hd_warning_disable__
+  template<class Function1, class Shape1, class T1>
+  __AGENCY_ANNOTATION
+  execute_in_for_loop(Function1&& f_, Shape1&& shape_, T1&& shared_arg_)
+    : f(std::forward<Function1>(f_)),
+      shape(std::forward<Shape1>(shape_)),
+      shared_arg(std::forward<T1>(shared_arg_))
+  {}
+
+  __agency_hd_warning_disable__
   __AGENCY_ANNOTATION
   Container operator()() const
   {
@@ -1084,7 +1093,7 @@ template<class Container, class Function, class Shape, class T>
 __AGENCY_ANNOTATION
 execute_in_for_loop<Container,Function,Shape,typename std::decay<T>::type> make_execute_in_for_loop(Function f, Shape shape, T&& shared_init)
 {
-  return execute_in_for_loop<Container,Function,Shape,typename std::decay<T>::type>{f, shape, std::forward<T>(shared_init)};
+  return execute_in_for_loop<Container,Function,Shape,typename std::decay<T>::type>(f, shape, std::forward<T>(shared_init));
 }
 
 

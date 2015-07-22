@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -188,7 +189,7 @@ struct strategy_3_functor<Container,Executor,Function,void,Tuple>
     >::type
     operator()(Arg1&& arg1, Args&&... args) const
     {
-      return f(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+      return agency::invoke(f, std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
   };
 
