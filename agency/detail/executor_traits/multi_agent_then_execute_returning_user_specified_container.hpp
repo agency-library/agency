@@ -52,8 +52,7 @@ struct ignore_tail_parameters_and_invoke
   typename std::result_of<Function(Index,T&)>::type
   operator()(const Index& idx, T& past_arg, Args&&...) const
   {
-    // XXX should use std::invoke
-    return f(idx, past_arg);
+    return agency::invoke(f, idx, past_arg);
   }
 };
 
