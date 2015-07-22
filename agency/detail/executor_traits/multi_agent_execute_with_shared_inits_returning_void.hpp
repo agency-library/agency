@@ -4,6 +4,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/discarding_container.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 
 namespace agency
@@ -52,8 +53,7 @@ struct multi_agent_execute_with_shared_inits_returning_void_functor
   __AGENCY_ANNOTATION
   empty operator()(Args&&... args)
   {
-    // XXX should use std::invoke()
-    f(std::forward<Args>(args)...);
+    agency::invoke(f, std::forward<Args>(args)...);
 
     // return something which can be cheaply discarded
     return empty();
