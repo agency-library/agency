@@ -151,7 +151,7 @@ struct strategy_3_functor
     >::type
     operator()(const Index& idx, Args&&... args) const
     {
-      return f(idx, arg2, std::forward<Args>(args)...);
+      return agency::invoke(f, idx, arg2, std::forward<Args>(args)...);
     }
   };
 
