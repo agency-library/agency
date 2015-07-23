@@ -794,24 +794,61 @@ struct __lazy_conditional<false, True, False>
 };
 
 
-template<size_t I, class Tuple1, class... Tuples>
-struct __tuple_cat_get_result
+template<class T, class U>
+struct __propagate_reference
 {
-  using tuple1_type = typename std::decay<Tuple1>::type;
-  static const size_t size1 = std::tuple_size<typename std::decay<Tuple1>::type>::value;
+  using type = U;
+};
 
-  using type = typename __lazy_conditional<
-    (I < size1),
-    std::tuple_element<I,tuple1_type>,
-    __tuple_cat_get_result<I - size1, Tuples...>
+template<class T, class U>
+struct __propagate_reference<T&,U>
+{
+  using type = typename std::add_lvalue_reference<U>::type;
+};
+
+template<class T, class U>
+struct __propagate_reference<T&&,U>
+{
+  using type = typename std::add_rvalue_reference<U>::type;
+};
+
+template<class T, class U>
+struct __propagate_reference<const T&, U>
+{
+  using type = const U&;
+};
+
+
+template<size_t i, class TupleReference>
+struct __tuple_get_result
+{
+  using type = typename __propagate_reference<
+    TupleReference,
+    typename std::tuple_element<
+      i,
+      typename std::decay<TupleReference>::type
+    >::type
   >::type;
 };
 
 
-template<size_t I, class Tuple1>
-struct __tuple_cat_get_result<I,Tuple1>
-  : std::tuple_element<I, typename std::decay<Tuple1>::type>
-{};
+
+template<size_t I, class TupleReference1, class... TupleReferences>
+struct __tuple_cat_get_result
+{
+  using tuple1_type = typename std::decay<TupleReference1>::type;
+  static const size_t size1 = std::tuple_size<tuple1_type>::value;
+
+  using type = typename __lazy_conditional<
+    (I < size1),
+    __tuple_get_result<I,TupleReference1>,
+    __tuple_cat_get_result<I - size1, TupleReferences...>
+  >::type;
+};
+
+
+template<size_t I, class TupleReference1>
+struct __tuple_cat_get_result<I,TupleReference1> : __tuple_get_result<I,TupleReference1> {};
 
 
 template<size_t I, class Tuple1, class... Tuples>
