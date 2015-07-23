@@ -3,6 +3,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <iostream>
 
@@ -156,7 +157,7 @@ struct multi_agent_when_all_execute_and_select_functor_using_nested_execute
     __AGENCY_ANNOTATION
     void impl(detail::index_sequence<TupleIndices...>, const Index& idx) const
     {
-      f(idx, std::get<TupleIndices>(args)...);
+      agency::invoke(f, idx, std::get<TupleIndices>(args)...);
     }
 
     template<class Index>
