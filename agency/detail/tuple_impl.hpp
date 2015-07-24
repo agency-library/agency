@@ -61,7 +61,7 @@ namespace std
 {
 
 
-template<size_t, class> struct tuple_element;
+//template<size_t, class> struct tuple_element;
 
 
 template<size_t i>
@@ -82,7 +82,7 @@ struct tuple_element<i, __TUPLE_NAMESPACE::tuple<Type1,Types...>>
 };
 
 
-template<class> struct tuple_size;
+//template<class> struct tuple_size;
 
 
 template<class... Types>

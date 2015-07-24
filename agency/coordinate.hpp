@@ -796,8 +796,8 @@ namespace std
 {
 
 
-template<size_t I, class Tuple>
-struct tuple_element;
+//template<size_t I, class Tuple>
+//struct tuple_element;
 
 
 template<size_t I, class T, size_t Rank>
