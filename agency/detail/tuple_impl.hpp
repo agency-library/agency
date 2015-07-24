@@ -28,7 +28,7 @@
 
 #include <stddef.h> // XXX instead of <cstddef> to WAR clang issue
 #include <type_traits>
-#include <utility>
+#include <utility> // <utility> declares std::tuple_element et al. for us
 
 // allow the user to define an annotation to apply to these functions
 // by default, it attempts to be constexpr
@@ -61,9 +61,6 @@ namespace std
 {
 
 
-//template<size_t, class> struct tuple_element;
-
-
 template<size_t i>
 struct tuple_element<i, __TUPLE_NAMESPACE::tuple<>> {};
 
@@ -80,9 +77,6 @@ struct tuple_element<i, __TUPLE_NAMESPACE::tuple<Type1,Types...>>
 {
   using type = typename tuple_element<i - 1, __TUPLE_NAMESPACE::tuple<Types...>>::type;
 };
-
-
-//template<class> struct tuple_size;
 
 
 template<class... Types>
@@ -166,9 +160,21 @@ template<class T, bool = __tuple_use_empty_base_class_optimization<T>::value>
 class __tuple_leaf_base
 {
   public:
+#if defined(__CUDACC__)
+#pragma nv_exec_check_disable
+#endif
+    __TUPLE_ANNOTATION
+    ~__tuple_leaf_base() = default;
+
+#if defined(__CUDACC__)
+#pragma nv_exec_check_disable
+#endif
     __TUPLE_ANNOTATION
     __tuple_leaf_base() = default;
 
+#if defined(__CUDACC__)
+#pragma nv_exec_check_disable
+#endif
     template<class U>
     __TUPLE_ANNOTATION
     __tuple_leaf_base(U&& arg) : val_(std::forward<U>(arg)) {}
