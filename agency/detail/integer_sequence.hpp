@@ -117,8 +117,34 @@ template<size_t _Np>
 using make_index_sequence = make_integer_sequence<size_t, _Np>;
 
 
+template<class...>
+struct sizeof_parameter_pack;
+
+template<>
+struct sizeof_parameter_pack<> : std::integral_constant<size_t,0> {};
+
+template<class T, class... Types>
+struct sizeof_parameter_pack<T,Types...>
+  : std::integral_constant<
+      size_t,
+      1 + sizeof_parameter_pack<Types...>::value
+    >
+{};
+
+
+// XXX workaround nvbug 1668372
+//template<class... _Tp>
+//using index_sequence_for = make_index_sequence<sizeof...(_Tp)>;
 template<class... _Tp>
-using index_sequence_for = make_index_sequence<sizeof...(_Tp)>;
+struct index_sequence_for_workaround_nvbug1668372
+{
+  // XXX workaround nvbug 1668718
+  //using type = make_index_sequence<sizeof...(_Tp)>;
+  using type = make_index_sequence<sizeof_parameter_pack<_Tp...>::value>;
+};
+
+template<class... _Tp>
+using index_sequence_for = typename index_sequence_for_workaround_nvbug1668372<_Tp...>::type;
 
 
 template<template<size_t> class MetaFunction, class IndexSequence>
