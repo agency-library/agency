@@ -48,7 +48,7 @@
 #endif
 
 #if defined __NVCC__ && (defined __APPLE__ || defined __MACOSX)
-// Workaround for NVCC bug on OSX
+// Workaround for NVCC bug on OSX -- shamelessly copied from GCC <utility> header
 namespace __nvcc_osx_get_fix
 {
   template<std::size_t _Int>
