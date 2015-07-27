@@ -506,6 +506,7 @@ unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
 }
 
 template<class Tuple>
+__AGENCY_ANNOTATION
 unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
   unwrap_small_tuple(Tuple&& t,
                      typename std::enable_if<
