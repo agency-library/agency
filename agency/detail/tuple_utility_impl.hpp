@@ -101,21 +101,21 @@ struct tuple_traits
   TUPLE_UTILITY_ANNOTATION
   static element_type<i>& get(tuple_type& t)
   {
-    return NVCC_OSX_GET_FIX::get<i>(t);
+    return std::get<i>(t);
   }
 
   template<size_t i>
   TUPLE_UTILITY_ANNOTATION
   static const element_type<i>& get(const tuple_type& t)
   {
-    return NVCC_OSX_GET_FIX::get<i>(t);
+    return std::get<i>(t);
   }
 
   template<size_t i>
   TUPLE_UTILITY_ANNOTATION
   static element_type<i>&& get(tuple_type&& t)
   {
-    return NVCC_OSX_GET_FIX::get<i>(std::move(t));
+    return std::get<i>(std::move(t));
   }
 };
 

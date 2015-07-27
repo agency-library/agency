@@ -48,68 +48,20 @@
 #endif
 
 #if defined __NVCC__ && (defined __APPLE__ || defined __MACOSX)
-// Workaround for NVCC bug on OSX -- shamelessly copied from GCC <utility> header
-namespace __nvcc_osx_get_fix
+namespace std 
 {
-  template<std::size_t _Int>
-    struct __pair_get;
+  template<std::size_t _Int, class _Tuple>
+    constexpr typename std::tuple_element<_Int, _Tuple>::type&
+    get(_Tuple& __in) noexcept;
 
-  template<>
-    struct __pair_get<0>
-    {
-      template<typename _Tp1, typename _Tp2>
-        static constexpr _Tp1&
-        __get(std::pair<_Tp1, _Tp2>& __pair) noexcept
-        { return __pair.first; }
+  template<std::size_t _Int, class _Tuple>
+    constexpr typename std::tuple_element<_Int, _Tuple>::type&&
+    get(_Tuple&& __in) noexcept;
 
-      template<typename _Tp1, typename _Tp2>
-        static constexpr _Tp1&&
-        __move_get(std::pair<_Tp1, _Tp2>&& __pair) noexcept
-        { return std::forward<_Tp1>(__pair.first); }
-
-      template<typename _Tp1, typename _Tp2>
-        static constexpr const _Tp1&
-        __const_get(const std::pair<_Tp1, _Tp2>& __pair) noexcept
-        { return __pair.first; }
-    };
-
-  template<>
-    struct __pair_get<1>
-    {
-      template<typename _Tp1, typename _Tp2>
-        static constexpr _Tp2&
-        __get(std::pair<_Tp1, _Tp2>& __pair) noexcept
-        { return __pair.second; }
-
-      template<typename _Tp1, typename _Tp2>
-        static constexpr _Tp2&&
-        __move_get(std::pair<_Tp1, _Tp2>&& __pair) noexcept
-        { return std::forward<_Tp2>(__pair.second); }
-
-      template<typename _Tp1, typename _Tp2>
-        static constexpr const _Tp2&
-        __const_get(const std::pair<_Tp1, _Tp2>& __pair) noexcept
-        { return __pair.second; }
-    };
-
-  template<std::size_t _Int, class _Tp1, class _Tp2>
-    constexpr typename std::tuple_element<_Int, std::pair<_Tp1, _Tp2>>::type&
-    get(std::pair<_Tp1, _Tp2>& __in) noexcept
-    { return __pair_get<_Int>::__get(__in); }
-
-  template<std::size_t _Int, class _Tp1, class _Tp2>
-    constexpr typename std::tuple_element<_Int, std::pair<_Tp1, _Tp2>>::type&&
-    get(std::pair<_Tp1, _Tp2>&& __in) noexcept
-    { return __pair_get<_Int>::__move_get(std::move(__in)); }
-
-  template<std::size_t _Int, class _Tp1, class _Tp2>
-    constexpr const typename std::tuple_element<_Int, std::pair<_Tp1, _Tp2>>::type&
-    get(const std::pair<_Tp1, _Tp2>& __in) noexcept
-    { return __pair_get<_Int>::__const_get(__in); }
+  template<std::size_t _Int, class _Tuple>
+    constexpr typename std::tuple_element<_Int, _Tuple>::type&
+    get(const _Tuple& __in) noexcept;
 }
-#define NVCC_OSX_GET_FIX __nvcc_osx_get_fix
-#else
-#define NVCC_OSX_GET_FIX std
 #endif
 
 
@@ -803,19 +755,19 @@ class tuple
     template<size_t i, class... UTypes>
     friend __TUPLE_ANNOTATION
     typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &
-    NVCC_OSX_GET_FIX::get(__TUPLE_NAMESPACE::tuple<UTypes...>& t);
+    std::get(__TUPLE_NAMESPACE::tuple<UTypes...>& t);
 
 
     template<size_t i, class... UTypes>
     friend __TUPLE_ANNOTATION
     const typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &
-    NVCC_OSX_GET_FIX::get(const __TUPLE_NAMESPACE::tuple<UTypes...>& t);
+    std::get(const __TUPLE_NAMESPACE::tuple<UTypes...>& t);
 
 
     template<size_t i, class... UTypes>
     friend __TUPLE_ANNOTATION
     typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &&
-    NVCC_OSX_GET_FIX::get(__TUPLE_NAMESPACE::tuple<UTypes...>&& t);
+    std::get(__TUPLE_NAMESPACE::tuple<UTypes...>&& t);
 };
 
 
@@ -904,7 +856,7 @@ struct __find_exactly_one : __find_exactly_one_impl<0,T,Types...>
 
 
 // implement std::get()
-namespace NVCC_OSX_GET_FIX
+namespace std
 {
 
 
