@@ -812,6 +812,24 @@ struct __propagate_reference<T&&,U>
   using type = typename std::add_rvalue_reference<U>::type;
 };
 
+
+template<size_t I, class Tuple1, class... Tuples>
+struct __tuple_cat_element
+{
+  static const size_t size1 = std::tuple_size<Tuple1>::value;
+
+  using type = typename __lazy_conditional<
+    (I < size1),
+    std::tuple_element<I,Tuple1>,
+    __tuple_cat_element<I - size1, Tuples...>
+  >::type;
+};
+
+
+template<size_t I, class Tuple1>
+struct __tuple_cat_element<I,Tuple1> : std::tuple_element<I,Tuple1> {};
+
+
 template<class T, class U>
 struct __propagate_reference<const T&, U>
 {
@@ -836,6 +854,8 @@ struct __tuple_get_result
 template<size_t I, class TupleReference1, class... TupleReferences>
 struct __tuple_cat_get_result
 {
+  static_assert(std::is_reference<TupleReference1>::value, "__tuple_cat_get_result's template parameters must be reference types.");
+
   using tuple1_type = typename std::decay<TupleReference1>::type;
   static const size_t size1 = std::tuple_size<tuple1_type>::value;
 
@@ -853,13 +873,13 @@ struct __tuple_cat_get_result<I,TupleReference1> : __tuple_get_result<I,TupleRef
 
 template<size_t I, class Tuple1, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
-typename __tuple_cat_get_result<I,Tuple1,Tuples...>::type
+typename __tuple_cat_get_result<I,Tuple1&&,Tuples&&...>::type
   __tuple_cat_get(Tuple1&& t, Tuples&&... ts);
 
 
 template<size_t I, class Tuple1, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
-typename __tuple_cat_get_result<I,Tuple1,Tuples...>::type
+typename __tuple_cat_get_result<I,Tuple1&&,Tuples&&...>::type
   __tuple_cat_get_impl(std::false_type, Tuple1&& t, Tuples&&...)
 {
   return __get<I>(std::forward<Tuple1>(t));
@@ -868,7 +888,7 @@ typename __tuple_cat_get_result<I,Tuple1,Tuples...>::type
 
 template<size_t I, class Tuple1, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
-typename __tuple_cat_get_result<I,Tuple1,Tuples...>::type
+typename __tuple_cat_get_result<I,Tuple1&&,Tuples&&...>::type
   __tuple_cat_get_impl(std::true_type, Tuple1&&, Tuples&&... ts)
 {
   const size_t J = I - std::tuple_size<typename std::decay<Tuple1>::type>::value;
@@ -878,7 +898,7 @@ typename __tuple_cat_get_result<I,Tuple1,Tuples...>::type
 
 template<size_t I, class Tuple1, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
-typename __tuple_cat_get_result<I,Tuple1,Tuples...>::type
+typename __tuple_cat_get_result<I,Tuple1&&,Tuples&&...>::type
   __tuple_cat_get(Tuple1&& t, Tuples&&... ts)
 {
   auto recurse = typename std::conditional<

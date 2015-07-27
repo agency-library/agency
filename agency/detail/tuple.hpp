@@ -56,7 +56,7 @@ struct tuple_cat_result_impl_impl;
 template<size_t... I, class... Tuples>
 struct tuple_cat_result_impl_impl<index_sequence<I...>, Tuples...>
 {
-  using type = tuple<typename __tu::__tuple_cat_get_result<I, Tuples...>::type...>;
+  using type = tuple<typename __tu::__tuple_cat_element<I, Tuples...>::type...>;
 };
 
 
