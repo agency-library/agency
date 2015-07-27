@@ -33,12 +33,7 @@ struct functor
     self.inner().wait();
 
 #if (defined __APPLE__  || defined __MACOSX)
-    /* OSX workaround. 
-     * Presence of assert triggers runtime-error:
-         libc++abi.dylib: terminating with uncaught exception of type thrust::system::detail::bad_alloc: std::bad_alloc: OS call failed or operation not supported on this OS
-         Abort trap: 6
-     */
-    
+    // assert is not supported on OSX, use printf if result is incorrect
     if(!(inner_shared == self.inner().group_size() + 2))
     {
       printf(" -- failure -- : return\n");
