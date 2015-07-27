@@ -47,24 +47,6 @@
 #define __TUPLE_NAMESPACE_NEEDS_UNDEF
 #endif
 
-#if defined __NVCC__ && (defined __APPLE__ || defined __MACOSX)
-namespace std 
-{
-  template<std::size_t _Int, class _Tuple>
-    constexpr typename std::tuple_element<_Int, _Tuple>::type&
-    get(_Tuple& __in) noexcept;
-
-  template<std::size_t _Int, class _Tuple>
-    constexpr typename std::tuple_element<_Int, _Tuple>::type&&
-    get(_Tuple&& __in) noexcept;
-
-  template<std::size_t _Int, class _Tuple>
-    constexpr typename std::tuple_element<_Int, _Tuple>::type&
-    get(const _Tuple& __in) noexcept;
-}
-#endif
-
-
 namespace __TUPLE_NAMESPACE
 {
 
@@ -538,6 +520,47 @@ class __tuple_base<__tuple_index_sequence<I...>, Types...>
     static void swallow(Args&&...) {}
 };
 
+} // end namespace
+
+// implement std::get()
+namespace std
+{
+
+
+template<size_t i, class... UTypes>
+__TUPLE_ANNOTATION
+typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &
+  get(__TUPLE_NAMESPACE::tuple<UTypes...>& t)
+{
+  return t.template mutable_get<i>();
+}
+
+
+template<size_t i, class... UTypes>
+__TUPLE_ANNOTATION
+const typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &
+  get(const __TUPLE_NAMESPACE::tuple<UTypes...>& t)
+{
+  return t.template const_get<i>();
+}
+
+
+template<size_t i, class... UTypes>
+__TUPLE_ANNOTATION
+typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &&
+  get(__TUPLE_NAMESPACE::tuple<UTypes...>&& t)
+{
+  using type = typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type;
+
+  auto&& leaf = static_cast<__TUPLE_NAMESPACE::__tuple_leaf<i,type>&&>(t.base());
+
+  return static_cast<type&&>(leaf.mutable_get());
+}
+
+} // end std
+
+namespace __TUPLE_NAMESPACE
+{
 
 template<class... Types>
 class tuple
@@ -858,38 +881,6 @@ struct __find_exactly_one : __find_exactly_one_impl<0,T,Types...>
 // implement std::get()
 namespace std
 {
-
-
-template<size_t i, class... UTypes>
-__TUPLE_ANNOTATION
-typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &
-  get(__TUPLE_NAMESPACE::tuple<UTypes...>& t)
-{
-  return t.template mutable_get<i>();
-}
-
-
-template<size_t i, class... UTypes>
-__TUPLE_ANNOTATION
-const typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &
-  get(const __TUPLE_NAMESPACE::tuple<UTypes...>& t)
-{
-  return t.template const_get<i>();
-}
-
-
-template<size_t i, class... UTypes>
-__TUPLE_ANNOTATION
-typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &&
-  get(__TUPLE_NAMESPACE::tuple<UTypes...>&& t)
-{
-  using type = typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type;
-
-  auto&& leaf = static_cast<__TUPLE_NAMESPACE::__tuple_leaf<i,type>&&>(t.base());
-
-  return static_cast<type&&>(leaf.mutable_get());
-}
-
 
 template<class T, class... Types>
 __TUPLE_ANNOTATION
