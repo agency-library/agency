@@ -520,6 +520,47 @@ class __tuple_base<__tuple_index_sequence<I...>, Types...>
     static void swallow(Args&&...) {}
 };
 
+} // end namespace
+
+// implement std::get()
+namespace std
+{
+
+
+template<size_t i, class... UTypes>
+__TUPLE_ANNOTATION
+typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &
+  get(__TUPLE_NAMESPACE::tuple<UTypes...>& t)
+{
+  return t.template mutable_get<i>();
+}
+
+
+template<size_t i, class... UTypes>
+__TUPLE_ANNOTATION
+const typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &
+  get(const __TUPLE_NAMESPACE::tuple<UTypes...>& t)
+{
+  return t.template const_get<i>();
+}
+
+
+template<size_t i, class... UTypes>
+__TUPLE_ANNOTATION
+typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type &&
+  get(__TUPLE_NAMESPACE::tuple<UTypes...>&& t)
+{
+  using type = typename std::tuple_element<i, __TUPLE_NAMESPACE::tuple<UTypes...>>::type;
+
+  auto&& leaf = static_cast<__TUPLE_NAMESPACE::__tuple_leaf<i,type>&&>(t.base());
+
+  return static_cast<type&&>(leaf.mutable_get());
+}
+
+} // end std
+
+namespace __TUPLE_NAMESPACE
+{
 
 } // end namespace
 
