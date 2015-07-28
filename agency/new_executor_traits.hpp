@@ -599,6 +599,7 @@ struct new_executor_traits
              class = typename std::enable_if<
                execution_depth == sizeof...(Types)
              >::type>
+    __AGENCY_ANNOTATION
     static void execute(executor_type& ex, Function f, shape_type shape, Types&&... shared_inits);
 }; // end new_executor_traits
 

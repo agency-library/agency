@@ -33,7 +33,9 @@ using select_multi_agent_execute_with_shared_inits_returning_void_implementation
   >::type;
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class... Types>
+__AGENCY_ANNOTATION
 void multi_agent_execute_with_shared_inits_returning_void(use_multi_agent_execute_with_shared_inits_returning_void_member_function,
                                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
                                                           Types&&... shared_inits)
@@ -62,6 +64,7 @@ struct multi_agent_execute_with_shared_inits_returning_void_functor
 
 
 template<class Executor, class Function, class... Types>
+__AGENCY_ANNOTATION
 void multi_agent_execute_with_shared_inits_returning_void(use_multi_agent_execute_with_shared_inits_returning_user_specified_container,
                                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
                                                           Types&&... shared_inits)
@@ -81,6 +84,7 @@ template<class Executor>
   template<class Function, class... Types,
            class Enable1,
            class Enable2>
+__AGENCY_ANNOTATION
 void new_executor_traits<Executor>
   ::execute(typename new_executor_traits<Executor>::executor_type& ex,
             Function f,
