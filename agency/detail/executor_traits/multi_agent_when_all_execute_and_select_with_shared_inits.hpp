@@ -6,6 +6,7 @@
 #include <agency/detail/executor_traits/shared_parameter_container.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/index_cast.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <utility>
 #include <cassert>
@@ -181,8 +182,7 @@ struct terminal_execute_with_shared_inits_functor
     __AGENCY_ANNOTATION
     void impl(detail::index_sequence<TupleIndices...>, const Index& idx, Args&... shared_args) const
     {
-      // XXX should use std::invoke()
-      f(idx, std::get<TupleIndices>(args_from_futures)..., shared_args...);
+      agency::invoke(f, idx, std::get<TupleIndices>(args_from_futures)..., shared_args...);
     }
 
     template<class Index, class... Args>
