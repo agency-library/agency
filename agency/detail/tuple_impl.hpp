@@ -249,6 +249,9 @@ class __tuple_leaf : public __tuple_leaf_base<T>
     __tuple_leaf(const __tuple_leaf<I,U>& other) : super_t(other.const_get()) {}
 
 
+#if defined(__CUDACC__)
+#pragma nv_exec_check_disable
+#endif
     template<class U,
              class = typename std::enable_if<
                std::is_assignable<T,U>::value
@@ -260,6 +263,9 @@ class __tuple_leaf : public __tuple_leaf_base<T>
       return *this;
     }
     
+#if defined(__CUDACC__)
+#pragma nv_exec_check_disable
+#endif
     __TUPLE_ANNOTATION
     __tuple_leaf& operator=(const __tuple_leaf& other)
     {
@@ -267,6 +273,9 @@ class __tuple_leaf : public __tuple_leaf_base<T>
       return *this;
     }
 
+#if defined(__CUDACC__)
+#pragma nv_exec_check_disable
+#endif
     __TUPLE_ANNOTATION
     __tuple_leaf& operator=(__tuple_leaf&& other)
     {
@@ -274,6 +283,9 @@ class __tuple_leaf : public __tuple_leaf_base<T>
       return *this;
     }
 
+#if defined(__CUDACC__)
+#pragma nv_exec_check_disable
+#endif
     template<class U,
              class = typename std::enable_if<
                std::is_assignable<T,U&&>::value
@@ -285,6 +297,9 @@ class __tuple_leaf : public __tuple_leaf_base<T>
       return *this;
     }
 
+#if defined(__CUDACC__)
+#pragma nv_exec_check_disable
+#endif
     __TUPLE_ANNOTATION
     int swap(__tuple_leaf& other)
     {
