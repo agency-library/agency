@@ -14,7 +14,9 @@ namespace new_executor_traits_detail
 {
 
 
+__agency_hd_warning_disable__
 template<class Container, class Executor, class Function>
+__AGENCY_ANNOTATION
 Container multi_agent_execute_returning_user_specified_container(std::true_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
   return ex.template execute<Container>(f, shape);
@@ -24,6 +26,7 @@ Container multi_agent_execute_returning_user_specified_container(std::true_type,
 
 
 template<class Container, size_t... Indices, class Executor, class Function, class Tuple>
+__AGENCY_ANNOTATION
 Container multi_agent_execute_returning_user_specified_container_impl(detail::index_sequence<Indices...>,
                                                                       Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
                                                                       const Tuple& tuple_of_ignored_parameters)
@@ -33,6 +36,7 @@ Container multi_agent_execute_returning_user_specified_container_impl(detail::in
 
 
 template<class Container, class Executor, class Function>
+__AGENCY_ANNOTATION
 Container multi_agent_execute_returning_user_specified_container(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
   auto tuple_of_ignored_parameters = new_executor_traits_detail::make_tuple_of_ignored_parameters(ex);
@@ -47,6 +51,7 @@ Container multi_agent_execute_returning_user_specified_container(std::false_type
 
 template<class Executor>
   template<class Container, class Function>
+__AGENCY_ANNOTATION
 Container new_executor_traits<Executor>
   ::execute(typename new_executor_traits<Executor>::executor_type& ex,
             Function f,

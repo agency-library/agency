@@ -87,7 +87,7 @@ struct multi_agent_when_all_execute_and_select_using_ignored_shared_inits_functo
   __AGENCY_ANNOTATION
   void impl(detail::index_sequence<ArgIndices...>, Index&& idx, Tuple&& arg_tuple) const
   {
-    f(idx, std::get<ArgIndices>(std::forward<Tuple>(arg_tuple))...);
+    agency::invoke(f, idx, std::get<ArgIndices>(std::forward<Tuple>(arg_tuple))...);
   }
 
   template<class Index, class... Args>

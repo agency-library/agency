@@ -526,6 +526,7 @@ struct new_executor_traits
 
     // multi-agent execute returning user-specified Container
     template<class Container, class Function>
+    __AGENCY_ANNOTATION
     static Container execute(executor_type& ex, Function f, shape_type shape);
 
     // multi-agent execute with shared inits returning user-specified Container
@@ -583,6 +584,7 @@ struct new_executor_traits
                  >::type
                >::value
              >::type>
+    __AGENCY_ANNOTATION
     static void execute(executor_type& ex, Function f, shape_type shape);
 
     // multi-agent execute with shared inits returning void
