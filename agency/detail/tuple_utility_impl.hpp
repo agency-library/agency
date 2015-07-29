@@ -913,12 +913,12 @@ typename __tuple_cat_get_result<I,Tuple1&&,Tuples&&...>::type
 
 template<size_t... I, class Function, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
-auto __tuple_cat_apply_impl(__index_sequence<I...>, Function f, Tuples&&... ts)
+auto __tuple_cat_apply_impl(__index_sequence<I...>, Function&& f, Tuples&&... ts)
   -> decltype(
-       f(__tuple_cat_get<I>(std::forward<Tuples>(ts)...)...)
+       std::forward<Function>(f)(__tuple_cat_get<I>(std::forward<Tuples>(ts)...)...)
      )
 {
-  return f(__tuple_cat_get<I>(std::forward<Tuples>(ts)...)...);
+  return std::forward<Function>(f)(__tuple_cat_get<I>(std::forward<Tuples>(ts)...)...);
 }
 
 
@@ -936,7 +936,7 @@ template<size_t Size> struct __sum<Size> : std::integral_constant<size_t, Size> 
 
 template<class Function, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
-auto tuple_cat_apply(Function f, Tuples&&... ts)
+auto tuple_cat_apply(Function&& f, Tuples&&... ts)
   -> decltype(
        __tuple_cat_apply_impl(
          __make_index_sequence<
@@ -945,13 +945,13 @@ auto tuple_cat_apply(Function f, Tuples&&... ts)
              std::tuple_size<typename std::decay<Tuples>::type>::value...
            >::value
          >(),
-         f,
+         std::forward<Function>(f),
          std::forward<Tuples>(ts)...
        )
      )
 {
   const size_t N = __sum<0u, std::tuple_size<typename std::decay<Tuples>::type>::value...>::value;
-  return __tuple_cat_apply_impl(__make_index_sequence<N>(), f, std::forward<Tuples>(ts)...);
+  return __tuple_cat_apply_impl(__make_index_sequence<N>(), std::forward<Function>(f), std::forward<Tuples>(ts)...);
 }
 
 
@@ -969,12 +969,12 @@ auto __tuple_apply_impl(Function f, Tuple&& t, __index_sequence<I...>)
 
 template<class Function, class Tuple>
 TUPLE_UTILITY_ANNOTATION
-auto tuple_apply(Function f, Tuple&& t)
+auto tuple_apply(Function&& f, Tuple&& t)
   -> decltype(
-       tuple_cat_apply(f, std::forward<Tuple>(t))
+       tuple_cat_apply(std::forward<Function>(f), std::forward<Tuple>(t))
      )
 {
-  return tuple_cat_apply(f, std::forward<Tuple>(t));
+  return tuple_cat_apply(std::forward<Function>(f), std::forward<Tuple>(t));
 }
 
 
