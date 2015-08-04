@@ -36,45 +36,27 @@ template<>
 class future<void>
 {
   public:
-    // XXX stream_ should default to per-thread default stream
-    __host__ __device__
-    future()
-      : stream_{0}, event_{0}
-    {}
-
     // XXX this should be private
+    __host__ __device__
+    future(cudaStream_t s) : future(s, 0) {}
+
     // XXX stream_ should default to per-thread default stream
     __host__ __device__
-    future(cudaEvent_t e)
-      : stream_{0}, event_{e}
-    {
-    } // end future()
-
-    __host__ __device__
-    future(cudaStream_t s)
-      : stream_{s}
-    {
-#if __cuda_lib_has_cudart
-      detail::throw_on_error(cudaEventCreateWithFlags(&event_, event_create_flags), "cudaEventCreateWithFlags in agency::cuda::future<void> ctor");
-      detail::throw_on_error(cudaEventRecord(event_, stream_), "cudaEventRecord in agency::cuda::future<void> ctor");
-#else
-      detail::terminate_with_message("agency::cuda::future<void> ctor requires CUDART");
-#endif // __cuda_lib_has_cudart
-    } // end future()
+    future() : future(0) {}
 
     __host__ __device__
     future(future&& other)
-      : stream_{0}, event_{0}
+      : future()
     {
-      future::swap(stream_,      other.stream_);
-      future::swap(event_,       other.event_);
+      future::swap(stream_, other.stream_);
+      future::swap(event_,  other.event_);
     } // end future()
 
     __host__ __device__
     future &operator=(future&& other)
     {
-      future::swap(stream_,      other.stream_);
-      future::swap(event_,       other.event_);
+      future::swap(stream_, other.stream_);
+      future::swap(event_,  other.event_);
       return *this;
     } // end operator=()
 
@@ -123,6 +105,7 @@ class future<void>
       wait();
     } // end get()
 
+    // XXX we can eliminate this I think
     __host__ __device__
     future<void> discard_value()
     {
@@ -158,7 +141,10 @@ class future<void>
       detail::terminate_with_message("agency::cuda::future<void>::make_ready() requires CUDART");
 #endif
 
-      return future<void>{ready_event};
+      future<void> result;
+      result.set_valid(ready_event);
+
+      return result;
     }
 
     // XXX this is only used by grid_executor::then_execute()
@@ -168,7 +154,18 @@ class future<void>
       return nullptr;
     }
 
+    // XXX set_valid() should only be available to friends
+    //     such as future<T> and grid_executor
+    __host__ __device__
+    void set_valid(cudaEvent_t e)
+    {
+      event_ = e;
+    }
+
   private:
+    __host__ __device__
+    future(cudaStream_t s, cudaEvent_t e) : stream_(s), event_(e) {}
+
     // implement swap to avoid depending on thrust::swap
     template<class T>
     __host__ __device__
@@ -196,6 +193,8 @@ class future
     {}
 
     // XXX this should be private
+    // XXX this constructor should not even exist
+    //     the ready event should be created in event_'s initializer
     template<class U>
     __host__ __device__
     future(U&& value, future<void>& e)
@@ -253,6 +252,7 @@ class future
 
     // XXX only used by grid_executor
     //     think of a better way to expose this
+    // XXX the existence of future_cast makes this superfluous i think
     __host__ __device__
     future<void>& void_future()
     {
@@ -273,6 +273,14 @@ class future
     T* ptr()
     {
       return value_.get();
+    }
+
+    // XXX set_valid() should only be available to friends
+    //     such as future<T> and grid_executor
+    __host__ __device__
+    void set_valid(cudaEvent_t event)
+    {
+      event_.set_valid(event);
     }
 
   private:
