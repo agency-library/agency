@@ -30,6 +30,51 @@ namespace agency
 {
 namespace cuda
 {
+namespace detail
+{
+
+
+// XXX should provide a specialization for when T is empty (or void)
+template<class T>
+class future_state
+{
+  public:
+    // creates a copy of a value
+    template<class U>
+    __host__ __device__
+    future_state(cudaStream_t s, U&& ready_value)
+      : data_(make_unique<T>(s, std::forward<U>(ready_value)))
+    {}
+
+    __host__ __device__
+    future_state(cudaStream_t s)
+      : future_state(s, T{})
+    {}
+
+    __host__ __device__
+    future_state(future_state&& other) : data_(std::move(other)) {}
+
+    __host__ __device__
+    future_state& operator=(future_state&& other)
+    {
+      data_ = std::move(other.data_);
+      return *this;
+    }
+
+    __host__ __device__
+    T* data()
+    {
+      return data_.get();
+    }
+
+    // XXX should also provide get()
+
+  private:
+    unique_ptr<T> data_;
+};
+
+
+} // end detail
 
 
 template<typename T> class future;
@@ -152,7 +197,7 @@ class future<void>
 
     // XXX this is only used by grid_executor::then_execute()
     __host__ __device__
-    std::nullptr_t ptr()
+    std::nullptr_t data()
     {
       return nullptr;
     }
@@ -171,7 +216,7 @@ class future<void>
 
       result_future_type result(stream());
 
-      cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), event(), ptr(), f);
+      cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), event(), data(), f);
 
       // give next_event to the result future
       result.set_valid(next_event);
@@ -244,7 +289,7 @@ class future
     {
       wait();
 
-      return *state_;
+      return *state_.data();
     } // end get()
 
     __host__ __device__
@@ -277,9 +322,9 @@ class future
 
     // XXX this is only used by grid_executor::then_execute()
     __host__ __device__
-    T* ptr()
+    T* data()
     {
-      return state_.get();
+      return state_.data();
     }
 
     // XXX set_valid() should only be available to friends
@@ -293,14 +338,14 @@ class future
 
   private:
     __host__ __device__
-    future(future<void>&& possibly_complete, detail::unique_ptr<T>&& state)
+    future(future<void>&& possibly_complete, detail::future_state<T>&& state)
       : completion_(std::move(possibly_complete)),
         state_(std::move(state))
     {
     } // end future()
 
     future<void> completion_;
-    detail::unique_ptr<T> state_;
+    detail::future_state<T> state_;
 }; // end future<T>
 
 
