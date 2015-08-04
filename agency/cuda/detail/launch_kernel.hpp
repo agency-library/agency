@@ -159,6 +159,26 @@ void checked_launch_kernel_after_event(void* kernel, ::dim3 grid_dim, ::dim3 blo
 
 template<class... Args>
 __host__ __device__
+cudaEvent_t checked_launch_kernel_after_event_returning_next_event(void* kernel, ::dim3 grid_dim, ::dim3 block_dim, int shared_memory_size, cudaStream_t stream, cudaEvent_t event, const Args&... args)
+{
+  cudaEvent_t next_event = 0;
+
+#if __cuda_lib_has_cudart
+  detail::throw_on_error(cudaEventCreateWithFlags(&next_event, cudaEventDisableTiming), "cuda::detail::checked_launch_kernel_after_event_returning_next_event(): cudaEventCreateWithFlags()");
+#endif
+
+  checked_launch_kernel_after_event(kernel, grid_dim, block_dim, shared_memory_size, stream, event, args...);
+
+#if __cuda_lib_has_cudart
+  detail::throw_on_error(cudaEventRecord(next_event, stream), "cuda::detail::checked_launch_kernel_after_event_returning_next_event(): cudaEventRecord()");
+#endif
+
+  return next_event;
+}
+
+
+template<class... Args>
+__host__ __device__
 void checked_launch_kernel_after_event_on_device(void* kernel, ::dim3 grid_dim, ::dim3 block_dim, int shared_memory_size, cudaStream_t stream, cudaEvent_t dependency, int device, const Args&... args)
 {
 #if __cuda_lib_has_cudart
@@ -199,6 +219,26 @@ void checked_launch_kernel_after_event_on_device(void* kernel, ::dim3 grid_dim, 
   throw_on_error(cudaErrorNotSupported, "cuda::detail::checked_launch_kernel_after_event_on_device(): cudaSetDevice requires CUDART");
 #endif // __cuda_lib_has_cudart
 }
+
+
+template<class... Args>
+__host__ __device__
+cudaEvent_t checked_launch_kernel_after_event_on_device_returning_next_event(void* kernel, ::dim3 grid_dim, ::dim3 block_dim, int shared_memory_size, cudaStream_t stream, cudaEvent_t dependency, int device, const Args&... args)
+{
+  cudaEvent_t next_event = 0;
+
+#if __cuda_lib_has_cudart
+  detail::throw_on_error(cudaEventCreateWithFlags(&next_event, cudaEventDisableTiming), "cuda::detail::checked_launch_kernel_after_event_on_device_returning_next_event(): cudaEventCreateWithFlags()");
+#endif
+
+  checked_launch_kernel_after_event_on_device(kernel, grid_dim, block_dim, shared_memory_size, stream, dependency, device, args...);
+
+#if __cuda_lib_has_cudart
+  detail::throw_on_error(cudaEventRecord(next_event, stream), "cuda::detail::checked_launch_kernel_after_event_on_device_returning_next_event(): cudaEventRecord()");
+#endif
+
+  return next_event;
+} // end checked_launch_kernel_after_event_on_device_returning_next_event()
 
 
 } // end detail
