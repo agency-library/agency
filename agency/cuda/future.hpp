@@ -105,13 +105,6 @@ class future<void>
       wait();
     } // end get()
 
-    // XXX we can eliminate this I think
-    __host__ __device__
-    future<void> discard_value()
-    {
-      return std::move(*this);
-    } // end discard_value()
-
     __host__ __device__
     bool valid() const
     {
