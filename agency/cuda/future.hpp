@@ -217,13 +217,10 @@ class future
       : completion_()
     {}
 
-    // XXX this should be private
-    // XXX this constructor should not even exist
-    //     the ready event should be created in completion_'s initializer
     template<class U>
     __host__ __device__
-    future(U&& value, future<void>& e)
-      : completion_(std::move(e)),
+    future(U&& value)
+      : completion_(future<void>::make_ready()),
         value_(detail::make_unique<T>(completion_.stream(), std::forward<U>(value)))
     {
     } // end future()
@@ -288,9 +285,7 @@ class future
     __host__ __device__
     static future<T> make_ready(U&& value)
     {
-      auto event = future<void>::make_ready();
-
-      return future<T>{std::forward<U>(value), event};
+      return future<T>(std::forward<U>(value));
     }
 
     // XXX this is only used by grid_executor::then_execute()
