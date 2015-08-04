@@ -330,7 +330,7 @@ class basic_grid_executor
     __host__ __device__
     future<void> then_execute(future<T>& dependency, Function f, shape_type shape)
     {
-      detail::function_with_past_parameter<Function,T> g{f, dependency.ptr()};
+      detail::function_with_past_parameter<Function,T> g{f, dependency.data()};
 
       // XXX we need to enqueue a destructor & deallocate for the dependency
       return then_execute(dependency.void_future(), g, shape);

@@ -67,7 +67,15 @@ class future_state
       return data_.get();
     }
 
-    // XXX should also provide get()
+    __host__ __device__
+    T get()
+    {
+      T result = std::move(*data());
+
+      data_.reset();
+
+      return std::move(result);
+    }
 
   private:
     unique_ptr<T> data_;
@@ -289,7 +297,7 @@ class future
     {
       wait();
 
-      return *state_.data();
+      return state_.get();
     } // end get()
 
     __host__ __device__
