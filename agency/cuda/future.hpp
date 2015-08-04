@@ -20,6 +20,9 @@
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/unique_ptr.hpp>
+#include <agency/cuda/detail/then_kernel.hpp>
+#include <agency/cuda/detail/launch_kernel.hpp>
+#include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <utility>
 
 
@@ -105,6 +108,13 @@ class future<void>
       wait();
     } // end get()
 
+    // XXX we can eliminate this I think
+    __host__ __device__
+    future<void> discard_value()
+    {
+      return std::move(*this);
+    } // end discard_value()
+
     __host__ __device__
     bool valid() const
     {
@@ -147,6 +157,28 @@ class future<void>
       return nullptr;
     }
 
+    template<class Function>
+    __host__ __device__
+    future<typename std::result_of<Function()>::type>
+      then(Function f)
+    {
+      void (*kernel_ptr)(detail::my_nullptr_t, Function) = detail::then_kernel<Function>;
+      detail::workaround_unused_variable_warning(kernel_ptr);
+
+      using result_type = typename std::result_of<Function()>::type;
+      
+      using result_future_type = future<result_type>;
+
+      result_future_type result(stream());
+
+      cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), event(), ptr(), f);
+
+      // give next_event to the result future
+      result.set_valid(result);
+
+      return result;
+    }
+
     // XXX set_valid() should only be available to friends
     //     such as future<T> and grid_executor
     __host__ __device__
@@ -182,29 +214,29 @@ class future
   public:
     __host__ __device__
     future()
-      : event_()
+      : completion_()
     {}
 
     // XXX this should be private
     // XXX this constructor should not even exist
-    //     the ready event should be created in event_'s initializer
+    //     the ready event should be created in completion_'s initializer
     template<class U>
     __host__ __device__
     future(U&& value, future<void>& e)
-      : event_(std::move(e)),
-        value_(detail::make_unique<T>(event_.stream(), std::forward<U>(value)))
+      : completion_(std::move(e)),
+        value_(detail::make_unique<T>(completion_.stream(), std::forward<U>(value)))
     {
     } // end future()
 
     __host__ __device__
     future(cudaStream_t s)
-      : event_(s)
+      : completion_(s)
     {
     } // end future()
 
     __host__ __device__
     future(future&& other)
-      : event_(std::move(other.event_)),
+      : completion_(std::move(other.completion_)),
         value_(std::move(other.value_))
     {
     } // end future()
@@ -212,7 +244,7 @@ class future
     __host__ __device__
     future &operator=(future&& other)
     {
-      event_ = std::move(other.event_);
+      completion_ = std::move(other.completion_);
       value_ = std::move(other.value_);
       return *this;
     } // end operator=()
@@ -220,7 +252,7 @@ class future
     __host__ __device__
     void wait() const
     {
-      event_.wait();
+      completion_.wait();
     } // end wait()
 
     __host__ __device__
@@ -234,13 +266,13 @@ class future
     __host__ __device__
     future<void> discard_value()
     {
-      return std::move(event_);
+      return std::move(completion_);
     } // end discard_value()
 
     __host__ __device__
     bool valid() const
     {
-      return event_.valid();
+      return completion_.valid();
     } // end valid()
 
     // XXX only used by grid_executor
@@ -249,7 +281,7 @@ class future
     __host__ __device__
     future<void>& void_future()
     {
-      return event_;
+      return completion_;
     } // end void_future()
 
     template<class U>
@@ -273,11 +305,11 @@ class future
     __host__ __device__
     void set_valid(cudaEvent_t event)
     {
-      event_.set_valid(event);
+      completion_.set_valid(event);
     }
 
   private:
-    future<void> event_;
+    future<void> completion_;
     detail::unique_ptr<T> value_;
 }; // end future<T>
 
