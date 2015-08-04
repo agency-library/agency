@@ -174,7 +174,7 @@ class future<void>
       cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), event(), ptr(), f);
 
       // give next_event to the result future
-      result.set_valid(result);
+      result.set_valid(next_event);
 
       return result;
     }
@@ -213,36 +213,23 @@ class future
 {
   public:
     __host__ __device__
-    future()
-      : completion_()
-    {}
+    future() : completion_(), state_() {}
 
     template<class U>
     __host__ __device__
-    future(U&& value)
-      : completion_(future<void>::make_ready()),
-        value_(detail::make_unique<T>(completion_.stream(), std::forward<U>(value)))
-    {
-    } // end future()
+    future(U&& value) : future(future<void>::make_ready(), detail::make_unique<T>(completion_.stream(), std::forward<U>(value))) {}
 
     __host__ __device__
-    future(cudaStream_t s)
-      : completion_(s)
-    {
-    } // end future()
+    future(cudaStream_t s) : completion_(s) {}
 
     __host__ __device__
-    future(future&& other)
-      : completion_(std::move(other.completion_)),
-        value_(std::move(other.value_))
-    {
-    } // end future()
+    future(future&& other) : future(std::move(other.completion_), std::move(other.state_)) {}
 
     __host__ __device__
     future &operator=(future&& other)
     {
       completion_ = std::move(other.completion_);
-      value_ = std::move(other.value_);
+      state_ = std::move(other.state_);
       return *this;
     } // end operator=()
 
@@ -257,7 +244,7 @@ class future
     {
       wait();
 
-      return *value_;
+      return *state_;
     } // end get()
 
     __host__ __device__
@@ -292,11 +279,12 @@ class future
     __host__ __device__
     T* ptr()
     {
-      return value_.get();
+      return state_.get();
     }
 
     // XXX set_valid() should only be available to friends
     //     such as future<T> and grid_executor
+    // XXX seems like this should also take ownership of the state
     __host__ __device__
     void set_valid(cudaEvent_t event)
     {
@@ -304,8 +292,15 @@ class future
     }
 
   private:
+    __host__ __device__
+    future(future<void>&& possibly_complete, detail::unique_ptr<T>&& state)
+      : completion_(std::move(possibly_complete)),
+        state_(std::move(state))
+    {
+    } // end future()
+
     future<void> completion_;
-    detail::unique_ptr<T> value_;
+    detail::unique_ptr<T> state_;
 }; // end future<T>
 
 
