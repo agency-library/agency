@@ -34,12 +34,15 @@ namespace detail
 {
 
 
-// XXX should provide a specialization for when T is empty (or void)
-template<class T>
+template<class T,
+         bool requires_storage = std::is_empty<T>::value || std::is_void<T>::value>
 class future_state
 {
   public:
-    // creates a copy of a value
+    __host__ __device__
+    future_state() = default;
+
+    // XXX should check that T is constructible from U
     template<class U>
     __host__ __device__
     future_state(cudaStream_t s, U&& ready_value)
@@ -82,9 +85,63 @@ class future_state
 };
 
 
+// zero storage optimization
+// XXX may need to keep an extra bit to track whether or not get() has been called
+template<class T>
+class future_state<T,true>
+{
+  public:
+    __host__ __device__
+    future_state() = default;
+
+    // XXX should check that T is constructible from U
+    template<class U>
+    __host__ __device__
+    future_state(cudaStream_t, U&&) {}
+
+    __host__ __device__
+    future_state(cudaStream_t) {}
+
+    __host__ __device__
+    future_state(future_state&&) {}
+
+    __host__ __device__
+    future_state& operator=(future_state&&)
+    {
+      return *this;
+    }
+
+    __host__ __device__
+    std::nullptr_t data()
+    {
+      return nullptr;
+    }
+
+    __host__ __device__
+    T get()
+    {
+      return get_impl(std::is_void<T>());
+    }
+
+  private:
+    __host__ __device__
+    static T get_impl(std::false_type)
+    {
+      return T{};
+    }
+
+    __host__ __device__
+    static T get_impl(std::true_type)
+    {
+      return;
+    }
+};
+
+
 } // end detail
 
 
+// XXX collapse future<void> and future<T> via future_state
 template<typename T> class future;
 
 
@@ -156,9 +213,11 @@ class future<void>
     } // end wait()
 
     __host__ __device__
-    void get() const
+    void get()
     {
       wait();
+
+      return state_.get();
     } // end get()
 
     // XXX we can eliminate this I think
@@ -207,7 +266,7 @@ class future<void>
     __host__ __device__
     std::nullptr_t data()
     {
-      return nullptr;
+      return state_.data();
     }
 
     template<class Function>
@@ -258,6 +317,7 @@ class future<void>
 
     cudaStream_t stream_;
     cudaEvent_t event_;
+    detail::future_state<void> state_;
 }; // end future<void>
 
 
@@ -293,7 +353,7 @@ class future
     } // end wait()
 
     __host__ __device__
-    T get() const
+    T get()
     {
       wait();
 
