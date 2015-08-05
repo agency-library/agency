@@ -43,14 +43,14 @@ class future_state
     __host__ __device__
     future_state() = default;
 
-    template<class U,
+    template<class Arg1, class... Args,
              class = typename std::enable_if<
-               std::is_constructible<T,U>::value
+               std::is_constructible<T,Arg1,Args...>::value
              >::type
             >
     __host__ __device__
-    future_state(cudaStream_t s, U&& ready_value)
-      : data_(make_unique<T>(s, std::forward<U>(ready_value)))
+    future_state(cudaStream_t s, Arg1&& ready_arg1, Args&&... ready_args)
+      : data_(make_unique<T>(s, std::forward<Arg1>(ready_arg1), std::forward<Args>(ready_args)...))
     {}
 
     __host__ __device__
@@ -90,17 +90,14 @@ class future_state
       return data_;
     }
 
-    template<class U>
+    template<class... Args,
+             class = typename std::enable_if<
+               std::is_constructible<T,Args...>::value
+             >::type>
     __host__ __device__
-    void set_valid(cudaStream_t s, U&& ready_value)
+    void set_valid(cudaStream_t s, Args&&... ready_args)
     {
-      data_ = make_unique<T>(s, std::forward<U>(ready_value));
-    }
-
-    __host__ __device__
-    void set_valid(cudaStream_t s)
-    {
-      set_valid(s, T{});
+      data_ = make_unique<T>(s, std::forward<Args>(ready_args)...);
     }
 
   private:
