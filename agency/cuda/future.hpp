@@ -330,7 +330,7 @@ class future
 
     template<class U>
     __host__ __device__
-    future(U&& value) : future(future<void>::make_ready(), detail::future_state<T>(completion_.stream(), std::forward<U>(value))) {}
+    future(U&& ready_value) : future(future<void>::make_ready(), std::forward<U>(ready_value)) {}
 
     __host__ __device__
     future(cudaStream_t s) : completion_(s) {}
@@ -405,6 +405,12 @@ class future
     }
 
   private:
+    template<class U>
+    __host__ __device__
+    future(future<void>&& complete, U&& ready_value)
+      : future(std::move(complete), detail::future_state<T>(complete.stream(), std::forward<U>(ready_value)))
+    {}
+
     __host__ __device__
     future(future<void>&& possibly_complete, detail::future_state<T>&& state)
       : completion_(std::move(possibly_complete)),
