@@ -84,36 +84,63 @@ class future_state
       return std::move(result);
     }
 
+    __host__ __device__
+    bool valid() const
+    {
+      return data_;
+    }
+
+    template<class U>
+    __host__ __device__
+    void set_valid(cudaStream_t s, U&& ready_value)
+    {
+      data_ = make_unique<T>(s, std::forward<U>(ready_value));
+    }
+
+    __host__ __device__
+    void set_valid(cudaStream_t s)
+    {
+      set_valid(s, T{});
+    }
+
   private:
     unique_ptr<T> data_;
 };
 
 
 // zero storage optimization
-// XXX may need to keep an extra bit to track whether or not get() has been called
 template<class T>
 class future_state<T,true>
 {
   public:
     __host__ __device__
-    future_state() = default;
+    future_state() : valid_(false) {}
 
+    // constructs a valid state
     template<class U,
              class = typename std::enable_if<
                std::is_constructible<T,U>::value
              >::type>
     __host__ __device__
-    future_state(cudaStream_t, U&&) {}
+    future_state(cudaStream_t, U&&) : valid_(true) {}
+
+    // constructs a valid state
+    __host__ __device__
+    future_state(cudaStream_t) : valid_(true) {}
 
     __host__ __device__
-    future_state(cudaStream_t) {}
-
-    __host__ __device__
-    future_state(future_state&&) {}
-
-    __host__ __device__
-    future_state& operator=(future_state&&)
+    future_state(future_state&& other) : valid_(false)
     {
+      valid_ = other.valid_;
+      other.valid_ = false;
+    }
+
+    __host__ __device__
+    future_state& operator=(future_state&& other)
+    {
+      valid_ = other.valid_;
+      other.valid_ = false;
+
       return *this;
     }
 
@@ -126,7 +153,21 @@ class future_state<T,true>
     __host__ __device__
     T get()
     {
+      valid_ = false;
+
       return get_impl(std::is_void<T>());
+    }
+
+    __host__ __device__
+    bool valid() const
+    {
+      return valid_;
+    }
+
+    __host__ __device__
+    void set_valid(cudaStream_t)
+    {
+      valid_ = true;
     }
 
   private:
@@ -141,6 +182,8 @@ class future_state<T,true>
     {
       return;
     }
+
+    bool valid_;
 };
 
 
@@ -236,7 +279,7 @@ class future<void>
     __host__ __device__
     bool valid() const
     {
-      return event_ != 0;
+      return (event_ != 0) && state_.valid();
     } // end valid()
 
     __host__ __device__
@@ -303,6 +346,7 @@ class future<void>
     void set_valid(cudaEvent_t e)
     {
       event_ = e;
+      state_.set_valid(stream());
     }
 
   private:
@@ -375,7 +419,7 @@ class future
     __host__ __device__
     bool valid() const
     {
-      return completion_.valid();
+      return completion_.valid() && state_.valid();
     } // end valid()
 
     // XXX only used by grid_executor
@@ -408,6 +452,7 @@ class future
     void set_valid(cudaEvent_t event)
     {
       completion_.set_valid(event);
+      state_.set_valid(completion_.stream());
     }
 
   private:
