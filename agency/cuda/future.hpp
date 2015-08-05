@@ -24,6 +24,7 @@
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <utility>
+#include <type_traits>
 
 
 namespace agency
@@ -42,8 +43,11 @@ class future_state
     __host__ __device__
     future_state() = default;
 
-    // XXX should check that T is constructible from U
-    template<class U>
+    template<class U,
+             class = typename std::enable_if<
+               std::is_constructible<T,U>::value
+             >::type
+            >
     __host__ __device__
     future_state(cudaStream_t s, U&& ready_value)
       : data_(make_unique<T>(s, std::forward<U>(ready_value)))
@@ -94,8 +98,10 @@ class future_state<T,true>
     __host__ __device__
     future_state() = default;
 
-    // XXX should check that T is constructible from U
-    template<class U>
+    template<class U,
+             class = typename std::enable_if<
+               std::is_constructible<T,U>::value
+             >::type>
     __host__ __device__
     future_state(cudaStream_t, U&&) {}
 
