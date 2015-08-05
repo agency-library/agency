@@ -55,7 +55,7 @@ class future_state
     {}
 
     __host__ __device__
-    future_state(future_state&& other) : data_(std::move(other)) {}
+    future_state(future_state&& other) : data_(std::move(other.data_)) {}
 
     __host__ __device__
     future_state& operator=(future_state&& other)
@@ -330,7 +330,7 @@ class future
 
     template<class U>
     __host__ __device__
-    future(U&& value) : future(future<void>::make_ready(), detail::make_unique<T>(completion_.stream(), std::forward<U>(value))) {}
+    future(U&& value) : future(future<void>::make_ready(), detail::future_state<T>(completion_.stream(), std::forward<U>(value))) {}
 
     __host__ __device__
     future(cudaStream_t s) : completion_(s) {}
