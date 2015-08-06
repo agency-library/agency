@@ -140,6 +140,12 @@ class unique_ptr
       return *ptr_;
     }
 
+    __host__ __device__
+    operator bool () const
+    {
+      return get();
+    }
+
   private:
     thrust::cuda::pointer<T> ptr_;
     default_delete<T> deleter_;
