@@ -358,7 +358,7 @@ class basic_grid_executor
       // note the .release()
       auto g = detail::function_with_shared_arguments<Function, T2, T3>(f, 0, inner_shared_init);
 
-      return this->then_execute(g, dependency, shape);
+      return this->then_execute(g, shape, dependency);
     }
 
     template<class Function, class T1, class T2, class T3>
@@ -385,7 +385,7 @@ class basic_grid_executor
       // XXX to deallocate the outer_shared_arg's storage, we need to enqueue a free after the 2nd then_execute somehow
       // XXX for now the memory just leaks :(
 
-      return this->then_execute(g, dependency, shape);
+      return this->then_execute(g, shape, dependency);
     }
 
   public:
@@ -433,7 +433,7 @@ class basic_grid_executor
     future<void> async_execute(Function f, shape_type shape)
     {
       auto ready = make_ready_future();
-      return then_execute(f, ready, shape);
+      return then_execute(f, shape, ready);
     }
     
 
@@ -726,7 +726,7 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().then_execute(execute_me, dependency, partitioning);
+      return base_executor().then_execute(execute_me, partitioning, dependency);
     }
 
     template<class T1, class Function, class T2>
@@ -741,7 +741,7 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().then_execute(dependency, execute_me, partitioning, shared_init, agency::detail::ignore);
+      return base_executor().then_execute(execute_me, partitioning, dependency, shared_init, agency::detail::ignore);
     }
 
     __host__ __device__

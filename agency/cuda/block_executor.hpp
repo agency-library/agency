@@ -74,14 +74,14 @@ class block_executor : private grid_executor
     future<void> then_execute(Function f, shape_type shape, Future& dependency, T&& shared_init)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      return super_traits::then_execute(*this, dependency, g, super_t::shape_type{1,shape}, agency::detail::ignore, std::forward<T>(shared_init));
+      return super_traits::then_execute(*this, g, super_t::shape_type{1,shape}, dependency, agency::detail::ignore, std::forward<T>(shared_init));
     }
 
     template<class Function, class T>
     future<void> async_execute(Function f, shape_type shape, T&& shared_init)
     {
       auto ready = make_ready_future();
-      return this->then_execute(ready, f, shape, std::forward<T>(shared_init));
+      return this->then_execute(f, shape, ready, std::forward<T>(shared_init));
     }
 
     template<class Function>
