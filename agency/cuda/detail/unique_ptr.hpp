@@ -95,10 +95,7 @@ class unique_ptr
     __host__ __device__
     ~unique_ptr()
     {
-      if(this->get())
-      {
-        get_deleter()(this->get());
-      }
+      reset(nullptr);
     }
 
     __host__ __device__
@@ -123,6 +120,18 @@ class unique_ptr
     }
 
     __host__ __device__
+    void reset(pointer ptr = pointer())
+    {
+      pointer old_ptr = ptr_.get();
+      ptr_ = thrust::cuda::pointer<T>(ptr);
+
+      if(old_ptr != nullptr)
+      {
+        get_deleter()(old_ptr); 
+      }
+    }
+
+    __host__ __device__
     deleter_type& get_deleter()
     {
       return deleter_;
@@ -140,12 +149,21 @@ class unique_ptr
       return *ptr_;
     }
 
+    __host__ __device__
+    operator bool () const
+    {
+      return get();
+    }
+
   private:
     thrust::cuda::pointer<T> ptr_;
     default_delete<T> deleter_;
 };
 
 
+// XXX we should consider using cudaMallocManaged instead of thrust::cuda::malloc
+//     that will allow us to touch the pointer from the host and do proper moves
+//     would also allow us to avoid depending on Thrust
 template<class T, class... Args>
 __host__ __device__
 unique_ptr<T> make_unique(cudaStream_t s, Args&&... args)
