@@ -310,26 +310,38 @@ class basic_grid_executor
       return cuda::make_ready_future();
     }
 
+  private:
+    template<class Function>
+    __host__ __device__
+    future<void> then_execute_impl(cudaEvent_t dependency, Function f, shape_type shape)
+    {
+      // XXX should we use this->stream() or the stream associated with the dependency?
+      future<void> result{stream()};
 
+      cudaEvent_t next_event = this->launch(global_function_pointer<Function>(), f, shape, shared_memory_size(), stream(), dependency);
+
+      result.set_valid(next_event);
+
+      return result;
+    }
+
+  public:
     template<class Function>
     __host__ __device__
     future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
     {
-      this->launch(global_function_pointer<Function>(), f, shape, shared_memory_size(), stream(), dependency.event());
-
-      // XXX should we use this->stream() or dependency->stream()?
-      //     we should really move the resources from dependency into the result since then_execute should consume the dependency
-      return future<void>{stream()};
+      return then_execute_impl(dependency.event(), f, shape);
     }
 
     template<class T, class Function>
     __host__ __device__
     future<void> then_execute(future<T>& dependency, Function f, shape_type shape)
     {
-      detail::function_with_past_parameter<Function,T> g{f, dependency.ptr()};
+      detail::function_with_past_parameter<Function,T> g{f, dependency.data()};
 
       // XXX we need to enqueue a destructor & deallocate for the dependency
-      return then_execute(dependency.void_future(), g, shape);
+      // XXX no, this should happen in future<T>'s destructor
+      return then_execute_impl(dependency.event(), g, shape);
     }
 
   private:
@@ -452,35 +464,35 @@ class basic_grid_executor
   private:
     template<class Arg>
     __host__ __device__
-    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape)
+    cudaEvent_t launch(void (*kernel)(Arg), const Arg& arg, shape_type shape)
     {
-      launch(kernel, arg, shape, shared_memory_size());
+      return launch(kernel, arg, shape, shared_memory_size());
     }
 
     template<class Arg>
     __host__ __device__
-    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size)
+    cudaEvent_t launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size)
     {
-      launch(kernel, arg, shape, shared_memory_size, stream());
+      return launch(kernel, arg, shape, shared_memory_size, stream());
     }
 
     template<class Arg>
     __host__ __device__
-    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream)
+    cudaEvent_t launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream)
     {
-      launch(kernel, arg, shape, shared_memory_size, stream, 0);
+      return launch(kernel, arg, shape, shared_memory_size, stream, 0);
     }
 
     template<class Arg>
     __host__ __device__
-    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, cudaEvent_t dependency)
+    cudaEvent_t launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, cudaEvent_t dependency)
     {
-      launch(kernel, arg, shape, shared_memory_size, stream, dependency, gpu());
+      return launch(kernel, arg, shape, shared_memory_size, stream, dependency, gpu());
     }
 
     template<class Arg>
     __host__ __device__
-    void launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, cudaEvent_t dependency, gpu_id gpu)
+    cudaEvent_t launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, cudaEvent_t dependency, gpu_id gpu)
     {
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
@@ -488,7 +500,7 @@ class basic_grid_executor
       ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
       ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
 
-      detail::checked_launch_kernel_after_event_on_device(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream, dependency, gpu.native_handle(), arg);
+      return detail::checked_launch_kernel_after_event_on_device_returning_next_event(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream, dependency, gpu.native_handle(), arg);
     }
 
     int shared_memory_size_;
