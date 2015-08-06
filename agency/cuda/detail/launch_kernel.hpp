@@ -3,6 +3,7 @@
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
+#include <type_traits>
 
 namespace agency
 {
@@ -12,11 +13,22 @@ namespace detail
 {
 
 
+template<class T>
+inline __host__ __device__
+size_t align_up(size_t offset)
+{
+  constexpr size_t alignment = std::alignment_of<T>::value;
+  return alignment * ((offset + (alignment - 1)) / alignment);
+}
+
+
 inline void setup_kernel_arguments(size_t){}
 
 template<class Arg1, class... Args>
 void setup_kernel_arguments(size_t offset, const Arg1& arg1, const Args&... args)
 {
+  offset = align_up<Arg1>(offset);
+
   cudaSetupArgument(arg1, offset);
   setup_kernel_arguments(offset + sizeof(Arg1), args...);
 }
