@@ -23,6 +23,8 @@ int main()
     "grid_executor should have multi-agent then_execute() returning void"
   );
 
+  std::cout << "OK" << std::endl;
+
   return 0;
 }
 
