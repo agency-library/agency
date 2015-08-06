@@ -45,6 +45,7 @@ struct is_constructible_or_void
 {};
 
 
+// XXX should maybe call this asynchronous_state to match the nomenclature of the std
 template<class T,
          bool requires_storage = std::is_empty<T>::value || std::is_void<T>::value>
 class future_state
@@ -87,7 +88,7 @@ class future_state
     __host__ __device__
     T get()
     {
-      T result = std::move(*data());
+      T result = std::move(*data_);
 
       data_.reset();
 
@@ -152,7 +153,9 @@ class future_state<T,true>
     }
 
     __host__ __device__
-    std::nullptr_t data()
+    // XXX WAR nvbug 1671566
+    //std::nullptr_t data()
+    my_nullptr_t data()
     {
       return nullptr;
     }
@@ -328,21 +331,19 @@ class future
     future<typename std::result_of<Function()>::type>
       then(Function f)
     {
-      void (*kernel_ptr)(detail::my_nullptr_t, Function) = detail::then_kernel<Function>;
+      using result_type = typename std::result_of<Function()>::type;
+
+      detail::future_state<result_type> result_state(stream());
+
+      using result_ptr_type = decltype(result_state.data());
+      using arg_ptr_type = decltype(data());
+
+      void (*kernel_ptr)(result_ptr_type, Function, arg_ptr_type) = detail::then_kernel<result_ptr_type, Function, arg_ptr_type>;
       detail::workaround_unused_variable_warning(kernel_ptr);
 
-      using result_type = typename std::result_of<Function()>::type;
-      
-      using result_future_type = future<result_type>;
+      cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), event(), result_state.data(), f, data());
 
-      result_future_type result(stream());
-
-      cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), event(), data(), f);
-
-      // give next_event to the result future
-      result.set_valid(next_event);
-
-      return result;
+      return future<result_type>(stream(), next_event, std::move(result_state));
     }
 
     // XXX set_valid() should only be available to friends
@@ -359,6 +360,8 @@ class future
     }
 
   private:
+    template<class U> friend class future;
+
     __host__ __device__
     future(cudaStream_t s, cudaEvent_t e, detail::future_state<T>&& state)
       : stream_(s), event_(e), state_(std::move(state))
