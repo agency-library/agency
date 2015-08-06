@@ -310,20 +310,27 @@ class basic_grid_executor
       return cuda::make_ready_future();
     }
 
-
+  private:
     template<class Function>
     __host__ __device__
-    future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
+    future<void> then_execute_impl(cudaEvent_t dependency, Function f, shape_type shape)
     {
-      // XXX should we use this->stream() or dependency->stream()?
-      //     we should really move the resources from dependency into the result since then_execute should consume the dependency
+      // XXX should we use this->stream() or the stream associated with the dependency?
       future<void> result{stream()};
 
-      cudaEvent_t next_event = this->launch(global_function_pointer<Function>(), f, shape, shared_memory_size(), stream(), dependency.event());
+      cudaEvent_t next_event = this->launch(global_function_pointer<Function>(), f, shape, shared_memory_size(), stream(), dependency);
 
       result.set_valid(next_event);
 
       return result;
+    }
+
+  public:
+    template<class Function>
+    __host__ __device__
+    future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
+    {
+      return then_execute_impl(dependency.event(), f, shape);
     }
 
     template<class T, class Function>
@@ -333,7 +340,8 @@ class basic_grid_executor
       detail::function_with_past_parameter<Function,T> g{f, dependency.data()};
 
       // XXX we need to enqueue a destructor & deallocate for the dependency
-      return then_execute(dependency.void_future(), g, shape);
+      // XXX no, this should happen in future<T>'s destructor
+      return then_execute_impl(dependency.event(), g, shape);
     }
 
   private:

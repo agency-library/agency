@@ -35,6 +35,16 @@ namespace detail
 {
 
 
+template<class T, class... Args>
+struct is_constructible_or_void
+  : std::integral_constant<
+      bool,
+      std::is_constructible<T,Args...>::value ||
+      std::is_void<T>::value && (sizeof...(Args) == 0)
+    >
+{};
+
+
 template<class T,
          bool requires_storage = std::is_empty<T>::value || std::is_void<T>::value>
 class future_state
@@ -187,13 +197,14 @@ class future_state<T,true>
 } // end detail
 
 
-// XXX collapse future<void> and future<T> via future_state
-template<typename T> class future;
-
-
-template<>
-class future<void>
+template<typename T>
+class future
 {
+  private:
+    cudaStream_t stream_;
+    cudaEvent_t event_;
+    detail::future_state<T> state_;
+
   public:
     // XXX this should be private
     __host__ __device__
@@ -259,19 +270,12 @@ class future<void>
     } // end wait()
 
     __host__ __device__
-    void get()
+    T get()
     {
       wait();
 
       return state_.get();
     } // end get()
-
-    // XXX we can eliminate this I think
-    __host__ __device__
-    future<void> discard_value()
-    {
-      return std::move(*this);
-    } // end discard_value()
 
     __host__ __device__
     bool valid() const
@@ -291,8 +295,12 @@ class future<void>
       return stream_;
     } // end stream()
 
+    template<class... Args,
+             class = typename std::enable_if<
+               detail::is_constructible_or_void<T,Args...>::value
+             >::type>
     __host__ __device__
-    static future<void> make_ready()
+    static future make_ready(Args&&... args)
     {
       cudaEvent_t ready_event = 0;
 
@@ -302,15 +310,15 @@ class future<void>
       detail::terminate_with_message("agency::cuda::future<void>::make_ready() requires CUDART");
 #endif
 
-      future<void> result;
-      result.set_valid(ready_event);
+      future result;
+      result.set_valid(ready_event, std::forward<Args>(args)...);
 
       return result;
     }
 
     // XXX this is only used by grid_executor::then_execute()
     __host__ __device__
-    std::nullptr_t data()
+    auto data() -> decltype(state_.data())
     {
       return state_.data();
     }
@@ -338,137 +346,45 @@ class future<void>
     }
 
     // XXX set_valid() should only be available to friends
-    //     such as future<T> and grid_executor
+    //     such as future<U> and grid_executor
+    template<class... Args,
+             class = typename std::enable_if<
+               detail::is_constructible_or_void<T,Args...>::value
+             >::type>
     __host__ __device__
-    void set_valid(cudaEvent_t e)
+    void set_valid(cudaEvent_t e, Args&&... args)
     {
       event_ = e;
-      state_.set_valid(stream());
+      state_.set_valid(stream(), std::forward<Args>(args)...);
     }
 
   private:
     __host__ __device__
-    future(cudaStream_t s, cudaEvent_t e) : stream_(s), event_(e) {}
+    future(cudaStream_t s, cudaEvent_t e, detail::future_state<T>&& state)
+      : stream_(s), event_(e), state_(std::move(state))
+    {}
+
+    template<class... Args,
+             class = typename std::enable_if<
+               detail::is_constructible_or_void<T,Args...>::value
+             >::type>
+    __host__ __device__
+    future(cudaStream_t s, cudaEvent_t e, Args&&... ready_args)
+      : future(s, e, detail::future_state<T>(s, std::forward<Args>(ready_args)...))
+    {}
 
     // implement swap to avoid depending on thrust::swap
-    template<class T>
+    template<class U>
     __host__ __device__
-    static void swap(T& a, T& b)
+    static void swap(U& a, U& b)
     {
-      T tmp{a};
+      U tmp{a};
       a = b;
       b = tmp;
     }
 
     static const int event_create_flags = cudaEventDisableTiming;
-
-    cudaStream_t stream_;
-    cudaEvent_t event_;
-    detail::future_state<void> state_;
-}; // end future<void>
-
-
-template<class T>
-class future
-{
-  public:
-    __host__ __device__
-    future() : completion_(), state_() {}
-
-    template<class U>
-    __host__ __device__
-    future(U&& ready_value) : future(future<void>::make_ready(), std::forward<U>(ready_value)) {}
-
-    __host__ __device__
-    future(cudaStream_t s) : completion_(s) {}
-
-    __host__ __device__
-    future(future&& other) : future(std::move(other.completion_), std::move(other.state_)) {}
-
-    __host__ __device__
-    future &operator=(future&& other)
-    {
-      completion_ = std::move(other.completion_);
-      state_ = std::move(other.state_);
-      return *this;
-    } // end operator=()
-
-    __host__ __device__
-    void wait() const
-    {
-      completion_.wait();
-    } // end wait()
-
-    __host__ __device__
-    T get()
-    {
-      wait();
-
-      return state_.get();
-    } // end get()
-
-    __host__ __device__
-    future<void> discard_value()
-    {
-      return std::move(completion_);
-    } // end discard_value()
-
-    __host__ __device__
-    bool valid() const
-    {
-      return completion_.valid() && state_.valid();
-    } // end valid()
-
-    // XXX only used by grid_executor
-    //     think of a better way to expose this
-    // XXX the existence of future_cast makes this superfluous i think
-    __host__ __device__
-    future<void>& void_future()
-    {
-      return completion_;
-    } // end void_future()
-
-    template<class U>
-    __host__ __device__
-    static future<T> make_ready(U&& value)
-    {
-      return future<T>(std::forward<U>(value));
-    }
-
-    // XXX this is only used by grid_executor::then_execute()
-    __host__ __device__
-    T* data()
-    {
-      return state_.data();
-    }
-
-    // XXX set_valid() should only be available to friends
-    //     such as future<T> and grid_executor
-    // XXX seems like this should also take ownership of the state
-    __host__ __device__
-    void set_valid(cudaEvent_t event)
-    {
-      completion_.set_valid(event);
-      state_.set_valid(completion_.stream());
-    }
-
-  private:
-    template<class U>
-    __host__ __device__
-    future(future<void>&& complete, U&& ready_value)
-      : future(std::move(complete), detail::future_state<T>(complete.stream(), std::forward<U>(ready_value)))
-    {}
-
-    __host__ __device__
-    future(future<void>&& possibly_complete, detail::future_state<T>&& state)
-      : completion_(std::move(possibly_complete)),
-        state_(std::move(state))
-    {
-    } // end future()
-
-    future<void> completion_;
-    detail::future_state<T> state_;
-}; // end future<T>
+};
 
 
 inline __host__ __device__
