@@ -26,6 +26,7 @@
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_tuple.hpp>
 #include <agency/cuda/future.hpp>
+#include <agency/cuda/detail/array.hpp>
 
 
 namespace agency
@@ -211,6 +212,45 @@ struct function_with_past_parameter_and_results
 };
 
 
+template<class Pointer1, class Function, class Pointer2>
+struct then_execute_functor
+{
+  Pointer1 results_ptr_;
+  Function f_;
+  Pointer2 arg_ptr_;
+
+  template<class Index>
+  __device__ inline static void impl(my_nullptr_t, Function f, const Index& idx, my_nullptr_t)
+  {
+    f(idx);
+  }
+
+  template<class T, class Index>
+  __device__ inline static void impl(T* results_ptr, Function f, const Index& idx, my_nullptr_t)
+  {
+    (*results_ptr)[idx] = f(idx);
+  }
+
+  template<class Index, class T>
+  __device__ inline static void impl(my_nullptr_t, Function f, const Index& idx, T* arg_ptr)
+  {
+    f(idx, *arg_ptr);
+  }
+
+  template<class T1, class Index, class T2>
+  __device__ inline static void impl(T1* results_ptr, Function f, const Index& idx, T2* arg_ptr)
+  {
+    (*results_ptr)[idx] = f(idx, *arg_ptr);
+  }
+
+  template<class Index>
+  __device__ inline void operator()(const Index& idx)
+  {
+    impl(results_ptr_, f_, idx, arg_ptr_);
+  }
+};
+
+
 template<class ThisIndexFunction, class Function>
 __global__ void grid_executor_kernel(Function f)
 {
@@ -290,6 +330,10 @@ class basic_grid_executor
     using future = cuda::future<T>;
 
 
+    template<class T>
+    using container = detail::array<T, shape_type>;
+
+
     __host__ __device__
     explicit basic_grid_executor(int shared_memory_size = 0, cudaStream_t stream = 0, gpu_id gpu = detail::current_gpu())
       : shared_memory_size_(shared_memory_size),
@@ -356,6 +400,35 @@ class basic_grid_executor
 
       // XXX shouldn't we use dependency.stream() here?
       return future<void>{stream(), next_event};
+    }
+
+    template<class Container, class Function, class Future,
+             class = typename std::enable_if<
+               agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
+             >::type,
+             class = typename std::enable_if<
+               agency::detail::is_future<Future>::value
+             >::type,
+             class = agency::detail::result_of_continuation_t<
+               Function,
+               index_type,
+               Future
+             >
+            >
+    future<Container> then_execute(Function f, shape_type shape, Future& fut)
+    {
+      // XXX shouldn't we use fut.stream() ?
+      detail::future_state<Container> result_state(stream(), shape);
+
+      using result_ptr_type = decltype(result_state.data());
+      using arg_ptr_type = decltype(fut.data());
+
+      then_execute_functor<result_ptr_type, Function, arg_ptr_type> g{result_state.data(), f, fut.data()};
+
+      cudaEvent_t next_event = then_execute_impl(g, shape, fut.event());
+
+      // XXX shouldn't we use dependency.stream() here?
+      return future<Container>(stream(), next_event, std::move(result_state));
     }
 
   private:
