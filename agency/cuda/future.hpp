@@ -197,6 +197,11 @@ class future_state<T,true>
 };
 
 
+// declare this so future may befriend it
+template<class Shape, class Index, class ThisIndexFunction>
+class basic_grid_executor;
+
+
 } // end detail
 
 
@@ -361,6 +366,7 @@ class future
 
   private:
     template<class U> friend class future;
+    template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
 
     __host__ __device__
     future(cudaStream_t s, cudaEvent_t e, detail::future_state<T>&& state)

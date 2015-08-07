@@ -196,6 +196,21 @@ struct function_with_past_parameter
 };
 
 
+template<class Container, class Function, class T>
+struct function_with_past_parameter_and_results
+{
+  Container* results_ptr_;
+  T* past_param_ptr_;
+
+  template<class Index>
+  __device__
+  void operator()(const Index& idx)
+  {
+    (*results_ptr_)[idx] = f_(idx, *past_param_ptr_);
+  }
+};
+
+
 template<class ThisIndexFunction, class Function>
 __global__ void grid_executor_kernel(Function f)
 {
@@ -313,16 +328,11 @@ class basic_grid_executor
   private:
     template<class Function>
     __host__ __device__
-    future<void> then_execute_impl(Function f, shape_type shape, cudaEvent_t dependency)
+    cudaEvent_t then_execute_impl(Function f, shape_type shape, cudaEvent_t dependency)
     {
-      // XXX should we use this->stream() or the stream associated with the dependency?
-      future<void> result{stream()};
+      // XXX shouldn't we use the stream associated with dependency instead of stream()?
 
-      cudaEvent_t next_event = this->launch(global_function_pointer<Function>(), f, shape, shared_memory_size(), stream(), dependency);
-
-      result.set_valid(next_event);
-
-      return result;
+      return this->launch(global_function_pointer<Function>(), f, shape, shared_memory_size(), stream(), dependency);
     }
 
   public:
@@ -330,7 +340,10 @@ class basic_grid_executor
     __host__ __device__
     future<void> then_execute(Function f, shape_type shape, future<void>& dependency)
     {
-      return then_execute_impl(f, shape, dependency.event());
+      cudaEvent_t next_event = then_execute_impl(f, shape, dependency.event());
+
+      // XXX shouldn't we use dependency.stream() here?
+      return future<void>{stream(), next_event};
     }
 
     template<class Function, class T>
@@ -339,9 +352,10 @@ class basic_grid_executor
     {
       detail::function_with_past_parameter<Function,T> g{f, dependency.data()};
 
-      // XXX we need to enqueue a destructor & deallocate for the dependency
-      // XXX no, this should happen in future<T>'s destructor
-      return then_execute_impl(g, shape, dependency.event());
+      cudaEvent_t next_event = then_execute_impl(g, shape, dependency.event());
+
+      // XXX shouldn't we use dependency.stream() here?
+      return future<void>{stream(), next_event};
     }
 
   private:
