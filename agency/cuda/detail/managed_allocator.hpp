@@ -22,7 +22,7 @@ class managed_allocator
     {
       value_type* result = nullptr;
   
-      cudaError_t error = cudaMallocManaged(&result, n, cudaMemAttachGlobal);
+      cudaError_t error = cudaMallocManaged(&result, n * sizeof(T), cudaMemAttachGlobal);
   
       if(error != cudaSuccess)
       {
@@ -32,7 +32,6 @@ class managed_allocator
       return result;
     }
   
-    __host__ __device__
     void deallocate(value_type* ptr, size_t)
     {
       cudaError_t error = cudaFree(ptr);
