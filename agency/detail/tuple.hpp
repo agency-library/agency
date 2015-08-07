@@ -399,6 +399,7 @@ template<class Tuple,
            >::value > 1)
          >::type
         >
+__AGENCY_ANNOTATION
 Tuple&& unwrap_single_element_tuple(Tuple&& t)
 {
   return std::forward<Tuple>(t);
@@ -412,6 +413,7 @@ template<class Tuple,
            >::value == 1)
          >::type
         >
+__AGENCY_ANNOTATION
 auto unwrap_single_element_tuple(Tuple&& t)
   -> decltype(
        detail::get<0>(std::forward<Tuple>(t))
