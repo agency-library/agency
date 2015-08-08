@@ -197,56 +197,169 @@ struct function_with_past_parameter
 };
 
 
-template<class Container, class Function, class T>
-struct function_with_past_parameter_and_results
+template<class ResultPointer>
+struct invoke_and_handle_result
 {
-  Container* results_ptr_;
-  T* past_param_ptr_;
+  ResultPointer results_ptr_;
 
-  template<class Index>
-  __device__
-  void operator()(const Index& idx)
+  template<class T, class Function, class Index>
+  __device__ inline static void impl(T& results, Function f, const Index& idx)
   {
-    (*results_ptr_)[idx] = f_(idx, *past_param_ptr_);
+    results[idx] = f(idx);
   }
-};
 
-
-template<class Pointer1, class Function, class Pointer2>
-struct then_execute_functor
-{
-  Pointer1 results_ptr_;
-  Function f_;
-  Pointer2 arg_ptr_;
-
-  template<class Index>
-  __device__ inline static void impl(my_nullptr_t, Function f, const Index& idx, my_nullptr_t)
+  template<class Function, class Index>
+  __device__ inline static void impl(unit, Function f, const Index& idx)
   {
     f(idx);
   }
 
-  template<class T, class Index>
-  __device__ inline static void impl(T* results_ptr, Function f, const Index& idx, my_nullptr_t)
+  template<class Function, class Index>
+  __device__ inline void operator()(Function f, const Index& idx)
   {
-    (*results_ptr)[idx] = f(idx);
+    impl(*results_ptr_, f, idx);
+  }
+};
+
+
+template<class ResultPointer, class PastParameterPointer>
+struct invoke_and_handle_past_parameter : invoke_and_handle_result<ResultPointer>
+{
+  using super_t = invoke_and_handle_result<ResultPointer>;
+
+  PastParameterPointer past_parm_ptr_;
+
+  __host__ __device__
+  invoke_and_handle_past_parameter(ResultPointer results_ptr, PastParameterPointer past_parm_ptr)
+    : super_t{results_ptr},
+      past_parm_ptr_{past_parm_ptr}
+  {}
+
+  template<class Function, class Index>
+  __device__ inline void impl(Function f, const Index &idx, unit)
+  {
+    // no argument besides idx
+    super_t::operator()(f, idx);
   }
 
+  template<class Function, class Index, class T>
+  __device__ inline void impl(Function f, const Index &idx, T& past_parm)
+  {
+    // XXX should just use bind
+    auto g = [&](const Index& idx)
+    {
+      return f(idx, past_parm);
+    };
+
+    super_t::operator()(g, idx);
+  }
+
+  template<class Function, class Index>
+  __device__ inline void operator()(Function f, const Index& idx)
+  {
+    impl(f, idx, *past_parm_ptr_);
+  }
+};
+
+
+template<class ResultPointer, class Function, class PastParameterPointer>
+struct then_execute_functor : invoke_and_handle_past_parameter<ResultPointer,PastParameterPointer>
+{
+  using super_t = invoke_and_handle_past_parameter<ResultPointer,PastParameterPointer>;
+
+  Function f_;
+
+  __host__ __device__
+  then_execute_functor(ResultPointer results_ptr, Function f, PastParameterPointer past_parm_ptr)
+    : super_t(results_ptr, past_parm_ptr),
+      f_(f)
+  {}
+
+  template<class Index>
+  __device__ inline void operator()(const Index& idx)
+  {
+    super_t::operator()(f_, idx);
+  }
+};
+
+
+template<class ResultPointer, class Function, class PastParameterPointer, class OuterParameterPointer>
+struct new_then_execute_functor
+{
+  // XXX could deref each "pointer"
+  //     the ones that have no value could return some type indicating that
+  //     the ones that have a value that requires no storage could create a value on the fly
+  //     basically these would just be very limited fancy iterators
+  // XXX can we make this work for the inner shared parameter as well somehow?
+  //     maybe the shared parameter's constructor could synchronize
+  //     the shared parameter could convert to a reference
+  //     and the shared parameter's destructor could synchronize
+
+  ResultPointer result_ptr_;
+  Function f_;
+  PastParameterPointer past_param_ptr_;
+  OuterParameterPointer outer_param_ptr_;
+
+  // 0 0 0
+  template<class Index>
+  __device__ static inline void impl(Function f, const Index &idx, unit, unit, unit)
+  {
+    f(idx);
+  }
+
+  // 0 0 1
   template<class Index, class T>
-  __device__ inline static void impl(my_nullptr_t, Function f, const Index& idx, T* arg_ptr)
+  __device__ static inline void impl(Function f, const Index &idx, unit, unit, T& outer_param)
   {
-    f(idx, *arg_ptr);
+    f(idx, outer_param);
   }
 
-  template<class T1, class Index, class T2>
-  __device__ inline static void impl(T1* results_ptr, Function f, const Index& idx, T2* arg_ptr)
+  // 0 1 0
+  template<class Index, class T>
+  __device__ static inline void impl(Function f, const Index &idx, unit, T& past_param, unit)
   {
-    (*results_ptr)[idx] = f(idx, *arg_ptr);
+    f(idx, past_param);
+  }
+
+  // 0 1 1
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, unit, T1& past_param, T2& outer_param)
+  {
+    f(idx, *past_param);
+  }
+
+  // 1 0 0
+  template<class Index, class T>
+  __device__ static inline void impl(Function f, const Index &idx, T& result, unit, unit)
+  {
+    result[idx] = f(idx);
+  }
+
+  // 1 0 1
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, T1& result, unit, T2& outer_param)
+  {
+    result[idx] = f(idx, outer_param);
+  }
+
+  // 1 1 0
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, T1& result, T2& past_param, unit)
+  {
+    result[idx] = f(idx, past_param);
+  }
+
+  // 1 1 1
+  template<class Index, class T1, class T2, class T3>
+  __device__ static inline void impl(Function f, const Index &idx, T1& result, T2& past_param, T3& outer_param)
+  {
+    result[idx] = f(idx, past_param, outer_param);
   }
 
   template<class Index>
   __device__ inline void operator()(const Index& idx)
   {
-    impl(results_ptr_, f_, idx, arg_ptr_);
+    impl(f_, idx, *result_ptr_, *past_param_ptr_, *outer_param_ptr_);
   }
 };
 
@@ -421,6 +534,37 @@ class basic_grid_executor
       using arg_ptr_type = decltype(fut.data());
 
       then_execute_functor<result_ptr_type, Function, arg_ptr_type> g{result_state.data(), f, fut.data()};
+
+      cudaEvent_t next_event = then_execute_impl(g, shape, fut.event());
+
+      // XXX shouldn't we use dependency.stream() here?
+      return future<Container>(stream(), next_event, std::move(result_state));
+    }
+
+
+    template<class Container, class Function, class T1, class T2,
+             class = typename std::enable_if<
+               agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
+             >::type,
+             class = agency::detail::result_of_continuation_t<
+               Function,
+               index_type,
+               future<T1>,
+               T2&
+             >
+            >
+    future<Container> then_execute(Function f, shape_type shape, future<T1>& fut, const T2& outer_shared_init)
+    {
+      // XXX shouldn't we use fut.stream() ?
+      detail::future_state<Container> result_state(stream(), shape);
+
+      using result_ptr_type = decltype(result_state.data());
+      using past_arg_ptr_type = decltype(fut.data());
+
+      auto outer_arg = executor_traits<basic_grid_executor>::template make_ready_future<T2>(*this, outer_shared_init);
+      using outer_arg_ptr_type = decltype(outer_arg.data());
+
+      new_then_execute_functor<result_ptr_type, Function, past_arg_ptr_type, outer_arg_ptr_type> g{result_state.data(), f, fut.data(), outer_arg.data()};
 
       cudaEvent_t next_event = then_execute_impl(g, shape, fut.event());
 

@@ -10,42 +10,47 @@ namespace detail
 {
 
 
-// XXX WAR nvbug 1671566
-struct my_nullptr_t
+struct unit {};
+
+struct unit_ptr
 {
-  inline __host__ __device__ my_nullptr_t(std::nullptr_t) {}
+  __host__ __device__
+  unit operator*() const
+  {
+    return unit{};
+  }
 };
 
 
 template<class Function>
-inline __device__ void then_kernel_impl(my_nullptr_t, Function f, my_nullptr_t)
+inline __device__ void then_kernel_impl(unit, Function f, unit)
 {
   f();
 }
 
 template<class T, class Function>
-inline __device__ void then_kernel_impl(T* result_ptr, Function f, my_nullptr_t)
+inline __device__ void then_kernel_impl(T& result, Function f, unit)
 {
-  *result_ptr = f();
+  result = f();
 }
 
 
 template<class Function, class T>
-inline __device__ void then_kernel_impl(my_nullptr_t, Function f, T* arg_ptr)
+inline __device__ void then_kernel_impl(unit, Function f, T& arg)
 {
-  f(*arg_ptr);
+  f(arg);
 }
 
 template<class T1, class Function, class T2>
-inline __device__ void then_kernel_impl(T1* result_ptr, Function f, T2* arg_ptr)
+inline __device__ void then_kernel_impl(T1& result, Function f, T2& arg)
 {
-  *result_ptr = f(*arg_ptr);
+  result = f(arg);
 }
 
 template<class Pointer1, class Function, class Pointer2>
 __global__ void then_kernel(Pointer1 result_ptr, Function f, Pointer2 arg_ptr)
 {
-  agency::cuda::detail::then_kernel_impl(result_ptr, f, arg_ptr);
+  agency::cuda::detail::then_kernel_impl(*result_ptr, f, *arg_ptr);
 }
 
 

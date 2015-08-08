@@ -153,11 +153,9 @@ class future_state<T,true>
     }
 
     __host__ __device__
-    // XXX WAR nvbug 1671566
-    //std::nullptr_t data()
-    my_nullptr_t data()
+    unit_ptr data()
     {
-      return nullptr;
+      return unit_ptr();
     }
 
     __host__ __device__
