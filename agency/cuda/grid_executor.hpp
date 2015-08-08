@@ -402,20 +402,17 @@ class basic_grid_executor
       return future<void>{stream(), next_event};
     }
 
-    template<class Container, class Function, class Future,
+    template<class Container, class Function, class T,
              class = typename std::enable_if<
                agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
-             >::type,
-             class = typename std::enable_if<
-               agency::detail::is_future<Future>::value
              >::type,
              class = agency::detail::result_of_continuation_t<
                Function,
                index_type,
-               Future
+               future<T>
              >
             >
-    future<Container> then_execute(Function f, shape_type shape, Future& fut)
+    future<Container> then_execute(Function f, shape_type shape, future<T>& fut)
     {
       // XXX shouldn't we use fut.stream() ?
       detail::future_state<Container> result_state(stream(), shape);
@@ -430,6 +427,7 @@ class basic_grid_executor
       // XXX shouldn't we use dependency.stream() here?
       return future<Container>(stream(), next_event, std::move(result_state));
     }
+
 
   private:
     template<class Function, class T1, class T2, class T3>
