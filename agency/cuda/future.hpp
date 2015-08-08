@@ -152,6 +152,7 @@ class future_state<T,true>
       return *this;
     }
 
+    // XXX should return something like constant_iterator<T> rather than unit_ptr for the empty type case
     __host__ __device__
     unit_ptr data()
     {

@@ -283,7 +283,8 @@ struct then_execute_functor : invoke_and_handle_past_parameter<ResultPointer,Pas
 };
 
 
-template<class ResultPointer, class Function, class PastParameterPointer, class OuterParameterPointer>
+// XXX should use empty base class optimization for this class because any of these members could be empty types
+template<class ContainerPointer, class Function, class PastParameterPointer, class OuterParameterPointer>
 struct new_then_execute_functor
 {
   // XXX could deref each "pointer"
@@ -295,9 +296,9 @@ struct new_then_execute_functor
   //     the shared parameter could convert to a reference
   //     and the shared parameter's destructor could synchronize
 
-  ResultPointer result_ptr_;
-  Function f_;
-  PastParameterPointer past_param_ptr_;
+  ContainerPointer      container_ptr_;
+  Function              f_;
+  PastParameterPointer  past_param_ptr_;
   OuterParameterPointer outer_param_ptr_;
 
   // 0 0 0
@@ -330,36 +331,36 @@ struct new_then_execute_functor
 
   // 1 0 0
   template<class Index, class T>
-  __device__ static inline void impl(Function f, const Index &idx, T& result, unit, unit)
+  __device__ static inline void impl(Function f, const Index &idx, T& container, unit, unit)
   {
-    result[idx] = f(idx);
+    container[idx] = f(idx);
   }
 
   // 1 0 1
   template<class Index, class T1, class T2>
-  __device__ static inline void impl(Function f, const Index &idx, T1& result, unit, T2& outer_param)
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, unit, T2& outer_param)
   {
-    result[idx] = f(idx, outer_param);
+    container[idx] = f(idx, outer_param);
   }
 
   // 1 1 0
   template<class Index, class T1, class T2>
-  __device__ static inline void impl(Function f, const Index &idx, T1& result, T2& past_param, unit)
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, unit)
   {
-    result[idx] = f(idx, past_param);
+    container[idx] = f(idx, past_param);
   }
 
   // 1 1 1
   template<class Index, class T1, class T2, class T3>
-  __device__ static inline void impl(Function f, const Index &idx, T1& result, T2& past_param, T3& outer_param)
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, T3& outer_param)
   {
-    result[idx] = f(idx, past_param, outer_param);
+    container[idx] = f(idx, past_param, outer_param);
   }
 
   template<class Index>
   __device__ inline void operator()(const Index& idx)
   {
-    impl(f_, idx, *result_ptr_, *past_param_ptr_, *outer_param_ptr_);
+    impl(f_, idx, *container_ptr_, *past_param_ptr_, *outer_param_ptr_);
   }
 };
 
