@@ -36,14 +36,15 @@ void test()
 
     using index_type = typename executor_type::index_type;
 
-    //auto fut = traits::template then_execute<container_type>(exec, [] __device__ (index_type idx, int& past, int& outer_shared_arg)
-    auto fut = exec.template then_execute<container_type>([] __device__ (index_type idx, int& past, int& outer_shared_arg)
+    auto fut = exec.template then_execute<container_type>([] __device__ (index_type idx, int& past, int& outer_shared_arg, float& inner_shared_arg)
     {
+      assert(inner_shared_arg == 13.0f);
       return past + outer_shared_arg;
     },
     shape,
     past,
-    7);
+    7,
+    13.0f);
 
     auto got = fut.get();
 

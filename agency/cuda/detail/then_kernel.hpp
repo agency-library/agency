@@ -12,12 +12,20 @@ namespace detail
 
 struct unit {};
 
-struct unit_ptr
+struct unit_ptr : unit
 {
+  using element_type = unit;
+
   __host__ __device__
-  unit operator*() const
+  unit& operator*()
   {
-    return unit{};
+    return *this;
+  }
+
+  __host__ __device__
+  const unit& operator*() const
+  {
+    return *this;
   }
 };
 

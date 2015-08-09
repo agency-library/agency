@@ -283,84 +283,206 @@ struct then_execute_functor : invoke_and_handle_past_parameter<ResultPointer,Pas
 };
 
 
-// XXX should use empty base class optimization for this class because any of these members could be empty types
-template<class ContainerPointer, class Function, class PastParameterPointer, class OuterParameterPointer>
-struct new_then_execute_functor
+// XXX provide a specialization of this for empty types
+//     the specialization can derive from T and operator T& () can return *this
+template<class T>
+struct on_chip_shared_object
 {
-  // XXX could deref each "pointer"
-  //     the ones that have no value could return some type indicating that
-  //     the ones that have a value that requires no storage could create a value on the fly
-  //     basically these would just be very limited fancy iterators
-  // XXX can we make this work for the inner shared parameter as well somehow?
-  //     maybe the shared parameter's constructor could synchronize
-  //     the shared parameter could convert to a reference
-  //     and the shared parameter's destructor could synchronize
+  __device__
+  static uninitialized<T>* data()
+  {
+    __shared__ uninitialized<T> object;
 
+    return &object;
+  }
+
+  __device__
+  on_chip_shared_object(const T& init)
+  {
+    // XXX get the leader portably
+    if(threadIdx.x == 0)
+    {
+      data()->construct(init);
+    }
+
+    __syncthreads();
+  }
+
+  __device__
+  ~on_chip_shared_object()
+  {
+    // XXX get the leader portably
+    if(threadIdx.x == 0)
+    {
+      data()->destroy();
+    }
+
+    __syncthreads();
+  }
+
+  __device__
+  operator T& ()
+  {
+    return *data();
+  }
+};
+
+
+// XXX try to use empty base class optimization
+template<class T>
+struct shared_parameter_pointer
+{
+  using element_type = T;
+
+  element_type init;
+
+  __device__
+  on_chip_shared_object<element_type> operator*()
+  {
+    return on_chip_shared_object<element_type>{init};
+  }
+};
+
+
+// XXX should use empty base class optimization for this class because any of these members could be empty types
+template<class ContainerPointer, class Function, class PastParameterPointer, class OuterParameterPointer, class InnerParameterPointer>
+struct new_then_execute_functor {
   ContainerPointer      container_ptr_;
   Function              f_;
   PastParameterPointer  past_param_ptr_;
   OuterParameterPointer outer_param_ptr_;
+  InnerParameterPointer inner_param_ptr_;
 
-  // 0 0 0
+  // 0 0 0 0
   template<class Index>
-  __device__ static inline void impl(Function f, const Index &idx, unit, unit, unit)
+  __device__ static inline void impl(Function f, const Index &idx, unit, unit, unit, unit)
   {
     f(idx);
   }
 
-  // 0 0 1
+  // 0 0 0 1
   template<class Index, class T>
-  __device__ static inline void impl(Function f, const Index &idx, unit, unit, T& outer_param)
+  __device__ static inline void impl(Function f, const Index &idx, unit, unit, unit, T& inner_param)
+  {
+    f(idx, inner_param);
+  }
+
+  // 0 0 1 0
+  template<class Index, class T>
+  __device__ static inline void impl(Function f, const Index &idx, unit, unit, T& outer_param, unit)
   {
     f(idx, outer_param);
   }
 
-  // 0 1 0
+  // 0 0 1 1
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, unit, unit, T1& outer_param, T2& inner_param)
+  {
+    f(idx, outer_param, inner_param);
+  }
+
+  // 0 1 0 0
   template<class Index, class T>
-  __device__ static inline void impl(Function f, const Index &idx, unit, T& past_param, unit)
+  __device__ static inline void impl(Function f, const Index &idx, unit, T& past_param, unit, unit)
   {
     f(idx, past_param);
   }
 
-  // 0 1 1
+  // 0 1 0 1
   template<class Index, class T1, class T2>
-  __device__ static inline void impl(Function f, const Index &idx, unit, T1& past_param, T2& outer_param)
+  __device__ static inline void impl(Function f, const Index &idx, unit, T1& past_param, unit, T2& inner_param)
   {
-    f(idx, *past_param);
+    f(idx, past_param, inner_param);
   }
 
-  // 1 0 0
+  // 0 1 1 0
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, T1& past_param, T2& outer_param, unit)
+  {
+    f(idx, past_param, outer_param);
+  }
+
+  // 0 1 1 1
+  template<class Index, class T1, class T2, class T3>
+  __device__ static inline void impl(Function f, const Index &idx, unit, T1& past_param, T2& outer_param, T3& inner_param)
+  {
+    f(idx, past_param, outer_param, inner_param);
+  }
+
+  // 1 0 0 0
   template<class Index, class T>
-  __device__ static inline void impl(Function f, const Index &idx, T& container, unit, unit)
+  __device__ static inline void impl(Function f, const Index &idx, T& container, unit, unit, unit)
   {
     container[idx] = f(idx);
   }
 
-  // 1 0 1
+  // 1 0 0 1
   template<class Index, class T1, class T2>
-  __device__ static inline void impl(Function f, const Index &idx, T1& container, unit, T2& outer_param)
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, unit, unit, T2& inner_param)
+  {
+    container[idx] = f(idx, inner_param);
+  }
+
+  // 1 0 1 0
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, unit, T2& outer_param, unit)
   {
     container[idx] = f(idx, outer_param);
   }
 
-  // 1 1 0
+  // 1 0 1 1
+  template<class Index, class T1, class T2, class T3>
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, unit, T1& outer_param, T2& inner_param)
+  {
+    container[idx] = f(idx, outer_param, inner_param);
+  }
+
+  // 1 1 0 0
   template<class Index, class T1, class T2>
-  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, unit)
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, unit, unit)
   {
     container[idx] = f(idx, past_param);
   }
 
-  // 1 1 1
+  // 1 1 0 1
   template<class Index, class T1, class T2, class T3>
-  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, T3& outer_param)
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, unit, T3& inner_param)
+  {
+    container[idx] = f(idx, past_param, inner_param);
+  }
+
+  // 1 1 1 0
+  template<class Index, class T1, class T2, class T3>
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, T3& outer_param, unit)
   {
     container[idx] = f(idx, past_param, outer_param);
   }
 
+  // 1 1 1 1
+  template<class Index, class T1, class T2, class T3, class T4>
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, T3& outer_param, T4& inner_param)
+  {
+    container[idx] = f(idx, past_param, outer_param, inner_param);
+  }
+  
   template<class Index>
   __device__ inline void operator()(const Index& idx)
   {
-    impl(f_, idx, *container_ptr_, *past_param_ptr_, *outer_param_ptr_);
+    // we need to cast each dereference below to convert proxy references to ensure that f() only sees raw references
+    // XXX isn't there a more elegant way to deal with this?
+    using container_reference   = typename std::pointer_traits<ContainerPointer>::element_type &;
+    using past_param_reference  = typename std::pointer_traits<PastParameterPointer>::element_type &;
+    using outer_param_reference = typename std::pointer_traits<OuterParameterPointer>::element_type &;
+    using inner_param_reference = typename std::pointer_traits<InnerParameterPointer>::element_type &;
+
+    impl(
+      f_,
+      idx,
+      static_cast<container_reference>(*container_ptr_),
+      static_cast<past_param_reference>(*past_param_ptr_),
+      static_cast<outer_param_reference>(*outer_param_ptr_),
+      static_cast<inner_param_reference>(*inner_param_ptr_)
+    );
   }
 };
 
@@ -543,7 +665,7 @@ class basic_grid_executor
     }
 
 
-    template<class Container, class Function, class T1, class T2,
+    template<class Container, class Function, class T1, class T2, class T3,
              class = typename std::enable_if<
                agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
              >::type,
@@ -551,10 +673,11 @@ class basic_grid_executor
                Function,
                index_type,
                future<T1>,
-               T2&
+               T2&,
+               T3&
              >
             >
-    future<Container> then_execute(Function f, shape_type shape, future<T1>& fut, const T2& outer_shared_init)
+    future<Container> then_execute(Function f, shape_type shape, future<T1>& fut, const T2& outer_shared_init, const T3& inner_shared_init)
     {
       // XXX shouldn't we use fut.stream() ?
       detail::future_state<Container> result_state(stream(), shape);
@@ -565,7 +688,10 @@ class basic_grid_executor
       auto outer_arg = executor_traits<basic_grid_executor>::template make_ready_future<T2>(*this, outer_shared_init);
       using outer_arg_ptr_type = decltype(outer_arg.data());
 
-      new_then_execute_functor<result_ptr_type, Function, past_arg_ptr_type, outer_arg_ptr_type> g{result_state.data(), f, fut.data(), outer_arg.data()};
+      using inner_arg_ptr_type = shared_parameter_pointer<T3>;
+      inner_arg_ptr_type inner_arg{inner_shared_init};
+
+      new_then_execute_functor<result_ptr_type, Function, past_arg_ptr_type, outer_arg_ptr_type, inner_arg_ptr_type> g{result_state.data(), f, fut.data(), outer_arg.data(), inner_arg};
 
       cudaEvent_t next_event = then_execute_impl(g, shape, fut.event());
 
