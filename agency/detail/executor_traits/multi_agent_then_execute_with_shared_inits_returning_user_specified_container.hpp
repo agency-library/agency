@@ -28,7 +28,7 @@ template<class Executor, class Container, class Function, class Future, class...
 using has_strategy_1 = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<
   Executor,
   Container,
-  Future,
+  Function,
   Future,
   Types...
 >;
