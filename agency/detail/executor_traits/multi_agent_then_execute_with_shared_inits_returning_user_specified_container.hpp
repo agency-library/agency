@@ -26,8 +26,8 @@ using use_strategy_1 = use_multi_agent_then_execute_with_shared_inits_returning_
 
 template<class Executor, class Container, class Function, class Future, class... Types>
 using has_strategy_1 = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<
-  Executor,
   Container,
+  Executor,
   Function,
   Future,
   Types...
@@ -93,7 +93,7 @@ typename new_executor_traits<Executor>::template future<Container>
                                                                                 Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut,
                                                                                 Types&&... shared_inits)
 {
-  return ex.template then_execute<Container>(ex, f, shape, fut, std::forward<Types>(shared_inits)...);
+  return ex.template then_execute<Container>(f, shape, fut, std::forward<Types>(shared_inits)...);
 } // end multi_agent_then_execute_with_shared_inits_returning_user_specified_container()
 
 

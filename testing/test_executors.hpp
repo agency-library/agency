@@ -541,7 +541,8 @@ struct multi_agent_then_execute_with_shared_inits_returning_user_defined_contain
 
     using shared_arg_type = typename std::decay<U>::type;
 
-    return exec.async_execute<Container>([=,&val](const size_t& idx, shared_arg_type& shared_arg)
+    // XXX val should actually be moved in here, not captured by value
+    return exec.async_execute<Container>([=](const size_t& idx, shared_arg_type& shared_arg) mutable
     {
       return f(idx, val, shared_arg);
     },
