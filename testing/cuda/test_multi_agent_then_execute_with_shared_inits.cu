@@ -9,9 +9,23 @@ struct increment_and_return_void
 {
   template<class Index>
   __device__
-  void operator()(const Index&, int& past)
+  void operator()(const Index&, int& past, int& outer_shared_arg, int& inner_shared_arg)
   {
-    atomicAdd(&increment_me, past);
+    atomicAdd(&increment_me, past + outer_shared_arg + inner_shared_arg);
+  }
+};
+
+
+struct sum_13_7_and_42
+{
+  template<class Index, class T1, class T2, class T3>
+  __device__
+  int operator()(const Index&, T1& past, T2& outer_shared_arg, T3& inner_shared_arg)
+  {
+    assert(past == 13);
+    assert(outer_shared_arg == 7);
+    assert(inner_shared_arg == 42);
+    return past + outer_shared_arg + inner_shared_arg;
   }
 };
 
@@ -36,65 +50,51 @@ void test()
 
     using index_type = typename executor_type::index_type;
 
-    auto fut = exec.template then_execute<container_type>([] __device__ (index_type idx, int& past, int& outer_shared_arg, float& inner_shared_arg)
-    {
-      assert(inner_shared_arg == 13.0f);
-      return past + outer_shared_arg;
-    },
-    shape,
-    past,
-    7,
-    13.0f);
+    auto fut = traits::template then_execute<container_type>(exec, sum_13_7_and_42(), shape, past, 7, 42.0f);
 
     auto got = fut.get();
 
-    assert(got == std::vector<int>(got.size(), 13 + 7));
+    assert(got == std::vector<int>(got.size(), 13 + 7 + 42));
   }
 
-//  {
-//    // then_execute returning default container
-//    
-//    executor_type exec;
-//
-//    typename executor_type::shape_type shape{10,10};
-//
-//    auto past = traits::template make_ready_future<int>(exec, 13);
-//
-//    using index_type = typename traits::index_type;
-//
-//    auto fut = traits::then_execute(exec, [] __device__ (index_type idx, int& past)
-//    {
-//      return past;
-//    },
-//    shape,
-//    past);
-//
-//    auto result = fut.get();
-//
-//    std::vector<int> ref(result.size(), 13);
-//    assert(std::equal(ref.begin(), ref.end(), result.begin()));
-//  }
-//
-//  {
-//    // then_execute returning void
-//    
-//    executor_type exec;
-//
-//    typename executor_type::shape_type shape{10,10};
-//
-//    auto past = traits::template make_ready_future<int>(exec, 13);
-//
-//    increment_me = 0;
-//
-//    using index_type = typename traits::index_type;
-//
-//    // XXX don't use a __device__ lambda here because we can't reliably compute its return type
-//    auto fut = traits::then_execute(exec, increment_and_return_void(), shape, past);
-//
-//    fut.wait();
-//
-//    assert(increment_me == shape[0] * shape[1] * 13);
-//  }
+  {
+    // then_execute returning default container
+    
+    executor_type exec;
+
+    typename executor_type::shape_type shape{10,10};
+
+    auto past = traits::template make_ready_future<int>(exec, 13);
+
+    using index_type = typename traits::index_type;
+
+    auto fut = traits::then_execute(exec, sum_13_7_and_42(), shape, past, 7, 42.0f);
+
+    auto result = fut.get();
+
+    std::vector<int> ref(result.size(), 13 + 7 + 42);
+    assert(std::equal(ref.begin(), ref.end(), result.begin()));
+  }
+
+  {
+    // then_execute returning void
+    
+    executor_type exec;
+
+    typename executor_type::shape_type shape{10,10};
+
+    auto past = traits::template make_ready_future<int>(exec, 13);
+
+    increment_me = 0;
+
+    using index_type = typename traits::index_type;
+
+    auto fut = traits::then_execute(exec, increment_and_return_void(), shape, past, 7, 42);
+
+    fut.wait();
+
+    assert(increment_me == shape[0] * shape[1] * (13 + 7 + 42));
+  }
 }
 
 int main()
