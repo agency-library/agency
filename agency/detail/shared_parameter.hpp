@@ -90,6 +90,23 @@ struct make_shared_parameter_matrix_element
 };
 
 
+template<size_t row_index, class Tuple>
+using shared_parameter_matrix_row_t = decltype(detail::tuple_map(make_shared_parameter_matrix_element<row_index>{}, std::declval<Tuple>()));
+
+
+// to create row i of the shared parameter matrix,
+// we create a tuple with as many elements as there are shared parameters (given in shared_arg_tuple)
+// element j of the tuple is a copy of element j of shared_arg_tuple if element j's level is equal to i
+// otherwise, element j is a null_type
+template<size_t row_index, class... SharedArgs>
+__AGENCY_ANNOTATION
+shared_parameter_matrix_row_t<row_index,tuple<SharedArgs...>>
+  make_shared_parameter_matrix_row(const tuple<SharedArgs...>& shared_arg_tuple)
+{
+  return detail::tuple_map(make_shared_parameter_matrix_element<row_index>{}, shared_arg_tuple);
+}
+
+
 template<class Indices, class Tuple>
 struct shared_parameter_matrix_t_impl;
 
@@ -97,11 +114,9 @@ struct shared_parameter_matrix_t_impl;
 template<size_t... RowIndex, class Tuple>
 struct shared_parameter_matrix_t_impl<index_sequence<RowIndex...>,Tuple>
 {
-  using type = decltype(
-    detail::make_tuple(
-      detail::tuple_map(make_shared_parameter_matrix_element<RowIndex>{}, std::declval<Tuple>())...
-    )
-  );
+  using type = detail::tuple<
+    shared_parameter_matrix_row_t<RowIndex,Tuple>...
+  >;
 };
 
 
@@ -118,13 +133,34 @@ using shared_parameter_matrix_t = typename shared_parameter_matrix_t_impl<
 // we create a shared parameter matrix
 // the rows correspond to levels of the executor's hierarchy
 // the columns correspond to shared arguments
+
+// Example - Suppose we have an executor with three levels of execution hierarchy.
+//
+// For an invocation like:
+//
+//     bulk_invoke(executor, function, shape, share<1>(13), share<0>(7), share<0>(42));
+//
+// We have three shared parameters - 2 for level 0, 1 for level 1, and 0 for level 2.
+// For these parameters, make_shared_parameter_matrix() will return the following matrix, encoded as a tuple of tuples:
+//
+// {{ null,    7,   42 },
+//  {   13, null, null },
+//  { null, null, null }}
+//
+// Each row of this matrix corresponds to a level of the executor's execution hierarchy. Non-null elements of row i are parameters that are shared by execution agents at level i of the execution hierarchy.
+// Each column j of this matrix corresponds to a shared parameter; i.e., an element of shared_arg_tuple.
+// Note that each column j of the matrix has exactly one non-null element -- the jth shared parameter.
+//
+// To unpack this matrix into a tuple of parameters for the user's function, we need to find the non-null element of each column.
+// Currently the most straightforward way to do this is to transpose the matrix and find the one non-null element of each row of the transpose.
+
 template<size_t... RowIndex, class... SharedArgs>
 shared_parameter_matrix_t<sizeof...(RowIndex), tuple<SharedArgs...>>
   make_shared_parameter_matrix_impl(index_sequence<RowIndex...>,
                                     const tuple<SharedArgs...>& shared_arg_tuple)
 {
   return detail::make_tuple(
-    detail::tuple_map(make_shared_parameter_matrix_element<RowIndex>{}, shared_arg_tuple)...
+    detail::make_shared_parameter_matrix_row<RowIndex>(shared_arg_tuple)...
   );
 }
 
