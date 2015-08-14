@@ -226,6 +226,48 @@ template<class... Types, template<class...> class Template>
 struct is_instance_of<Template<Types...>,Template> : std::true_type {};
 
 
+template<class Reference, class T>
+struct propagate_reference;
+
+template<class U, class T>
+struct propagate_reference<U&, T>
+{
+  using type = T&;
+};
+
+template<class U, class T>
+struct propagate_reference<const U&, T>
+{
+  using type = const T&;
+};
+
+template<class U, class T>
+struct propagate_reference<U&&, T>
+{
+  using type = T&&;
+};
+
+template<class Reference, class T>
+using propagate_reference_t = typename propagate_reference<Reference,T>::type;
+
+
+template<class T>
+struct is_not_void : std::integral_constant<bool, !std::is_void<T>::value> {};
+
+
+template<class T>
+struct decay_if_not_void : std::decay<T> {};
+
+template<>
+struct decay_if_not_void<void>
+{
+  using type = void;
+};
+
+template<class T>
+using decay_if_not_void_t = typename decay_if_not_void<T>::type;
+
+
 } // end detail
 } // end agency
 

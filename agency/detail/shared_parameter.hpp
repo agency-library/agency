@@ -6,6 +6,7 @@
 #include <agency/detail/tuple_matrix.hpp>
 #include <agency/detail/bind.hpp>
 #include <agency/functional.hpp>
+#include <agency/detail/factory.hpp>
 #include <type_traits>
 #include <utility>
 #include <functional>
@@ -70,65 +71,6 @@ typename tuple_find_non_null_result<tuple<Types...>>::type
 }
 
 
-template<size_t level>
-struct make_shared_parameter_matrix_element
-{
-  // XXX might want to std::move parm
-  template<class T, class... Args>
-  __AGENCY_ANNOTATION
-  shared_parameter<level,T,Args...> operator()(const shared_parameter<level,T,Args...>& parm) const
-  {
-    return parm;
-  }
-
-  template<size_t other_level, class T, class... Args>
-  __AGENCY_ANNOTATION
-  null_type operator()(const shared_parameter<other_level,T,Args...>&) const
-  {
-    return null_type{};
-  }
-};
-
-
-template<size_t row_index, class Tuple>
-using shared_parameter_matrix_row_t = decltype(detail::tuple_map(make_shared_parameter_matrix_element<row_index>{}, std::declval<Tuple>()));
-
-
-// to create row i of the shared parameter matrix,
-// we create a tuple with as many elements as there are shared parameters (given in shared_arg_tuple)
-// element j of the tuple is a copy of element j of shared_arg_tuple if element j's level is equal to i
-// otherwise, element j is a null_type
-template<size_t row_index, class... SharedArgs>
-__AGENCY_ANNOTATION
-shared_parameter_matrix_row_t<row_index,tuple<SharedArgs...>>
-  make_shared_parameter_matrix_row(const tuple<SharedArgs...>& shared_arg_tuple)
-{
-  return detail::tuple_map(make_shared_parameter_matrix_element<row_index>{}, shared_arg_tuple);
-}
-
-
-template<class Indices, class Tuple>
-struct shared_parameter_matrix_t_impl;
-
-
-template<size_t... RowIndex, class Tuple>
-struct shared_parameter_matrix_t_impl<index_sequence<RowIndex...>,Tuple>
-{
-  using type = detail::tuple<
-    shared_parameter_matrix_row_t<RowIndex,Tuple>...
-  >;
-};
-
-
-template<size_t num_rows, class Tuple>
-using shared_parameter_matrix_t = typename shared_parameter_matrix_t_impl<
-  agency::detail::make_index_sequence<
-    num_rows
-  >,
-  Tuple
->::type;
-
-
 // to package shared parameters for an executor,
 // we create a shared parameter matrix
 // the rows correspond to levels of the executor's hierarchy
@@ -151,36 +93,106 @@ using shared_parameter_matrix_t = typename shared_parameter_matrix_t_impl<
 // Each column j of this matrix corresponds to a shared parameter; i.e., an element of shared_arg_tuple.
 // Note that each column j of the matrix has exactly one non-null element -- the jth shared parameter.
 //
+// Since we send factories to an executor, instead of sending a matrix of values, we send a tuple factories.
+// Each factory creates a row of the matrix.
+//
+// For the above example, the corresponding tuple of factories would look like this:
+//
+// {{ zip_factory<   null_factory, factory<int>{7}, factory<int>{42} },
+//  { zip_factory<factory<int>{13},   null_factory,     null_factory },
+//  { zip_factory<   null_factory,    null_factory,     null_factory }}
+//
 // To unpack this matrix into a tuple of parameters for the user's function, we need to find the non-null element of each column.
 // Currently the most straightforward way to do this is to transpose the matrix and find the one non-null element of each row of the transpose.
 
-template<size_t... RowIndex, class... SharedArgs>
-shared_parameter_matrix_t<sizeof...(RowIndex), tuple<SharedArgs...>>
-  make_shared_parameter_matrix_impl(index_sequence<RowIndex...>,
-                                    const tuple<SharedArgs...>& shared_arg_tuple)
+
+struct null_factory
 {
-  return detail::make_tuple(
-    detail::make_shared_parameter_matrix_row<RowIndex>(shared_arg_tuple)...
-  );
+  __AGENCY_ANNOTATION
+  null_type operator()() const
+  {
+    return null_type{};
+  }
+};
+
+
+template<size_t level>
+struct make_factory_tuple_element
+{
+  template<class T, class... Args>
+  __AGENCY_ANNOTATION
+  factory<T,Args...> operator()(const agency::detail::shared_parameter<level,T,Args...>& parm) const
+  {
+    // because shared_parameter derives from factory, we can just do a conversion
+    return parm;
+  }
+
+  template<size_t other_level, class T, class... Args>
+  __AGENCY_ANNOTATION
+  null_factory operator()(const agency::detail::shared_parameter<other_level,T,Args...>&) const
+  {
+    return null_factory{};
+  }
+};
+
+
+template<size_t execution_level, class Tuple>
+using shared_parameter_factory_t = decltype(
+  make_zip_factory(agency::detail::tuple_map(make_factory_tuple_element<execution_level>{}, std::declval<Tuple>()))
+);
+
+
+template<size_t execution_level, class... SharedArgs>
+__AGENCY_ANNOTATION
+shared_parameter_factory_t<execution_level,agency::detail::tuple<SharedArgs...>> make_shared_parameter_factory(const agency::detail::tuple<SharedArgs...>& shared_arg_tuple)
+{
+  return make_zip_factory(agency::detail::tuple_map(make_factory_tuple_element<execution_level>{}, shared_arg_tuple));
 }
 
 
-template<size_t execution_depth, class... SharedArgs>
-shared_parameter_matrix_t<execution_depth, tuple<SharedArgs...>>
-  make_shared_parameter_matrix(const tuple<SharedArgs...>& shared_arg_tuple)
+template<class Indices, class Tuple>
+struct shared_parameter_factory_tuple_t_impl;
+
+
+template<size_t... ExecutionLevel, class Tuple>
+struct shared_parameter_factory_tuple_t_impl<agency::detail::index_sequence<ExecutionLevel...>,Tuple>
 {
-  return detail::make_shared_parameter_matrix_impl(
-    make_index_sequence<execution_depth>{},
-    shared_arg_tuple
+  using type = agency::detail::tuple<
+    shared_parameter_factory_t<ExecutionLevel,Tuple>...
+  >;
+};
+
+
+template<size_t execution_depth, class Tuple>
+using shared_parameter_factory_tuple_t = typename shared_parameter_factory_tuple_t_impl<
+  agency::detail::make_index_sequence<
+    execution_depth
+  >,
+  Tuple
+>::type;
+
+
+template<size_t... ExecutionLevel, class... SharedArgs>
+__AGENCY_ANNOTATION
+shared_parameter_factory_tuple_t<sizeof...(ExecutionLevel), agency::detail::tuple<SharedArgs...>>
+  make_shared_parameter_factory_tuple_impl(agency::detail::index_sequence<ExecutionLevel...>,
+                                           const agency::detail::tuple<SharedArgs...>& shared_arg_tuple)
+{
+  return agency::detail::make_tuple(
+    make_shared_parameter_factory<ExecutionLevel>(shared_arg_tuple)...
   );
 }
 
 
 template<size_t executor_depth, class... SharedArgs>
-shared_parameter_matrix_t<executor_depth, tuple<SharedArgs...>>
-  make_shared_parameter_package_for_executor(const tuple<SharedArgs...>& shared_arg_tuple)
+__AGENCY_ANNOTATION
+shared_parameter_factory_tuple_t<executor_depth,agency::detail::tuple<SharedArgs...>>
+  make_shared_parameter_factory_tuple(const agency::detail::tuple<SharedArgs...>& shared_arg_tuple)
 {
-  return make_shared_parameter_matrix<executor_depth>(shared_arg_tuple);
+  return make_shared_parameter_factory_tuple_impl(
+    agency::detail::make_index_sequence<executor_depth>{},
+    shared_arg_tuple
+  );
 }
 
 

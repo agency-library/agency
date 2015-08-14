@@ -14,40 +14,13 @@ namespace detail
 {
 
 
-template<class Tuple,
-         class = typename std::enable_if<
-           (std::tuple_size<
-             typename std::decay<Tuple>::type
-           >::value > 1)
-         >::type
-        >
-const Tuple& unwrap_single_element_tuple(const Tuple& t)
-{
-  return t;
-}
-
-
-template<class Tuple,
-         class = typename std::enable_if<
-           (std::tuple_size<
-             typename std::decay<Tuple>::type
-           >::value == 1)
-         >::type
-        >
-auto unwrap_single_element_tuple(const Tuple& t)
-  -> decltype(
-       detail::get<0>(t)
-     )
-{
-  return detail::get<0>(t);
-}
-
-
 template<class Index, class Size>
 auto project_index_helper(const Index& idx, Size size_of_second_to_last_dimension)
-  -> decltype(
-       unwrap_single_element_tuple(__tu::tuple_drop_last(idx))
-     )
+  -> typename std::decay<
+       decltype(
+         unwrap_single_element_tuple(__tu::tuple_drop_last(idx))
+       )
+     >::type
 {
   auto result = __tu::tuple_drop_last(idx);
 

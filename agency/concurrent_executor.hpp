@@ -18,8 +18,8 @@ class concurrent_executor
   public:
     using execution_category = concurrent_execution_tag;
 
-    template<class Function, class T>
-    std::future<void> then_execute(std::future<void>& fut, Function f, size_t n, T&& shared_init)
+    template<class Function, class Factory>
+    std::future<void> then_execute(Function f, size_t n, std::future<void>& fut, Factory shared_factory)
     {
       std::future<void> result = detail::make_ready_future();
 
@@ -28,7 +28,7 @@ class concurrent_executor
         result = detail::then(fut, std::launch::async, [=](std::future<void>&) mutable
         {
           // put the shared parameter on the first thread's stack
-          auto shared_parm = agency::decay_construct(shared_init);
+          auto shared_parm = shared_factory();
 
           size_t mid = n / 2;
 
@@ -55,19 +55,19 @@ class concurrent_executor
     }
 
 
-    template<class T1, class Function, class T2>
-    std::future<void> then_execute(std::future<T1>& fut, Function f, size_t n, T2&& shared_init)
+    template<class Function, class T, class Factory>
+    std::future<void> then_execute(Function f, size_t n, std::future<T>& fut, Factory shared_factory)
     {
       std::future<void> result = detail::make_ready_future();
 
       if(n > 0)
       {
-        result = detail::then(fut, std::launch::async, [=](std::future<T1>& fut) mutable
+        result = detail::then(fut, std::launch::async, [=](std::future<T>& fut) mutable
         {
-          T1 past_parameter = std::move(fut.get());
+          T past_parameter = fut.get();
 
           // put the shared parameter on the first thread's stack
-          auto shared_parm = agency::decay_construct(shared_init);
+          auto shared_parm = shared_factory();
 
           size_t mid = n / 2;
 
