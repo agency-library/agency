@@ -56,7 +56,6 @@ int main()
     auto futures = std::make_tuple(agency::detail::make_ready_future<int>(addend));
 
     std::atomic<int> counter(n);
-    int current_sum = 0;
     int result = 0;
 
     std::mutex mut;
@@ -77,7 +76,10 @@ int main()
     },
     n,
     futures,
-    current_sum);
+    []
+    {
+      return 0;
+    });
 
     auto got = fut.get();
 
@@ -97,8 +99,6 @@ int main()
     std::array<std::atomic<int>, 10> group_counters;
     std::fill(group_counters.begin(), group_counters.end(), shape[1]);
 
-    int current_total_sum = 0;
-    int current_group_sum = 0;
     int result = 0;
 
     std::mutex mut;
@@ -128,8 +128,8 @@ int main()
     },
     shape,
     futures,
-    0,
-    0);
+    []{ return 0; },
+    []{ return 0; });
 
     auto got = fut.get();
 

@@ -20,7 +20,6 @@ void test()
     auto futures = std::make_tuple(agency::detail::make_ready_future<int>(addend));
 
     std::atomic<int> counter(n);
-    int current_sum = 0;
     int result = 0;
 
     std::mutex mut;
@@ -40,7 +39,10 @@ void test()
     },
     n,
     futures,
-    current_sum);
+    []
+    {
+      return 0;
+    });
 
     auto got = fut.get();
 

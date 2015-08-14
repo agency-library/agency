@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
+#include <agency/detail/factory.hpp>
 #include <type_traits>
 
 namespace agency
@@ -36,32 +37,6 @@ decay_construct_result_t<T> decay_construct(T&& parm)
 
 namespace detail
 {
-
-
-template<class T, class... Args>
-class factory
-{
-  public:
-    __AGENCY_ANNOTATION
-    factory(const tuple<Args...>& args)
-      : args_(args)
-    {}
-
-    __AGENCY_ANNOTATION
-    T make() const &
-    {
-      return __tu::make_from_tuple<T>(args_);
-    }
-
-    __AGENCY_ANNOTATION
-    T make() &&
-    {
-      return __tu::make_from_tuple<T>(std::move(args_));
-    }
-
-  private:
-    tuple<Args...> args_;
-};
 
 
 template<size_t level, class T, class... Args>

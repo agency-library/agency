@@ -20,57 +20,57 @@ struct use_multi_agent_execute_with_shared_inits_returning_default_container_mem
 struct use_multi_agent_execute_with_shared_inits_returning_user_specified_container {};
 
 
-template<class Executor, class Function, class... Types>
+template<class Executor, class Function, class... Factories>
 using select_multi_agent_execute_with_shared_inits_returning_default_container_implementation = 
   typename std::conditional<
     has_multi_agent_execute_with_shared_inits_returning_default_container<
-      Executor, Function, Types...
+      Executor, Function, Factories...
     >::value,
     use_multi_agent_execute_with_shared_inits_returning_default_container_member_function,
     use_multi_agent_execute_with_shared_inits_returning_user_specified_container
   >::type;
 
 
-template<class Executor, class Function, class... Types>
+template<class Executor, class Function, class... Factories>
 typename new_executor_traits<Executor>::template container<
   typename std::result_of<
     Function(
       typename new_executor_traits<Executor>::index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type
 >
   multi_agent_execute_with_shared_inits_returning_default_container(use_multi_agent_execute_with_shared_inits_returning_default_container_member_function,
                                                                     Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
-                                                                    Types&&... shared_inits)
+                                                                    Factories... shared_factories)
 {
-  return ex.execute(f, shape, std::forward<Types>(shared_inits)...);
+  return ex.execute(f, shape, shared_factories...);
 } // end multi_agent_execute_with_shared_inits_returning_default_container()
 
 
-template<class Executor, class Function, class... Types>
+template<class Executor, class Function, class... Factories>
 typename new_executor_traits<Executor>::template container<
   typename std::result_of<
     Function(
       typename new_executor_traits<Executor>::index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type
 >
   multi_agent_execute_with_shared_inits_returning_default_container(use_multi_agent_execute_with_shared_inits_returning_user_specified_container,
                                                                     Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
-                                                                    Types&&... shared_inits)
+                                                                    Factories... shared_factories)
 {
   using container_type = typename new_executor_traits<Executor>::template container<
     typename std::result_of<
       Function(
         typename new_executor_traits<Executor>::index_type,
-        typename std::decay<Types>::type&...
+        typename std::result_of<Factories()>::type&...
       )
     >::type
   >;
 
-  return new_executor_traits<Executor>::template execute<container_type>(ex, f, shape, std::forward<Types>(shared_inits)...);
+  return new_executor_traits<Executor>::template execute<container_type>(ex, f, shape, shared_factories...);
 } // end multi_agent_execute_with_shared_inits_returning_default_container()
 
 
@@ -80,29 +80,29 @@ typename new_executor_traits<Executor>::template container<
 
 
 template<class Executor>
-  template<class Function, class... Types,
+  template<class Function, class... Factories,
            class Enable1,
            class Enable2>
 typename new_executor_traits<Executor>::template container<
   typename std::result_of<
-    Function(typename new_executor_traits<Executor>::index_type, typename std::decay<Types>::type&...)
+    Function(typename new_executor_traits<Executor>::index_type, typename std::result_of<Factories()>::type&...)
   >::type
 >
   new_executor_traits<Executor>
     ::execute(typename new_executor_traits<Executor>::executor_type& ex,
               Function f,
               typename new_executor_traits<Executor>::shape_type shape,
-              Types&&... shared_inits)
+              Factories... shared_factories)
 {
   namespace ns = detail::new_executor_traits_detail::multi_agent_execute_with_shared_inits_returning_default_container_implementation_strategies;
 
   using implementation_strategy = ns::select_multi_agent_execute_with_shared_inits_returning_default_container_implementation<
     Executor,
     Function,
-    Types&&...
+    Factories...
   >;
 
-  return ns::multi_agent_execute_with_shared_inits_returning_default_container(implementation_strategy(), ex, f, shape, std::forward<Types>(shared_inits)...);
+  return ns::multi_agent_execute_with_shared_inits_returning_default_container(implementation_strategy(), ex, f, shape, shared_factories...);
 } // end new_executor_traits::execute()
 
 

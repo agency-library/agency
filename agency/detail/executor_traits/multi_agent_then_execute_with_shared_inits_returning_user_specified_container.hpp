@@ -23,13 +23,13 @@ struct use_multi_agent_then_execute_with_shared_inits_returning_user_specified_c
 
 using use_strategy_1 = use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_member_function;
 
-template<class Executor, class Container, class Function, class Future, class... Types>
+template<class Executor, class Container, class Function, class Future, class... Factories>
 using has_strategy_1 = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<
   Container,
   Executor,
   Function,
   Future,
-  Types...
+  Factories...
 >;
 
 
@@ -38,7 +38,7 @@ struct use_multi_agent_when_all_execute_and_select_with_shared_inits_member_func
 
 using use_strategy_2 = use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function;
 
-template<class Executor, class Container, class Function, class Future, class... Types>
+template<class Executor, class Container, class Function, class Future, class... Factories>
 using has_strategy_2 = has_multi_agent_when_all_execute_and_select_with_shared_inits<
   detail::index_sequence<0>,
   Executor,
@@ -47,7 +47,7 @@ using has_strategy_2 = has_multi_agent_when_all_execute_and_select_with_shared_i
     typename new_executor_traits<Executor>::template future<Container>,
     Future
   >,
-  detail::type_list<Types...>
+  detail::type_list<Factories...>
 >;
 
 
@@ -57,13 +57,13 @@ struct use_single_agent_then_execute_with_nested_multi_agent_execute_with_shared
 using use_strategy_3 = use_single_agent_then_execute_with_nested_multi_agent_execute_with_shared_inits;
 
 
-template<class Container, class Executor, class Function, class Future, class... Types>
+template<class Container, class Executor, class Function, class Future, class... Factories>
 using select_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_implementation =
   typename std::conditional<
-    has_strategy_1<Executor, Container, Function, Future, Types...>::value,
+    has_strategy_1<Executor, Container, Function, Future, Factories...>::value,
     use_strategy_1,
     typename std::conditional<
-      has_strategy_2<Executor, Container, Function, Future, Types...>::value,
+      has_strategy_2<Executor, Container, Function, Future, Factories...>::value,
       use_strategy_2,
       use_strategy_3
     >::type
@@ -72,13 +72,13 @@ using select_multi_agent_then_execute_with_shared_inits_returning_user_specified
 
 
 // strategy 1
-template<class Container, class Executor, class Function, class Future, class... Types>
+template<class Container, class Executor, class Function, class Future, class... Factories>
 typename new_executor_traits<Executor>::template future<Container>
   multi_agent_then_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_member_function,
                                                                                 Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut,
-                                                                                Types&&... shared_inits)
+                                                                                Factories... shared_factories)
 {
-  return ex.template then_execute<Container>(f, shape, fut, std::forward<Types>(shared_inits)...);
+  return ex.template then_execute<Container>(f, shape, fut, shared_factories...);
 } // end multi_agent_then_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -98,10 +98,10 @@ struct strategy_2_functor
 };
 
 
-template<class Container, class Executor, class Function, class Future, class... Types>
+template<class Container, class Executor, class Function, class Future, class... Factories>
 typename new_executor_traits<Executor>::template future<Container>
   multi_agent_then_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function,
-                                                                                Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Types&&... shared_inits)
+                                                                                Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Factories... shared_factories)
 {
   using traits = new_executor_traits<Executor>;
 
@@ -109,7 +109,7 @@ typename new_executor_traits<Executor>::template future<Container>
 
   auto results_and_fut = detail::make_tuple(std::move(results), std::move(fut));
 
-  return ex.template when_all_execute_and_select<0>(strategy_2_functor<Function>{f}, shape, results_and_fut, std::forward<Types>(shared_inits)...);
+  return ex.template when_all_execute_and_select<0>(strategy_2_functor<Function>{f}, shape, results_and_fut, shared_factories...);
 } // end multi_agent_then_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -160,7 +160,7 @@ struct strategy_3_functor<Container,Executor,Function,void,Tuple>
   Executor& ex;
   mutable Function f;
   typename new_executor_traits<Executor>::shape_type shape;
-  Tuple shared_inits;
+  Tuple shared_factories;
 
   struct inner_functor
   {
@@ -181,7 +181,7 @@ struct strategy_3_functor<Container,Executor,Function,void,Tuple>
   __AGENCY_ANNOTATION
   Container impl(detail::index_sequence<Indices...>) const
   {
-    return new_executor_traits<Executor>::template execute<Container>(ex, inner_functor{f}, shape, std::get<Indices>(shared_inits)...);
+    return new_executor_traits<Executor>::template execute<Container>(ex, inner_functor{f}, shape, detail::get<Indices>(shared_factories)...);
   }
 
   __AGENCY_ANNOTATION
@@ -192,7 +192,7 @@ struct strategy_3_functor<Container,Executor,Function,void,Tuple>
 };
 
 
-template<class Container, class Executor, class Function, class Future, class... Types>
+template<class Container, class Executor, class Function, class Future, class... Factories>
 __AGENCY_ANNOTATION
 strategy_3_functor<
   Container,
@@ -200,24 +200,24 @@ strategy_3_functor<
   Function,
   typename future_traits<Future>::value_type,
   detail::tuple<
-    typename std::decay<Types>::type...
+    typename std::decay<Factories>::type...
   >
 >
-make_strategy_3_functor(Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Types&&... shared_inits)
+make_strategy_3_functor(Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Factories... shared_factories)
 {
-  auto tuple = detail::make_tuple(std::forward<Types>(shared_inits)...);
+  auto factory_tuple = detail::make_tuple(shared_factories...);
 
-  return strategy_3_functor<Container,Executor,Function,typename future_traits<Future>::value_type,decltype(tuple)>{ex, f, shape, tuple};
+  return strategy_3_functor<Container,Executor,Function,typename future_traits<Future>::value_type,decltype(factory_tuple)>{ex, f, shape, factory_tuple};
 }
 
 
-template<class Container, class Executor, class Function, class Future, class... Types>
+template<class Container, class Executor, class Function, class Future, class... Factories>
 typename new_executor_traits<Executor>::template future<Container>
   multi_agent_then_execute_with_shared_inits_returning_user_specified_container(use_single_agent_then_execute_with_nested_multi_agent_execute_with_shared_inits,
                                                                                 Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut,
-                                                                                Types&&... shared_inits)
+                                                                                Factories... shared_factories)
 {
-  auto g = make_strategy_3_functor<Container>(ex, f, shape, fut, std::forward<Types>(shared_inits)...);
+  auto g = make_strategy_3_functor<Container>(ex, f, shape, fut, shared_factories...);
 
   return new_executor_traits<Executor>::then_execute(ex, g, fut);
 } // end multi_agent_then_execute_with_shared_inits_returning_user_specified_container()
@@ -230,7 +230,7 @@ typename new_executor_traits<Executor>::template future<Container>
 
 template<class Executor>
   template<class Container, class Function, class Future,
-           class... Types,
+           class... Factories,
            class Enable1,
            class Enable2,
            class Enable3,
@@ -242,7 +242,7 @@ typename new_executor_traits<Executor>::template future<Container>
                    Function f,
                    typename new_executor_traits<Executor>::shape_type shape,
                    Future& fut,
-                   Types&&... shared_inits)
+                   Factories... shared_factories)
 {
   namespace ns = detail::new_executor_traits_detail::multi_agent_then_execute_with_shared_inits_returning_user_specified_container_implementation_strategies;
 
@@ -251,10 +251,10 @@ typename new_executor_traits<Executor>::template future<Container>
     Executor,
     Function,
     Future,
-    Types...
+    Factories...
   >;
 
-  return ns::multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Container>(implementation_strategy(), ex, f, shape, fut, std::forward<Types>(shared_inits)...);
+  return ns::multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Container>(implementation_strategy(), ex, f, shape, fut, shared_factories...);
 } // end new_executor_traits::then_execute()
 
 
