@@ -52,10 +52,55 @@ class factory
 };
 
 
+template<class T>
+__AGENCY_ANNOTATION
+factory<T,T> make_factory(const T& arg)
+{
+  return factory<T,T>{detail::make_tuple(arg)};
+}
+
+
 struct unit {};
 
 
 struct unit_factory : factory<unit> {};
+
+
+template<class... Factories>
+struct zip_factory
+{
+  tuple<Factories...> factory_tuple_;
+
+  zip_factory(const tuple<Factories...>& factories) : factory_tuple_(factories) {}
+
+
+  template<size_t... Indices>
+  __AGENCY_ANNOTATION
+  agency::detail::tuple<
+    typename std::result_of<Factories()>::type...
+  >
+    impl(agency::detail::index_sequence<Indices...>)
+  {
+    return agency::detail::make_tuple(detail::get<Indices>(factory_tuple_)()...);
+  }
+
+  __AGENCY_ANNOTATION
+  agency::detail::tuple<
+    typename std::result_of<Factories()>::type...
+  >
+    operator()()
+  {
+    return impl(index_sequence_for<Factories...>());
+  }
+};
+
+
+template<class... Factories>
+__AGENCY_ANNOTATION
+zip_factory<Factories...> make_zip_factory(const tuple<Factories...>& factory_tuple)
+{
+  return zip_factory<Factories...>(factory_tuple);
+}
 
 
 } // end detail
