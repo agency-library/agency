@@ -34,7 +34,10 @@ void test()
     },
     n,
     past,
-    std::ref(shared_arg));
+    [&]
+    {
+      return std::ref(shared_arg);
+    });
 
     auto got = fut.get();
 
@@ -65,7 +68,10 @@ void test()
     },
     n,
     past,
-    std::ref(shared_arg));
+    [&]
+    {
+      return std::ref(shared_arg);
+    });
 
     auto got = fut.get();
 
@@ -95,7 +101,10 @@ void test()
     },
     n,
     past,
-    std::ref(shared_arg));
+    [&]
+    {
+      return std::ref(shared_arg);
+    });
 
     auto result = fut.get();
 
@@ -127,7 +136,10 @@ void test()
     },
     n,
     past,
-    std::ref(shared_arg));
+    [&]
+    {
+      return std::ref(shared_arg);
+    });
 
     auto got = fut.get();
 
@@ -158,7 +170,10 @@ void test()
     },
     n,
     past,
-    std::ref(shared_arg));
+    [&]
+    {
+      return std::ref(shared_arg);
+    });
 
     fut.wait();
 
@@ -190,7 +205,10 @@ void test()
     },
     n,
     past,
-    std::ref(shared_arg));
+    [&]
+    {
+      return std::ref(shared_arg);
+    });
 
     fut.wait();
 

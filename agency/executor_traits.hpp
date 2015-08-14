@@ -3,6 +3,7 @@
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/new_executor_traits.hpp>
+#include <agency/detail/factory.hpp>
 
 
 namespace agency
@@ -56,8 +57,8 @@ template<class Executor, class T, class TypeList>
 struct has_multi_agent_then_execute_impl;
 
 
-template<class Executor, class T, class... Types>
-struct has_multi_agent_then_execute_impl<Executor, T, type_list<Types...>>
+template<class Executor, class T, class... Factories>
+struct has_multi_agent_then_execute_impl<Executor, T, type_list<Factories...>>
 {
   template<class U>
   using future = typename nested_future_with_default<
@@ -68,7 +69,7 @@ struct has_multi_agent_then_execute_impl<Executor, T, type_list<Types...>>
     Executor,
     new_executor_traits_detail::test_function_returning_void,
     future<void>,
-    Types...
+    Factories...
   >;
 };
 
@@ -80,7 +81,7 @@ struct has_multi_agent_then_execute
       T,
       int,
       repeat_type<
-        int, execution_depth<typename T::execution_category>::value
+        unit_factory, execution_depth<typename T::execution_category>::value
       >
     >::type
 {};

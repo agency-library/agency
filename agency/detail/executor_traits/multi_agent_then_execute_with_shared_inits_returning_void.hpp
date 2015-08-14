@@ -18,22 +18,22 @@ namespace new_executor_traits_detail
 {
 
 
-template<class Executor, class Function, class Future, class... Types>
+template<class Executor, class Function, class Future, class... Factories>
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_then_execute_with_shared_inits_returning_void(std::true_type,
-                                                            Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Types&&... shared_inits)
+                                                            Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Factories... shared_factories)
 {
-  return ex.then_execute(f, shape, fut, std::forward<Types>(shared_inits)...);
+  return ex.then_execute(f, shape, fut, shared_factories...);
 } // end multi_agent_then_execute_with_shared_inits_returning_void()
 
 
-template<class Executor, class Function, class Future, class... Types>
+template<class Executor, class Function, class Future, class... Factories>
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_then_execute_with_shared_inits_returning_void(std::false_type,
-                                                            Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Types&&... shared_inits)
+                                                            Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Factories... shared_factories)
 {
   // invoke f and generate dummy results into a discarding_container
-  auto fut2 = new_executor_traits<Executor>::template then_execute<discarding_container>(ex, invoke_and_return_empty<Function>{f}, shape, fut, std::forward<Types>(shared_inits)...);
+  auto fut2 = new_executor_traits<Executor>::template then_execute<discarding_container>(ex, invoke_and_return_empty<Function>{f}, shape, fut, shared_factories...);
 
   // cast the discarding_container to void
   return new_executor_traits<Executor>::template future_cast<void>(ex, fut2);
@@ -45,7 +45,7 @@ typename new_executor_traits<Executor>::template future<void>
 
 
 template<class Executor>
-  template<class Function, class Future, class... Types,
+  template<class Function, class Future, class... Factories,
            class Enable1,
            class Enable2,
            class Enable3,
@@ -57,7 +57,7 @@ typename new_executor_traits<Executor>::template future<void>
                    Function f,
                    typename new_executor_traits<Executor>::shape_type shape,
                    Future& fut,
-                   Types&&... shared_inits)
+                   Factories... shared_factories)
 {
   namespace ns = detail::new_executor_traits_detail;
 
@@ -65,10 +65,10 @@ typename new_executor_traits<Executor>::template future<void>
     Executor,
     Function,
     Future,
-    Types...
+    Factories...
   >;
 
-  return ns::multi_agent_then_execute_with_shared_inits_returning_void(implementation_strategy(), ex, f, shape, fut, std::forward<Types>(shared_inits)...);
+  return ns::multi_agent_then_execute_with_shared_inits_returning_void(implementation_strategy(), ex, f, shape, fut, shared_factories...);
 } // end new_executor_traits::then_execute()
 
 

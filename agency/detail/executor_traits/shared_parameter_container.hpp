@@ -48,11 +48,11 @@ tuple_of_shared_parameter_containers<Executor,Types...>
 }
 
 
-template<class Executor, class... Types>
-tuple_of_shared_parameter_containers<Executor, typename std::decay<Types>::type...>
-  make_tuple_of_shared_parameter_containers(Executor& ex, typename new_executor_traits<Executor>::shape_type shape, Types&&... shared_inits)
+template<class Executor, class... Factories>
+tuple_of_shared_parameter_containers<Executor, typename std::result_of<Factories()>::type...>
+  make_tuple_of_shared_parameter_containers(Executor& ex, typename new_executor_traits<Executor>::shape_type shape, Factories... shared_factories)
 {
-  return make_tuple_of_shared_parameter_containers(detail::make_index_sequence<sizeof...(shared_inits)>(), ex, shape, std::forward<Types>(shared_inits)...);
+  return make_tuple_of_shared_parameter_containers(detail::make_index_sequence<sizeof...(shared_factories)>(), ex, shape, shared_factories()...);
 }
 
 

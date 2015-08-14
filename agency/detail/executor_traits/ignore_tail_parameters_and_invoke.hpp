@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/new_executor_traits.hpp>
+#include <agency/detail/factory.hpp>
 
 namespace agency
 {
@@ -38,9 +39,9 @@ ignore_tail_parameters_and_invoke<Function> make_ignore_tail_parameters_and_invo
 
 template<class Executor>
 __AGENCY_ANNOTATION
-homogeneous_tuple<detail::ignore_t,new_executor_traits<Executor>::execution_depth> make_tuple_of_ignored_parameters(Executor&)
+homogeneous_tuple<detail::unit_factory,new_executor_traits<Executor>::execution_depth> make_tuple_of_unit_factories(Executor&)
 {
-  return make_homogeneous_tuple<new_executor_traits<Executor>::execution_depth>(detail::ignore);
+  return make_homogeneous_tuple<new_executor_traits<Executor>::execution_depth>(detail::unit_factory());
 }
 
 

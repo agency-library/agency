@@ -32,7 +32,10 @@ void test()
       return idx;
     },
     n,
-    std::ref(shared_arg)).get();
+    [&]
+    {
+      return std::ref(shared_arg);
+    }).get();
 
     std::vector<int> ref(n);
     std::iota(ref.begin(), ref.end(), 0);
@@ -60,7 +63,10 @@ void test()
       return idx;
     },
     n,
-    std::ref(shared_arg)).get();
+    [&]
+    {
+      return std::ref(shared_arg);
+    }).get();
 
     std::vector<int> ref(n);
     std::iota(ref.begin(), ref.end(), 0);
@@ -89,7 +95,10 @@ void test()
       mut.unlock();
     },
     n,
-    std::ref(shared_arg)).wait();
+    [&]
+    {
+      return std::ref(shared_arg);
+    }).wait();
 
     assert(increment_me == n * 13);
     assert(shared_arg == n);
