@@ -25,6 +25,7 @@
 #include <agency/functional.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_tuple.hpp>
+#include <agency/detail/factory.hpp>
 #include <agency/cuda/future.hpp>
 
 
@@ -34,6 +35,16 @@ namespace cuda
 {
 namespace detail
 {
+
+
+template<class Factory>
+struct result_of_factory_is_empty
+  : std::integral_constant<
+      bool,
+      (std::is_empty<agency::detail::result_of_factory_t<T>>::value ||
+       agency::detail::is_empty_tuple<agency::detail::result_of_factory_t<T>>::value)
+    >
+{};
 
 
 template<class T>
