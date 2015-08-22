@@ -71,28 +71,6 @@ struct multi_agent_when_all_execute_and_select_with_shared_inits_functor
 
 
 template<class IndexSequence, class Executor, class Function, class TupleOfFutures, class TypeList>
-struct has_multi_agent_when_all_execute_and_select_member_function_impl;
-
-template<size_t... Indices, class Executor, class Function, class TupleOfFutures, class... Types>
-struct has_multi_agent_when_all_execute_and_select_member_function_impl<detail::index_sequence<Indices...>,Executor,Function,TupleOfFutures,detail::type_list<Types...>>
-{
-  using tuple_of_shared_parameter_containers_type = tuple_of_shared_parameter_containers<Executor, typename std::decay<Types>::type...>;
-
-  using future_tuple_of_shared_parameter_containers_type = typename new_executor_traits<Executor>::template future<tuple_of_shared_parameter_containers_type>;
-
-  using prepended_tuple_of_futures_type = tuple_prepend_result_t<TupleOfFutures, future_tuple_of_shared_parameter_containers_type>;
-
-  using shape_type = typename new_executor_traits<Executor>::shape_type;
-
-  using wrapped_function_type = multi_agent_when_all_execute_and_select_with_shared_inits_functor<Function, shape_type>;
-
-  using type = typename new_executor_traits_detail::has_multi_agent_when_all_execute_and_select<
-    Executor, wrapped_function_type, prepended_tuple_of_futures_type, (Indices+1)...
-  >::type;
-};
-
-
-template<class IndexSequence, class Executor, class Function, class TupleOfFutures, class TypeList>
 struct select_multi_agent_when_all_execute_and_select_with_shared_inits_implementation_impl;
 
 template<size_t... Indices, class Executor, class Function, class TupleOfFutures, class... Types>
