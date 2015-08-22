@@ -64,6 +64,27 @@ __global__ void kernel_template()
   maybe_launch_nested_kernel<T>();
 }
 
+
+template<class T>
+struct factory
+{
+  __host__ __device__
+  T operator()() const
+  {
+    return value_;
+  }
+
+  T value_;
+};
+
+template<class T>
+__host__ __device__
+factory<T> make_factory(const T& value)
+{
+  return factory<T>{value};
+}
+
+
 int main()
 {
   agency::cuda::grid_executor ex;
@@ -73,7 +94,7 @@ int main()
   cudaDeviceSynchronize();
 
   std::cout << "Testing bulk_invoke with shared arg on host" << std::endl;
-  ex.execute(with_shared_arg(), agency::uint2{2,2}, 7, 13);
+  ex.execute(with_shared_arg(), agency::uint2{2,2}, make_factory(7), make_factory(13));
   cudaDeviceSynchronize();
 
   std::cout << "Testing bulk_invoke() on device" << std::endl;
