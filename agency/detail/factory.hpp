@@ -80,6 +80,7 @@ struct zip_factory
 {
   tuple<Factories...> factory_tuple_;
 
+  __AGENCY_ANNOTATION
   zip_factory(const tuple<Factories...>& factories) : factory_tuple_(factories) {}
 
 

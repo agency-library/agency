@@ -1,7 +1,15 @@
 import os
 
-env = Environment(CXX = 'clang')
+# command line variables
+vars = Variables()
+vars.Add('CXX', 'compiler', 'clang')
+
+env = Environment(variables = vars)
 env.MergeFlags(['-I..', '-std=c++11', '-lstdc++', '-lpthread'])
+
+if env['CXX'] == 'nvcc':
+  env.PrependENVPath('PATH', '/usr/local/cuda/bin')
+  env.MergeFlags({'CXXFLAGS' : ['-x', 'cu']})
 
 # find all sources in the current directory
 sources = []

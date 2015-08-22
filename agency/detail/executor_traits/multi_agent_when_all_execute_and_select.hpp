@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/factory.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <iostream>
 
@@ -87,7 +88,7 @@ struct multi_agent_when_all_execute_and_select_ignoring_shared_args_functor
   __AGENCY_ANNOTATION
   void impl(detail::index_sequence<ArgIndices...>, Index&& idx, Tuple&& arg_tuple) const
   {
-    f(idx, std::get<ArgIndices>(std::forward<Tuple>(arg_tuple))...);
+    agency::invoke(f, idx, std::get<ArgIndices>(std::forward<Tuple>(arg_tuple))...);
   }
 
   template<class Index, class... Args>
@@ -157,7 +158,7 @@ struct multi_agent_when_all_execute_and_select_functor_using_nested_execute
     __AGENCY_ANNOTATION
     void impl(detail::index_sequence<TupleIndices...>, const Index& idx) const
     {
-      f(idx, std::get<TupleIndices>(args)...);
+      agency::invoke(f, idx, std::get<TupleIndices>(args)...);
     }
 
     template<class Index>

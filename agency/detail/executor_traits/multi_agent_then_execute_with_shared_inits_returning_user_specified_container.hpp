@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -33,6 +34,19 @@ using has_strategy_1 = has_multi_agent_then_execute_with_shared_inits_returning_
 >;
 
 
+template<class Executor, class Container, class Function, class Future, class... Types>
+struct has_strategy_1_workaround_nvbug_1665745
+{
+  using type = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<
+    Container,
+    Executor,
+    Function,
+    Future,
+    Types...
+  >;
+};
+
+
 // 2.
 struct use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function {};
 
@@ -60,7 +74,8 @@ using use_strategy_3 = use_single_agent_then_execute_with_nested_multi_agent_exe
 template<class Container, class Executor, class Function, class Future, class... Factories>
 using select_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_implementation =
   typename std::conditional<
-    has_strategy_1<Executor, Container, Function, Future, Factories...>::value,
+    //has_strategy_1<Executor, Container, Function, Future, Factories...>::value,
+    has_strategy_1_workaround_nvbug_1665745<Executor, Container, Function, Future, Factories...>::type::value,
     use_strategy_1,
     typename std::conditional<
       has_strategy_2<Executor, Container, Function, Future, Factories...>::value,
@@ -89,11 +104,12 @@ struct strategy_2_functor
 {
   mutable Function f;
 
+  __agency_hd_warning_disable__
   template<class Index, class Container, class... Args>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Container& c, Args&&... args) const
   {
-    c[idx] = f(idx, std::forward<Args>(args)...);
+    c[idx] = agency::invoke(f, idx, std::forward<Args>(args)...);
   }
 };
 
@@ -135,7 +151,7 @@ struct strategy_3_functor
     >::type
     operator()(const Index& idx, Args&&... args) const
     {
-      return f(idx, arg2, std::forward<Args>(args)...);
+      return agency::invoke(f, idx, arg2, std::forward<Args>(args)...);
     }
   };
 
@@ -173,7 +189,7 @@ struct strategy_3_functor<Container,Executor,Function,void,Tuple>
     >::type
     operator()(Arg1&& arg1, Args&&... args) const
     {
-      return f(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+      return agency::invoke(f, std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
   };
 

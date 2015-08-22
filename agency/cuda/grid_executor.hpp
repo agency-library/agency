@@ -27,6 +27,7 @@
 #include <agency/detail/index_tuple.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/cuda/future.hpp>
+#include <agency/cuda/detail/array.hpp>
 
 
 namespace agency
@@ -81,7 +82,7 @@ struct outer_shared_parameter<Factory,true>
     return param_;
   }
 
-  // the parameter is "ignorable" so we needn't store a reference to an object in global memory
+  // the type of the parameter is empty so we needn't store a reference to an object in global memory
   value_type param_;
 };
 
@@ -92,7 +93,7 @@ struct inner_shared_parameter
   using value_type = agency::detail::result_of_factory_t<Factory>;
 
   __device__
-  inner_shared_parameter(bool is_leader, const Factory& factory)
+  inner_shared_parameter(bool is_leader, Factory factory)
     : is_leader_(is_leader)
   {
     __shared__ uninitialized<value_type> inner_shared_param;
@@ -138,7 +139,7 @@ struct inner_shared_parameter<Factory,true>
   using value_type = agency::detail::result_of_factory_t<Factory>;
 
   __device__
-  inner_shared_parameter(bool is_leader_, const Factory&) {}
+  inner_shared_parameter(bool is_leader_, Factory) {}
 
   inner_shared_parameter(const inner_shared_parameter&) = delete;
   inner_shared_parameter(inner_shared_parameter&&) = delete;
@@ -194,6 +195,296 @@ struct function_with_past_parameter
   void operator()(const Index& idx)
   {
     f_(idx, *past_param_ptr_);
+  }
+};
+
+
+template<class ResultPointer>
+struct invoke_and_handle_result
+{
+  ResultPointer results_ptr_;
+
+  template<class T, class Function, class Index>
+  __device__ inline static void impl(T& results, Function f, const Index& idx)
+  {
+    results[idx] = f(idx);
+  }
+
+  template<class Function, class Index>
+  __device__ inline static void impl(unit, Function f, const Index& idx)
+  {
+    f(idx);
+  }
+
+  template<class Function, class Index>
+  __device__ inline void operator()(Function f, const Index& idx)
+  {
+    impl(*results_ptr_, f, idx);
+  }
+};
+
+
+template<class ResultPointer, class PastParameterPointer>
+struct invoke_and_handle_past_parameter : invoke_and_handle_result<ResultPointer>
+{
+  using super_t = invoke_and_handle_result<ResultPointer>;
+
+  PastParameterPointer past_parm_ptr_;
+
+  __host__ __device__
+  invoke_and_handle_past_parameter(ResultPointer results_ptr, PastParameterPointer past_parm_ptr)
+    : super_t{results_ptr},
+      past_parm_ptr_{past_parm_ptr}
+  {}
+
+  template<class Function, class Index>
+  __device__ inline void impl(Function f, const Index &idx, unit)
+  {
+    // no argument besides idx
+    super_t::operator()(f, idx);
+  }
+
+  template<class Function, class Index, class T>
+  __device__ inline void impl(Function f, const Index &idx, T& past_parm)
+  {
+    // XXX should just use bind
+    auto g = [&](const Index& idx)
+    {
+      return f(idx, past_parm);
+    };
+
+    super_t::operator()(g, idx);
+  }
+
+  template<class Function, class Index>
+  __device__ inline void operator()(Function f, const Index& idx)
+  {
+    impl(f, idx, *past_parm_ptr_);
+  }
+};
+
+
+template<class ResultPointer, class Function, class PastParameterPointer>
+struct then_execute_functor : invoke_and_handle_past_parameter<ResultPointer,PastParameterPointer>
+{
+  using super_t = invoke_and_handle_past_parameter<ResultPointer,PastParameterPointer>;
+
+  Function f_;
+
+  __host__ __device__
+  then_execute_functor(ResultPointer results_ptr, Function f, PastParameterPointer past_parm_ptr)
+    : super_t(results_ptr, past_parm_ptr),
+      f_(f)
+  {}
+
+  template<class Index>
+  __device__ inline void operator()(const Index& idx)
+  {
+    super_t::operator()(f_, idx);
+  }
+};
+
+
+// XXX provide a specialization of this for empty types
+//     the specialization can derive from T and operator T& () can return *this
+template<class T>
+struct on_chip_shared_object
+{
+  __device__
+  static uninitialized<T>* data()
+  {
+    __shared__ uninitialized<T> object;
+
+    return &object;
+  }
+
+  __device__
+  on_chip_shared_object(const T& init)
+  {
+    // XXX get the leader portably
+    if(threadIdx.x == 0)
+    {
+      data()->construct(init);
+    }
+
+    __syncthreads();
+  }
+
+  __device__
+  ~on_chip_shared_object()
+  {
+    // XXX get the leader portably
+    if(threadIdx.x == 0)
+    {
+      data()->destroy();
+    }
+
+    __syncthreads();
+  }
+
+  __device__
+  operator T& ()
+  {
+    return *data();
+  }
+};
+
+
+// XXX try to use empty base class optimization
+template<class T>
+struct shared_parameter_pointer
+{
+  using element_type = T;
+
+  element_type init;
+
+  __device__
+  on_chip_shared_object<element_type> operator*()
+  {
+    return on_chip_shared_object<element_type>{init};
+  }
+};
+
+
+// XXX should use empty base class optimization for this class because any of these members could be empty types
+template<class ContainerPointer, class Function, class PastParameterPointer, class OuterParameterPointer, class InnerParameterPointer>
+struct new_then_execute_functor {
+  ContainerPointer      container_ptr_;
+  Function              f_;
+  PastParameterPointer  past_param_ptr_;
+  OuterParameterPointer outer_param_ptr_;
+  InnerParameterPointer inner_param_ptr_;
+
+  // 0 0 0 0
+  template<class Index>
+  __device__ static inline void impl(Function f, const Index &idx, unit, unit, unit, unit)
+  {
+    f(idx);
+  }
+
+  // 0 0 0 1
+  template<class Index, class T>
+  __device__ static inline void impl(Function f, const Index &idx, unit, unit, unit, T& inner_param)
+  {
+    f(idx, inner_param);
+  }
+
+  // 0 0 1 0
+  template<class Index, class T>
+  __device__ static inline void impl(Function f, const Index &idx, unit, unit, T& outer_param, unit)
+  {
+    f(idx, outer_param);
+  }
+
+  // 0 0 1 1
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, unit, unit, T1& outer_param, T2& inner_param)
+  {
+    f(idx, outer_param, inner_param);
+  }
+
+  // 0 1 0 0
+  template<class Index, class T>
+  __device__ static inline void impl(Function f, const Index &idx, unit, T& past_param, unit, unit)
+  {
+    f(idx, past_param);
+  }
+
+  // 0 1 0 1
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, unit, T1& past_param, unit, T2& inner_param)
+  {
+    f(idx, past_param, inner_param);
+  }
+
+  // 0 1 1 0
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, T1& past_param, T2& outer_param, unit)
+  {
+    f(idx, past_param, outer_param);
+  }
+
+  // 0 1 1 1
+  template<class Index, class T1, class T2, class T3>
+  __device__ static inline void impl(Function f, const Index &idx, unit, T1& past_param, T2& outer_param, T3& inner_param)
+  {
+    f(idx, past_param, outer_param, inner_param);
+  }
+
+  // 1 0 0 0
+  template<class Index, class T>
+  __device__ static inline void impl(Function f, const Index &idx, T& container, unit, unit, unit)
+  {
+    container[idx] = f(idx);
+  }
+
+  // 1 0 0 1
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, unit, unit, T2& inner_param)
+  {
+    container[idx] = f(idx, inner_param);
+  }
+
+  // 1 0 1 0
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, unit, T2& outer_param, unit)
+  {
+    container[idx] = f(idx, outer_param);
+  }
+
+  // 1 0 1 1
+  template<class Index, class T1, class T2, class T3>
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, unit, T1& outer_param, T2& inner_param)
+  {
+    container[idx] = f(idx, outer_param, inner_param);
+  }
+
+  // 1 1 0 0
+  template<class Index, class T1, class T2>
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, unit, unit)
+  {
+    container[idx] = f(idx, past_param);
+  }
+
+  // 1 1 0 1
+  template<class Index, class T1, class T2, class T3>
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, unit, T3& inner_param)
+  {
+    container[idx] = f(idx, past_param, inner_param);
+  }
+
+  // 1 1 1 0
+  template<class Index, class T1, class T2, class T3>
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, T3& outer_param, unit)
+  {
+    container[idx] = f(idx, past_param, outer_param);
+  }
+
+  // 1 1 1 1
+  template<class Index, class T1, class T2, class T3, class T4>
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, T3& outer_param, T4& inner_param)
+  {
+    container[idx] = f(idx, past_param, outer_param, inner_param);
+  }
+  
+  template<class Index>
+  __device__ inline void operator()(const Index& idx)
+  {
+    // we need to cast each dereference below to convert proxy references to ensure that f() only sees raw references
+    // XXX isn't there a more elegant way to deal with this?
+    using container_reference   = typename std::pointer_traits<ContainerPointer>::element_type &;
+    using past_param_reference  = typename std::pointer_traits<PastParameterPointer>::element_type &;
+    using outer_param_reference = typename std::pointer_traits<OuterParameterPointer>::element_type &;
+    using inner_param_reference = typename std::pointer_traits<InnerParameterPointer>::element_type &;
+
+    impl(
+      f_,
+      idx,
+      static_cast<container_reference>(*container_ptr_),
+      static_cast<past_param_reference>(*past_param_ptr_),
+      static_cast<outer_param_reference>(*outer_param_ptr_),
+      static_cast<inner_param_reference>(*inner_param_ptr_)
+    );
   }
 };
 
@@ -279,6 +570,10 @@ class basic_grid_executor
     using future = cuda::future<T>;
 
 
+    template<class T>
+    using container = detail::array<T, shape_type>;
+
+
     __host__ __device__
     explicit basic_grid_executor(int shared_memory_size = 0, cudaStream_t stream = 0, gpu_id gpu = detail::current_gpu())
       : shared_memory_size_(shared_memory_size),
@@ -317,41 +612,105 @@ class basic_grid_executor
   private:
     template<class Function>
     __host__ __device__
-    future<void> then_execute_impl(cudaEvent_t dependency, Function f, shape_type shape)
+    cudaEvent_t then_execute_impl(Function f, shape_type shape, cudaEvent_t dependency)
     {
-      // XXX should we use this->stream() or the stream associated with the dependency?
-      future<void> result{stream()};
+      // XXX shouldn't we use the stream associated with dependency instead of stream()?
 
-      cudaEvent_t next_event = this->launch(global_function_pointer<Function>(), f, shape, shared_memory_size(), stream(), dependency);
-
-      result.set_valid(next_event);
-
-      return result;
+      return this->launch(global_function_pointer<Function>(), f, shape, shared_memory_size(), stream(), dependency);
     }
 
   public:
     template<class Function>
     __host__ __device__
-    future<void> then_execute(future<void>& dependency, Function f, shape_type shape)
+    future<void> then_execute(Function f, shape_type shape, future<void>& dependency)
     {
-      return then_execute_impl(dependency.event(), f, shape);
+      cudaEvent_t next_event = then_execute_impl(f, shape, dependency.event());
+
+      // XXX shouldn't we use dependency.stream() here?
+      return future<void>{stream(), next_event};
     }
 
-    template<class T, class Function>
+    template<class Function, class T>
     __host__ __device__
-    future<void> then_execute(future<T>& dependency, Function f, shape_type shape)
+    future<void> then_execute(Function f, shape_type shape, future<T>& dependency)
     {
       detail::function_with_past_parameter<Function,T> g{f, dependency.data()};
 
-      // XXX we need to enqueue a destructor & deallocate for the dependency
-      // XXX no, this should happen in future<T>'s destructor
-      return then_execute_impl(dependency.event(), g, shape);
+      cudaEvent_t next_event = then_execute_impl(g, shape, dependency.event());
+
+      // XXX shouldn't we use dependency.stream() here?
+      return future<void>{stream(), next_event};
     }
 
+    template<class Container, class Function, class T,
+             class = typename std::enable_if<
+               agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
+             >::type,
+             class = agency::detail::result_of_continuation_t<
+               Function,
+               index_type,
+               future<T>
+             >
+            >
+    future<Container> then_execute(Function f, shape_type shape, future<T>& fut)
+    {
+      // XXX shouldn't we use fut.stream() ?
+      detail::future_state<Container> result_state(stream(), shape);
+
+      using result_ptr_type = decltype(result_state.data());
+      using arg_ptr_type = decltype(fut.data());
+
+      then_execute_functor<result_ptr_type, Function, arg_ptr_type> g{result_state.data(), f, fut.data()};
+
+      cudaEvent_t next_event = then_execute_impl(g, shape, fut.event());
+
+      // XXX shouldn't we use dependency.stream() here?
+      return future<Container>(stream(), next_event, std::move(result_state));
+    }
+
+
+    template<class Container, class Function, class T, class Factory1, class Factory2,
+             class = typename std::enable_if<
+               agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
+             >::type,
+             class = agency::detail::result_of_continuation_t<
+               Function,
+               index_type,
+               future<T>,
+               agency::detail::result_of_factory_t<Factory1>&,
+               agency::detail::result_of_factory_t<Factory2>&
+             >
+            >
+    future<Container> then_execute(Function f, shape_type shape, future<T>& fut, Factory1 outer_factory, Factory2 inner_factory)
+    {
+      // XXX shouldn't we use fut.stream() ?
+      detail::future_state<Container> result_state(stream(), shape);
+
+      using result_ptr_type = decltype(result_state.data());
+      using past_arg_ptr_type = decltype(fut.data());
+
+      using outer_arg_type = agency::detail::result_of_factory_t<Factory1>;
+      auto outer_arg = executor_traits<basic_grid_executor>::template make_ready_future<outer_arg_type>(*this, outer_factory());
+      using outer_arg_ptr_type = decltype(outer_arg.data());
+
+      // XXX push the invocation of inner_factory down into shared_parameter_pointer
+      using inner_arg_type = agency::detail::result_of_factory_t<Factory2>;
+      using inner_arg_ptr_type = shared_parameter_pointer<inner_arg_type>;
+      inner_arg_ptr_type inner_arg{inner_factory()};
+
+      new_then_execute_functor<result_ptr_type, Function, past_arg_ptr_type, outer_arg_ptr_type, inner_arg_ptr_type> g{result_state.data(), f, fut.data(), outer_arg.data(), inner_arg};
+
+      cudaEvent_t next_event = then_execute_impl(g, shape, fut.event());
+
+      // XXX shouldn't we use dependency.stream() here?
+      return future<Container>(stream(), next_event, std::move(result_state));
+    }
+
+
   private:
-    template<class T, class Function, class Factory1, class Factory2>
+    template<class Function, class T, class Factory1, class Factory2>
     __host__ __device__
-    future<void> then_execute_with_shared_inits(future<T>& dependency, Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory,
+    future<void> then_execute_with_shared_inits(Function f, shape_type shape, future<T>& dependency, Factory1 outer_factory, Factory2 inner_factory,
                                                 typename std::enable_if<
                                                   result_of_factory_is_empty<Factory1>::value
                                                 >::type* = 0)
@@ -362,12 +721,12 @@ class basic_grid_executor
       // note the .release()
       auto g = detail::function_with_shared_arguments<Function, Factory1, Factory2>(f, 0, inner_factory);
 
-      return this->then_execute(dependency, g, shape);
+      return this->then_execute(g, shape, dependency);
     }
 
-    template<class T, class Function, class Factory1, class Factory2>
+    template<class Function, class T, class Factory1, class Factory2>
     __host__ __device__
-    future<void> then_execute_with_shared_inits(future<T>& dependency, Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory,
+    future<void> then_execute_with_shared_inits(Function f, shape_type shape, future<T>& dependency, Factory1 outer_factory, Factory2 inner_factory,
                                                 typename std::enable_if<
                                                   !result_of_factory_is_empty<Factory1>::value
                                                 >::type* = 0)
@@ -389,7 +748,7 @@ class basic_grid_executor
       // XXX to deallocate the outer_shared_arg's storage, we need to enqueue a free after the 2nd then_execute somehow
       // XXX for now the memory just leaks :(
 
-      return this->then_execute(dependency, g, shape);
+      return this->then_execute(g, shape, dependency);
     }
 
   public:
@@ -425,9 +784,9 @@ class basic_grid_executor
 
     template<class T, class Function, class OuterFactory, class InnerFactory>
     __host__ __device__
-    future<void> then_execute(future<T>& dependency, Function f, shape_type shape, OuterFactory outer_factory, InnerFactory inner_factory)
+    future<void> then_execute(Function f, shape_type shape, future<T>& dependency, OuterFactory outer_factory, InnerFactory inner_factory)
     {
-      return then_execute_with_shared_inits(dependency, f, shape, outer_factory, inner_factory);
+      return then_execute_with_shared_inits(f, shape, dependency, outer_factory, inner_factory);
     }
 
 
@@ -437,7 +796,7 @@ class basic_grid_executor
     future<void> async_execute(Function f, shape_type shape)
     {
       auto ready = make_ready_future();
-      return then_execute(ready, f, shape);
+      return then_execute(f, shape, ready);
     }
     
 
@@ -446,7 +805,7 @@ class basic_grid_executor
     future<void> async_execute(Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory)
     {
       auto ready = make_ready_future();
-      return then_execute(ready, f, shape, outer_factory, inner_factory);
+      return this->then_execute(f, shape, ready, outer_factory, inner_factory);
     }
 
 
@@ -718,8 +1077,8 @@ class flattened_executor<cuda::grid_executor>
         base_executor_(base_executor)
     {}
 
-    template<class T, class Function>
-    future<void> then_execute(future<T>& dependency, Function f, shape_type shape)
+    template<class Function, class T>
+    future<void> then_execute(Function f, shape_type shape, future<T>& dependency)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
@@ -730,11 +1089,11 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().then_execute(dependency, execute_me, partitioning);
+      return base_executor().then_execute(execute_me, partitioning, dependency);
     }
 
-    template<class T, class Function, class Factory>
-    future<void> then_execute(future<T>& dependency, Function f, shape_type shape, Factory factory)
+    template<class Function, class T, class Factory>
+    future<void> then_execute(Function f, shape_type shape, future<T>& dependency, Factory factory)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
@@ -745,7 +1104,7 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().then_execute(dependency, execute_me, partitioning, factory, agency::detail::unit_factory());
+      return base_executor().then_execute(execute_me, partitioning, dependency, factory, agency::detail::unit_factory());
     }
 
     __host__ __device__

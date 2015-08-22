@@ -152,12 +152,11 @@ class future_state<T,true>
       return *this;
     }
 
+    // XXX should return something like constant_iterator<T> rather than unit_ptr for the empty type case
     __host__ __device__
-    // XXX WAR nvbug 1671566
-    //std::nullptr_t data()
-    my_nullptr_t data()
+    unit_ptr data()
     {
-      return nullptr;
+      return unit_ptr();
     }
 
     __host__ __device__
@@ -195,6 +194,11 @@ class future_state<T,true>
 
     bool valid_;
 };
+
+
+// declare this so future may befriend it
+template<class Shape, class Index, class ThisIndexFunction>
+class basic_grid_executor;
 
 
 } // end detail
@@ -361,6 +365,7 @@ class future
 
   private:
     template<class U> friend class future;
+    template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
 
     __host__ __device__
     future(cudaStream_t s, cudaEvent_t e, detail::future_state<T>&& state)

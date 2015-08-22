@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/factory.hpp>
+#include <utility>
 #include <type_traits>
 
 namespace agency
@@ -51,6 +52,16 @@ detail::shared_parameter<level,T,T> share(const T& val)
 {
   return detail::shared_parameter<level,T,T>{detail::make_tuple(val)};
 }
+
+
+__agency_hd_warning_disable__
+template<class F, class... Args>
+inline __AGENCY_ANNOTATION
+auto invoke(F&& f, Args&&... args) -> 
+  decltype(std::forward<F>(f)(std::forward<Args>(args)...))
+{
+  return std::forward<F>(f)(std::forward<Args>(args)...);
+};
 
 
 } // end agency

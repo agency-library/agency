@@ -4,6 +4,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/discarding_container.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 
 namespace agency
@@ -32,7 +33,9 @@ using select_multi_agent_execute_with_shared_inits_returning_void_implementation
   >::type;
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class... Factories>
+__AGENCY_ANNOTATION
 void multi_agent_execute_with_shared_inits_returning_void(use_multi_agent_execute_with_shared_inits_returning_void_member_function,
                                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
                                                           Factories... shared_factories)
@@ -52,8 +55,7 @@ struct multi_agent_execute_with_shared_inits_returning_void_functor
   __AGENCY_ANNOTATION
   empty operator()(Args&&... args)
   {
-    // XXX should use std::invoke()
-    f(std::forward<Args>(args)...);
+    agency::invoke(f, std::forward<Args>(args)...);
 
     // return something which can be cheaply discarded
     return empty();
@@ -62,6 +64,7 @@ struct multi_agent_execute_with_shared_inits_returning_void_functor
 
 
 template<class Executor, class Function, class... Factories>
+__AGENCY_ANNOTATION
 void multi_agent_execute_with_shared_inits_returning_void(use_multi_agent_execute_with_shared_inits_returning_user_specified_container,
                                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
                                                           Factories... shared_factories)
@@ -81,6 +84,7 @@ template<class Executor>
   template<class Function, class... Factories,
            class Enable1,
            class Enable2>
+__AGENCY_ANNOTATION
 void new_executor_traits<Executor>
   ::execute(typename new_executor_traits<Executor>::executor_type& ex,
             Function f,

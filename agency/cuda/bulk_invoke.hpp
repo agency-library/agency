@@ -71,12 +71,12 @@ typename BulkCall::result_type
     typename traits::execution_category
   >::value;
 
-  // construct shared arguments and package them for the executor
-  auto packaged_shared_parameter_tuple = agency::detail::make_shared_parameter_package_for_executor<executor_depth>(shared_arg_tuple);
+  // create a tuple of factories to use for shared parameters for the executor
+  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<executor_depth>(shared_arg_tuple);
 
   auto functor = unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
 
-  return detail::bulk_call_executor_impl(bulk_call, exec, shape, functor, std::move(packaged_shared_parameter_tuple), agency::detail::make_index_sequence<executor_depth>());
+  return detail::bulk_call_executor_impl(bulk_call, exec, shape, functor, factory_tuple, agency::detail::make_index_sequence<executor_depth>());
 }
 
 

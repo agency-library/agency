@@ -5,6 +5,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/ignore_tail_parameters_and_invoke.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -51,8 +52,7 @@ struct ignore_tail_parameters_and_invoke
   typename std::result_of<Function(Index,T&)>::type
   operator()(const Index& idx, T& past_arg, Args&&...) const
   {
-    // XXX should use std::invoke
-    return f(idx, past_arg);
+    return agency::invoke(f, idx, past_arg);
   }
 };
 
@@ -62,13 +62,13 @@ struct ignore_tail_parameters_and_invoke<Function,void>
 {
   mutable Function f;
 
+  __agency_hd_warning_disable__
   template<class Index, class... Args>
   __AGENCY_ANNOTATION
   typename std::result_of<Function(Index)>::type
   operator()(const Index& idx, Args&&...) const
   {
-    // XXX should use std::invoke
-    return f(idx);
+    return agency::invoke(f, idx);
   }
 };
 

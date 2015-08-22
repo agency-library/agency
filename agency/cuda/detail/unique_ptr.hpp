@@ -5,9 +5,9 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
+#include <agency/cuda/detail/allocator.hpp>
 
 // XXX should eliminate this dependency on Thrust
-#include <thrust/system/cuda/memory.h>
 #include <thrust/detail/swap.h>
 
 
@@ -20,19 +20,6 @@ namespace detail
 
 
 template<class T>
-__global__ void destroy_kernel(T* ptr)
-{
-  ptr->~T();
-}
-
-template<class T, class... Args>
-__global__ void construct_kernel(T* ptr, Args... args)
-{
-  ::new(ptr) T(args...);
-}
-
-
-template<class T>
 class default_delete
 {
   public:
@@ -40,6 +27,9 @@ class default_delete
     default_delete(cudaStream_t s)
       : stream_(s)
     {}
+
+    __host__ __device__
+    default_delete() : default_delete(cudaStreamPerThread) {}
 
     __host__ __device__
     cudaStream_t stream() const
@@ -50,19 +40,13 @@ class default_delete
     __host__ __device__
     void operator()(T* ptr) const
     {
-      auto kernel = detail::destroy_kernel<T>;
-      detail::workaround_unused_variable_warning(kernel);
-
-#ifndef __CUDA_ARCH__
-      // we're executing on the host; launch a kernel to call the destructor
-      detail::launch_kernel(reinterpret_cast<void*>(kernel), ::dim3{1,1,1}, ::dim3{1,1,1}, 0, stream(), ptr);
-#else
-      // we're executing on the device; just call the destructor directly
+      // destroy the object
+      // XXX should use allocator_traits::destroy()
       ptr->~T();
-#endif
 
       // deallocate
-      thrust::cuda::free(thrust::cuda::pointer<T>(ptr));
+      allocator<T> alloc;
+      alloc.deallocate(ptr, 1);
     }
 
   private:
@@ -79,10 +63,13 @@ class unique_ptr
     using deleter_type = default_delete<element_type>;
 
     __host__ __device__
-    unique_ptr(thrust::cuda::pointer<T> ptr, const deleter_type& deleter = default_delete<T>())
+    unique_ptr(pointer ptr, const deleter_type& deleter = default_delete<T>())
       : ptr_(ptr),
         deleter_(deleter)
     {}
+
+    __host__ __device__
+    unique_ptr() : unique_ptr(nullptr) {}
   
     __host__ __device__
     unique_ptr(unique_ptr&& other)
@@ -108,22 +95,22 @@ class unique_ptr
     __host__ __device__
     pointer get() const
     {
-      return ptr_.get();
+      return ptr_;
     }
 
     __host__ __device__
     pointer release()
     {
-      thrust::cuda::pointer<element_type> result;
+      pointer result = nullptr;
       thrust::swap(ptr_, result);
-      return result.get();
+      return result;
     }
 
     __host__ __device__
     void reset(pointer ptr = pointer())
     {
-      pointer old_ptr = ptr_.get();
-      ptr_ = thrust::cuda::pointer<T>(ptr);
+      pointer old_ptr = ptr_;
+      ptr_ = ptr;
 
       if(old_ptr != nullptr)
       {
@@ -144,7 +131,13 @@ class unique_ptr
     }
 
     __host__ __device__
-    T operator*() const
+    const T& operator*() const
+    {
+      return *ptr_;
+    }
+
+    __host__ __device__
+    T& operator*()
     {
       return *ptr_;
     }
@@ -156,33 +149,21 @@ class unique_ptr
     }
 
   private:
-    thrust::cuda::pointer<T> ptr_;
+    T* ptr_;
     default_delete<T> deleter_;
 };
 
 
-// XXX we should consider using cudaMallocManaged instead of thrust::cuda::malloc
-//     that will allow us to touch the pointer from the host and do proper moves
-//     would also allow us to avoid depending on Thrust
 template<class T, class... Args>
 __host__ __device__
 unique_ptr<T> make_unique(cudaStream_t s, Args&&... args)
 {
-  auto deleter = default_delete<T>(s);
-  unique_ptr<T> result(thrust::cuda::malloc<T>(1), deleter);
+  allocator<T> alloc;
 
-  // XXX nvcc 7.0 has trouble with this decay_t sometimes
-  //auto kernel = detail::construct_kernel<T,agency::detail::decay_t<Args>...>;
-  auto kernel = detail::construct_kernel<T,typename std::decay<Args>::type...>;
-  detail::workaround_unused_variable_warning(kernel);
-
-#ifndef __CUDA_ARCH__
-  // we're executing on the host; launch a kernel to call the constructor
-  detail::checked_launch_kernel(reinterpret_cast<void*>(kernel), ::dim3{1,1,1}, ::dim3{1,1,1}, 0, s, result.get(), std::forward<Args>(args)...);
-#else
-  // we're executing on the device; just placement new directly
+  unique_ptr<T> result(alloc.allocate(1), default_delete<T>(s));
+  
+  // XXX should use allocator_traits::construct()
   ::new(result.get()) T(std::forward<Args>(args)...);
-#endif
 
   return std::move(result);
 }

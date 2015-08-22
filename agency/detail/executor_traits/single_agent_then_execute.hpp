@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -76,19 +77,21 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
   __AGENCY_ANNOTATION
   void operator()() const
   {
-    f();
+    agency::invoke(f);
   }
 
   // neither f's argument nor result are void
+  __agency_hd_warning_disable__
   template<class Arg1, class Arg2>
   __AGENCY_ANNOTATION
   void operator()(Arg1& arg1, Arg2& arg2) const
   {
-    arg1 = f(arg2);
+    arg1 = agency::invoke(f, arg2);
   }
 
   // when the functor receives only a single argument,
   // that means either f's result or parameter is void, but not both
+  __agency_hd_warning_disable__
   template<class Arg>
   __AGENCY_ANNOTATION
   void operator()(Arg& arg,
@@ -96,7 +99,7 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
                     std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    arg = f();
+    arg = agency::invoke(f);
   }
 
   template<class Arg>
@@ -106,7 +109,7 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
                     !std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    f(arg);
+    agency::invoke(f, arg);
   }
 };
 
@@ -141,19 +144,21 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
   __AGENCY_ANNOTATION
   void operator()(const Index&) const
   {
-    f();
+    agency::invoke(f);
   }
 
   // neither f's argument nor result are void
+  __agency_hd_warning_disable__
   template<class Index, class Arg1, class Arg2>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Arg1& arg1, Arg2& arg2) const
   {
-    arg1 = f(arg2);
+    arg1 = agency::invoke(f,arg2);
   }
 
   // when the functor receives only a single argument,
   // that means either f's result or parameter is void, but not both
+  __agency_hd_warning_disable__
   template<class Index, class Arg>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Arg& arg,
@@ -161,7 +166,7 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
                     std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    arg = f();
+    arg = agency::invoke(f);
   }
 
   template<class Index, class Arg>
@@ -171,7 +176,7 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
                     !std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    f(arg);
+    agency::invoke(f, arg);
   }
 };
 

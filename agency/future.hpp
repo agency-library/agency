@@ -482,6 +482,7 @@ using unwrap_small_tuple_result_t = typename unwrap_small_tuple_result<Tuple>::t
 
 
 template<class Tuple>
+__AGENCY_ANNOTATION
 void unwrap_small_tuple(Tuple&&,
                         typename std::enable_if<
                           std::tuple_size<
@@ -490,7 +491,9 @@ void unwrap_small_tuple(Tuple&&,
                         >::type* = 0)
 {}
 
+__agency_hd_warning_disable__
 template<class Tuple>
+__AGENCY_ANNOTATION
 unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
   unwrap_small_tuple(Tuple&& t,
                      typename std::enable_if<
@@ -499,10 +502,11 @@ unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
                        >::value == 1
                      >::type* = 0)
 {
-  return std::move(std::get<0>(t));
+  return std::move(detail::get<0>(t));
 }
 
 template<class Tuple>
+__AGENCY_ANNOTATION
 unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
   unwrap_small_tuple(Tuple&& t,
                      typename std::enable_if<
@@ -557,6 +561,7 @@ template<class... Futures>
 using tuple_of_future_values = typename tuple_of_future_values_impl<Futures...>::type;
 
 
+__agency_hd_warning_disable__
 template<class Future,
          class = typename std::enable_if<
            std::is_void<
@@ -564,6 +569,7 @@ template<class Future,
            >::value
          >::type
         >
+__AGENCY_ANNOTATION
 void_value get_value(Future& fut)
 {
   fut.get();
@@ -571,6 +577,7 @@ void_value get_value(Future& fut)
 }
 
 
+__agency_hd_warning_disable__
 template<class Future,
          class = typename std::enable_if<
            !std::is_void<
@@ -578,6 +585,7 @@ template<class Future,
            >::value
          >::type
         >
+__AGENCY_ANNOTATION
 typename future_traits<Future>::value_type
   get_value(Future& fut)
 {
@@ -585,11 +593,13 @@ typename future_traits<Future>::value_type
 }
 
 
+__agency_hd_warning_disable__
 template<class... Futures>
+__AGENCY_ANNOTATION
 tuple_of_future_values<Futures...>
   get_tuple_of_future_values(Futures&... futures)
 {
-  return detail::make_tuple(detail::get_value(futures)...);
+  return tuple_of_future_values<Futures...>(detail::get_value(futures)...);
 }
 
 
