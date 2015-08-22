@@ -2,11 +2,20 @@
 
 #include <agency/detail/tuple.hpp>
 #include <utility>
+#include <type_traits>
 
 namespace agency
 {
 namespace detail
 {
+
+
+template<class Factory>
+struct result_of_factory : std::result_of<Factory()> {};
+
+
+template<class Factory>
+using result_of_factory_t = typename result_of_factory<Factory>::type;
 
 
 template<class T, class... Args>
