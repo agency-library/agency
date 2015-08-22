@@ -330,18 +330,19 @@ struct on_chip_shared_object
 };
 
 
-// XXX try to use empty base class optimization
-template<class T>
-struct shared_parameter_pointer
+// we derive from Factory to take advantage of empty base class optimization
+template<class Factory>
+struct shared_parameter_pointer : Factory
 {
-  using element_type = T;
+  using element_type = agency::detail::result_of_factory_t<Factory>;
 
-  element_type init;
+  __host__ __device__
+  shared_parameter_pointer(const Factory& factory) : Factory(factory) {}
 
   __device__
   on_chip_shared_object<element_type> operator*()
   {
-    return on_chip_shared_object<element_type>{init};
+    return on_chip_shared_object<element_type>{Factory::operator()()};
   }
 };
 
@@ -693,10 +694,8 @@ class basic_grid_executor
       auto outer_arg = executor_traits<basic_grid_executor>::template make_ready_future<outer_arg_type>(*this, outer_factory());
       using outer_arg_ptr_type = decltype(outer_arg.data());
 
-      // XXX push the invocation of inner_factory down into shared_parameter_pointer
-      using inner_arg_type = agency::detail::result_of_factory_t<Factory2>;
-      using inner_arg_ptr_type = shared_parameter_pointer<inner_arg_type>;
-      inner_arg_ptr_type inner_arg{inner_factory()};
+      using inner_arg_ptr_type = shared_parameter_pointer<Factory2>;
+      inner_arg_ptr_type inner_arg{inner_factory};
 
       new_then_execute_functor<result_ptr_type, Function, past_arg_ptr_type, outer_arg_ptr_type, inner_arg_ptr_type> g{result_state.data(), f, fut.data(), outer_arg.data(), inner_arg};
 
