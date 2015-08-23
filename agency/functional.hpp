@@ -61,7 +61,7 @@ auto invoke(F&& f, Args&&... args) ->
   decltype(std::forward<F>(f)(std::forward<Args>(args)...))
 {
   return std::forward<F>(f)(std::forward<Args>(args)...);
-};
+}
 
 
 } // end agency
