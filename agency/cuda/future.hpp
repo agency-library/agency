@@ -23,6 +23,7 @@
 #include <agency/cuda/detail/then_kernel.hpp>
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
+#include <agency/future.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -332,10 +333,10 @@ class future
 
     template<class Function>
     __host__ __device__
-    future<typename std::result_of<Function()>::type>
+    future<agency::detail::result_of_continuation_t<Function,future>>
       then(Function f)
     {
-      using result_type = typename std::result_of<Function()>::type;
+      using result_type = agency::detail::result_of_continuation_t<Function,future>;
 
       detail::future_state<result_type> result_state(stream());
 
