@@ -112,6 +112,12 @@ class future_state
       data_ = make_unique<T>(s, std::forward<Args>(ready_args)...);
     }
 
+    __host__ __device__
+    void swap(future_state& other)
+    {
+      data_.swap(other.data_);
+    }
+
   private:
     unique_ptr<T> data_;
 };
@@ -144,6 +150,23 @@ class future_state<T,true>
       other.valid_ = false;
     }
 
+    // allow moves to void states (this simply discards the state)
+    template<class U,
+             class T1 = T,
+             class = typename std::enable_if<
+               std::is_void<T1>::value
+             >::type>
+    __host__ __device__
+    future_state(future_state<U>&& other)
+      : valid_(other.valid())
+    {
+      if(valid())
+      {
+        // invalidate the old state by calling .get() if it was valid when we received it
+        other.get();
+      }
+    }
+
     __host__ __device__
     future_state& operator=(future_state&& other)
     {
@@ -174,10 +197,22 @@ class future_state<T,true>
       return valid_;
     }
 
+    // constructor arguments are simply ignored
+    // XXX if the constructor has a side effect, we probably need to actually invoke it, even though
+    //     the type has no state and requires no storage
+    template<class... Args>
     __host__ __device__
-    void set_valid(cudaStream_t)
+    void set_valid(cudaStream_t, Args&&...)
     {
       valid_ = true;
+    }
+
+    __host__ __device__
+    void swap(future_state& other)
+    {
+      bool other_valid_old = other.valid_;
+      other.valid_ = valid_;
+      valid_ = other_valid_old;
     }
 
   private:
@@ -228,6 +263,7 @@ class future
     {
       future::swap(stream_, other.stream_);
       future::swap(event_,  other.event_);
+      state_.swap(other.state_);
     } // end future()
 
     __host__ __device__
@@ -235,8 +271,26 @@ class future
     {
       future::swap(stream_, other.stream_);
       future::swap(event_,  other.event_);
+      future::swap(state_,  other.state_);
       return *this;
     } // end operator=()
+
+    template<class U,
+             class = typename std::enable_if<
+               std::is_constructible<
+                 detail::future_state<T>,
+                 detail::future_state<U>&&
+               >::value
+             >::type>
+    __host__ __device__
+    future(future<U>&& other)
+      : stream_(),
+        event_(),
+        state_(std::move(other.state_))
+    {
+      future::swap(stream_, other.stream_);
+      future::swap(event_,  other.event_);
+    } // end future()
 
     __host__ __device__
     ~future()
