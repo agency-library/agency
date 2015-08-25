@@ -306,6 +306,30 @@ template<class Future, class Function>
 using has_then = typename has_then_impl<Future,Function>::type;
 
 
+template<class FromFuture, class ToType, class ToFuture>
+struct has_cast_impl
+{
+  template<
+    class FromFuture1,
+    class Result = decltype(
+      *std::declval<FromFuture1*>.template cast<ToType>()
+    ),
+    class = typename std::enable_if<
+      std::is_same<Result,ToFuture>::value
+    >::type
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<FromFuture>(0));
+};
+
+template<class FromFuture, class ToType, class ToFuture>
+using has_cast = typename has_cast_impl<FromFuture,ToType,ToFuture>::type;
+
+
 } // end detail
 
 
@@ -382,33 +406,51 @@ struct future_traits
   }
 
   private:
-  template<class OtherFuture>
-  static future_type cast_impl(OtherFuture& fut,
-                               typename std::enable_if<
-                                 std::is_constructible<future_type,OtherFuture&&>::value
-                               >::type* = 0)
+  template<class U>
+  static rebind<U> cast_impl2(future_type& fut,
+                              typename std::enable_if<
+                                std::is_constructible<rebind<U>,future_type&&>::value
+                              >::type* = 0)
   {
-    return future_type(std::move(fut));
+    return rebind<U>(std::move(fut));
   }
 
-  template<class OtherFuture>
-  static future_type cast_impl(OtherFuture& fut,
-                               typename std::enable_if<
-                                 !std::is_constructible<future_type,OtherFuture&&>::value
-                               >::type* = 0)
+  template<class U>
+  static rebind<U> cast_impl2(future_type& fut,
+                              typename std::enable_if<
+                                !std::is_constructible<rebind<U>,future_type&&>::value
+                              >::type* = 0)
   {
-    return future_traits<Future>::then(fut, [](OtherFuture& fut)
+    return future_traits<future_type>::then(fut, [](future_type& fut)
     {
-      return fut.get();
+      return static_cast<U>(fut.get());
     });
+  }
+
+  template<class U>
+  static rebind<U> cast_impl1(future_type& fut,
+                              typename std::enable_if<
+                                detail::has_cast<future_type,U,rebind<U>>::value
+                              >::type* = 0)
+  {
+    return future_type::template cast<U>(fut);
+  }
+
+  template<class U>
+  static rebind<U> cast_impl1(future_type& fut,
+                              typename std::enable_if<
+                                !detail::has_cast<future_type,U,rebind<U>>::value
+                              >::type* = 0)
+  {
+    return cast_impl2<U>(fut);
   }
 
   public:
 
-  template<class OtherFuture>
-  static future_type cast(OtherFuture& fut)
+  template<class U>
+  static rebind<U> cast(future_type& fut)
   {
-    return cast_impl(fut);
+    return cast_impl1<U>(fut);
   }
 };
 
