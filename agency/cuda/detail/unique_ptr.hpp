@@ -77,6 +77,7 @@ class unique_ptr
         deleter_(std::move(other.get_deleter()))
     {
       thrust::swap(ptr_, other.ptr_);
+      thrust::swap(deleter_, other.deleter_);
     }
   
     __host__ __device__
@@ -88,7 +89,8 @@ class unique_ptr
     __host__ __device__
     unique_ptr& operator=(unique_ptr&& other)
     {
-      thrust::swap(ptr_, other.ptr_);
+      thrust::swap(ptr_,     other.ptr_);
+      thrust::swap(deleter_, other.deleter_);
       return *this;
     }
 
@@ -146,6 +148,13 @@ class unique_ptr
     operator bool () const
     {
       return get();
+    }
+
+    __host__ __device__
+    void swap(unique_ptr& other)
+    {
+      thrust::swap(ptr_, other.ptr_);
+      thrust::swap(deleter_, other.deleter_);
     }
 
   private:
