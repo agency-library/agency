@@ -550,6 +550,35 @@ public:
 
     return detail::then(fut, make_then_functor(std::forward<Function>(f)));
   }
+
+private:
+  template<class U>
+  static rebind<U> cast_impl(future_type& fut,
+                             typename std::enable_if<
+                               !std::is_constructible<rebind<U>,future_type&&>::value
+                             >::type* = 0)
+  {
+    return future_traits<future_type>::then(fut, detail::cast_functor<U>());
+  }
+
+
+  template<class U>
+  static rebind<U> cast_impl(future_type& fut,
+                             typename std::enable_if<
+                               std::is_constructible<rebind<U>,future_type&&>::value
+                             >::type* = 0)
+  {
+    return rebind<U>(std::move(fut));
+  }
+
+
+  public:
+
+  template<class U>
+  static rebind<U> cast(future_type& fut)
+  {
+    return cast_impl<U>(fut);
+  }
 };
 
 
