@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
+#include <cuda_runtime.h>
 
 namespace agency
 {
