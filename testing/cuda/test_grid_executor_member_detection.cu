@@ -36,6 +36,13 @@ struct container
 };
 
 
+struct int_factory
+{
+  __host__ __device__
+  int operator()() const { return 0; }
+};
+
+
 int main()
 {
   using executor_type = agency::cuda::grid_executor;
@@ -48,7 +55,7 @@ int main()
   );
 
   static_assert(
-    agency::detail::new_executor_traits_detail::has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<container<int>, executor_type, functor_returning_int, int_future_type, int, int>::value,
+    agency::detail::new_executor_traits_detail::has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<container<int>, executor_type, functor_returning_int, int_future_type, int_factory, int_factory>::value,
     "grid_executor should have multi-agent then_execute() with shared inits returning user-specified container"
   );
 

@@ -74,9 +74,9 @@ typename agency::detail::enable_if_bulk_invoke_executor<
   >::value;
 
   // construct shared arguments and package them for the executor
-  auto shared_init_tuple = agency::detail::make_shared_parameter_package_for_executor<executor_depth>(shared_arg_tuple);
+  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<executor_depth>(shared_arg_tuple);
 
-  ::bulk_invoke_executor_impl(exec, g, shape, std::move(shared_init_tuple), agency::detail::make_index_sequence<executor_depth>());
+  ::bulk_invoke_executor_impl(exec, g, shape, factory_tuple, agency::detail::make_index_sequence<executor_depth>());
 }
 
 

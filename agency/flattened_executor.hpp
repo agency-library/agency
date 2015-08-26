@@ -5,6 +5,7 @@
 #include <agency/executor_traits.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/nested_executor.hpp>
+#include <agency/detail/factory.hpp>
 
 namespace agency
 {
@@ -42,10 +43,10 @@ class flattened_executor
         base_executor_(base_executor)
     {}
 
-    template<class Function, class Future, class T>
-    future<void> then_execute(Function f, shape_type shape, Future& dependency, T&& shared_arg)
+    template<class Function, class Future, class Factory>
+    future<void> then_execute(Function f, shape_type shape, Future& dependency, Factory shared_factory)
     {
-      return this->then_execute_impl(base_executor(), dependency, f, shape, std::forward<T>(shared_arg));
+      return this->then_execute_impl(base_executor(), dependency, f, shape, shared_factory);
     }
 
     const base_executor_type& base_executor() const
@@ -69,7 +70,7 @@ class flattened_executor
       partition_type partitioning;
 
       template<class Index, class T>
-      void operator()(const Index& idx, T& outer_shared_param, const agency::detail::ignore_t&)
+      void operator()(const Index& idx, T& outer_shared_param, const agency::detail::unit&)
       {
         auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning) + agency::detail::get<1>(idx);
 
@@ -91,12 +92,12 @@ class flattened_executor
       }
     };
 
-    template<class OtherExecutor, class Future, class Function, class T>
-    future<void> then_execute_impl(OtherExecutor& exec, Future& dependency, Function f, shape_type shape, T&& shared_init)
+    template<class OtherExecutor, class Future, class Function, class Factory>
+    future<void> then_execute_impl(OtherExecutor& exec, Future& dependency, Function f, shape_type shape, Factory shared_factory)
     {
       auto partitioning = partition(shape);
 
-      return executor_traits<OtherExecutor>::then_execute(exec, then_execute_generic_functor<Function>{f, shape, partitioning}, partitioning, dependency, std::forward<T>(shared_init), agency::detail::ignore);
+      return executor_traits<OtherExecutor>::then_execute(exec, then_execute_generic_functor<Function>{f, shape, partitioning}, partitioning, dependency, shared_factory, agency::detail::unit_factory());
     }
 
     template<class Function, class OuterExecutor, class InnerExecutor>
@@ -145,15 +146,15 @@ class flattened_executor
     };
 
     // we can avoid the if(flat_idx < shape) branch above by providing a specialization for nested_executor
-    template<class OuterExecutor, class InnerExecutor, class Function, class Future, class T>
-    future<void> then_execute_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, Future& dependency, T&& shared_init)
+    template<class OuterExecutor, class InnerExecutor, class Function, class Future, class Factory>
+    future<void> then_execute_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, Future& dependency, Factory shared_factory)
     {
       auto partitioning = partition(shape);
       return executor_traits<OuterExecutor>::then_execute(exec.outer_executor(),
                                                           then_execute_nested_functor<Function,OuterExecutor,InnerExecutor>{exec,f,shape,partitioning},
                                                           agency::detail::get<0>(partitioning),
                                                           dependency,
-                                                          std::forward<T>(shared_init));
+                                                          shared_factory);
     }
 
     // returns (outer size, inner size)

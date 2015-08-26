@@ -20,8 +20,8 @@ struct use_multi_agent_execute_with_shared_inits_returning_user_specified_contai
 
 using use_strategy_1 = use_multi_agent_execute_with_shared_inits_returning_user_specified_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
-using has_strategy_1 = has_multi_agent_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,Types...>;
+template<class Executor, class Container, class Function, class... Factories>
+using has_strategy_1 = has_multi_agent_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,Factories...>;
 
 template<class Executor, class Container, class Function, class... Types>
 struct has_strategy_1_workaround_nvbug_1665745
@@ -35,7 +35,7 @@ struct use_multi_agent_execute_returning_user_specified_container_member_functio
 
 using use_strategy_2 = use_multi_agent_execute_returning_user_specified_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_2 = has_multi_agent_execute_returning_user_specified_container<Container,Executor,test_function_returning_int>;
 
 
@@ -44,8 +44,8 @@ struct use_multi_agent_execute_with_shared_inits_returning_void_member_function 
 
 using use_strategy_3 = use_multi_agent_execute_with_shared_inits_returning_void_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
-using has_strategy_3 = has_multi_agent_execute_with_shared_inits_returning_void<Executor,Function,Types...>;
+template<class Executor, class Container, class Function, class... Factories>
+using has_strategy_3 = has_multi_agent_execute_with_shared_inits_returning_void<Executor,Function,Factories...>;
 
 template<class Executor, class Container, class Function, class... Types>
 struct has_strategy_3_workaround_nvbug_1665745
@@ -59,7 +59,7 @@ struct use_multi_agent_execute_returning_void_member_function {};
 
 using use_strategy_4 = use_multi_agent_execute_returning_void_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_4 = has_multi_agent_execute_returning_void<Executor>;
 
 
@@ -68,8 +68,8 @@ struct use_multi_agent_async_execute_with_shared_inits_returning_user_specified_
 
 using use_strategy_5 = use_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
-using has_strategy_5 = has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,Types...>;
+template<class Executor, class Container, class Function, class... Factories>
+using has_strategy_5 = has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,Factories...>;
 
 template<class Executor, class Container, class Function, class... Types>
 struct has_strategy_5_workaround_nvbug_1665745
@@ -83,8 +83,8 @@ struct use_multi_agent_then_execute_with_shared_inits_returning_user_specified_c
 
 using use_strategy_6 = use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
-using has_strategy_6 = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,typename new_executor_traits<Executor>::template future<void>, Types...>;
+template<class Executor, class Container, class Function, class... Factories>
+using has_strategy_6 = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Container,Executor,Function,typename new_executor_traits<Executor>::template future<void>, Factories...>;
 
 template<class Executor, class Container, class Function, class... Types>
 struct has_strategy_6_workaround_nvbug_1665745
@@ -98,7 +98,7 @@ struct use_multi_agent_when_all_execute_and_select_with_shared_inits_member_func
 
 using use_strategy_7 = use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_7 = has_multi_agent_when_all_execute_and_select_with_shared_inits<
   detail::index_sequence<0>,
   Executor,
@@ -106,7 +106,7 @@ using has_strategy_7 = has_multi_agent_when_all_execute_and_select_with_shared_i
   detail::tuple<
     typename new_executor_traits<Executor>::template future<Container>
   >,
-  detail::type_list<Types...>
+  detail::type_list<Factories...>
 >;
 
 
@@ -115,7 +115,7 @@ struct use_multi_agent_async_execute_returning_user_specified_container_member_f
 
 using use_strategy_8 = use_multi_agent_async_execute_returning_user_specified_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_8 = has_multi_agent_async_execute_returning_user_specified_container<Container, Executor, Function>;
 
 
@@ -124,7 +124,7 @@ struct use_multi_agent_then_execute_returning_user_specified_container_member_fu
 
 using use_strategy_9 = use_multi_agent_then_execute_returning_user_specified_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_9 = has_multi_agent_then_execute_returning_user_specified_container<Container, Executor, Function, typename new_executor_traits<Executor>::template future<void>>;
 
 
@@ -133,7 +133,7 @@ struct use_multi_agent_when_all_execute_and_select_member_function {};
 
 using use_strategy_10 = use_multi_agent_when_all_execute_and_select_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_10 = has_multi_agent_when_all_execute_and_select<
   Executor,
   test_function_returning_void,
@@ -149,8 +149,8 @@ struct use_multi_agent_async_execute_with_shared_inits_returning_void_member_fun
 
 using use_strategy_11 = use_multi_agent_async_execute_with_shared_inits_returning_void_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
-using has_strategy_11 = has_multi_agent_async_execute_with_shared_inits_returning_void<Executor,Function,Types...>;
+template<class Executor, class Container, class Function, class... Factories>
+using has_strategy_11 = has_multi_agent_async_execute_with_shared_inits_returning_void<Executor,Function,Factories...>;
 
 template<class Executor, class Container, class Function, class... Types>
 struct has_strategy_11_workaround_nvbug_1665745
@@ -164,8 +164,8 @@ struct use_multi_agent_then_execute_with_shared_inits_returning_void_member_func
 
 using use_strategy_12 = use_multi_agent_then_execute_with_shared_inits_returning_void_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
-using has_strategy_12 = has_multi_agent_then_execute_with_shared_inits_returning_void<Executor,Function,typename new_executor_traits<Executor>::template future<void>,Types...>;
+template<class Executor, class Container, class Function, class... Factories>
+using has_strategy_12 = has_multi_agent_then_execute_with_shared_inits_returning_void<Executor,Function,typename new_executor_traits<Executor>::template future<void>,Factories...>;
 
 template<class Executor, class Container, class Function, class... Types>
 struct has_strategy_12_workaround_nvbug_1665745
@@ -179,8 +179,8 @@ struct use_multi_agent_execute_with_shared_inits_returning_default_container_mem
 
 using use_strategy_13 = use_multi_agent_execute_with_shared_inits_returning_default_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
-using has_strategy_13 = has_multi_agent_execute_with_shared_inits_returning_default_container<Executor, Function, Types...>;
+template<class Executor, class Container, class Function, class... Factories>
+using has_strategy_13 = has_multi_agent_execute_with_shared_inits_returning_default_container<Executor, Function, Factories...>;
 
 template<class Executor, class Container, class Function, class... Types>
 struct has_strategy_13_workaround_nvbug_1665745
@@ -194,8 +194,8 @@ struct use_multi_agent_async_execute_with_shared_inits_returning_default_contain
 
 using use_strategy_14 = use_multi_agent_async_execute_with_shared_inits_returning_default_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
-using has_strategy_14 = has_multi_agent_async_execute_with_shared_inits_returning_default_container<Executor, Function, Types...>;
+template<class Executor, class Container, class Function, class... Factories>
+using has_strategy_14 = has_multi_agent_async_execute_with_shared_inits_returning_default_container<Executor, Function, Factories...>;
 
 template<class Executor, class Container, class Function, class... Types>
 struct has_strategy_14_workaround_nvbug_1665745
@@ -209,8 +209,8 @@ struct use_multi_agent_then_execute_with_shared_inits_returning_default_containe
 
 using use_strategy_15 = use_multi_agent_then_execute_with_shared_inits_returning_default_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
-using has_strategy_15 = has_multi_agent_then_execute_with_shared_inits_returning_default_container<Executor, Function, typename new_executor_traits<Executor>::template future<void>, Types...>;
+template<class Executor, class Container, class Function, class... Factories>
+using has_strategy_15 = has_multi_agent_then_execute_with_shared_inits_returning_default_container<Executor, Function, typename new_executor_traits<Executor>::template future<void>, Factories...>;
 
 template<class Executor, class Container, class Function, class... Types>
 struct has_strategy_15_workaround_nvbug_1665745
@@ -224,7 +224,7 @@ struct use_multi_agent_async_execute_returning_void_member_function {};
 
 using use_strategy_16 = use_multi_agent_async_execute_returning_void_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_16 = has_multi_agent_async_execute_returning_void<Executor>;
 
 
@@ -233,7 +233,7 @@ struct use_multi_agent_then_execute_returning_void_member_function {};
 
 using use_strategy_17 = use_multi_agent_then_execute_returning_void_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_17 = has_multi_agent_then_execute_returning_void<Executor>;
 
 
@@ -242,7 +242,7 @@ struct use_multi_agent_execute_returning_default_container_member_function {};
 
 using use_strategy_18 = use_multi_agent_execute_returning_default_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_18 = has_multi_agent_execute_returning_default_container<Executor>;
 
 
@@ -251,7 +251,7 @@ struct use_multi_agent_async_execute_returning_default_container_member_function
 
 using use_strategy_19 = use_multi_agent_async_execute_returning_default_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_19 = has_multi_agent_async_execute_returning_default_container<Executor>;
 
 
@@ -260,7 +260,7 @@ struct use_multi_agent_then_execute_returning_default_container_member_function 
 
 using use_strategy_20 = use_multi_agent_then_execute_returning_default_container_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_20 = has_multi_agent_then_execute_returning_default_container<Executor>;
 
 
@@ -269,7 +269,7 @@ struct use_single_agent_execute_member_function {};
 
 using use_strategy_21 = use_single_agent_execute_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_21 = has_single_agent_execute<Executor>;
 
 
@@ -278,7 +278,7 @@ struct use_single_agent_async_execute_member_function {};
 
 using use_strategy_22 = use_single_agent_async_execute_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_22 = has_single_agent_async_execute<Executor>;
 
 
@@ -287,7 +287,7 @@ struct use_single_agent_then_execute_member_function {};
 
 using use_strategy_23 = use_single_agent_then_execute_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_23 = has_single_agent_then_execute<Executor>;
 
 
@@ -296,7 +296,7 @@ struct use_single_agent_when_all_execute_and_select_member_function {};
 
 using use_strategy_24 = use_single_agent_when_all_execute_and_select_member_function;
 
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using has_strategy_24 = has_single_agent_when_all_execute_and_select<
   Executor,
   test_function_returning_void,
@@ -314,88 +314,88 @@ using use_strategy_25 = use_bare_for_loop;
 
 
 // XXX find a cleaner way to express this
-template<class Executor, class Container, class Function, class... Types>
+template<class Executor, class Container, class Function, class... Factories>
 using select_multi_agent_execute_with_shared_inits_returning_user_specified_container_implementation =
   typename std::conditional<
-    //has_strategy_1<Executor,Container,Function,Types...>::value,
-    has_strategy_1_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
+    //has_strategy_1<Executor,Container,Function,Factories...>::value,
+    has_strategy_1_workaround_nvbug_1665745<Executor,Container,Function,Factories...>::type::value,
     use_strategy_1,
     typename std::conditional<
-      has_strategy_2<Executor,Container,Function,Types...>::value,
+      has_strategy_2<Executor,Container,Function,Factories...>::value,
       use_strategy_2,
       typename std::conditional<
-        //has_strategy_3<Executor,Container,Function,Types...>::value,
-        has_strategy_3_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
+        //has_strategy_3<Executor,Container,Function,Factories...>::value,
+        has_strategy_3_workaround_nvbug_1665745<Executor,Container,Function,Factories...>::type::value,
         use_strategy_3,
         typename std::conditional<
-          has_strategy_4<Executor,Container,Function,Types...>::value,
+          has_strategy_4<Executor,Container,Function,Factories...>::value,
           use_strategy_4,
           typename std::conditional<
-            //has_strategy_5<Executor,Container,Function,Types...>::value,
-            has_strategy_5_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
+            //has_strategy_5<Executor,Container,Function,Factories...>::value,
+            has_strategy_5_workaround_nvbug_1665745<Executor,Container,Function,Factories...>::type::value,
             use_strategy_5,
             typename std::conditional<
-              //has_strategy_6<Executor,Container,Function,Types...>::value,
-              has_strategy_6_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
+              //has_strategy_6<Executor,Container,Function,Factories...>::value,
+              has_strategy_6_workaround_nvbug_1665745<Executor,Container,Function,Factories...>::type::value,
               use_strategy_6,
               typename std::conditional<
-                has_strategy_7<Executor,Container,Function,Types...>::value,
+                has_strategy_7<Executor,Container,Function,Factories...>::value,
                 use_strategy_7,
                 typename std::conditional<
-                  has_strategy_8<Executor,Container,Function,Types...>::value,
+                  has_strategy_8<Executor,Container,Function,Factories...>::value,
                   use_strategy_8,
                   typename std::conditional<
-                    has_strategy_9<Executor,Container,Function,Types...>::value,
+                    has_strategy_9<Executor,Container,Function,Factories...>::value,
                     use_strategy_9,
                     typename std::conditional<
-                      has_strategy_10<Executor,Container,Function,Types...>::value,
+                      has_strategy_10<Executor,Container,Function,Factories...>::value,
                       use_strategy_10,
                       typename std::conditional<
-                        //has_strategy_11<Executor,Container,Function,Types...>::value,
-                        has_strategy_11_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
+                        //has_strategy_11<Executor,Container,Function,Factories...>::value,
+                        has_strategy_11_workaround_nvbug_1665745<Executor,Container,Function,Factories...>::type::value,
                         use_strategy_11,
                         typename std::conditional<
-                          //has_strategy_12<Executor,Container,Function,Types...>::value,
-                          has_strategy_12_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
+                          //has_strategy_12<Executor,Container,Function,Factories...>::value,
+                          has_strategy_12_workaround_nvbug_1665745<Executor,Container,Function,Factories...>::type::value,
                           use_strategy_12,
                           typename std::conditional<
-                            //has_strategy_13<Executor,Container,Function,Types...>::value,
-                            has_strategy_13_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
+                            //has_strategy_13<Executor,Container,Function,Factories...>::value,
+                            has_strategy_13_workaround_nvbug_1665745<Executor,Container,Function,Factories...>::type::value,
                             use_strategy_13,
                             typename std::conditional<
-                              //has_strategy_14<Executor,Container,Function,Types...>::value,
-                              has_strategy_14_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
+                              //has_strategy_14<Executor,Container,Function,Factories...>::value,
+                              has_strategy_14_workaround_nvbug_1665745<Executor,Container,Function,Factories...>::type::value,
                               use_strategy_14,
                               typename std::conditional<
-                                //has_strategy_15<Executor,Container,Function,Types...>::value,
-                                has_strategy_15_workaround_nvbug_1665745<Executor,Container,Function,Types...>::type::value,
+                                //has_strategy_15<Executor,Container,Function,Factories...>::value,
+                                has_strategy_15_workaround_nvbug_1665745<Executor,Container,Function,Factories...>::type::value,
                                 use_strategy_15,
                                 typename std::conditional<
-                                  has_strategy_16<Executor,Container,Function,Types...>::value,
+                                  has_strategy_16<Executor,Container,Function,Factories...>::value,
                                   use_strategy_16,
                                   typename std::conditional<
-                                    has_strategy_17<Executor,Container,Function,Types...>::value,
+                                    has_strategy_17<Executor,Container,Function,Factories...>::value,
                                     use_strategy_17,
                                     typename std::conditional<
-                                      has_strategy_18<Executor,Container,Function,Types...>::value,
+                                      has_strategy_18<Executor,Container,Function,Factories...>::value,
                                       use_strategy_18,
                                       typename std::conditional<
-                                        has_strategy_19<Executor,Container,Function,Types...>::value,
+                                        has_strategy_19<Executor,Container,Function,Factories...>::value,
                                         use_strategy_19,
                                         typename std::conditional<
-                                          has_strategy_20<Executor,Container,Function,Types...>::value,
+                                          has_strategy_20<Executor,Container,Function,Factories...>::value,
                                           use_strategy_20,
                                           typename std::conditional<
-                                            has_strategy_21<Executor,Container,Function,Types...>::value,
+                                            has_strategy_21<Executor,Container,Function,Factories...>::value,
                                             use_strategy_21,
                                             typename std::conditional<
-                                              has_strategy_22<Executor,Container,Function,Types...>::value,
+                                              has_strategy_22<Executor,Container,Function,Factories...>::value,
                                               use_strategy_22,
                                               typename std::conditional<
-                                                has_strategy_23<Executor,Container,Function,Types...>::value,
+                                                has_strategy_23<Executor,Container,Function,Factories...>::value,
                                                 use_strategy_23,
                                                 typename std::conditional<
-                                                  has_strategy_24<Executor,Container,Function,Types...>::value,
+                                                  has_strategy_24<Executor,Container,Function,Factories...>::value,
                                                   use_strategy_24,
                                                   use_strategy_25
                                                 >::type // 24
@@ -425,15 +425,15 @@ using select_multi_agent_execute_with_shared_inits_returning_user_specified_cont
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_execute_with_shared_inits_returning_user_specified_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
-  return ex.template execute<Container>(f, shape, std::forward<Types>(shared_inits)...);
+  return ex.template execute<Container>(f, shape, shared_factories...);
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -493,22 +493,22 @@ multi_agent_execute_with_shared_inits_functor<Result,Function,Shape,TupleOfConta
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_execute_returning_user_specified_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   // create a tuple of containers holding a shared parameter for each group
-  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, std::forward<Types>(shared_inits)...);
+  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, shared_factories...);
 
   using index_type = typename new_executor_traits<Executor>::index_type;
   using result_type = typename std::result_of<
     Function(
       index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type;
 
@@ -541,6 +541,7 @@ struct invoke_and_store_result_to_container
 };
 
 
+__agency_hd_warning_disable__
 template<class Result, class Container, class Function>
 __AGENCY_ANNOTATION
 invoke_and_store_result_to_container<Result,Container,Function> make_invoke_and_store_result_to_container(Container& c, Function f)
@@ -550,39 +551,39 @@ invoke_and_store_result_to_container<Result,Container,Function> make_invoke_and_
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_execute_with_shared_inits_returning_void_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   Container results(shape);
 
-  ex.execute(make_invoke_and_store_result_to_container<void>(results,f), shape, std::forward<Types>(shared_inits)...);
+  ex.execute(make_invoke_and_store_result_to_container<void>(results,f), shape, shared_factories...);
 
   return results;
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_execute_returning_void_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   // create a tuple of containers holding a shared parameter for each group
-  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, std::forward<Types>(shared_inits)...);
+  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, shared_factories...);
 
   using index_type = typename new_executor_traits<Executor>::index_type;
   using result_type = typename std::result_of<
     Function(
       index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type;
 
@@ -600,32 +601,32 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   // XXX should go through executor_traits for the get()
-  return ex.template async_execute<Container>(f, shape, std::forward<Types>(shared_inits)...).get();
+  return ex.template async_execute<Container>(f, shape, shared_factories...).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
 
   // XXX should go through executor_traits for the get()
-  return ex.template then_execute<Container>(f, shape, ready, std::forward<Types>(shared_inits)...).get();
+  return ex.template then_execute<Container>(f, shape, ready, shared_factories...).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -645,40 +646,40 @@ struct strategy_7_functor
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   auto results = new_executor_traits<Executor>::template make_ready_future<Container>(ex, shape);
 
   auto futures = detail::make_tuple(std::move(results));
 
   // XXX should go through executor_traits for the get()
-  return ex.template when_all_execute_and_select<0>(strategy_7_functor<Function>{f}, shape, futures, std::forward<Types>(shared_inits)...).get();
+  return ex.template when_all_execute_and_select<0>(strategy_7_functor<Function>{f}, shape, futures, shared_factories...).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_async_execute_returning_user_specified_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   // create a tuple of containers holding a shared parameter for each group
-  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, std::forward<Types>(shared_inits)...);
+  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, shared_factories...);
 
   using index_type = typename new_executor_traits<Executor>::index_type;
   using result_type = typename std::result_of<
     Function(
       index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type;
 
@@ -691,22 +692,22 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_then_execute_returning_user_specified_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   // create a tuple of containers holding a shared parameter for each group
-  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, std::forward<Types>(shared_inits)...);
+  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, shared_factories...);
 
   using index_type = typename new_executor_traits<Executor>::index_type;
   using result_type = typename std::result_of<
     Function(
       index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type;
 
@@ -743,22 +744,22 @@ invoke_and_store_to_second_parameter<Function> make_invoke_and_store_to_second_p
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_when_all_execute_and_select_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   // create a tuple of containers holding a shared parameter for each group
-  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, std::forward<Types>(shared_inits)...);
+  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, shared_factories...);
 
   using index_type = typename new_executor_traits<Executor>::index_type;
   using result_type = typename std::result_of<
     Function(
       index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type;
 
@@ -778,98 +779,98 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_async_execute_with_shared_inits_returning_void_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   Container results(shape);
 
   // XXX should call wait() through executor_traits
-  ex.async_execute(make_invoke_and_store_result_to_container<void>(results, f), shape, std::forward<Types>(shared_inits)...).wait();
+  ex.async_execute(make_invoke_and_store_result_to_container<void>(results, f), shape, shared_factories...).wait();
 
   return results;
 }
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_then_execute_with_shared_inits_returning_void_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   Container results(shape);
 
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
 
   // XXX should call wait() through executor_traits
-  ex.then_execute(make_invoke_and_store_result_to_container<void>(results, f), shape, ready, std::forward<Types>(shared_inits)...).wait();
+  ex.then_execute(make_invoke_and_store_result_to_container<void>(results, f), shape, ready, shared_factories...).wait();
 
   return results;
 }
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_execute_with_shared_inits_returning_default_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 
 {
   Container results(shape);
 
   // discard the container of results returned by this call
-  ex.execute(make_invoke_and_store_result_to_container<empty_type>(results,f), shape, std::forward<Types>(shared_inits)...);
+  ex.execute(make_invoke_and_store_result_to_container<empty_type>(results,f), shape, shared_factories...);
 
   return results;
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_async_execute_with_shared_inits_returning_default_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   Container results(shape);
 
   // discard the container of results returned by this call
   // XXX should call wait() through executor_traits
-  ex.async_execute(make_invoke_and_store_result_to_container<empty_type>(results,f), shape, std::forward<Types>(shared_inits)...).wait();
+  ex.async_execute(make_invoke_and_store_result_to_container<empty_type>(results,f), shape, shared_factories...).wait();
 
   return results;
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_async_execute_returning_void_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   // create a tuple of containers holding a shared parameter for each group
-  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, std::forward<Types>(shared_inits)...);
+  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, shared_factories...);
 
   using index_type = typename new_executor_traits<Executor>::index_type;
   using result_type = typename std::result_of<
     Function(
       index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type;
 
@@ -890,22 +891,22 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_then_execute_returning_void_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   // create a tuple of containers holding a shared parameter for each group
-  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, std::forward<Types>(shared_inits)...);
+  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, shared_factories...);
 
   using index_type = typename new_executor_traits<Executor>::index_type;
   using result_type = typename std::result_of<
     Function(
       index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type;
 
@@ -928,13 +929,13 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_then_execute_with_shared_inits_returning_default_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   Container results(shape);
 
@@ -942,29 +943,29 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
 
   // discard the container of results returned by this call
   // XXX should call wait() through executor_traits
-  ex.then_execute(make_invoke_and_store_result_to_container<empty_type>(results,f), shape, ready, std::forward<Types>(shared_inits)...).wait();
+  ex.then_execute(make_invoke_and_store_result_to_container<empty_type>(results,f), shape, ready, shared_factories...).wait();
 
   return results;
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_execute_returning_default_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   // create a tuple of containers holding a shared parameter for each group
-  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, std::forward<Types>(shared_inits)...);
+  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, shared_factories...);
 
   using index_type = typename new_executor_traits<Executor>::index_type;
   using result_type = typename std::result_of<
     Function(
       index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type;
 
@@ -984,22 +985,22 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_async_execute_returning_default_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   // create a tuple of containers holding a shared parameter for each group
-  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, std::forward<Types>(shared_inits)...);
+  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, shared_factories...);
 
   using index_type = typename new_executor_traits<Executor>::index_type;
   using result_type = typename std::result_of<
     Function(
       index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type;
 
@@ -1020,22 +1021,22 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_then_execute_returning_default_container_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
   // create a tuple of containers holding a shared parameter for each group
-  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, std::forward<Types>(shared_inits)...);
+  auto shared_param_containers_tuple = make_tuple_of_shared_parameter_containers(ex, shape, shared_factories...);
 
   using index_type = typename new_executor_traits<Executor>::index_type;
   using result_type = typename std::result_of<
     Function(
       index_type,
-      typename std::decay<Types>::type&...
+      typename std::result_of<Factories()>::type&...
     )
   >::type;
 
@@ -1057,20 +1058,20 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-template<class Container, class Function, class Shape, class T>
+template<class Container, class Function, class Shape, class Factory>
 struct execute_in_for_loop
 {
   mutable Function f;
   Shape shape;
-  mutable T shared_arg;
+  mutable Factory shared_factory;
 
   __agency_hd_warning_disable__
-  template<class Function1, class Shape1, class T1>
+  template<class Function1, class Shape1, class Factory1>
   __AGENCY_ANNOTATION
-  execute_in_for_loop(Function1&& f_, Shape1&& shape_, T1&& shared_arg_)
+  execute_in_for_loop(Function1&& f_, Shape1&& shape_, Factory1&& shared_factory_)
     : f(std::forward<Function1>(f_)),
       shape(std::forward<Shape1>(shape_)),
-      shared_arg(std::forward<T1>(shared_arg_))
+      shared_factory(std::forward<Factory1>(shared_factory_))
   {}
 
   __agency_hd_warning_disable__
@@ -1078,6 +1079,8 @@ struct execute_in_for_loop
   Container operator()() const
   {
     Container results(shape);
+
+    auto shared_arg = shared_factory();
 
     // XXX generalize to multidimensions
     for(size_t idx = 0; idx < shape; ++idx)
@@ -1089,67 +1092,67 @@ struct execute_in_for_loop
   }
 };
 
-template<class Container, class Function, class Shape, class T>
+template<class Container, class Function, class Shape, class Factory>
 __AGENCY_ANNOTATION
-execute_in_for_loop<Container,Function,Shape,typename std::decay<T>::type> make_execute_in_for_loop(Function f, Shape shape, T&& shared_init)
+execute_in_for_loop<Container,Function,Shape,Factory> make_execute_in_for_loop(Function f, Shape shape, Factory shared_factory)
 {
-  return execute_in_for_loop<Container,Function,Shape,typename std::decay<T>::type>(f, shape, std::forward<T>(shared_init));
+  return execute_in_for_loop<Container,Function,Shape,Factory>(f, shape, shared_factory);
 }
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_single_agent_execute_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
-  static_assert(sizeof...(Types) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
+  static_assert(sizeof...(Factories) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
 
-  return ex.execute(make_execute_in_for_loop<Container>(f, shape, std::forward<Types>(shared_inits)...));
+  return ex.execute(make_execute_in_for_loop<Container>(f, shape, shared_factories...));
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_single_agent_async_execute_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
-  static_assert(sizeof...(Types) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
+  static_assert(sizeof...(Factories) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
 
   // XXX should call get() through executor_traits
-  return ex.async_execute(make_execute_in_for_loop<Container>(f, shape, std::forward<Types>(shared_inits)...)).get();
+  return ex.async_execute(make_execute_in_for_loop<Container>(f, shape, shared_factories...)).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_single_agent_then_execute_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
-  static_assert(sizeof...(Types) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
+  static_assert(sizeof...(Factories) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
 
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
 
   // XXX should call get() through executor_traits
-  return ex.then_execute(make_execute_in_for_loop<Container>(f, shape, std::forward<Types>(shared_inits)...), ready).get();
+  return ex.then_execute(make_execute_in_for_loop<Container>(f, shape, shared_factories...), ready).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-template<class Container, class Function, class Shape, class T>
+template<class Container, class Function, class Shape, class Factory>
 struct single_agent_when_all_execute_and_select_functor
 {
-  mutable execute_in_for_loop<Container,Function,Shape,T> implementation;
+  mutable execute_in_for_loop<Container,Function,Shape,Factory> implementation;
 
   __agency_hd_warning_disable__
   __AGENCY_ANNOTATION
@@ -1160,46 +1163,46 @@ struct single_agent_when_all_execute_and_select_functor
 };
 
 
-template<class Container, class Function, class Shape, class T>
+template<class Container, class Function, class Shape, class Factory>
 __AGENCY_ANNOTATION
-single_agent_when_all_execute_and_select_functor<Container,Function,Shape,typename std::decay<T>::type> make_single_agent_when_all_execute_and_select_functor(Function f, Shape shape, T&& shared_init)
+single_agent_when_all_execute_and_select_functor<Container,Function,Shape,Factory> make_single_agent_when_all_execute_and_select_functor(Function f, Shape shape, Factory shared_factory)
 {
-  return single_agent_when_all_execute_and_select_functor<Container,Function,Shape,typename std::decay<T>::type>{
-    make_execute_in_for_loop<Container>(f, shape, std::forward<T>(shared_init))
+  return single_agent_when_all_execute_and_select_functor<Container,Function,Shape,Factory>{
+    make_execute_in_for_loop<Container>(f, shape, shared_factory)
   };
 }
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_single_agent_when_all_execute_and_select_member_function,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
-  static_assert(sizeof...(Types) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
+  static_assert(sizeof...(Factories) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
 
   auto results = new_executor_traits<Executor>::template make_ready_future<Container>(ex);
   auto tuple_of_futures = detail::make_tuple(std::move(results));
 
   // XXX should call get() through executor_traits
-  return ex.template when_all_execute_and_select<0>(make_single_agent_when_all_execute_and_select_functor<Container>(f, shape, std::forward<Types>(shared_inits)...), tuple_of_futures).get();
+  return ex.template when_all_execute_and_select<0>(make_single_agent_when_all_execute_and_select_functor<Container>(f, shape, shared_factories...), tuple_of_futures).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-template<class Container, class Executor, class Function, class... Types>
+template<class Container, class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_with_shared_inits_returning_user_specified_container(use_bare_for_loop,
                                                                                    Executor& ex,
                                                                                    Function f,
                                                                                    typename new_executor_traits<Executor>::shape_type shape,
-                                                                                   Types&&... shared_inits)
+                                                                                   Factories... shared_factories)
 {
-  static_assert(sizeof...(Types) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
+  static_assert(sizeof...(Factories) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
 
-  auto implementation = make_execute_in_for_loop<Container>(f, shape, std::forward<Types>(shared_inits)...);
+  auto implementation = make_execute_in_for_loop<Container>(f, shape, shared_factories...);
   return implementation();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
@@ -1210,14 +1213,14 @@ Container multi_agent_execute_with_shared_inits_returning_user_specified_contain
 
 
 template<class Executor>
-  template<class Container, class Function, class... Types,
+  template<class Container, class Function, class... Factories,
            class Enable>
 __AGENCY_ANNOTATION
 Container new_executor_traits<Executor>
   ::execute(typename new_executor_traits<Executor>::executor_type& ex,
             Function f,
             typename new_executor_traits<Executor>::shape_type shape,
-            Types&&... shared_inits)
+            Factories... shared_factories)
 {
   namespace ns = detail::new_executor_traits_detail::multi_agent_execute_with_shared_inits_returning_user_specified_container_implementation_strategies;
 
@@ -1225,10 +1228,10 @@ Container new_executor_traits<Executor>
     Executor,
     Container,
     Function,
-    Types&&...
+    Factories...
   >;
 
-  return ns::multi_agent_execute_with_shared_inits_returning_user_specified_container<Container>(implementation_strategy(), ex, f, shape, std::forward<Types>(shared_inits)...);
+  return ns::multi_agent_execute_with_shared_inits_returning_user_specified_container<Container>(implementation_strategy(), ex, f, shape, shared_factories...);
 } // end new_executor_traits::execute()
 
 

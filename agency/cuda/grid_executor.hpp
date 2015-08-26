@@ -25,6 +25,7 @@
 #include <agency/functional.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_tuple.hpp>
+#include <agency/detail/factory.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/cuda/detail/array.hpp>
 
@@ -37,19 +38,20 @@ namespace detail
 {
 
 
-template<class T>
-struct is_ignorable_shared_parameter
+template<class Factory>
+struct result_of_factory_is_empty
   : std::integral_constant<
       bool,
-      (std::is_empty<decay_construct_result_t<T>>::value || agency::detail::is_empty_tuple<decay_construct_result_t<T>>::value)
+      (std::is_empty<agency::detail::result_of_factory_t<Factory>>::value ||
+      agency::detail::is_empty_tuple<agency::detail::result_of_factory_t<Factory>>::value)
     >
 {};
 
 
-template<class InitT, bool = is_ignorable_shared_parameter<InitT>::value>
+template<class Factory, bool = result_of_factory_is_empty<Factory>::value>
 struct outer_shared_parameter
 {
-  using value_type = decay_construct_result_t<InitT>;
+  using value_type = agency::detail::result_of_factory_t<Factory>;
 
   __device__
   outer_shared_parameter(value_type* outer_shared_param_ptr)
@@ -66,10 +68,10 @@ struct outer_shared_parameter
 };
 
 
-template<class InitT>
-struct outer_shared_parameter<InitT,true>
+template<class Factory>
+struct outer_shared_parameter<Factory,true>
 {
-  using value_type = decay_construct_result_t<InitT>;
+  using value_type = agency::detail::result_of_factory_t<Factory>;
 
   __device__
   outer_shared_parameter(value_type*) {}
@@ -80,18 +82,18 @@ struct outer_shared_parameter<InitT,true>
     return param_;
   }
 
-  // the parameter is "ignorable" so we needn't store a reference to an object in global memory
+  // the type of the parameter is empty so we needn't store a reference to an object in global memory
   value_type param_;
 };
 
 
-template<class InitT, bool = is_ignorable_shared_parameter<InitT>::value>
+template<class Factory, bool = result_of_factory_is_empty<Factory>::value>
 struct inner_shared_parameter
 {
-  using value_type = decay_construct_result_t<InitT>;
+  using value_type = agency::detail::result_of_factory_t<Factory>;
 
   __device__
-  inner_shared_parameter(bool is_leader, const InitT& init)
+  inner_shared_parameter(bool is_leader, Factory factory)
     : is_leader_(is_leader)
   {
     __shared__ uninitialized<value_type> inner_shared_param;
@@ -99,7 +101,7 @@ struct inner_shared_parameter
     if(is_leader_)
     {
       // XXX should avoid the move construction here
-      inner_shared_param.construct(agency::decay_construct(init));
+      inner_shared_param.construct(factory());
     }
     __syncthreads();
 
@@ -131,13 +133,13 @@ struct inner_shared_parameter
 };
 
 
-template<class InitT>
-struct inner_shared_parameter<InitT,true>
+template<class Factory>
+struct inner_shared_parameter<Factory,true>
 {
-  using value_type = decay_construct_result_t<InitT>;
+  using value_type = agency::detail::result_of_factory_t<Factory>;
 
   __device__
-  inner_shared_parameter(bool is_leader_, const InitT& init) {}
+  inner_shared_parameter(bool is_leader_, Factory) {}
 
   inner_shared_parameter(const inner_shared_parameter&) = delete;
   inner_shared_parameter(inner_shared_parameter&&) = delete;
@@ -152,21 +154,21 @@ struct inner_shared_parameter<InitT,true>
 };
 
 
-template<class Function, class OuterSharedInit, class InnerSharedInit>
+template<class Function, class OuterFactory, class InnerFactory>
 struct function_with_shared_arguments
 {
-  using outer_shared_type = decay_construct_result_t<OuterSharedInit>;
-  using inner_shared_type = decay_construct_result_t<InnerSharedInit>;
+  using outer_shared_type = agency::detail::result_of_factory_t<OuterFactory>;
+  using inner_shared_type = agency::detail::result_of_factory_t<InnerFactory>;
 
-  Function                                f_;
-  outer_shared_parameter<OuterSharedInit> outer_shared_param_;
-  InnerSharedInit                         inner_shared_init_;
+  Function                             f_;
+  outer_shared_parameter<OuterFactory> outer_shared_param_;
+  InnerFactory                         inner_factory_;
 
   __host__ __device__
-  function_with_shared_arguments(Function f, outer_shared_type* outer_shared_param_ptr, InnerSharedInit inner_shared_init)
+  function_with_shared_arguments(Function f, outer_shared_type* outer_shared_param_ptr, InnerFactory inner_factory)
     : f_(f),
       outer_shared_param_(outer_shared_param_ptr),
-      inner_shared_init_(inner_shared_init)
+      inner_factory_(inner_factory)
   {}
 
   template<class Index, class... Args>
@@ -175,7 +177,7 @@ struct function_with_shared_arguments
   {
     // XXX i don't think we're doing the leader calculation in a portable way
     //     this wouldn't work for ND CTAs
-    inner_shared_parameter<InnerSharedInit> inner_shared_param(idx[1] == 0, inner_shared_init_);
+    inner_shared_parameter<InnerFactory> inner_shared_param(idx[1] == 0, inner_factory_);
 
     f_(idx, std::forward<Args>(args)..., outer_shared_param_.get(), inner_shared_param.get());
   }
@@ -328,18 +330,19 @@ struct on_chip_shared_object
 };
 
 
-// XXX try to use empty base class optimization
-template<class T>
-struct shared_parameter_pointer
+// we derive from Factory to take advantage of empty base class optimization
+template<class Factory>
+struct shared_parameter_pointer : Factory
 {
-  using element_type = T;
+  using element_type = agency::detail::result_of_factory_t<Factory>;
 
-  element_type init;
+  __host__ __device__
+  shared_parameter_pointer(const Factory& factory) : Factory(factory) {}
 
   __device__
   on_chip_shared_object<element_type> operator*()
   {
-    return on_chip_shared_object<element_type>{init};
+    return on_chip_shared_object<element_type>{Factory::operator()()};
   }
 };
 
@@ -494,7 +497,9 @@ __global__ void grid_executor_kernel(Function f)
 }
 
 
-template<class ThisIndexFunction, class Function, class PastParameterType = void, class OuterSharedInitType = void, class InnerSharedInitType = void>
+// XXX consider using unit_factory as the defaults, not void
+//     we could probably simplify all of this stuff and not need any specialization here at all
+template<class ThisIndexFunction, class Function, class PastParameterType = void, class OuterFactory = void, class InnerFactory = void>
 struct global_function_pointer_map;
 
 
@@ -524,15 +529,15 @@ struct global_function_pointer_map<ThisIndexFunction,Function,PastParameterType,
 };
 
 
-template<class ThisIndexFunction, class Function, class PastParameterType, class OuterSharedInitType, class InnerSharedInitType>
+template<class ThisIndexFunction, class Function, class PastParameterType, class OuterFactory, class InnerFactory>
 struct global_function_pointer_map
 {
-  using function_ptr_type = decltype(global_function_pointer_map<ThisIndexFunction,detail::function_with_shared_arguments<Function,OuterSharedInitType,InnerSharedInitType>,PastParameterType>::get());
+  using function_ptr_type = decltype(global_function_pointer_map<ThisIndexFunction,detail::function_with_shared_arguments<Function,OuterFactory,InnerFactory>,PastParameterType>::get());
 
   __host__ __device__
   static function_ptr_type get()
   {
-    return global_function_pointer_map<ThisIndexFunction, detail::function_with_shared_arguments<Function,OuterSharedInitType,InnerSharedInitType>, PastParameterType>::get();
+    return global_function_pointer_map<ThisIndexFunction, detail::function_with_shared_arguments<Function,OuterFactory,InnerFactory>, PastParameterType>::get();
   }
 };
 
@@ -665,19 +670,19 @@ class basic_grid_executor
     }
 
 
-    template<class Container, class Function, class T1, class T2, class T3,
+    template<class Container, class Function, class T, class Factory1, class Factory2,
              class = typename std::enable_if<
                agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
              >::type,
              class = agency::detail::result_of_continuation_t<
                Function,
                index_type,
-               future<T1>,
-               T2&,
-               T3&
+               future<T>,
+               agency::detail::result_of_factory_t<Factory1>&,
+               agency::detail::result_of_factory_t<Factory2>&
              >
             >
-    future<Container> then_execute(Function f, shape_type shape, future<T1>& fut, const T2& outer_shared_init, const T3& inner_shared_init)
+    future<Container> then_execute(Function f, shape_type shape, future<T>& fut, Factory1 outer_factory, Factory2 inner_factory)
     {
       // XXX shouldn't we use fut.stream() ?
       detail::future_state<Container> result_state(stream(), shape);
@@ -685,11 +690,12 @@ class basic_grid_executor
       using result_ptr_type = decltype(result_state.data());
       using past_arg_ptr_type = decltype(fut.data());
 
-      auto outer_arg = executor_traits<basic_grid_executor>::template make_ready_future<T2>(*this, outer_shared_init);
+      using outer_arg_type = agency::detail::result_of_factory_t<Factory1>;
+      auto outer_arg = executor_traits<basic_grid_executor>::template make_ready_future<outer_arg_type>(*this, outer_factory());
       using outer_arg_ptr_type = decltype(outer_arg.data());
 
-      using inner_arg_ptr_type = shared_parameter_pointer<T3>;
-      inner_arg_ptr_type inner_arg{inner_shared_init};
+      using inner_arg_ptr_type = shared_parameter_pointer<Factory2>;
+      inner_arg_ptr_type inner_arg{inner_factory};
 
       new_then_execute_functor<result_ptr_type, Function, past_arg_ptr_type, outer_arg_ptr_type, inner_arg_ptr_type> g{result_state.data(), f, fut.data(), outer_arg.data(), inner_arg};
 
@@ -701,41 +707,41 @@ class basic_grid_executor
 
 
   private:
-    template<class Function, class T1, class T2, class T3>
+    template<class Function, class T, class Factory1, class Factory2>
     __host__ __device__
-    future<void> then_execute_with_shared_inits(Function f, shape_type shape, future<T1>& dependency, const T2& outer_shared_init, const T3& inner_shared_init,
+    future<void> then_execute_with_shared_inits(Function f, shape_type shape, future<T>& dependency, Factory1 outer_factory, Factory2 inner_factory,
                                                 typename std::enable_if<
-                                                  is_ignorable_shared_parameter<T2>::value
+                                                  result_of_factory_is_empty<Factory1>::value
                                                 >::type* = 0)
     {
       // no need to marshal the outer arg through gmem because it is empty
       
       // wrap up f in a thing that will marshal the shared arguments to it
       // note the .release()
-      auto g = detail::function_with_shared_arguments<Function, T2, T3>(f, 0, inner_shared_init);
+      auto g = detail::function_with_shared_arguments<Function, Factory1, Factory2>(f, 0, inner_factory);
 
       return this->then_execute(g, shape, dependency);
     }
 
-    template<class Function, class T1, class T2, class T3>
+    template<class Function, class T, class Factory1, class Factory2>
     __host__ __device__
-    future<void> then_execute_with_shared_inits(Function f, shape_type shape, future<T1>& dependency, const T2& outer_shared_init, const T3& inner_shared_init,
+    future<void> then_execute_with_shared_inits(Function f, shape_type shape, future<T>& dependency, Factory1 outer_factory, Factory2 inner_factory,
                                                 typename std::enable_if<
-                                                  !is_ignorable_shared_parameter<T2>::value
+                                                  !result_of_factory_is_empty<Factory1>::value
                                                 >::type* = 0)
     {
       // XXX couldn't we implement outer_shared_init as a ready future?
       
-      // XXX move decay_construct inside of make_unique
-      auto outer_shared_arg = agency::decay_construct(outer_shared_init);
-      using outer_shared_arg_t = typename decay_construct_result<T2>::type;
+      // XXX move call to factory inside of make_unique?
+      auto outer_shared_arg = outer_factory();
+      using outer_shared_arg_t = decltype(outer_shared_arg);
 
       // make outer shared argument
       auto outer_shared_arg_ptr = detail::make_unique<outer_shared_arg_t>(stream(), outer_shared_arg);
 
       // wrap up f in a thing that will marshal the shared arguments to it
       // note the .release()
-      auto g = detail::function_with_shared_arguments<Function, T2, T3>(f, outer_shared_arg_ptr.release(), inner_shared_init);
+      auto g = detail::function_with_shared_arguments<Function, Factory1, Factory2>(f, outer_shared_arg_ptr.release(), inner_factory);
 
       // XXX to destroy the outer_shared_arg, we need to do another then_execute(...)
       // XXX to deallocate the outer_shared_arg's storage, we need to enqueue a free after the 2nd then_execute somehow
@@ -766,20 +772,20 @@ class basic_grid_executor
     }
 
 
-    template<class Function, class PastParameterType, class OuterSharedInitType, class InnerSharedInitType>
+    template<class Function, class PastParameterType, class OuterFactory, class InnerFactory>
     __host__ __device__
-    static typename detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType, OuterSharedInitType, InnerSharedInitType>::function_ptr_type
+    static typename detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType, OuterFactory, InnerFactory>::function_ptr_type
       global_function_pointer()
     {
-      return detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType, OuterSharedInitType, InnerSharedInitType>::get();
+      return detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType, OuterFactory, InnerFactory>::get();
     }
 
 
-    template<class Function, class T1, class T2, class T3>
+    template<class T, class Function, class OuterFactory, class InnerFactory>
     __host__ __device__
-    future<void> then_execute(Function f, shape_type shape, future<T1>& dependency, T2&& outer_shared_init, T3&& inner_shared_init)
+    future<void> then_execute(Function f, shape_type shape, future<T>& dependency, OuterFactory outer_factory, InnerFactory inner_factory)
     {
-      return then_execute_with_shared_inits(f, shape, dependency, std::forward<T2>(outer_shared_init), std::forward<T3>(inner_shared_init));
+      return then_execute_with_shared_inits(f, shape, dependency, outer_factory, inner_factory);
     }
 
 
@@ -793,12 +799,12 @@ class basic_grid_executor
     }
     
 
-    template<class Function, class T1, class T2>
+    template<class Function, class Factory1, class Factory2>
     __host__ __device__
-    future<void> async_execute(Function f, shape_type shape, T1&& outer_shared_init, T2&& inner_shared_init)
+    future<void> async_execute(Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory)
     {
       auto ready = make_ready_future();
-      return then_execute(f, shape, ready, std::forward<T1>(outer_shared_init), std::forward<T2>(inner_shared_init));
+      return this->then_execute(f, shape, ready, outer_factory, inner_factory);
     }
 
 
@@ -809,11 +815,11 @@ class basic_grid_executor
       this->async_execute(f, shape).wait();
     }
 
-    template<class Function, class T1, class T2>
+    template<class Function, class Factory1, class Factory2>
     __host__ __device__
-    void execute(Function f, shape_type shape, T1&& outer_shared_init, T2&& inner_shared_init)
+    void execute(Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory)
     {
-      this->async_execute(f, shape, std::forward<T1>(outer_shared_init), std::forward<T2>(inner_shared_init)).wait();
+      this->async_execute(f, shape, outer_factory, inner_factory).wait();
     }
 
 
@@ -955,11 +961,11 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
       return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function,T>()));
     }
 
-    template<class T1, class Function, class T2, class T3>
+    template<class T, class Function, class Factory1, class Factory2>
     __host__ __device__
-    shape_type max_shape(const future<T1>&, const Function&, const T2&, const T3&) const
+    shape_type max_shape(const future<T>&, const Function&, const Factory1&, const Factory2&) const
     {
-      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function,T1,T2,T3>()));
+      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function,T,Factory1,Factory2>()));
     }
 };
 
@@ -1021,7 +1027,7 @@ struct flattened_grid_executor_functor
 
   template<class T>
   __device__
-  void operator()(cuda::grid_executor::index_type idx, T& outer_shared_param, const agency::detail::ignore_t&)
+  void operator()(cuda::grid_executor::index_type idx, T& outer_shared_param, agency::detail::unit)
   {
     auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning_) + agency::detail::get<1>(idx);
 
@@ -1085,19 +1091,19 @@ class flattened_executor<cuda::grid_executor>
       return base_executor().then_execute(execute_me, partitioning, dependency);
     }
 
-    template<class T1, class Function, class T2>
-    future<void> then_execute(Function f, shape_type shape, future<T1>& dependency, T2 shared_init)
+    template<class Function, class T, class Factory>
+    future<void> then_execute(Function f, shape_type shape, future<T>& dependency, Factory factory)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
 
       // partition up the iteration space
-      auto partitioning = partition(dependency, dummy_function, shape, shared_init, agency::detail::ignore);
+      auto partitioning = partition(dependency, dummy_function, shape, factory, agency::detail::unit_factory());
 
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().then_execute(execute_me, partitioning, dependency, shared_init, agency::detail::ignore);
+      return base_executor().then_execute(execute_me, partitioning, dependency, factory, agency::detail::unit_factory());
     }
 
     __host__ __device__
@@ -1140,11 +1146,11 @@ class flattened_executor<cuda::grid_executor>
     }
 
     // returns (outer size, inner size)
-    template<class T1, class Function, class T2, class T3>
+    template<class T, class Function, class Factory1, class Factory2>
     __host__ __device__
-    partition_type partition(const future<T1>& dependency, const Function& f, shape_type shape, const T2& outer_shared_init, const T3& inner_shared_init) const
+    partition_type partition(const future<T>& dependency, const Function& f, shape_type shape, const Factory1& outer_factory, const Factory2& inner_factory) const
     {
-      return partition_impl(base_executor().max_shape(dependency,f,outer_shared_init,inner_shared_init), shape);
+      return partition_impl(base_executor().max_shape(dependency,f,outer_factory,inner_factory), shape);
     }
 
     size_t min_inner_size_;

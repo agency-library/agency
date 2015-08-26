@@ -29,9 +29,9 @@ template<class Container, size_t... Indices, class Executor, class Function, cla
 __AGENCY_ANNOTATION
 Container multi_agent_execute_returning_user_specified_container_impl(detail::index_sequence<Indices...>,
                                                                       Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
-                                                                      const Tuple& tuple_of_ignored_parameters)
+                                                                      const Tuple& tuple_of_unit_factories)
 {
-  return new_executor_traits<Executor>::template execute<Container>(ex, ignore_tail_parameters_and_invoke<Function>{f}, shape, std::get<Indices>(tuple_of_ignored_parameters)...);
+  return new_executor_traits<Executor>::template execute<Container>(ex, ignore_tail_parameters_and_invoke<Function>{f}, shape, std::get<Indices>(tuple_of_unit_factories)...);
 } // end multi_agent_execute_returning_user_specified_container()
 
 
@@ -39,9 +39,9 @@ template<class Container, class Executor, class Function>
 __AGENCY_ANNOTATION
 Container multi_agent_execute_returning_user_specified_container(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
 {
-  auto tuple_of_ignored_parameters = new_executor_traits_detail::make_tuple_of_ignored_parameters(ex);
+  auto tuple_of_unit_factories = new_executor_traits_detail::make_tuple_of_unit_factories(ex);
 
-  return multi_agent_execute_returning_user_specified_container_impl<Container>(detail::make_index_sequence<std::tuple_size<decltype(tuple_of_ignored_parameters)>::value>(), ex, f, shape, tuple_of_ignored_parameters);
+  return multi_agent_execute_returning_user_specified_container_impl<Container>(detail::make_index_sequence<std::tuple_size<decltype(tuple_of_unit_factories)>::value>(), ex, f, shape, tuple_of_unit_factories);
 } // end multi_agent_execute_returning_user_specified_container()
 
 

@@ -16,20 +16,20 @@ namespace new_executor_traits_detail
 {
 
 
-template<class Executor, class Function, class... Types>
+template<class Executor, class Function, class... Factories>
 typename new_executor_traits<Executor>::template future<void>
-  multi_agent_async_execute_with_shared_inits_returning_void(std::true_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Types&&... shared_inits)
+  multi_agent_async_execute_with_shared_inits_returning_void(std::true_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Factories... shared_factories)
 {
-  return ex.async_execute(f, shape, std::forward<Types>(shared_inits)...);
+  return ex.async_execute(f, shape, shared_factories...);
 } // end multi_agent_async_execute_with_shared_inits_returning_void()
 
 
-template<class Executor, class Function, class... Types>
+template<class Executor, class Function, class... Factories>
 typename new_executor_traits<Executor>::template future<void>
-  multi_agent_async_execute_with_shared_inits_returning_void(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Types&&... shared_inits)
+  multi_agent_async_execute_with_shared_inits_returning_void(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Factories... shared_factories)
 {
   // invoke f and generate dummy results into a discarding_container
-  auto fut2 = new_executor_traits<Executor>::template async_execute<discarding_container>(ex, invoke_and_return_empty<Function>{f}, shape, std::forward<Types>(shared_inits)...);
+  auto fut2 = new_executor_traits<Executor>::template async_execute<discarding_container>(ex, invoke_and_return_empty<Function>{f}, shape, shared_factories...);
 
   // cast the discarding_container to void
   return new_executor_traits<Executor>::template future_cast<void>(ex, fut2);
@@ -41,7 +41,7 @@ typename new_executor_traits<Executor>::template future<void>
 
 
 template<class Executor>
-  template<class Function, class... Types,
+  template<class Function, class... Factories,
            class Enable1,
            class Enable2>
 typename new_executor_traits<Executor>::template future<void>
@@ -49,15 +49,15 @@ typename new_executor_traits<Executor>::template future<void>
     ::async_execute(typename new_executor_traits<Executor>::executor_type& ex,
                     Function f,
                     typename new_executor_traits<Executor>::shape_type shape,
-                    Types&&... shared_inits)
+                    Factories... shared_factories)
 {
   using check_for_member_function = detail::new_executor_traits_detail::has_multi_agent_async_execute_with_shared_inits_returning_void<
     Executor,
     Function,
-    Types...
+    Factories...
   >;
 
-  return detail::new_executor_traits_detail::multi_agent_async_execute_with_shared_inits_returning_void(check_for_member_function(), ex, f, shape, std::forward<Types>(shared_inits)...);
+  return detail::new_executor_traits_detail::multi_agent_async_execute_with_shared_inits_returning_void(check_for_member_function(), ex, f, shape, shared_factories...);
 } // end new_executor_traits::async_execute()
 
 

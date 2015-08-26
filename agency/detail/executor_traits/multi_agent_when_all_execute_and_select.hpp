@@ -3,6 +3,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/factory.hpp>
 #include <agency/functional.hpp>
 #include <type_traits>
 #include <iostream>
@@ -24,13 +25,13 @@ struct use_single_agent_when_all_execute_and_select_with_nested_multi_agent_exec
 
 
 template<class IndexSequence, class Executor, class Function, class TupleOfFutures>
-using has_multi_agent_when_all_execute_and_select_with_ignored_shared_inits = 
+using has_multi_agent_when_all_execute_and_select_with_unit_factories = 
   has_multi_agent_when_all_execute_and_select_with_shared_inits<
     IndexSequence,
     Executor,
     Function,
     TupleOfFutures,
-    detail::type_list_repeat<new_executor_traits<Executor>::execution_depth, detail::ignore_t>
+    detail::type_list_repeat<new_executor_traits<Executor>::execution_depth, detail::unit_factory>
   >;
 
 
@@ -56,7 +57,7 @@ using select_multi_agent_when_all_execute_and_select_implementation =
     has_multi_agent_when_all_execute_and_select<Executor, Function, TupleOfFutures, Indices...>::value,
     use_multi_agent_when_all_execute_and_select_member_function,
     typename std::conditional<
-      has_multi_agent_when_all_execute_and_select_with_ignored_shared_inits<detail::index_sequence<Indices...>, Executor, Function, TupleOfFutures>::value,
+      has_multi_agent_when_all_execute_and_select_with_unit_factories<detail::index_sequence<Indices...>, Executor, Function, TupleOfFutures>::value,
       use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function,
       use_single_agent_when_all_execute_and_select_with_nested_multi_agent_execute
     >::type
@@ -79,7 +80,7 @@ typename new_executor_traits<Executor>::template future<
 
 
 template<size_t num_ignored_arguments, class Function>
-struct multi_agent_when_all_execute_and_select_using_ignored_shared_inits_functor
+struct multi_agent_when_all_execute_and_select_ignoring_shared_args_functor
 {
   mutable Function f;
 
@@ -101,7 +102,7 @@ struct multi_agent_when_all_execute_and_select_using_ignored_shared_inits_functo
 };
 
 
-template<size_t... SelectedIndices, size_t... SharedInitIndices, class Executor, class Function, class TupleOfFutures, class... Types>
+template<size_t... SelectedIndices, size_t... SharedInitIndices, class Executor, class Function, class TupleOfFutures, class... Factories>
 typename new_executor_traits<Executor>::template future<
   detail::when_all_execute_and_select_result_t<
     detail::index_sequence<SelectedIndices...>,
@@ -110,12 +111,12 @@ typename new_executor_traits<Executor>::template future<
 >
   multi_agent_when_all_execute_and_select(use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function,
                                           detail::index_sequence<SharedInitIndices...>,
-                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures, const detail::tuple<Types...>& ignored_shared_inits)
+                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures, const detail::tuple<Factories...>& unit_factories)
 {
-  constexpr size_t num_ignored_arguments = sizeof...(Types);
-  auto g = multi_agent_when_all_execute_and_select_using_ignored_shared_inits_functor<num_ignored_arguments, Function>{f};
+  constexpr size_t num_ignored_arguments = sizeof...(Factories);
+  auto g = multi_agent_when_all_execute_and_select_ignoring_shared_args_functor<num_ignored_arguments, Function>{f};
 
-  return ex.template when_all_execute_and_select<SelectedIndices...>(g, shape, std::forward<TupleOfFutures>(futures), std::get<SharedInitIndices>(ignored_shared_inits)...);
+  return ex.template when_all_execute_and_select<SelectedIndices...>(g, shape, std::forward<TupleOfFutures>(futures), std::get<SharedInitIndices>(unit_factories)...);
 } // end multi_agent_when_all_execute_and_select()
 
 
@@ -131,12 +132,12 @@ typename new_executor_traits<Executor>::template future<
 {
   constexpr size_t depth = new_executor_traits<Executor>::execution_depth;
 
-  // create ignored shared initializers
-  auto ignored_shared_inits = detail::tuple_repeat<depth>(detail::ignore);
+  // create unit factories
+  auto unit_factory_tuple = detail::tuple_repeat<depth>(detail::unit_factory());
 
   return multi_agent_when_all_execute_and_select<SelectedIndices...>(implementation_strategy,
                                                                      detail::make_index_sequence<depth>(),
-                                                                     ex, f, shape, std::forward<TupleOfFutures>(futures), ignored_shared_inits);
+                                                                     ex, f, shape, std::forward<TupleOfFutures>(futures), unit_factory_tuple);
 } // end multi_agent_when_all_execute_and_select()
 
 

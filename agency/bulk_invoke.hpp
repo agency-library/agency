@@ -71,10 +71,10 @@ typename BulkCall::result_type
     typename traits::execution_category
   >::value;
 
-  // construct shared initializers and package them for the executor
-  auto shared_init = agency::detail::make_shared_parameter_package_for_executor<executor_depth>(shared_arg_tuple);
+  // create a tuple of factories to use for shared parameters for the executor
+  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<executor_depth>(shared_arg_tuple);
 
-  return bulk_call_executor_impl(bulk_call, exec, g, shape, std::move(shared_init), detail::make_index_sequence<executor_depth>());
+  return bulk_call_executor_impl(bulk_call, exec, g, shape, factory_tuple, detail::make_index_sequence<executor_depth>());
 
   // XXX upon c++14
   //return bulk_call(exec, [=](const auto& idx, auto& packaged_shared_params)
@@ -108,7 +108,7 @@ struct call_execute
 
 
 template<class T>
-struct decay_parameter : decay_construct_result<T> {};
+struct decay_parameter : std::decay<T> {};
 
 template<class T>
 using decay_parameter_t = typename decay_parameter<T>::type;

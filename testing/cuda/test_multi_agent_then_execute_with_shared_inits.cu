@@ -30,6 +30,26 @@ struct sum_13_7_and_42
 };
 
 
+template<class T>
+struct factory
+{
+  __host__ __device__
+  T operator()() const
+  {
+    return value;
+  }
+
+  T value;
+};
+
+template<class T>
+__host__ __device__
+factory<T> make_factory(const T& value)
+{
+  return factory<T>{value};
+}
+
+
 template<class Executor>
 void test()
 {
@@ -50,7 +70,7 @@ void test()
 
     using index_type = typename executor_type::index_type;
 
-    auto fut = traits::template then_execute<container_type>(exec, sum_13_7_and_42(), shape, past, 7, 42.0f);
+    auto fut = traits::template then_execute<container_type>(exec, sum_13_7_and_42(), shape, past, make_factory(7), make_factory(42.0f));
 
     auto got = fut.get();
 
@@ -68,7 +88,7 @@ void test()
 
     using index_type = typename traits::index_type;
 
-    auto fut = traits::then_execute(exec, sum_13_7_and_42(), shape, past, 7, 42.0f);
+    auto fut = traits::then_execute(exec, sum_13_7_and_42(), shape, past, make_factory(7), make_factory(42.0f));
 
     auto result = fut.get();
 
@@ -89,7 +109,7 @@ void test()
 
     using index_type = typename traits::index_type;
 
-    auto fut = traits::then_execute(exec, increment_and_return_void(), shape, past, 7, 42);
+    auto fut = traits::then_execute(exec, increment_and_return_void(), shape, past, make_factory(7), make_factory(42));
 
     fut.wait();
 
