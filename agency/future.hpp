@@ -415,7 +415,9 @@ struct future_traits
   }
 
   private:
+  __agency_hd_warning_disable__
   template<class U>
+  __AGENCY_ANNOTATION
   static rebind<U> cast_impl2(future_type& fut,
                               typename std::enable_if<
                                 std::is_constructible<rebind<U>,future_type&&>::value
@@ -425,6 +427,7 @@ struct future_traits
   }
 
   template<class U>
+  __AGENCY_ANNOTATION
   static rebind<U> cast_impl2(future_type& fut,
                               typename std::enable_if<
                                 !std::is_constructible<rebind<U>,future_type&&>::value
@@ -433,7 +436,9 @@ struct future_traits
     return future_traits<future_type>::then(fut, detail::cast_functor<U>());
   }
 
+  __agency_hd_warning_disable__
   template<class U>
+  __AGENCY_ANNOTATION
   static rebind<U> cast_impl1(future_type& fut,
                               typename std::enable_if<
                                 detail::has_cast<future_type,U,rebind<U>>::value
@@ -443,6 +448,7 @@ struct future_traits
   }
 
   template<class U>
+  __AGENCY_ANNOTATION
   static rebind<U> cast_impl1(future_type& fut,
                               typename std::enable_if<
                                 !detail::has_cast<future_type,U,rebind<U>>::value
@@ -454,6 +460,7 @@ struct future_traits
   public:
 
   template<class U>
+  __AGENCY_ANNOTATION
   static rebind<U> cast(future_type& fut)
   {
     return cast_impl1<U>(fut);
@@ -574,7 +581,9 @@ private:
 
   public:
 
+  __agency_hd_warning_disable__
   template<class U>
+  __AGENCY_ANNOTATION
   static rebind<U> cast(future_type& fut)
   {
     return cast_impl<U>(fut);

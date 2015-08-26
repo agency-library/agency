@@ -274,9 +274,11 @@ struct new_executor_traits
     using container = detail::new_executor_traits_detail::member_container_or_t<std::vector<T>, executor_type, T>;
 
     template<class T, class... Args>
+    __AGENCY_ANNOTATION
     static future<T> make_ready_future(executor_type& ex, Args&&... args);
 
     template<class T, class Future>
+    __AGENCY_ANNOTATION
     static future<T> future_cast(executor_type& ex, Future& fut);
 
     template<class... Futures>

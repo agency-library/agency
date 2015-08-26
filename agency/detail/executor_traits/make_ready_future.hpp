@@ -15,6 +15,7 @@ namespace new_executor_traits_detail
 
 
 template<class T, class Executor, class... Args>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<T>
   make_ready_future(std::true_type, Executor& ex, Args&&... args)
 {
@@ -23,6 +24,7 @@ typename new_executor_traits<Executor>::template future<T>
 
 
 template<class T, class Executor, class... Args>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<T>
   make_ready_future(std::false_type, Executor&, Args&&... args)
 {
@@ -37,6 +39,7 @@ typename new_executor_traits<Executor>::template future<T>
 
 template<class Executor>
   template<class T, class... Args>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<T>
   new_executor_traits<Executor>
     ::make_ready_future(typename new_executor_traits<Executor>::executor_type& ex, Args&&... args)

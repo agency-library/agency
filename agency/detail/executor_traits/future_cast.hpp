@@ -56,7 +56,9 @@ using select_future_cast_implementation =
 } // end future_cast_implementation_strategies
 
 
+__agency_hd_warning_disable__
 template<class T, class Executor, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<T>
   future_cast(future_cast_implementation_strategies::use_future_cast_member_function, Executor& ex, Future& fut)
 {
@@ -65,6 +67,7 @@ typename new_executor_traits<Executor>::template future<T>
 
 
 template<class T, class Executor, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<T>
   future_cast(future_cast_implementation_strategies::use_future_traits, Executor&, Future& fut)
 {
@@ -93,6 +96,7 @@ struct future_cast_then_execute_functor
 
 
 template<class T, class Executor, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<T>
   future_cast(future_cast_implementation_strategies::use_then_execute, Executor& ex, Future& fut)
 {
@@ -106,6 +110,7 @@ typename new_executor_traits<Executor>::template future<T>
 
 template<class Executor>
   template<class T, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<T>
   new_executor_traits<Executor>
     ::future_cast(typename new_executor_traits<Executor>::executor_type& ex, Future& fut)
