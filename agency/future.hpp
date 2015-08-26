@@ -329,6 +329,17 @@ struct has_cast_impl
 template<class FromFuture, class ToType, class ToFuture>
 using has_cast = typename has_cast_impl<FromFuture,ToType,ToFuture>::type;
 
+template<class T>
+struct cast_functor
+{
+  template<class U>
+  __AGENCY_ANNOTATION
+  T operator()(U& val) const
+  {
+    return static_cast<T>(val);
+  }
+};
+
 
 } // end detail
 
@@ -396,9 +407,7 @@ struct future_traits
              detail::has_then<future_type,Function&&>::value
            >::type>
   static rebind<
-    typename std::result_of<
-      typename std::decay<Function>::type(future_type&)
-    >::type
+    agency::detail::result_of_continuation_t<Function&&, future_type>
   >
     then(future_type& fut, Function&& f)
   {
@@ -421,10 +430,7 @@ struct future_traits
                                 !std::is_constructible<rebind<U>,future_type&&>::value
                               >::type* = 0)
   {
-    return future_traits<future_type>::then(fut, [](value_type& val)
-    {
-      return static_cast<U>(val);
-    });
+    return future_traits<future_type>::then(fut, detail::cast_functor<U>());
   }
 
   template<class U>
