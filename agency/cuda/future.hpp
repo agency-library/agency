@@ -41,7 +41,7 @@ struct is_constructible_or_void
   : std::integral_constant<
       bool,
       std::is_constructible<T,Args...>::value ||
-      std::is_void<T>::value && (sizeof...(Args) == 0)
+      (std::is_void<T>::value && (sizeof...(Args) == 0))
     >
 {};
 
