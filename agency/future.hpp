@@ -421,9 +421,9 @@ struct future_traits
                                 !std::is_constructible<rebind<U>,future_type&&>::value
                               >::type* = 0)
   {
-    return future_traits<future_type>::then(fut, [](future_type& fut)
+    return future_traits<future_type>::then(fut, [](value_type& val)
     {
-      return static_cast<U>(fut.get());
+      return static_cast<U>(val);
     });
   }
 
@@ -487,13 +487,62 @@ struct future_traits<std::future<T>>
     return std::move(*reinterpret_cast<std::future<void>*>(&fut));
   }
 
+private:
+  // XXX we should move Function into then_functor if necessary
+  template<class Function>
+  struct then_functor
+  {
+    mutable Function f_;
+
+    template<class Function1,
+             class U,
+             class = typename std::enable_if<
+               !std::is_void<U>::value
+             >::type>
+    static auto invoke_continuation(Function1& f, std::future<U>& fut)
+      -> decltype(f(*std::declval<U*>()))
+    {
+      auto val = fut.get();
+      return f(val);
+    }
+
+    template<class Function1,
+             class U,
+             class = typename std::enable_if<
+               std::is_void<U>::value
+             >::type>
+    static auto invoke_continuation(Function1& f, std::future<U>& fut)
+      -> decltype(f())
+    {
+      fut.get();
+      return f();
+    }
+
+    auto operator()(future_type& fut) const
+      -> decltype(invoke_continuation(f_, fut))
+    {
+      return invoke_continuation(f_, fut);
+    }
+  };
+
+  template<class Function>
+  static then_functor<Function> make_then_functor(const Function& f)
+  {
+    return then_functor<Function>{f};
+  }
+
+public:
+
   template<class Function>
   static auto then(future_type& fut, Function&& f)
     -> decltype(
-         detail::then(fut, std::forward<Function>(f))
+         detail::then(fut, make_then_functor(std::forward<Function>(f)))
        )
   {
-    return detail::then(fut, std::forward<Function>(f));
+    // detail::then() expects the continuation to receive a future, not a value
+    // so the continuation we pass to detail::then needs to unwrap fut
+
+    return detail::then(fut, make_then_functor(std::forward<Function>(f)));
   }
 };
 

@@ -215,17 +215,18 @@ typename new_executor_traits<Executor>::template future<
                               >::value
                             >::type* = 0)
 {
+  using value_type1 = typename future_value<Future>::type;
+
   // launch f as continuation
-  auto fut2 = future_traits<Future>::then(fut, [=,&ex](Future& fut)
+  auto fut2 = future_traits<Future>::then(fut, [=,&ex](value_type1& arg)
   {
-    auto arg = fut.get();
     auto g = [&]{ return f(arg); };
     return new_executor_traits<Executor>::execute(ex, g);
   });
 
   // cast to the right type of future
-  using value_type = typename future_traits<decltype(fut2)>::value_type;
-  return new_executor_traits<Executor>::template future_cast<value_type>(ex, fut2);
+  using value_type2 = typename future_traits<decltype(fut2)>::value_type;
+  return new_executor_traits<Executor>::template future_cast<value_type2>(ex, fut2);
 } // end single_agent_then_execute()
 
 
@@ -242,7 +243,7 @@ typename new_executor_traits<Executor>::template future<
                             >::type* = 0)
 {
   // launch f as continuation
-  auto fut2 = future_traits<Future>::then(fut, [=,&ex](Future& fut)
+  auto fut2 = future_traits<Future>::then(fut, [=,&ex]()
   {
     return new_executor_traits<Executor>::execute(ex, f);
   });
