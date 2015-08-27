@@ -406,6 +406,7 @@ struct future_traits
            class = typename std::enable_if<
              detail::has_then<future_type,Function&&>::value
            >::type>
+  __AGENCY_ANNOTATION
   static rebind<
     agency::detail::result_of_continuation_t<Function&&, future_type>
   >
@@ -478,11 +479,14 @@ struct future_traits<std::future<T>>
   template<class U>
   using rebind = typename detail::rebind_future_value<future_type,U>::type;
 
+  __agency_hd_warning_disable__
+  __AGENCY_ANNOTATION
   static rebind<void> make_ready()
   {
     return detail::make_ready_future();
   }
 
+  __agency_hd_warning_disable__
   template<class U, class... Args>
   __AGENCY_ANNOTATION
   static rebind<U> make_ready(Args&&... args)
