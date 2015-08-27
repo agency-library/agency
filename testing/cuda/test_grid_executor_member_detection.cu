@@ -50,11 +50,6 @@ int main()
   using int_future_type = agency::cuda::future<int>;
 
   static_assert(
-    agency::detail::new_executor_traits_detail::has_multi_agent_then_execute_returning_void<executor_type, functor_returning_void, int_future_type>::value,
-    "grid_executor should have multi-agent then_execute() returning void"
-  );
-
-  static_assert(
     agency::detail::new_executor_traits_detail::has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<container<int>, executor_type, functor_returning_int, int_future_type, int_factory, int_factory>::value,
     "grid_executor should have multi-agent then_execute() with shared inits returning user-specified container"
   );

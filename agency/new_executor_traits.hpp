@@ -318,6 +318,7 @@ struct new_executor_traits
 
     // single-agent then_execute()
     template<class Function, class Future>
+    __AGENCY_ANNOTATION
     static future<
       detail::result_of_continuation_t<Function,Future>
     >
@@ -337,6 +338,7 @@ struct new_executor_traits
                Future
              >
             >
+    __AGENCY_ANNOTATION
     static future<Container> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut);
 
     // multi-agent then_execute() with shared inits returning user-specified Container
@@ -356,6 +358,7 @@ struct new_executor_traits
                Future,
                typename std::result_of<Factories()>::type&...
              >>
+    __AGENCY_ANNOTATION
     static future<Container> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut, Factories... shared_factories);
 
     // multi-agent then_execute() returning default container
@@ -414,6 +417,7 @@ struct new_executor_traits
                  detail::result_of_continuation_t<Function,index_type,Future>
                >::value
              >::type>
+    __AGENCY_ANNOTATION
     static future<void>
       then_execute(executor_type& ex, Function f, shape_type shape, Future& fut);
 

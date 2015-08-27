@@ -87,7 +87,9 @@ using select_multi_agent_then_execute_with_shared_inits_returning_user_specified
 
 
 // strategy 1
+__agency_hd_warning_disable__
 template<class Container, class Executor, class Function, class Future, class... Factories>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<Container>
   multi_agent_then_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_member_function,
                                                                                 Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut,
@@ -114,7 +116,9 @@ struct strategy_2_functor
 };
 
 
+__agency_hd_warning_disable__
 template<class Container, class Executor, class Function, class Future, class... Factories>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<Container>
   multi_agent_then_execute_with_shared_inits_returning_user_specified_container(use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function,
                                                                                 Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Factories... shared_factories)
@@ -228,6 +232,7 @@ make_strategy_3_functor(Executor& ex, Function f, typename new_executor_traits<E
 
 
 template<class Container, class Executor, class Function, class Future, class... Factories>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<Container>
   multi_agent_then_execute_with_shared_inits_returning_user_specified_container(use_single_agent_then_execute_with_nested_multi_agent_execute_with_shared_inits,
                                                                                 Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut,

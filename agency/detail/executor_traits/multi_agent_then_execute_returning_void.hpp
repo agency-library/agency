@@ -49,7 +49,9 @@ using select_multi_agent_then_execute_returning_void_implementation_strategy =
   >::type;
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_then_execute_returning_void(use_multi_agent_then_execute_returning_void_member_function,
                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut)
@@ -58,7 +60,9 @@ typename new_executor_traits<Executor>::template future<void>
 } // end multi_agent_then_execute_returning_void()
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_then_execute_returning_void(use_multi_agent_when_all_execute_and_select_member_function,
                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut)
@@ -87,7 +91,9 @@ struct invoke_and_return_empty
 };
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_then_execute_returning_void(use_multi_agent_then_execute_returning_discarding_container_and_cast,
                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut)
@@ -111,6 +117,7 @@ template<class Executor>
            class Enable2,
            class Enable3
           >
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   new_executor_traits<Executor>
     ::then_execute(typename new_executor_traits<Executor>::executor_type& ex,

@@ -550,7 +550,9 @@ private:
 
 public:
 
+  __agency_hd_warning_disable__
   template<class Function>
+  __AGENCY_ANNOTATION
   static auto then(future_type& fut, Function&& f)
     -> decltype(
          detail::then(fut, make_then_functor(std::forward<Function>(f)))

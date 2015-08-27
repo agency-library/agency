@@ -57,7 +57,9 @@ using select_single_agent_then_execute_implementation =
 } // end single_agent_then_execute_implementation_strategies
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
@@ -114,7 +116,9 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
 };
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
@@ -181,7 +185,9 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
 };
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
@@ -203,7 +209,9 @@ typename new_executor_traits<Executor>::template future<
 } // end single_agent_then_execute()
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
@@ -230,7 +238,9 @@ typename new_executor_traits<Executor>::template future<
 } // end single_agent_then_execute()
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
@@ -260,6 +270,7 @@ typename new_executor_traits<Executor>::template future<
 
 template<class Executor>
   template<class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >

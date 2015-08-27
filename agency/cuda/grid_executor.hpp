@@ -551,28 +551,6 @@ class basic_grid_executor
     }
 
   public:
-    template<class Function>
-    __host__ __device__
-    future<void> then_execute(Function f, shape_type shape, future<void>& dependency)
-    {
-      cudaEvent_t next_event = then_execute_impl(f, shape, dependency.event());
-
-      // XXX shouldn't we use dependency.stream() here?
-      return future<void>{stream(), next_event};
-    }
-
-    template<class Function, class T>
-    __host__ __device__
-    future<void> then_execute(Function f, shape_type shape, future<T>& dependency)
-    {
-      detail::function_with_past_parameter<Function,T> g{f, dependency.data()};
-
-      cudaEvent_t next_event = then_execute_impl(g, shape, dependency.event());
-
-      // XXX shouldn't we use dependency.stream() here?
-      return future<void>{stream(), next_event};
-    }
-
     template<class Container, class Function, class T,
              class = typename std::enable_if<
                agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
@@ -671,13 +649,12 @@ class basic_grid_executor
       return agency::executor_traits<basic_grid_executor>::template future_cast<void>(*this, intermediate_result);
     }
 
-
     template<class Function>
     __host__ __device__
     future<void> async_execute(Function f, shape_type shape)
     {
       auto ready = make_ready_future();
-      return then_execute(f, shape, ready);
+      return agency::executor_traits<basic_grid_executor>::then_execute(*this, f, shape, ready);
     }
     
 
