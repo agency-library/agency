@@ -437,6 +437,7 @@ struct new_executor_traits
                  detail::result_of_continuation_t<Function,index_type,Future,typename std::result_of<Factories()>::type&...>
                >::value
              >::type>
+    __AGENCY_ANNOTATION
     static future<void>
       then_execute(executor_type& ex, Function f, shape_type shape, Future& fut, Factories... shared_factories);
 

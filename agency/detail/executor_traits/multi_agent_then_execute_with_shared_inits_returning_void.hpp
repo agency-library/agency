@@ -18,7 +18,9 @@ namespace new_executor_traits_detail
 {
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future, class... Factories>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_then_execute_with_shared_inits_returning_void(std::true_type,
                                                             Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Factories... shared_factories)
@@ -28,6 +30,7 @@ typename new_executor_traits<Executor>::template future<void>
 
 
 template<class Executor, class Function, class Future, class... Factories>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_then_execute_with_shared_inits_returning_void(std::false_type,
                                                             Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Factories... shared_factories)
@@ -51,6 +54,7 @@ template<class Executor>
            class Enable3,
            class Enable4
           >
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   new_executor_traits<Executor>
     ::then_execute(typename new_executor_traits<Executor>::executor_type& ex,
