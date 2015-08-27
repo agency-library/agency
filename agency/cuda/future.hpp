@@ -24,6 +24,7 @@
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/future.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -46,9 +47,18 @@ struct is_constructible_or_void
 {};
 
 
+template<class T>
+struct state_requires_storage
+  : std::integral_constant<
+      bool,
+      std::is_empty<T>::value || std::is_void<T>::value || agency::detail::is_empty_tuple<T>::value
+   >
+{};
+
+
 // XXX should maybe call this asynchronous_state to match the nomenclature of the std
 template<class T,
-         bool requires_storage = std::is_empty<T>::value || std::is_void<T>::value>
+         bool requires_storage = state_requires_storage<T>::value>
 class future_state
 {
   public:
@@ -123,6 +133,29 @@ class future_state
 };
 
 
+// when a type is empty, we can create it on the fly upon dereference
+template<class T>
+struct empty_type_ptr : T
+{
+  using element_type = T;
+
+  __host__ __device__
+  T& operator*()
+  {
+    return *this;
+  }
+
+  __host__ __device__
+  const T& operator*() const
+  {
+    return *this;
+  }
+};
+
+template<>
+struct empty_type_ptr<void> : unit_ptr {};
+
+
 // zero storage optimization
 template<class T>
 class future_state<T,true>
@@ -150,11 +183,13 @@ class future_state<T,true>
       other.valid_ = false;
     }
 
-    // allow moves to void states (this simply discards the state)
+    // 1. allow moves to void states (this simply discards the state)
+    // 2. allow moves to empty types if the type can be constructed from an empty argument list
     template<class U,
              class T1 = T,
              class = typename std::enable_if<
-               std::is_void<T1>::value
+               std::is_void<T1>::value ||
+               (std::is_empty<T>::value && std::is_void<U>::value && std::is_constructible<T>::value)
              >::type>
     __host__ __device__
     future_state(future_state<U>&& other)
@@ -176,11 +211,10 @@ class future_state<T,true>
       return *this;
     }
 
-    // XXX should return something like constant_iterator<T> rather than unit_ptr for the empty type case
     __host__ __device__
-    unit_ptr data()
+    empty_type_ptr<T> data()
     {
-      return unit_ptr();
+      return empty_type_ptr<T>();
     }
 
     __host__ __device__
