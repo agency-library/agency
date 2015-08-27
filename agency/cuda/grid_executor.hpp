@@ -551,33 +551,6 @@ class basic_grid_executor
     }
 
   public:
-    template<class Container, class Function, class T,
-             class = typename std::enable_if<
-               agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
-             >::type,
-             class = agency::detail::result_of_continuation_t<
-               Function,
-               index_type,
-               future<T>
-             >
-            >
-    future<Container> then_execute(Function f, shape_type shape, future<T>& fut)
-    {
-      // XXX shouldn't we use fut.stream() ?
-      detail::future_state<Container> result_state(stream(), shape);
-
-      using result_ptr_type = decltype(result_state.data());
-      using arg_ptr_type = decltype(fut.data());
-
-      then_execute_functor<result_ptr_type, Function, arg_ptr_type> g{result_state.data(), f, fut.data()};
-
-      cudaEvent_t next_event = then_execute_impl(g, shape, fut.event());
-
-      // XXX shouldn't we use dependency.stream() here?
-      return future<Container>(stream(), next_event, std::move(result_state));
-    }
-
-
     template<class Container, class Function, class T, class Factory1, class Factory2,
              class = typename std::enable_if<
                agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
