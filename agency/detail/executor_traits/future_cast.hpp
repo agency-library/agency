@@ -14,10 +14,28 @@ namespace future_cast_implementation_strategies
 {
 
 
+template<class FromFuture, class ToFuture>
+struct is_future_castable_impl
+{
+  using from_value_type = typename agency::future_traits<FromFuture>::value_type;
+  using to_value_type   = typename agency::future_traits<ToFuture>::value_type;
+
+  using cast_type = decltype(
+    agency::future_traits<FromFuture>::template cast<to_value_type>(*std::declval<FromFuture*>())
+  );
+
+  using type = std::is_same<cast_type, ToFuture>;
+};
+
+
+template<class FromFuture, class ToFuture>
+using is_future_castable = typename is_future_castable_impl<FromFuture,ToFuture>::type;
+
+
 // strategies for future_cast implementation
 struct use_future_cast_member_function {};
 
-struct use_move_construct {};
+struct use_future_traits {};
 
 struct use_then_execute {};
 
@@ -28,11 +46,8 @@ using select_future_cast_implementation =
     has_future_cast<Executor,T,Future>::value,
     use_future_cast_member_function,
     typename std::conditional<
-      std::is_constructible<
-        typename new_executor_traits<Executor>::template future<T>,
-        Future&&
-      >::value,
-      use_move_construct,
+      is_future_castable<Future, typename new_executor_traits<Executor>::template future<T>>::value,
+      use_future_traits,
       use_then_execute
     >::type
   >::type;
@@ -41,7 +56,9 @@ using select_future_cast_implementation =
 } // end future_cast_implementation_strategies
 
 
+__agency_hd_warning_disable__
 template<class T, class Executor, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<T>
   future_cast(future_cast_implementation_strategies::use_future_cast_member_function, Executor& ex, Future& fut)
 {
@@ -50,10 +67,11 @@ typename new_executor_traits<Executor>::template future<T>
 
 
 template<class T, class Executor, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<T>
-  future_cast(future_cast_implementation_strategies::use_move_construct, Executor&, Future& fut)
+  future_cast(future_cast_implementation_strategies::use_future_traits, Executor&, Future& fut)
 {
-  return typename new_executor_traits<Executor>::template future<T>(std::move(fut));
+  return agency::future_traits<Future>::template cast<T>(fut);
 } // end future_cast()
 
 
@@ -78,6 +96,7 @@ struct future_cast_then_execute_functor
 
 
 template<class T, class Executor, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<T>
   future_cast(future_cast_implementation_strategies::use_then_execute, Executor& ex, Future& fut)
 {
@@ -91,6 +110,7 @@ typename new_executor_traits<Executor>::template future<T>
 
 template<class Executor>
   template<class T, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<T>
   new_executor_traits<Executor>
     ::future_cast(typename new_executor_traits<Executor>::executor_type& ex, Future& fut)

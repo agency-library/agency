@@ -265,12 +265,12 @@ auto tuple_drop_last(Tuple&& t)
 
 template<class Function, class Tuple>
 __AGENCY_ANNOTATION
-auto tuple_apply(Function f, Tuple&& t)
+auto tuple_apply(Function&& f, Tuple&& t)
   -> decltype(
-       __tu::tuple_apply(agency::detail::host_device_cast(f), std::forward<Tuple>(t))
+       __tu::tuple_apply(agency::detail::host_device_cast(std::forward<Function>(f)), std::forward<Tuple>(t))
      )
 {
-  return __tu::tuple_apply(agency::detail::host_device_cast(f), std::forward<Tuple>(t));
+  return __tu::tuple_apply(agency::detail::host_device_cast(std::forward<Function>(f)), std::forward<Tuple>(t));
 }
 
 
@@ -399,6 +399,7 @@ template<class Tuple,
            >::value > 1)
          >::type
         >
+__AGENCY_ANNOTATION
 Tuple&& unwrap_single_element_tuple(Tuple&& t)
 {
   return std::forward<Tuple>(t);
@@ -412,6 +413,7 @@ template<class Tuple,
            >::value == 1)
          >::type
         >
+__AGENCY_ANNOTATION
 auto unwrap_single_element_tuple(Tuple&& t)
   -> decltype(
        detail::get<0>(std::forward<Tuple>(t))

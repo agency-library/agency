@@ -306,6 +306,41 @@ template<class Future, class Function>
 using has_then = typename has_then_impl<Future,Function>::type;
 
 
+template<class FromFuture, class ToType, class ToFuture>
+struct has_cast_impl
+{
+  template<
+    class FromFuture1,
+    class Result = decltype(
+      *std::declval<FromFuture1*>.template cast<ToType>()
+    ),
+    class = typename std::enable_if<
+      std::is_same<Result,ToFuture>::value
+    >::type
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<FromFuture>(0));
+};
+
+template<class FromFuture, class ToType, class ToFuture>
+using has_cast = typename has_cast_impl<FromFuture,ToType,ToFuture>::type;
+
+template<class T>
+struct cast_functor
+{
+  template<class U>
+  __AGENCY_ANNOTATION
+  T operator()(U& val) const
+  {
+    return static_cast<T>(val);
+  }
+};
+
+
 } // end detail
 
 
@@ -371,10 +406,9 @@ struct future_traits
            class = typename std::enable_if<
              detail::has_then<future_type,Function&&>::value
            >::type>
+  __AGENCY_ANNOTATION
   static rebind<
-    typename std::result_of<
-      typename std::decay<Function>::type(future_type&)
-    >::type
+    agency::detail::result_of_continuation_t<Function&&, future_type>
   >
     then(future_type& fut, Function&& f)
   {
@@ -382,33 +416,55 @@ struct future_traits
   }
 
   private:
-  template<class OtherFuture>
-  static future_type cast_impl(OtherFuture& fut,
-                               typename std::enable_if<
-                                 std::is_constructible<future_type,OtherFuture&&>::value
-                               >::type* = 0)
+  __agency_hd_warning_disable__
+  template<class U>
+  __AGENCY_ANNOTATION
+  static rebind<U> cast_impl2(future_type& fut,
+                              typename std::enable_if<
+                                std::is_constructible<rebind<U>,future_type&&>::value
+                              >::type* = 0)
   {
-    return future_type(std::move(fut));
+    return rebind<U>(std::move(fut));
   }
 
-  template<class OtherFuture>
-  static future_type cast_impl(OtherFuture& fut,
-                               typename std::enable_if<
-                                 !std::is_constructible<future_type,OtherFuture&&>::value
-                               >::type* = 0)
+  template<class U>
+  __AGENCY_ANNOTATION
+  static rebind<U> cast_impl2(future_type& fut,
+                              typename std::enable_if<
+                                !std::is_constructible<rebind<U>,future_type&&>::value
+                              >::type* = 0)
   {
-    return future_traits<Future>::then(fut, [](OtherFuture& fut)
-    {
-      return fut.get();
-    });
+    return future_traits<future_type>::then(fut, detail::cast_functor<U>());
+  }
+
+  __agency_hd_warning_disable__
+  template<class U>
+  __AGENCY_ANNOTATION
+  static rebind<U> cast_impl1(future_type& fut,
+                              typename std::enable_if<
+                                detail::has_cast<future_type,U,rebind<U>>::value
+                              >::type* = 0)
+  {
+    return future_type::template cast<U>(fut);
+  }
+
+  template<class U>
+  __AGENCY_ANNOTATION
+  static rebind<U> cast_impl1(future_type& fut,
+                              typename std::enable_if<
+                                !detail::has_cast<future_type,U,rebind<U>>::value
+                              >::type* = 0)
+  {
+    return cast_impl2<U>(fut);
   }
 
   public:
 
-  template<class OtherFuture>
-  static future_type cast(OtherFuture& fut)
+  template<class U>
+  __AGENCY_ANNOTATION
+  static rebind<U> cast(future_type& fut)
   {
-    return cast_impl(fut);
+    return cast_impl1<U>(fut);
   }
 };
 
@@ -423,11 +479,14 @@ struct future_traits<std::future<T>>
   template<class U>
   using rebind = typename detail::rebind_future_value<future_type,U>::type;
 
+  __agency_hd_warning_disable__
+  __AGENCY_ANNOTATION
   static rebind<void> make_ready()
   {
     return detail::make_ready_future();
   }
 
+  __agency_hd_warning_disable__
   template<class U, class... Args>
   __AGENCY_ANNOTATION
   static rebind<U> make_ready(Args&&... args)
@@ -445,13 +504,95 @@ struct future_traits<std::future<T>>
     return std::move(*reinterpret_cast<std::future<void>*>(&fut));
   }
 
+private:
+  // XXX we should move Function into then_functor if necessary
   template<class Function>
+  struct then_functor
+  {
+    mutable Function f_;
+
+    template<class Function1,
+             class U,
+             class = typename std::enable_if<
+               !std::is_void<U>::value
+             >::type>
+    static auto invoke_continuation(Function1& f, std::future<U>& fut)
+      -> decltype(f(*std::declval<U*>()))
+    {
+      auto val = fut.get();
+      return f(val);
+    }
+
+    template<class Function1,
+             class U,
+             class = typename std::enable_if<
+               std::is_void<U>::value
+             >::type>
+    static auto invoke_continuation(Function1& f, std::future<U>& fut)
+      -> decltype(f())
+    {
+      fut.get();
+      return f();
+    }
+
+    auto operator()(future_type& fut) const
+      -> decltype(invoke_continuation(f_, fut))
+    {
+      return invoke_continuation(f_, fut);
+    }
+  };
+
+  template<class Function>
+  static then_functor<Function> make_then_functor(const Function& f)
+  {
+    return then_functor<Function>{f};
+  }
+
+public:
+
+  __agency_hd_warning_disable__
+  template<class Function>
+  __AGENCY_ANNOTATION
   static auto then(future_type& fut, Function&& f)
     -> decltype(
-         detail::then(fut, std::forward<Function>(f))
+         detail::then(fut, make_then_functor(std::forward<Function>(f)))
        )
   {
-    return detail::then(fut, std::forward<Function>(f));
+    // detail::then() expects the continuation to receive a future, not a value
+    // so the continuation we pass to detail::then needs to unwrap fut
+
+    return detail::then(fut, make_then_functor(std::forward<Function>(f)));
+  }
+
+private:
+  template<class U>
+  static rebind<U> cast_impl(future_type& fut,
+                             typename std::enable_if<
+                               !std::is_constructible<rebind<U>,future_type&&>::value
+                             >::type* = 0)
+  {
+    return future_traits<future_type>::then(fut, detail::cast_functor<U>());
+  }
+
+
+  template<class U>
+  static rebind<U> cast_impl(future_type& fut,
+                             typename std::enable_if<
+                               std::is_constructible<rebind<U>,future_type&&>::value
+                             >::type* = 0)
+  {
+    return rebind<U>(std::move(fut));
+  }
+
+
+  public:
+
+  __agency_hd_warning_disable__
+  template<class U>
+  __AGENCY_ANNOTATION
+  static rebind<U> cast(future_type& fut)
+  {
+    return cast_impl<U>(fut);
   }
 };
 
@@ -482,6 +623,7 @@ using unwrap_small_tuple_result_t = typename unwrap_small_tuple_result<Tuple>::t
 
 
 template<class Tuple>
+__AGENCY_ANNOTATION
 void unwrap_small_tuple(Tuple&&,
                         typename std::enable_if<
                           std::tuple_size<
@@ -490,7 +632,9 @@ void unwrap_small_tuple(Tuple&&,
                         >::type* = 0)
 {}
 
+__agency_hd_warning_disable__
 template<class Tuple>
+__AGENCY_ANNOTATION
 unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
   unwrap_small_tuple(Tuple&& t,
                      typename std::enable_if<
@@ -499,10 +643,11 @@ unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
                        >::value == 1
                      >::type* = 0)
 {
-  return std::move(std::get<0>(t));
+  return std::move(detail::get<0>(t));
 }
 
 template<class Tuple>
+__AGENCY_ANNOTATION
 unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
   unwrap_small_tuple(Tuple&& t,
                      typename std::enable_if<
@@ -557,6 +702,7 @@ template<class... Futures>
 using tuple_of_future_values = typename tuple_of_future_values_impl<Futures...>::type;
 
 
+__agency_hd_warning_disable__
 template<class Future,
          class = typename std::enable_if<
            std::is_void<
@@ -564,6 +710,7 @@ template<class Future,
            >::value
          >::type
         >
+__AGENCY_ANNOTATION
 void_value get_value(Future& fut)
 {
   fut.get();
@@ -571,6 +718,7 @@ void_value get_value(Future& fut)
 }
 
 
+__agency_hd_warning_disable__
 template<class Future,
          class = typename std::enable_if<
            !std::is_void<
@@ -578,6 +726,7 @@ template<class Future,
            >::value
          >::type
         >
+__AGENCY_ANNOTATION
 typename future_traits<Future>::value_type
   get_value(Future& fut)
 {
@@ -585,11 +734,13 @@ typename future_traits<Future>::value_type
 }
 
 
+__agency_hd_warning_disable__
 template<class... Futures>
+__AGENCY_ANNOTATION
 tuple_of_future_values<Futures...>
   get_tuple_of_future_values(Futures&... futures)
 {
-  return detail::make_tuple(detail::get_value(futures)...);
+  return tuple_of_future_values<Futures...>(detail::get_value(futures)...);
 }
 
 

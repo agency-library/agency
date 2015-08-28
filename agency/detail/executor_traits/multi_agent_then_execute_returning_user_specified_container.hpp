@@ -5,6 +5,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/ignore_tail_parameters_and_invoke.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -32,7 +33,9 @@ using select_multi_agent_then_execute_returning_user_specified_container_impleme
   >::type;
 
 
+__agency_hd_warning_disable__
 template<class Container, class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<Container>
   multi_agent_then_execute_returning_user_specified_container(use_multi_agent_then_execute_returning_user_specified_container_member_function,
                                                               Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut)
@@ -51,8 +54,7 @@ struct ignore_tail_parameters_and_invoke
   typename std::result_of<Function(Index,T&)>::type
   operator()(const Index& idx, T& past_arg, Args&&...) const
   {
-    // XXX should use std::invoke
-    return f(idx, past_arg);
+    return agency::invoke(f, idx, past_arg);
   }
 };
 
@@ -62,18 +64,19 @@ struct ignore_tail_parameters_and_invoke<Function,void>
 {
   mutable Function f;
 
+  __agency_hd_warning_disable__
   template<class Index, class... Args>
   __AGENCY_ANNOTATION
   typename std::result_of<Function(Index)>::type
   operator()(const Index& idx, Args&&...) const
   {
-    // XXX should use std::invoke
-    return f(idx);
+    return agency::invoke(f, idx);
   }
 };
 
 
 template<class Container, size_t... Indices, class Executor, class Function, class Future, class Tuple>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<Container>
   multi_agent_then_execute_returning_user_specified_container_impl(detail::index_sequence<Indices...>,
                                                                    Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut,
@@ -86,6 +89,7 @@ typename new_executor_traits<Executor>::template future<Container>
 
 
 template<class Container, class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<Container>
   multi_agent_then_execute_returning_user_specified_container(use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container,
                                                               Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut)
@@ -107,6 +111,7 @@ template<class Executor>
            class Enable2,
            class Enable3
            >
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<Container>
   new_executor_traits<Executor>
     ::then_execute(typename new_executor_traits<Executor>::executor_type& ex,

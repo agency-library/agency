@@ -6,6 +6,7 @@
 #include <agency/detail/executor_traits/shared_parameter_container.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/index_cast.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <utility>
 #include <cassert>
@@ -50,13 +51,16 @@ struct multi_agent_when_all_execute_and_select_with_shared_inits_functor
                                       detail::shape_size(detail::tuple_take<depth+1>(augmented_shape)));
   }
 
+  __agency_hd_warning_disable__
   template<size_t... ContainerIndices, class AgentIndex, class TupleOfContainers, class... Types>
   __AGENCY_ANNOTATION
   void impl(detail::index_sequence<ContainerIndices...>, AgentIndex&& agent_idx, TupleOfContainers&& shared_arg_containers, Types&... past_args) const
   {
-    f(std::forward<AgentIndex>(agent_idx),                                                             // pass the agent index
-      past_args...,                                                                                    // pass the arguments coming in from futures
-      std::get<ContainerIndices>(shared_arg_containers)[rank_in_group<ContainerIndices>(agent_idx)]... // pass the arguments coming in from shared parameters
+    agency::invoke(
+      f,
+      std::forward<AgentIndex>(agent_idx),                                                                // pass the agent index
+      past_args...,                                                                                       // pass the arguments coming in from futures
+      detail::get<ContainerIndices>(shared_arg_containers)[rank_in_group<ContainerIndices>(agent_idx)]... // pass the arguments coming in from shared parameters
     );
   }
 
@@ -64,7 +68,7 @@ struct multi_agent_when_all_execute_and_select_with_shared_inits_functor
   __AGENCY_ANNOTATION
   void operator()(Index&& idx, TupleOfContainers& shared_arg_containers, Types&... past_args) const
   {
-    static const size_t num_containers = std::tuple_size<TupleOfContainers>::value;
+    constexpr size_t num_containers = std::tuple_size<TupleOfContainers>::value;
     impl(detail::make_index_sequence<num_containers>(), std::forward<Index>(idx), shared_arg_containers, past_args...);
   }
 };
@@ -158,8 +162,7 @@ struct terminal_execute_with_shared_inits_functor
     __AGENCY_ANNOTATION
     void impl(detail::index_sequence<TupleIndices...>, const Index& idx, Args&... shared_args) const
     {
-      // XXX should use std::invoke()
-      f(idx, std::get<TupleIndices>(args_from_futures)..., shared_args...);
+      agency::invoke(f, idx, std::get<TupleIndices>(args_from_futures)..., shared_args...);
     }
 
     template<class Index, class... Args>

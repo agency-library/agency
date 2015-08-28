@@ -5,6 +5,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/discarding_container.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -48,7 +49,9 @@ using select_multi_agent_then_execute_returning_void_implementation_strategy =
   >::type;
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_then_execute_returning_void(use_multi_agent_then_execute_returning_void_member_function,
                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut)
@@ -57,7 +60,9 @@ typename new_executor_traits<Executor>::template future<void>
 } // end multi_agent_then_execute_returning_void()
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_then_execute_returning_void(use_multi_agent_when_all_execute_and_select_member_function,
                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut)
@@ -78,7 +83,7 @@ struct invoke_and_return_empty
   __AGENCY_ANNOTATION
   empty operator()(const Index& idx, Args&... args) const
   {
-    f(idx, args...);
+    agency::invoke(f, idx, args...);
 
     // return something which can be cheaply discarded
     return empty();
@@ -86,7 +91,9 @@ struct invoke_and_return_empty
 };
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_then_execute_returning_void(use_multi_agent_then_execute_returning_discarding_container_and_cast,
                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut)
@@ -110,6 +117,7 @@ template<class Executor>
            class Enable2,
            class Enable3
           >
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   new_executor_traits<Executor>
     ::then_execute(typename new_executor_traits<Executor>::executor_type& ex,

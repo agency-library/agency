@@ -4,6 +4,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/factory.hpp>
+#include <agency/functional.hpp>
 
 namespace agency
 {
@@ -23,8 +24,7 @@ struct ignore_tail_parameters_and_invoke
   typename std::result_of<Function(Index)>::type
   operator()(const Index& idx, Args&&...) const
   {
-    // XXX should use std::invoke
-    return f(idx);
+    return agency::invoke(f, idx);
   }
 };
 

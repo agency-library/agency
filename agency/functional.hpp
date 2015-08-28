@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/factory.hpp>
+#include <utility>
 #include <type_traits>
 
 namespace agency
@@ -51,6 +52,57 @@ detail::shared_parameter<level,T,T> share(const T& val)
 {
   return detail::shared_parameter<level,T,T>{detail::make_tuple(val)};
 }
+
+
+__agency_hd_warning_disable__
+template<class F, class... Args>
+inline __AGENCY_ANNOTATION
+auto invoke(F&& f, Args&&... args) -> 
+  decltype(std::forward<F>(f)(std::forward<Args>(args)...))
+{
+  return std::forward<F>(f)(std::forward<Args>(args)...);
+}
+
+
+namespace detail
+{
+
+
+template<class Function>
+struct take_first_parameter_and_invoke
+{
+  mutable Function f_;
+
+  template<class Arg1, class... Args>
+  __AGENCY_ANNOTATION
+  auto operator()(Arg1&& arg1, Args&&...) const
+    -> decltype(
+         agency::invoke(f_, std::forward<Arg1>(arg1))
+       )
+  {
+    return agency::invoke(f_, std::forward<Arg1>(arg1));
+  }
+};
+
+
+template<class Function>
+struct take_first_two_parameters_and_invoke
+{
+  mutable Function f_;
+
+  template<class Arg1, class Arg2, class... Args>
+  __AGENCY_ANNOTATION
+  auto operator()(Arg1&& arg1, Arg2&& arg2, Args&&...) const
+    -> decltype(
+         agency::invoke(f_, std::forward<Arg1>(arg1), std::forward<Arg2>(arg2))
+       )
+  {
+    return agency::invoke(f_, std::forward<Arg1>(arg1), std::forward<Arg2>(arg2));
+  }
+}; // end take_first_two_parameters_and_invoke
+
+
+} // end detail
 
 
 } // end agency

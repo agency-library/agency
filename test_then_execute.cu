@@ -20,13 +20,14 @@ void test_host(Shape shape)
     auto f1 = traits::template make_ready_future<void>(exec);
     
     std::mutex mut;
-    auto f2 = traits::then_execute(exec, f1, [&mut](index_type idx)
+    auto f2 = traits::then_execute(exec, [&mut](index_type idx)
     {
       mut.lock();
       std::cout << "agent " << idx << " in thread " << std::this_thread::get_id() << " has no past parameter" << std::endl;
       mut.unlock();
     },
-    shape
+    shape,
+    f1
     );
     
     f2.wait();
@@ -36,13 +37,14 @@ void test_host(Shape shape)
     auto f1 = traits::template make_ready_future<int>(exec, 13);
 
     std::mutex mut;
-    auto f2 = traits::then_execute(exec, f1, [&mut](index_type idx, int& past_parameter)
+    auto f2 = traits::then_execute(exec, [&mut](index_type idx, int& past_parameter)
     {
       mut.lock();
       std::cout << "agent " << idx << " in thread " << std::this_thread::get_id() << " sees past_parameter " << past_parameter << std::endl;
       mut.unlock();
     },
-    shape
+    shape,
+    f1
     );
 
     f2.wait();
@@ -86,7 +88,7 @@ int main()
 
     auto f1 = traits::make_ready_future<int>(exec, 13);
 
-    auto f2 = traits::then_execute(exec, f1, device_functor(), shape_type(1,1));
+    auto f2 = traits::then_execute(exec, device_functor(), shape_type(1,1), f1);
 
     f2.wait();
   }

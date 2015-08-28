@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -56,7 +57,9 @@ using select_single_agent_then_execute_implementation =
 } // end single_agent_then_execute_implementation_strategies
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
@@ -76,19 +79,21 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
   __AGENCY_ANNOTATION
   void operator()() const
   {
-    f();
+    agency::invoke(f);
   }
 
   // neither f's argument nor result are void
+  __agency_hd_warning_disable__
   template<class Arg1, class Arg2>
   __AGENCY_ANNOTATION
   void operator()(Arg1& arg1, Arg2& arg2) const
   {
-    arg1 = f(arg2);
+    arg1 = agency::invoke(f, arg2);
   }
 
   // when the functor receives only a single argument,
   // that means either f's result or parameter is void, but not both
+  __agency_hd_warning_disable__
   template<class Arg>
   __AGENCY_ANNOTATION
   void operator()(Arg& arg,
@@ -96,7 +101,7 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
                     std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    arg = f();
+    arg = agency::invoke(f);
   }
 
   template<class Arg>
@@ -106,12 +111,14 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
                     !std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    f(arg);
+    agency::invoke(f, arg);
   }
 };
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
@@ -141,19 +148,21 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
   __AGENCY_ANNOTATION
   void operator()(const Index&) const
   {
-    f();
+    agency::invoke(f);
   }
 
   // neither f's argument nor result are void
+  __agency_hd_warning_disable__
   template<class Index, class Arg1, class Arg2>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Arg1& arg1, Arg2& arg2) const
   {
-    arg1 = f(arg2);
+    arg1 = agency::invoke(f,arg2);
   }
 
   // when the functor receives only a single argument,
   // that means either f's result or parameter is void, but not both
+  __agency_hd_warning_disable__
   template<class Index, class Arg>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Arg& arg,
@@ -161,7 +170,7 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
                     std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    arg = f();
+    arg = agency::invoke(f);
   }
 
   template<class Index, class Arg>
@@ -171,12 +180,14 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
                     !std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    f(arg);
+    agency::invoke(f, arg);
   }
 };
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
@@ -198,7 +209,9 @@ typename new_executor_traits<Executor>::template future<
 } // end single_agent_then_execute()
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
@@ -210,21 +223,24 @@ typename new_executor_traits<Executor>::template future<
                               >::value
                             >::type* = 0)
 {
+  using value_type1 = typename future_value<Future>::type;
+
   // launch f as continuation
-  auto fut2 = future_traits<Future>::then(fut, [=,&ex](Future& fut)
+  auto fut2 = future_traits<Future>::then(fut, [=,&ex](value_type1& arg)
   {
-    auto arg = fut.get();
     auto g = [&]{ return f(arg); };
     return new_executor_traits<Executor>::execute(ex, g);
   });
 
   // cast to the right type of future
-  using value_type = typename future_traits<decltype(fut2)>::value_type;
-  return new_executor_traits<Executor>::template future_cast<value_type>(ex, fut2);
+  using value_type2 = typename future_traits<decltype(fut2)>::value_type;
+  return new_executor_traits<Executor>::template future_cast<value_type2>(ex, fut2);
 } // end single_agent_then_execute()
 
 
+__agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
@@ -237,7 +253,7 @@ typename new_executor_traits<Executor>::template future<
                             >::type* = 0)
 {
   // launch f as continuation
-  auto fut2 = future_traits<Future>::then(fut, [=,&ex](Future& fut)
+  auto fut2 = future_traits<Future>::then(fut, [=,&ex]()
   {
     return new_executor_traits<Executor>::execute(ex, f);
   });
@@ -254,6 +270,7 @@ typename new_executor_traits<Executor>::template future<
 
 template<class Executor>
   template<class Function, class Future>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >

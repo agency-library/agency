@@ -15,6 +15,7 @@ namespace detail
 
 
 template<class Index, class Size>
+__AGENCY_ANNOTATION
 auto project_index_helper(const Index& idx, Size size_of_second_to_last_dimension)
   -> typename std::decay<
        decltype(
@@ -22,7 +23,7 @@ auto project_index_helper(const Index& idx, Size size_of_second_to_last_dimensio
        )
      >::type
 {
-  auto result = __tu::tuple_drop_last(idx);
+  auto result = detail::tuple_drop_last(idx);
 
   // multiply the index by the size of the second to last dimension and add
   // that to the second to last index
@@ -33,6 +34,7 @@ auto project_index_helper(const Index& idx, Size size_of_second_to_last_dimensio
 
 
 template<class Index, class Shape>
+__AGENCY_ANNOTATION
 auto project_index(const Index& idx, const Shape& shape)
   -> decltype(
        detail::make_tuple(
@@ -51,7 +53,7 @@ auto project_index(const Index& idx, const Shape& shape)
   // (2,2)'s 1D rank is computed as
   // y * width + x
 
-  auto size_of_second_to_last_dimension = __tu::tuple_last(__tu::tuple_drop_last(shape));
+  auto size_of_second_to_last_dimension = __tu::tuple_last(detail::tuple_drop_last(shape));
 
   auto projected_index = project_index_helper(idx, size_of_second_to_last_dimension);
 
@@ -210,6 +212,7 @@ typename std::enable_if<
 
 // downcast (recursive)
 template<class ToIndex, class FromIndex, class FromShape, class ToShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (index_size<FromIndex>::value > index_size<ToIndex>::value),
   ToIndex
@@ -287,6 +290,7 @@ typename std::enable_if<
 
 // when FromIndex has more elements than ToIndex, we project it and then cast
 template<class ToIndex, class FromIndex, class FromShape, class ToShape>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   (index_size<FromIndex>::value > index_size<ToIndex>::value),
   ToIndex

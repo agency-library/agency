@@ -23,6 +23,8 @@
 #include <agency/cuda/detail/then_kernel.hpp>
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
+#include <agency/future.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -40,14 +42,23 @@ struct is_constructible_or_void
   : std::integral_constant<
       bool,
       std::is_constructible<T,Args...>::value ||
-      std::is_void<T>::value && (sizeof...(Args) == 0)
+      (std::is_void<T>::value && (sizeof...(Args) == 0))
     >
+{};
+
+
+template<class T>
+struct state_requires_storage
+  : std::integral_constant<
+      bool,
+      std::is_empty<T>::value || std::is_void<T>::value || agency::detail::is_empty_tuple<T>::value
+   >
 {};
 
 
 // XXX should maybe call this asynchronous_state to match the nomenclature of the std
 template<class T,
-         bool requires_storage = std::is_empty<T>::value || std::is_void<T>::value>
+         bool requires_storage = state_requires_storage<T>::value>
 class future_state
 {
   public:
@@ -111,9 +122,38 @@ class future_state
       data_ = make_unique<T>(s, std::forward<Args>(ready_args)...);
     }
 
+    __host__ __device__
+    void swap(future_state& other)
+    {
+      data_.swap(other.data_);
+    }
+
   private:
     unique_ptr<T> data_;
 };
+
+
+// when a type is empty, we can create it on the fly upon dereference
+template<class T>
+struct empty_type_ptr : T
+{
+  using element_type = T;
+
+  __host__ __device__
+  T& operator*()
+  {
+    return *this;
+  }
+
+  __host__ __device__
+  const T& operator*() const
+  {
+    return *this;
+  }
+};
+
+template<>
+struct empty_type_ptr<void> : unit_ptr {};
 
 
 // zero storage optimization
@@ -143,6 +183,25 @@ class future_state<T,true>
       other.valid_ = false;
     }
 
+    // 1. allow moves to void states (this simply discards the state)
+    // 2. allow moves to empty types if the type can be constructed from an empty argument list
+    template<class U,
+             class T1 = T,
+             class = typename std::enable_if<
+               std::is_void<T1>::value ||
+               (std::is_empty<T>::value && std::is_void<U>::value && std::is_constructible<T>::value)
+             >::type>
+    __host__ __device__
+    future_state(future_state<U>&& other)
+      : valid_(other.valid())
+    {
+      if(valid())
+      {
+        // invalidate the old state by calling .get() if it was valid when we received it
+        other.get();
+      }
+    }
+
     __host__ __device__
     future_state& operator=(future_state&& other)
     {
@@ -153,11 +212,9 @@ class future_state<T,true>
     }
 
     __host__ __device__
-    // XXX WAR nvbug 1671566
-    //std::nullptr_t data()
-    my_nullptr_t data()
+    empty_type_ptr<T> data()
     {
-      return nullptr;
+      return empty_type_ptr<T>();
     }
 
     __host__ __device__
@@ -174,10 +231,22 @@ class future_state<T,true>
       return valid_;
     }
 
+    // constructor arguments are simply ignored
+    // XXX if the constructor has a side effect, we probably need to actually invoke it, even though
+    //     the type has no state and requires no storage
+    template<class... Args>
     __host__ __device__
-    void set_valid(cudaStream_t)
+    void set_valid(cudaStream_t, Args&&...)
     {
       valid_ = true;
+    }
+
+    __host__ __device__
+    void swap(future_state& other)
+    {
+      bool other_valid_old = other.valid_;
+      other.valid_ = valid_;
+      valid_ = other_valid_old;
     }
 
   private:
@@ -195,6 +264,11 @@ class future_state<T,true>
 
     bool valid_;
 };
+
+
+// declare this so future may befriend it
+template<class Shape, class Index, class ThisIndexFunction>
+class basic_grid_executor;
 
 
 } // end detail
@@ -223,6 +297,7 @@ class future
     {
       future::swap(stream_, other.stream_);
       future::swap(event_,  other.event_);
+      state_.swap(other.state_);
     } // end future()
 
     __host__ __device__
@@ -230,8 +305,26 @@ class future
     {
       future::swap(stream_, other.stream_);
       future::swap(event_,  other.event_);
+      future::swap(state_,  other.state_);
       return *this;
     } // end operator=()
+
+    template<class U,
+             class = typename std::enable_if<
+               std::is_constructible<
+                 detail::future_state<T>,
+                 detail::future_state<U>&&
+               >::value
+             >::type>
+    __host__ __device__
+    future(future<U>&& other)
+      : stream_(),
+        event_(),
+        state_(std::move(other.state_))
+    {
+      future::swap(stream_, other.stream_);
+      future::swap(event_,  other.event_);
+    } // end future()
 
     __host__ __device__
     ~future()
@@ -328,10 +421,10 @@ class future
 
     template<class Function>
     __host__ __device__
-    future<typename std::result_of<Function()>::type>
+    future<agency::detail::result_of_continuation_t<Function,future>>
       then(Function f)
     {
-      using result_type = typename std::result_of<Function()>::type;
+      using result_type = agency::detail::result_of_continuation_t<Function,future>;
 
       detail::future_state<result_type> result_state(stream());
 
@@ -361,6 +454,7 @@ class future
 
   private:
     template<class U> friend class future;
+    template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
 
     __host__ __device__
     future(cudaStream_t s, cudaEvent_t e, detail::future_state<T>&& state)
