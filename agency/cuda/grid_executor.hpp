@@ -564,18 +564,16 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
       return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel(f)));
     }
 
-    // XXX these parameters need to be rearranged
-    template<class T, class Function>
+    template<class Function, class T>
     __host__ __device__
-    shape_type max_shape(const future<T>& fut, const Function& f)
+    shape_type max_shape(const Function& f, const future<T>& fut)
     {
       return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel(f,fut)));
     }
 
-    // XXX these parameters need to be rearranged
     template<class T, class Function, class Factory1, class Factory2>
     __host__ __device__
-    shape_type max_shape(const future<T>& fut, const Function& f, const Factory1& outer_factory, const Factory2& inner_factory) const
+    shape_type max_shape(const Function& f, const future<T>& fut, const Factory1& outer_factory, const Factory2& inner_factory) const
     {
       return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel(f, fut, outer_factory, inner_factory)));
     }
@@ -742,7 +740,7 @@ class flattened_executor<cuda::grid_executor>
     __host__ __device__
     partition_type partition(const future<T>& dependency, const Function& f, shape_type shape, const Factory1& outer_factory, const Factory2& inner_factory) const
     {
-      return partition_impl(base_executor().max_shape(dependency,f,outer_factory,inner_factory), shape);
+      return partition_impl(base_executor().max_shape(f,dependency,outer_factory,inner_factory), shape);
     }
 
     size_t min_inner_size_;
