@@ -64,5 +64,46 @@ auto invoke(F&& f, Args&&... args) ->
 }
 
 
+namespace detail
+{
+
+
+template<class Function>
+struct take_first_parameter_and_invoke
+{
+  mutable Function f_;
+
+  template<class Arg1, class... Args>
+  __AGENCY_ANNOTATION
+  auto operator()(Arg1&& arg1, Args&&...) const
+    -> decltype(
+         agency::invoke(f_, std::forward<Arg1>(arg1))
+       )
+  {
+    return agency::invoke(f_, std::forward<Arg1>(arg1));
+  }
+};
+
+
+template<class Function>
+struct take_first_two_parameters_and_invoke
+{
+  mutable Function f_;
+
+  template<class Arg1, class Arg2, class... Args>
+  __AGENCY_ANNOTATION
+  auto operator()(Arg1&& arg1, Arg2&& arg2, Args&&...) const
+    -> decltype(
+         agency::invoke(f_, std::forward<Arg1>(arg1), std::forward<Arg2>(arg2))
+       )
+  {
+    return agency::invoke(f_, std::forward<Arg1>(arg1), std::forward<Arg2>(arg2));
+  }
+}; // end take_first_two_parameters_and_invoke
+
+
+} // end detail
+
+
 } // end agency
 
