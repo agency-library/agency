@@ -61,7 +61,6 @@ struct inner_shared_parameter
 
     if(is_leader_)
     {
-      // XXX should avoid the move construction here
       inner_shared_param.construct(factory());
     }
     __syncthreads();
@@ -184,9 +183,10 @@ __global__ void grid_executor_kernel(Function f)
 }
 
 
+// this computes the type of the result returned by basic_grid_executor::then_execute_kernel_impl()
 // XXX eliminate this
 template<class Container, class Function, class IndexFunction, class PastParameterType, class OuterFactory, class InnerFactory>
-struct then_execute_with_shared_inits_returning_user_specified_container_global_function_pointer_type
+struct then_execute_kernel_impl_result
 {
   // XXX these types need to agree the way then_execute() creates the then_execute_functor
   // XXX there must be a sounder way to do this stuff
@@ -207,6 +207,7 @@ template<class Function, class FutureValueType>
 struct take_first_two_parameters_and_invoke : agency::detail::take_first_two_parameters_and_invoke<Function>
 {
 };
+
 
 template<class Function>
 struct take_first_two_parameters_and_invoke<Function,void> : agency::detail::take_first_parameter_and_invoke<Function>
@@ -285,6 +286,29 @@ class basic_grid_executor
       return this->launch(grid_executor_kernel<Function>, f, shape, shared_memory_size(), stream(), dependency);
     }
 
+
+    // this returns a pointer to the __global__ function used to implement then_execute()
+    template<class Container, class Function, class T, class OuterFactory, class InnerFactory>
+    __host__ __device__
+    static typename then_execute_kernel_impl_result<
+        Container, Function, ThisIndexFunction, T, OuterFactory, InnerFactory
+    >::type
+      then_execute_kernel_impl(const Function&, const future<T>&, const OuterFactory&, const InnerFactory&)
+    {
+      // XXX these types need to agree the way then_execute() creates the then_execute_functor
+      // XXX there must be a sounder way to do this stuff
+
+      using container_ptr_type = decltype(std::declval<future<Container>>().data());
+      using past_parameter_ptr_type = decltype(std::declval<future<T>>().data());
+
+      using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
+      using outer_parameter_ptr_type = decltype(std::declval<future<outer_arg_type>>().data());
+
+      using functor_type = then_execute_functor<container_ptr_type, Function, ThisIndexFunction, past_parameter_ptr_type, outer_parameter_ptr_type, InnerFactory>;
+
+      return &detail::grid_executor_kernel<functor_type>;
+    }
+
   public:
     template<class Container, class Function, class T, class Factory1, class Factory2,
              class = typename std::enable_if<
@@ -320,92 +344,57 @@ class basic_grid_executor
     // alternatively, cuda_executor could report occupancy of a Function for a given block size
     // XXX probably shouldn't expose this -- max_shape() seems good enough
 
-    template<class Container, class Function, class PastParameterType, class OuterFactory, class InnerFactory>
+    template<class Container, class Function, class T, class OuterFactory, class InnerFactory>
     __host__ __device__
-    static typename detail::then_execute_with_shared_inits_returning_user_specified_container_global_function_pointer_type<
-        Container, Function, ThisIndexFunction, PastParameterType, OuterFactory, InnerFactory
-    >::type
-      then_execute_kernel()
+    static auto then_execute_kernel(const Function& f, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory)
+      -> decltype(
+           then_execute_kernel_impl<Container>(f, fut, outer_factory, inner_factory)
+         )
     {
-      // XXX these types need to agree the way then_execute() creates the then_execute_functor
-      // XXX there must be a sounder way to do this stuff
-
-      using container_ptr_type = decltype(std::declval<future<Container>>().data());
-      using past_parameter_ptr_type = decltype(std::declval<future<PastParameterType>>().data());
-
-      using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
-      using outer_parameter_ptr_type = decltype(std::declval<future<outer_arg_type>>().data());
-
-      using functor_type = then_execute_functor<container_ptr_type, Function, ThisIndexFunction, past_parameter_ptr_type, outer_parameter_ptr_type, InnerFactory>;
-
-      return &detail::grid_executor_kernel<functor_type>;
+      return then_execute_kernel_impl<Container>(f, fut, outer_factory, inner_factory);
     }
 
 
-    template<class Function, class PastParameterType, class OuterFactory, class InnerFactory>
+    template<class Function, class T, class OuterFactory, class InnerFactory>
     __host__ __device__
-    static auto then_execute_kernel()
+    static auto then_execute_kernel(const Function& f, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory)
       -> decltype(
-           then_execute_kernel<
-             agency::detail::new_executor_traits_detail::discarding_container,
-             agency::detail::new_executor_traits_detail::invoke_and_return_empty<Function>,
-             PastParameterType,
-             OuterFactory,
-             InnerFactory
-           >()
+           then_execute_kernel_impl<agency::detail::new_executor_traits_detail::discarding_container>(
+             agency::detail::new_executor_traits_detail::invoke_and_return_empty<Function>{f}, // XXX replace with invoke_and_return_unit
+             fut,
+             outer_factory,
+             inner_factory
+           )
          )
     {
       // XXX these types need to agree the way executor_traits lowers multi-agent then_execute() with shared inits returning void onto
       //     the more general version of then_execute()
       // XXX there must be a sounder way to do this stuff
-      return then_execute_kernel<
-        agency::detail::new_executor_traits_detail::discarding_container,
-        agency::detail::new_executor_traits_detail::invoke_and_return_empty<Function>, // XXX replace with invoke_and_return_unit
-        PastParameterType,
-        OuterFactory,
-        InnerFactory
-      >();
+      return then_execute_kernel_impl<agency::detail::new_executor_traits_detail::discarding_container>(
+        agency::detail::new_executor_traits_detail::invoke_and_return_empty<Function>{f}, // XXX replace with invoke_and_return_unit
+        fut,
+        outer_factory,
+        inner_factory
+      );
     }
 
-    template<class Function, class PastParameterType>
+    template<class Function, class T>
     __host__ __device__
-    static auto then_execute_kernel()
+    static auto then_execute_kernel(const Function& f, const future<T>& fut)
       -> decltype(
-           then_execute_kernel<
-             detail::take_first_two_parameters_and_invoke<Function,PastParameterType>,
-             PastParameterType,
-             agency::detail::unit_factory,
-             agency::detail::unit_factory
-           >
+           then_execute_kernel(detail::take_first_two_parameters_and_invoke<Function,T>{f}, fut, agency::detail::unit_factory(), agency::detail::unit_factory())
          )
     {
-      return then_execute_kernel<
-        detail::take_first_two_parameters_and_invoke<Function,PastParameterType>,
-        PastParameterType,
-        agency::detail::unit_factory,
-        agency::detail::unit_factory
-      >();
+      return then_execute_kernel(detail::take_first_two_parameters_and_invoke<Function,T>{f}, fut, agency::detail::unit_factory(), agency::detail::unit_factory());
     }
 
 
     template<class Function>
     __host__ __device__
-    static auto then_execute_kernel()
-      -> decltype(
-           then_execute_kernel<
-             Function,
-             void,
-             agency::detail::unit_factory,
-             agency::detail::unit_factory
-           >
-         )
+    static auto then_execute_kernel(const Function& f)
+      -> decltype(then_execute_kernel(f, future<void>()))
     {
-      return then_execute_kernel<
-        Function,
-        void,
-        agency::detail::unit_factory,
-        agency::detail::unit_factory
-      >();
+      return then_execute_kernel(f, future<void>());
     }
 
 
@@ -570,23 +559,25 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
   public:
     template<class Function>
     __host__ __device__
-    shape_type max_shape(const Function&) const
+    shape_type max_shape(const Function& f) const
     {
-      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel<Function>()));
+      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel(f)));
     }
 
+    // XXX these parameters need to be rearranged
     template<class T, class Function>
     __host__ __device__
-    shape_type max_shape(const future<T>&, const Function&)
+    shape_type max_shape(const future<T>& fut, const Function& f)
     {
-      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel<Function,T>()));
+      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel(f,fut)));
     }
 
+    // XXX these parameters need to be rearranged
     template<class T, class Function, class Factory1, class Factory2>
     __host__ __device__
-    shape_type max_shape(const future<T>&, const Function&, const Factory1&, const Factory2&) const
+    shape_type max_shape(const future<T>& fut, const Function& f, const Factory1& outer_factory, const Factory2& inner_factory) const
     {
-      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel<Function,T,Factory1,Factory2>()));
+      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel(f, fut, outer_factory, inner_factory)));
     }
 };
 
