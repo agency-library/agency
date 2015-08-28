@@ -636,7 +636,7 @@ class basic_grid_executor
     future<void> async_execute(Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory)
     {
       auto ready = make_ready_future();
-      return this->then_execute(f, shape, ready, outer_factory, inner_factory);
+      return agency::executor_traits<basic_grid_executor>::then_execute(*this, f, shape, ready, outer_factory, inner_factory);
     }
 
 
