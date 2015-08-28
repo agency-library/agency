@@ -541,6 +541,7 @@ class basic_grid_executor
     }
 
   private:
+    // XXX we should push this call into then_execute() since there's no longer a reason to have this extra function
     template<class Function>
     __host__ __device__
     cudaEvent_t then_execute_impl(Function f, shape_type shape, cudaEvent_t dependency)
@@ -612,15 +613,6 @@ class basic_grid_executor
 
 
     // XXX we should eliminate these functions below since executor_traits implements them for us
-
-    template<class T, class Function, class OuterFactory, class InnerFactory>
-    __host__ __device__
-    future<void> then_execute(Function f, shape_type shape, future<T>& dependency, OuterFactory outer_factory, InnerFactory inner_factory)
-    {
-      auto intermediate_result = this->then_execute<agency::detail::new_executor_traits_detail::discarding_container>(agency::detail::new_executor_traits_detail::invoke_and_return_empty<Function>{f}, shape, dependency, outer_factory, inner_factory);
-
-      return agency::executor_traits<basic_grid_executor>::template future_cast<void>(*this, intermediate_result);
-    }
 
     template<class Function>
     __host__ __device__
@@ -935,7 +927,7 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().then_execute(execute_me, partitioning, dependency, factory, agency::detail::unit_factory());
+      return agency::executor_traits<base_executor_type>::then_execute(base_executor(), execute_me, partitioning, dependency, factory, agency::detail::unit_factory());
     }
 
     __host__ __device__

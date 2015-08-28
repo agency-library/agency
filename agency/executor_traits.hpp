@@ -54,30 +54,44 @@ struct nested_future_with_default
 
 
 template<class Executor, class T, class TypeList>
-struct has_multi_agent_then_execute_impl;
+struct has_any_multi_agent_then_execute_impl;
 
 
 template<class Executor, class T, class... Factories>
-struct has_multi_agent_then_execute_impl<Executor, T, type_list<Factories...>>
+struct has_any_multi_agent_then_execute_impl<Executor, T, type_list<Factories...>>
 {
   template<class U>
   using future = typename nested_future_with_default<
     Executor
   >::template type_template<U>;
 
-  using type = new_executor_traits_detail::has_multi_agent_then_execute_with_shared_inits_returning_void<
+  static constexpr bool has_then_execute_with_shared_inits_returning_user_specified_container = new_executor_traits_detail::has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<
+    new_executor_traits_detail::discarding_container,
+    Executor,
+    new_executor_traits_detail::test_function_returning_int,
+    future<void>,
+    Factories...
+  >::value;
+
+  static constexpr bool has_then_execute_with_shared_inits_returning_void = new_executor_traits_detail::has_multi_agent_then_execute_with_shared_inits_returning_void<
     Executor,
     new_executor_traits_detail::test_function_returning_void,
     future<void>,
     Factories...
+  >::value;
+
+  using type = std::integral_constant<
+    bool,
+    has_then_execute_with_shared_inits_returning_user_specified_container ||
+    has_then_execute_with_shared_inits_returning_void
   >;
 };
 
 
 
 template<class T>
-struct has_multi_agent_then_execute
-  : has_multi_agent_then_execute_impl<
+struct has_any_multi_agent_then_execute
+  : has_any_multi_agent_then_execute_impl<
       T,
       int,
       repeat_type<
@@ -96,7 +110,7 @@ struct is_executor
   : std::integral_constant<
       bool,
       detail::new_executor_traits_detail::has_execution_category<T>::value &&
-      detail::has_multi_agent_then_execute<T>::value
+      detail::has_any_multi_agent_then_execute<T>::value
     >
 {};
 
