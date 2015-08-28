@@ -116,22 +116,26 @@ struct inner_shared_parameter<Factory,true>
 
 
 // XXX should use empty base class optimization for this class because any of these members could be empty types
+//     a simple way to apply this operation would be to derive this class from a tuple of its members, since tuple already applies EBO
 // XXX should try to find a way to take an InnerParameterPointer instead of InnerFactory to make the way all the parameters are handled uniformly
 // XXX the problem is that the inner parameter needs to know who the leader is, and that info isn't easily passed through pointer dereference syntax
-template<class IndexFunction, class ContainerPointer, class Function, class PastParameterPointer, class OuterParameterPointer, class InnerFactory>
+template<class ContainerPointer, class Function, class IndexFunction, class PastParameterPointer, class OuterParameterPointer, class InnerFactory>
 struct then_execute_functor {
   ContainerPointer      container_ptr_;
   Function              f_;
+  IndexFunction         index_function_;
   PastParameterPointer  past_param_ptr_;
   OuterParameterPointer outer_param_ptr_;
   InnerFactory          inner_factory;
 
+  // this gets called when the future we depend on is not void
   template<class Index, class T1, class T2, class T3, class T4>
   __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, T3& outer_param, T4& inner_param)
   {
     container[idx] = f(idx, past_param, outer_param, inner_param);
   }
 
+  // this gets called when the future we depend on is void
   template<class Index, class T1, class T3, class T4>
   __device__ static inline void impl(Function f, const Index &idx, T1& container, unit, T3& outer_param, T4& inner_param)
   {
@@ -146,7 +150,7 @@ struct then_execute_functor {
     using past_param_reference  = typename std::pointer_traits<PastParameterPointer>::element_type &;
     using outer_param_reference = typename std::pointer_traits<OuterParameterPointer>::element_type &;
 
-    auto idx = IndexFunction{}();
+    auto idx = index_function_();
 
     // XXX i don't think we're doing the leader calculation in a portable way
     //     we need a way to compare idx to the origin idex to figure out if this invocation represents the CTA leader
@@ -164,12 +168,12 @@ struct then_execute_functor {
 };
 
 
-template<class IndexFunction, class ContainerPointer, class Function, class PastParameterPointer, class OuterParameterPointer, class InnerFactory>
+template<class ContainerPointer, class Function, class IndexFunction, class PastParameterPointer, class OuterParameterPointer, class InnerFactory>
 __host__ __device__
-then_execute_functor<IndexFunction, ContainerPointer,Function,PastParameterPointer,OuterParameterPointer,InnerFactory>
-  make_then_execute_functor(ContainerPointer container_ptr, Function f, PastParameterPointer past_param_ptr, OuterParameterPointer outer_param_ptr, InnerFactory inner_factory)
+then_execute_functor<ContainerPointer,Function,IndexFunction,PastParameterPointer,OuterParameterPointer,InnerFactory>
+  make_then_execute_functor(ContainerPointer container_ptr, Function f, IndexFunction index_function, PastParameterPointer past_param_ptr, OuterParameterPointer outer_param_ptr, InnerFactory inner_factory)
 {
-  return then_execute_functor<IndexFunction, ContainerPointer,Function,PastParameterPointer,OuterParameterPointer,InnerFactory>{container_ptr, f, past_param_ptr, outer_param_ptr, inner_factory};
+  return then_execute_functor<ContainerPointer,Function,IndexFunction,PastParameterPointer,OuterParameterPointer,InnerFactory>{container_ptr, f, index_function, past_param_ptr, outer_param_ptr, inner_factory};
 }
 
 
@@ -181,7 +185,7 @@ __global__ void grid_executor_kernel(Function f)
 
 
 // XXX eliminate this
-template<class IndexFunction, class Container, class Function, class PastParameterType, class OuterFactory, class InnerFactory>
+template<class Container, class Function, class IndexFunction, class PastParameterType, class OuterFactory, class InnerFactory>
 struct then_execute_with_shared_inits_returning_user_specified_container_global_function_pointer_type
 {
   // XXX these types need to agree the way then_execute() creates the then_execute_functor
@@ -193,7 +197,7 @@ struct then_execute_with_shared_inits_returning_user_specified_container_global_
   using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
   using outer_parameter_ptr_type = decltype(std::declval<future<outer_arg_type>>().data());
 
-  using functor_type = then_execute_functor<IndexFunction, container_ptr_type, Function, past_parameter_ptr_type, outer_parameter_ptr_type, InnerFactory>;
+  using functor_type = then_execute_functor<container_ptr_type, Function, IndexFunction, past_parameter_ptr_type, outer_parameter_ptr_type, InnerFactory>;
 
   using type = decltype(&detail::grid_executor_kernel<functor_type>);
 };
@@ -303,7 +307,7 @@ class basic_grid_executor
       using outer_arg_type = agency::detail::result_of_factory_t<Factory1>;
       auto outer_arg = executor_traits<basic_grid_executor>::template make_ready_future<outer_arg_type>(*this, outer_factory());
 
-      auto g = make_then_execute_functor<ThisIndexFunction>(result_state.data(), f, fut.data(), outer_arg.data(), inner_factory);
+      auto g = make_then_execute_functor(result_state.data(), f, ThisIndexFunction(), fut.data(), outer_arg.data(), inner_factory);
 
       cudaEvent_t next_event = then_execute_impl(g, shape, fut.event());
 
@@ -319,7 +323,7 @@ class basic_grid_executor
     template<class Container, class Function, class PastParameterType, class OuterFactory, class InnerFactory>
     __host__ __device__
     static typename detail::then_execute_with_shared_inits_returning_user_specified_container_global_function_pointer_type<
-        ThisIndexFunction, Container, Function, PastParameterType, OuterFactory, InnerFactory
+        Container, Function, ThisIndexFunction, PastParameterType, OuterFactory, InnerFactory
     >::type
       then_execute_kernel()
     {
@@ -332,7 +336,7 @@ class basic_grid_executor
       using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
       using outer_parameter_ptr_type = decltype(std::declval<future<outer_arg_type>>().data());
 
-      using functor_type = then_execute_functor<ThisIndexFunction, container_ptr_type, Function, past_parameter_ptr_type, outer_parameter_ptr_type, InnerFactory>;
+      using functor_type = then_execute_functor<container_ptr_type, Function, ThisIndexFunction, past_parameter_ptr_type, outer_parameter_ptr_type, InnerFactory>;
 
       return &detail::grid_executor_kernel<functor_type>;
     }
