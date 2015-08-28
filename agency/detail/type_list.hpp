@@ -57,6 +57,37 @@ using type_list_cat = typename type_list_cat_impl<TypeList1,TypeList2>::type;
 
 
 template<template<class> class MetaFunction, class TypeList>
+struct type_list_map_impl;
+
+template<template<class> class MetaFunction, class... Types>
+struct type_list_map_impl<MetaFunction,type_list<Types...>>
+{
+  using type = type_list<
+    typename MetaFunction<Types>::type...
+  >;
+};
+
+
+template<template<class> class MetaFunction, class... Types>
+using type_list_map = typename type_list_map_impl<MetaFunction,Types...>::type;
+
+
+template<class IndexSequence, class TypeList>
+struct type_list_gather_impl;
+
+template<size_t... Indices, class... Types>
+struct type_list_gather_impl<index_sequence<Indices...>,type_list<Types...>>
+{
+  using type = type_list<
+    type_list_element<Indices,type_list<Types...>>...
+  >;
+};
+
+template<class IndexSequence, class TypeList>
+using type_list_gather = typename type_list_gather_impl<IndexSequence,TypeList>::type;
+
+
+template<template<class> class MetaFunction, class TypeList>
 struct type_list_filter_impl;
 
 // an empty type_list filters to the empty type_list
@@ -168,6 +199,95 @@ struct type_list_prepend<T0, type_list<Types...>>
 {
   using type = type_list<T0, Types...>;
 };
+
+
+template<class TypeList, class T>
+struct type_list_append_impl;
+
+template<class... Types, class T>
+struct type_list_append_impl<type_list<Types...>, T>
+{
+  using type = type_list<Types..., T>;
+};
+
+template<class TypeList, class T>
+using type_list_append = typename type_list_append_impl<TypeList, T>::type;
+
+
+template<class Function, class TypeList>
+struct type_list_is_callable_impl;
+
+template<class Function, class... Types>
+struct type_list_is_callable_impl<Function, type_list<Types...>>
+{
+  template<class Function1,
+           class = decltype(
+             std::declval<Function1>()(
+               std::declval<Types>()...
+             )
+           )
+          >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Function>(0));
+};
+
+
+template<class Function, class TypeList>
+using type_list_is_callable = typename type_list_is_callable_impl<Function,TypeList>::type;
+
+
+template<class Function, class TypeList>
+struct type_list_result_of;
+
+template<class Function, class... Types>
+struct type_list_result_of<Function, type_list<Types...>>
+{
+  using type = typename std::result_of<Function(Types...)>::type;
+};
+
+template<class Function, class TypeList>
+using type_list_result_of_t = typename type_list_result_of<Function,TypeList>::type;
+
+
+template<size_t n, class T>
+struct type_list_repeat_impl
+{
+  using rest = typename type_list_repeat_impl<n-1,T>::type;
+  using type = type_list_append<rest, T>;
+};
+
+template<class T>
+struct type_list_repeat_impl<0,T>
+{
+  using type = type_list<>;
+};
+
+template<size_t n, class T>
+using type_list_repeat = typename type_list_repeat_impl<n,T>::type;
+
+
+template<class Integer, template<class> class MetaFunction, class TypeList>
+struct type_list_integer_map_impl;
+
+template<class Integer, template<class> class MetaFunction, class... Types>
+struct type_list_integer_map_impl<Integer,MetaFunction,type_list<Types...>>
+{
+  using type = integer_sequence<
+    Integer,
+    MetaFunction<Types>::value...
+  >;
+};
+
+
+template<class Integer, template<class> class MetaFunction, class... Types>
+using type_list_integer_map = typename type_list_integer_map_impl<Integer, MetaFunction,Types...>::type;
+
+template<template<class> class MetaFunction, class... Types>
+using type_list_index_map = type_list_integer_map<size_t, MetaFunction, Types...>;
 
 
 } // end detail

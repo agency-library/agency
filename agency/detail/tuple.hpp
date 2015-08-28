@@ -9,6 +9,7 @@
 #include <agency/detail/tuple_impl.hpp>
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/detail/integer_sequence.hpp>
+#include <agency/detail/type_list.hpp>
 #include <agency/detail/host_device_cast.hpp>
 #include <utility>
 #include <type_traits>
@@ -264,12 +265,12 @@ auto tuple_drop_last(Tuple&& t)
 
 template<class Function, class Tuple>
 __AGENCY_ANNOTATION
-auto tuple_apply(Function f, Tuple&& t)
+auto tuple_apply(Function&& f, Tuple&& t)
   -> decltype(
-       __tu::tuple_apply(agency::detail::host_device_cast(f), std::forward<Tuple>(t))
+       __tu::tuple_apply(agency::detail::host_device_cast(std::forward<Function>(f)), std::forward<Tuple>(t))
      )
 {
-  return __tu::tuple_apply(agency::detail::host_device_cast(f), std::forward<Tuple>(t));
+  return __tu::tuple_apply(agency::detail::host_device_cast(std::forward<Function>(f)), std::forward<Tuple>(t));
 }
 
 
@@ -282,6 +283,193 @@ auto tuple_repeat(const T& x)
 {
   return __tu::tuple_repeat_invoke<N>(x, agency_tuple_maker());
 }
+
+
+template<template<class T> class MetaFunction, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_filter(Tuple&& t)
+  -> decltype(
+       __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<template<class T> class MetaFunction, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_filter_view(Tuple&& t)
+  -> decltype(
+        __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), forwarder())
+     )
+{
+  return __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), forwarder());
+}
+
+
+template<size_t... Indices, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_gather(Tuple&& t)
+  -> decltype(
+       __tu::tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<class Tuple>
+using tuple_indices = make_index_sequence<std::tuple_size<Tuple>::value>;
+
+
+template<class Tuple>
+__AGENCY_ANNOTATION
+detail::make_index_sequence<
+  std::tuple_size<
+    typename std::decay<Tuple>::type
+  >::value
+> 
+  make_tuple_indices(Tuple&&)
+{
+  return detail::make_index_sequence<
+    std::tuple_size<
+      typename std::decay<Tuple>::type
+    >::value
+  >();
+}
+
+
+template<class IndexSequence, class Tuple>
+struct tuple_elements_impl;
+
+template<size_t... Indices, class Tuple>
+struct tuple_elements_impl<index_sequence<Indices...>,Tuple>
+{
+  using type = type_list<
+    typename std::tuple_element<Indices,Tuple>::type...
+  >;
+};
+
+
+template<class Tuple>
+using tuple_elements = typename tuple_elements_impl<tuple_indices<Tuple>,Tuple>::type;
+
+
+template<class Tuple, class T>
+__AGENCY_ANNOTATION
+auto tuple_append(Tuple&& t, T&& val)
+  -> decltype(
+       __tu::tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker());
+}
+
+
+template<class Tuple, class T>
+__AGENCY_ANNOTATION
+auto tuple_prepend(Tuple&& t, T&& val)
+  -> decltype(
+       __tu::tuple_prepend_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_prepend_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker());
+}
+
+
+template<class Tuple, class T>
+struct tuple_prepend_result
+{
+  using type = decltype(
+    detail::tuple_prepend(
+      std::declval<Tuple>(),
+      std::declval<T>()
+    )
+  );
+};
+
+template<class Tuple, class T>
+using tuple_prepend_result_t = typename tuple_prepend_result<Tuple,T>::type;
+
+
+template<class Tuple,
+         class = typename std::enable_if<
+           (std::tuple_size<
+             typename std::decay<Tuple>::type
+           >::value > 1)
+         >::type
+        >
+__AGENCY_ANNOTATION
+Tuple&& unwrap_single_element_tuple(Tuple&& t)
+{
+  return std::forward<Tuple>(t);
+}
+
+
+template<class Tuple,
+         class = typename std::enable_if<
+           (std::tuple_size<
+              typename std::decay<Tuple>::type
+           >::value == 1)
+         >::type
+        >
+__AGENCY_ANNOTATION
+auto unwrap_single_element_tuple(Tuple&& t)
+  -> decltype(
+       detail::get<0>(std::forward<Tuple>(t))
+     )
+{
+  return detail::get<0>(std::forward<Tuple>(t));
+}
+
+
+template<class TupleReference, class IndexSequence>
+struct decay_tuple_impl;
+
+
+template<class TupleReference, size_t... Indices>
+struct decay_tuple_impl<TupleReference, index_sequence<Indices...>>
+{
+  using tuple_type = typename std::decay<TupleReference>::type;
+
+  using type = detail::tuple<
+    typename std::decay<
+      typename std::tuple_element<
+        Indices,
+        tuple_type
+      >::type
+    >::type...
+  >;
+};
+
+
+template<class TupleReference>
+struct decay_tuple : decay_tuple_impl<TupleReference, tuple_indices<typename std::decay<TupleReference>::type>> {};
+
+template<class TupleReference>
+using decay_tuple_t = typename decay_tuple<TupleReference>::type;
+
+
+template<class TypeList>
+struct homogeneous_tuple_impl;
+
+template<class... Types>
+struct homogeneous_tuple_impl<type_list<Types...>>
+{
+  using type = tuple<Types...>;
+};
+
+template<class T, size_t size>
+using homogeneous_tuple = typename homogeneous_tuple_impl<type_list_repeat<size,T>>:: type;
+
+
+template<size_t size, class T>
+__AGENCY_ANNOTATION
+homogeneous_tuple<T,size> make_homogeneous_tuple(const T& val)
+{
+  return detail::tuple_repeat<size>(val);
+}
+
 
 
 } // end detail

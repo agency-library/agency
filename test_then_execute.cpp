@@ -17,32 +17,34 @@ void test(Shape shape)
   executor_type exec;
   
   {
-    auto f1 = traits::make_ready_future(exec);
+    auto f1 = traits::template make_ready_future<void>(exec);
     
     std::mutex mut;
-    auto f2 = traits::then_execute(exec, f1, [&mut](index_type idx)
+    auto f2 = traits::then_execute(exec, [&mut](index_type idx)
     {
       mut.lock();
       std::cout << "agent " << idx << " in thread " << std::this_thread::get_id() << " has no past parameter" << std::endl;
       mut.unlock();
     },
-    shape
+    shape,
+    f1
     );
     
     f2.wait();
   }
 
   {
-    auto f1 = traits::make_ready_future(exec, 13);
+    auto f1 = traits::template make_ready_future<int>(exec, 13);
 
     std::mutex mut;
-    auto f2 = traits::then_execute(exec, f1, [&mut](index_type idx, int& past_parameter)
+    auto f2 = traits::then_execute(exec, [&mut](index_type idx, int& past_parameter)
     {
       mut.lock();
       std::cout << "agent " << idx << " in thread " << std::this_thread::get_id() << " sees past_parameter " << past_parameter << std::endl;
       mut.unlock();
     },
-    shape
+    shape,
+    f1
     );
 
     f2.wait();

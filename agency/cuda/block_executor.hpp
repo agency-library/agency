@@ -3,6 +3,7 @@
 #include <agency/cuda/grid_executor.hpp>
 #include <agency/cuda/detail/bind.hpp>
 #include <agency/detail/tuple.hpp>
+#include <agency/functional.hpp>
 
 namespace agency
 {
@@ -20,14 +21,14 @@ struct block_executor_helper_functor
   __device__
   void operator()(grid_executor::index_type idx)
   {
-    f_(agency::detail::get<1>(idx));
+    agency::invoke(f_, agency::detail::get<1>(idx));
   }
 
   template<class T>
   __device__
-  void operator()(grid_executor::index_type idx, const agency::detail::ignore_t&, T& inner_shared_param)
+  void operator()(grid_executor::index_type idx, agency::detail::unit, T& inner_shared_param)
   {
-    f_(agency::detail::get<1>(idx), inner_shared_param);
+    agency::invoke(f_, agency::detail::get<1>(idx), inner_shared_param);
   }
 };
 
@@ -54,14 +55,13 @@ class block_executor : private grid_executor
 
     future<void> make_ready_future()
     {
-      return super_traits::make_ready_future(*this);
+      return super_traits::template make_ready_future<void>(*this);
     }
 
     using super_t::super_t;
     using super_t::shared_memory_size;
     using super_t::stream;
     using super_t::gpu;
-    using super_t::global_function_pointer;
 
     template<class Function>
     __host__ __device__
@@ -70,18 +70,18 @@ class block_executor : private grid_executor
       return super_t::max_shape(f).y;
     }
 
-    template<class Future, class Function, class T>
-    future<void> then_execute(Future& dependency, Function f, shape_type shape, T&& shared_init)
+    template<class Function, class Future, class Factory>
+    future<void> then_execute(Function f, shape_type shape, Future& dependency, Factory factory)
     {
       auto g = detail::block_executor_helper_functor<Function>{f};
-      return super_traits::then_execute(*this, dependency, g, super_t::shape_type{1,shape}, agency::detail::ignore, std::forward<T>(shared_init));
+      return super_traits::then_execute(*this, g, super_t::shape_type{1,shape}, dependency, agency::detail::unit_factory(), factory);
     }
 
-    template<class Function, class T>
-    future<void> async_execute(Function f, shape_type shape, T&& shared_init)
+    template<class Function, class Factory>
+    future<void> async_execute(Function f, shape_type shape, Factory factory)
     {
       auto ready = make_ready_future();
-      return this->then_execute(ready, f, shape, std::forward<T>(shared_init));
+      return this->then_execute(f, shape, ready, factory);
     }
 
     template<class Function>
@@ -97,10 +97,10 @@ class block_executor : private grid_executor
       this->async_execute(f, shape).wait();
     }
 
-    template<class Function, class T>
-    void execute(Function f, shape_type shape, T&& shared_init)
+    template<class Function, class Factory>
+    void execute(Function f, shape_type shape, Factory factory)
     {
-      this->async_execute(f, shape, std::forward<T>(shared_init)).wait();
+      this->async_execute(f, shape, factory).wait();
     }
 };
 

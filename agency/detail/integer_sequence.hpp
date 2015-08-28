@@ -117,8 +117,34 @@ template<size_t _Np>
 using make_index_sequence = make_integer_sequence<size_t, _Np>;
 
 
+template<class...>
+struct sizeof_parameter_pack;
+
+template<>
+struct sizeof_parameter_pack<> : std::integral_constant<size_t,0> {};
+
+template<class T, class... Types>
+struct sizeof_parameter_pack<T,Types...>
+  : std::integral_constant<
+      size_t,
+      1 + sizeof_parameter_pack<Types...>::value
+    >
+{};
+
+
+// XXX workaround nvbug 1668372
+//template<class... _Tp>
+//using index_sequence_for = make_index_sequence<sizeof...(_Tp)>;
 template<class... _Tp>
-using index_sequence_for = make_index_sequence<sizeof...(_Tp)>;
+struct index_sequence_for_workaround_nvbug1668372
+{
+  // XXX workaround nvbug 1668718
+  //using type = make_index_sequence<sizeof...(_Tp)>;
+  using type = make_index_sequence<sizeof_parameter_pack<_Tp...>::value>;
+};
+
+template<class... _Tp>
+using index_sequence_for = typename index_sequence_for_workaround_nvbug1668372<_Tp...>::type;
 
 
 template<template<size_t> class MetaFunction, class IndexSequence>
@@ -131,6 +157,74 @@ using exclusive_scan_index_sequence = typename integer_sequence_detail::exclusiv
 
 template<template<size_t> class MetaFunction, size_t Init, class IndexSequence>
 using transform_exclusive_scan_index_sequence = exclusive_scan_index_sequence<Init, map_index_sequence<MetaFunction,IndexSequence>>;
+
+
+template<size_t i, class IndexSequence>
+struct index_sequence_element;
+
+
+template<size_t Index0, size_t... Indices>
+struct index_sequence_element<0, index_sequence<Index0, Indices...>>
+  : std::integral_constant<
+      size_t,
+      Index0
+    >
+{};
+
+
+template<size_t i, size_t Index0, size_t... Indices>
+struct index_sequence_element<i,index_sequence<Index0,Indices...>>
+  : index_sequence_element<
+      i-1,
+      index_sequence<Indices...>
+    >
+{};
+
+
+template<class IndexSequence>
+struct index_sequence_size;
+
+template<size_t... Indices>
+struct index_sequence_size<index_sequence<Indices...>>
+  : std::integral_constant<
+      size_t,
+      sizeof...(Indices)
+    >
+{};
+
+
+namespace integer_sequence_detail
+{
+
+
+
+template<class IndexSequence, class IndexSequenceMap, class IndexSequenceInput>
+struct index_sequence_gather_impl;
+
+template<size_t... Indices, class IndexSequenceMap, class IndexSequenceInput>
+struct index_sequence_gather_impl<index_sequence<Indices...>, IndexSequenceMap, IndexSequenceInput>
+{
+  using type = index_sequence<
+    index_sequence_element<
+      index_sequence_element<
+        Indices,
+        IndexSequenceMap
+      >::value,
+      IndexSequenceInput
+    >::value...
+  >;
+};
+
+
+} // end integer_sequence_detail
+
+
+template<class IndexSequenceMap, class IndexSequenceInput>
+using index_sequence_gather = typename integer_sequence_detail::index_sequence_gather_impl<
+  make_index_sequence<index_sequence_size<IndexSequenceMap>::value>,
+  IndexSequenceMap,
+  IndexSequenceInput
+>::type;
   
 
 } // end detail
