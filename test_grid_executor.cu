@@ -35,7 +35,9 @@ __host__ __device__
 void launch_nested_kernel()
 {
   agency::cuda::grid_executor ex;
-  bulk_invoke(ex, agency::uint2{2,2}, hello_world());
+  using traits = agency::executor_traits<agency::cuda::grid_executor>;
+
+  traits::execute(ex, hello_world(), agency::uint2{2,2});
 }
 
 
@@ -88,13 +90,15 @@ factory<T> make_factory(const T& value)
 int main()
 {
   agency::cuda::grid_executor ex;
+  using traits = agency::executor_traits<agency::cuda::grid_executor>;
 
-  std::cout << "Testing bulk_invoke on host" << std::endl;
-  bulk_invoke(ex, agency::uint2{2,2}, hello_world());
+  std::cout << "Testing execute on host" << std::endl;
+  
+  traits::execute(ex, hello_world(), agency::uint2{2,2});
   cudaDeviceSynchronize();
 
-  std::cout << "Testing bulk_invoke with shared arg on host" << std::endl;
-  ex.execute(with_shared_arg(), agency::uint2{2,2}, make_factory(7), make_factory(13));
+  std::cout << "Testing execute with shared arg on host" << std::endl;
+  traits::execute(ex, with_shared_arg(), agency::uint2{2,2}, make_factory(7), make_factory(13));
   cudaDeviceSynchronize();
 
   std::cout << "Testing bulk_invoke() on device" << std::endl;
