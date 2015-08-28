@@ -62,7 +62,6 @@ class block_executor : private grid_executor
     using super_t::shared_memory_size;
     using super_t::stream;
     using super_t::gpu;
-    using super_t::global_function_pointer;
 
     template<class Function>
     __host__ __device__

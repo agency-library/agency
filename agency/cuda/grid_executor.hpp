@@ -427,57 +427,38 @@ __global__ void grid_executor_kernel(Function f)
 }
 
 
-// XXX consider using unit_factory as the defaults, not void
-//     we could probably simplify all of this stuff and not need any specialization here at all
-template<class ThisIndexFunction, class Function, class PastParameterType = void, class OuterFactory = void, class InnerFactory = void>
-struct global_function_pointer_map;
-
-
-template<class ThisIndexFunction, class Function>
-struct global_function_pointer_map<ThisIndexFunction,Function,void,void,void>
+template<class ThisIndexFunction, class Container, class Function, class PastParameterType, class OuterFactory, class InnerFactory>
+struct then_execute_with_shared_inits_returning_user_specified_container_global_function_pointer_type
 {
-  using function_ptr_type = decltype(&grid_executor_kernel<ThisIndexFunction,Function>);
+  // XXX these types need to agree the way then_execute() creates the new_then_execute_functor
+  // XXX there must be a sounder way to do this stuff
 
-  __host__ __device__
-  static function_ptr_type get()
-  {
-    return &grid_executor_kernel<ThisIndexFunction,Function>;
-  }
+  using container_ptr_type = decltype(std::declval<future<Container>>().data());
+  using past_parameter_ptr_type = decltype(std::declval<future<PastParameterType>>().data());
+
+  using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
+  using outer_parameter_ptr_type = decltype(std::declval<future<outer_arg_type>>().data());
+
+  using functor_type = new_then_execute_functor<container_ptr_type, Function, past_parameter_ptr_type, outer_parameter_ptr_type, InnerFactory>;
+
+  using type = decltype(
+    &detail::grid_executor_kernel<
+      ThisIndexFunction,
+      functor_type
+    >
+  );
 };
 
 
-template<class ThisIndexFunction, class Function, class PastParameterType>
-struct global_function_pointer_map<ThisIndexFunction,Function,PastParameterType,void,void>
+template<class Function, class FutureValueType>
+struct take_first_two_parameters_and_invoke : agency::detail::take_first_two_parameters_and_invoke<Function>
 {
-  using function_ptr_type = decltype(global_function_pointer_map<ThisIndexFunction, detail::function_with_past_parameter<Function,PastParameterType>>::get());
-
-  __host__ __device__
-  static function_ptr_type get()
-  {
-    return global_function_pointer_map<ThisIndexFunction, detail::function_with_past_parameter<Function,PastParameterType>>::get();
-  }
 };
 
-
-template<class ThisIndexFunction, class Function, class PastParameterType, class OuterFactory, class InnerFactory>
-struct global_function_pointer_map
+template<class Function>
+struct take_first_two_parameters_and_invoke<Function,void> : agency::detail::take_first_parameter_and_invoke<Function>
 {
-  using function_ptr_type = decltype(global_function_pointer_map<ThisIndexFunction,detail::function_with_shared_arguments<Function,OuterFactory,InnerFactory>,PastParameterType>::get());
-
-  __host__ __device__
-  static function_ptr_type get()
-  {
-    return global_function_pointer_map<ThisIndexFunction, detail::function_with_shared_arguments<Function,OuterFactory,InnerFactory>, PastParameterType>::get();
-  }
 };
-
-
-void grid_executor_notify(cudaStream_t stream, cudaError_t status, void* data)
-{
-  std::unique_ptr<std::promise<void>> promise(reinterpret_cast<std::promise<void>*>(data));
-
-  promise->set_value();
-}
 
 
 template<class Shape, class Index, class ThisIndexFunction>
@@ -548,7 +529,7 @@ class basic_grid_executor
     {
       // XXX shouldn't we use the stream associated with dependency instead of stream()?
 
-      return this->launch(global_function_pointer<Function>(), f, shape, shared_memory_size(), stream(), dependency);
+      return this->launch(grid_executor_kernel<ThisIndexFunction,Function>, f, shape, shared_memory_size(), stream(), dependency);
     }
 
   public:
@@ -585,30 +566,96 @@ class basic_grid_executor
     // this is exposed because it's necessary if a client wants to compute occupancy
     // alternatively, cuda_executor could report occupancy of a Function for a given block size
     // XXX probably shouldn't expose this -- max_shape() seems good enough
-    template<class Function>
-    __host__ __device__
-    static typename detail::global_function_pointer_map<ThisIndexFunction, Function>::function_ptr_type
-      global_function_pointer()
-    {
-      return detail::global_function_pointer_map<ThisIndexFunction, Function>::get();
-    }
 
-
-    template<class Function, class PastParameterType>
+    template<class Container, class Function, class PastParameterType, class OuterFactory, class InnerFactory>
     __host__ __device__
-    static typename detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType>::function_ptr_type
-      global_function_pointer()
+    static typename detail::then_execute_with_shared_inits_returning_user_specified_container_global_function_pointer_type<
+        ThisIndexFunction, Container, Function, PastParameterType, OuterFactory, InnerFactory
+    >::type
+      then_execute_kernel()
     {
-      return detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType>::get();
+      // XXX these types need to agree the way then_execute() creates the new_then_execute_functor
+      // XXX there must be a sounder way to do this stuff
+
+      using container_ptr_type = decltype(std::declval<future<Container>>().data());
+      using past_parameter_ptr_type = decltype(std::declval<future<PastParameterType>>().data());
+
+      using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
+      using outer_parameter_ptr_type = decltype(std::declval<future<outer_arg_type>>().data());
+
+      using functor_type = new_then_execute_functor<container_ptr_type, Function, past_parameter_ptr_type, outer_parameter_ptr_type, InnerFactory>;
+
+      return &detail::grid_executor_kernel<
+        ThisIndexFunction,
+        functor_type
+      >;
     }
 
 
     template<class Function, class PastParameterType, class OuterFactory, class InnerFactory>
     __host__ __device__
-    static typename detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType, OuterFactory, InnerFactory>::function_ptr_type
-      global_function_pointer()
+    static auto then_execute_kernel()
+      -> decltype(
+           then_execute_kernel<
+             agency::detail::new_executor_traits_detail::discarding_container,
+             agency::detail::new_executor_traits_detail::invoke_and_return_empty<Function>,
+             PastParameterType,
+             OuterFactory,
+             InnerFactory
+           >()
+         )
     {
-      return detail::global_function_pointer_map<ThisIndexFunction, Function, PastParameterType, OuterFactory, InnerFactory>::get();
+      // XXX these types need to agree the way executor_traits lowers multi-agent then_execute() with shared inits returning void onto
+      //     the more general version of then_execute()
+      // XXX there must be a sounder way to do this stuff
+      return then_execute_kernel<
+        agency::detail::new_executor_traits_detail::discarding_container,
+        agency::detail::new_executor_traits_detail::invoke_and_return_empty<Function>, // XXX replace with invoke_and_return_unit
+        PastParameterType,
+        OuterFactory,
+        InnerFactory
+      >();
+    }
+
+    template<class Function, class PastParameterType>
+    __host__ __device__
+    static auto then_execute_kernel()
+      -> decltype(
+           then_execute_kernel<
+             detail::take_first_two_parameters_and_invoke<Function,PastParameterType>,
+             PastParameterType,
+             agency::detail::unit_factory,
+             agency::detail::unit_factory
+           >
+         )
+    {
+      return then_execute_kernel<
+        detail::take_first_two_parameters_and_invoke<Function,PastParameterType>,
+        PastParameterType,
+        agency::detail::unit_factory,
+        agency::detail::unit_factory
+      >();
+    }
+
+
+    template<class Function>
+    __host__ __device__
+    static auto then_execute_kernel()
+      -> decltype(
+           then_execute_kernel<
+             Function,
+             void,
+             agency::detail::unit_factory,
+             agency::detail::unit_factory
+           >
+         )
+    {
+      return then_execute_kernel<
+        Function,
+        void,
+        agency::detail::unit_factory,
+        agency::detail::unit_factory
+      >();
     }
 
 
@@ -775,21 +822,21 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
     __host__ __device__
     shape_type max_shape(const Function&) const
     {
-      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function>()));
+      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel<Function>()));
     }
 
     template<class T, class Function>
     __host__ __device__
     shape_type max_shape(const future<T>&, const Function&)
     {
-      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function,T>()));
+      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel<Function,T>()));
     }
 
     template<class T, class Function, class Factory1, class Factory2>
     __host__ __device__
     shape_type max_shape(const future<T>&, const Function&, const Factory1&, const Factory2&) const
     {
-      return max_shape_impl(reinterpret_cast<void*>(global_function_pointer<Function,T,Factory1,Factory2>()));
+      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel<Function,T,Factory1,Factory2>()));
     }
 };
 
