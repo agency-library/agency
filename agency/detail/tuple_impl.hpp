@@ -163,12 +163,6 @@ class __tuple_leaf_base
 #pragma nv_exec_check_disable
 #endif
     __TUPLE_ANNOTATION
-    ~__tuple_leaf_base() = default;
-
-#if defined(__CUDACC__)
-#pragma nv_exec_check_disable
-#endif
-    __TUPLE_ANNOTATION
     __tuple_leaf_base() = default;
 
 #if defined(__CUDACC__)
