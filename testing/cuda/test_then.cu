@@ -44,6 +44,7 @@ int main()
     auto f1 = agency::cuda::make_ready_future();
     auto f2 = f1.then(return_void());
 
+    assert(!f1.valid());
     f2.wait();
   }
 
@@ -52,6 +53,7 @@ int main()
     auto f1 = agency::cuda::make_ready_future(7);
     auto f2 = f1.then(return_void());
 
+    assert(!f1.valid());
     f2.wait();
   }
 
@@ -60,6 +62,7 @@ int main()
     auto f1 = agency::cuda::make_ready_future();
     auto f2 = f1.then(return_int());
 
+    assert(!f1.valid());
     assert(f2.get() == 13);
   }
 
@@ -68,6 +71,7 @@ int main()
     auto f1 = agency::cuda::make_ready_future(7);
     auto f2 = f1.then(return_int());
 
+    assert(!f1.valid());
     assert(f2.get() == 13);
   }
 
