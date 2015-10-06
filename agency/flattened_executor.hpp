@@ -39,7 +39,7 @@ class flattened_executor
 
     flattened_executor(const base_executor_type& base_executor = base_executor_type())
       : min_inner_size_(1000),
-        outer_subscription_(std::max(1u, log2(std::min(1u,std::thread::hardware_concurrency())))),
+        outer_subscription_(std::max(1u, log2(std::max(1u,std::thread::hardware_concurrency())))),
         base_executor_(base_executor)
     {}
 
