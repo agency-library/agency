@@ -15,9 +15,7 @@ int main()
     auto name = names[self.index()];
 
     // play for 20 volleys
-    for(int next_state = self.index();
-        next_state < 20;
-        next_state += 2)
+    for(int next_state = self.index(); next_state < 20; next_state += 2)
     {
       // wait for the next volley
       while(ball != next_state)
