@@ -3,12 +3,14 @@
 
 int main()
 {
+  using namespace agency;
+
   std::cout << "Starting two tasks asynchronously..." << std::endl;
 
   std::mutex mut;
 
   // asynchronously create 5 agents to greet us in bulk
-  auto f1 = agency::bulk_async(agency::par(5), [&](agency::parallel_agent& self)
+  auto f1 = bulk_async(par(5), [&](parallel_agent& self)
   {
     mut.lock();
     std::cout << "Hello, world from agent " << self.index() << " in task 1" << std::endl;
@@ -16,7 +18,7 @@ int main()
   });
 
   // asynchronously create 5 agents to greet us in bulk
-  auto f2 = agency::bulk_async(agency::par(5), [&](agency::parallel_agent& self)
+  auto f2 = bulk_async(par(5), [&](parallel_agent& self)
   {
     mut.lock();
     std::cout << "Hello, world from agent " << self.index() << " in task 2" << std::endl;
