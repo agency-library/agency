@@ -9,14 +9,17 @@ int main()
   std::string names[2] = {"ping", "pong"};
   std::mutex mut;
 
+  // create two concurrent agents
   agency::bulk_invoke(agency::con(2), [&](agency::concurrent_agent& self)
   {
     auto name = names[self.index()];
 
+    // play for 20 volleys
     for(int next_state = self.index();
-        next_state < 25;
+        next_state < 20;
         next_state += 2)
     {
+      // wait for the next volley
       while(ball != next_state)
       {
         mut.lock();
@@ -26,6 +29,7 @@ int main()
         std::this_thread::sleep_for(std::chrono::seconds(1));
       }
 
+      // return the ball
       mut.lock();
       ball += 1;
       std::cout << name << "! ball is now " << ball << std::endl;
