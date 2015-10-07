@@ -2,6 +2,7 @@
 #include <mutex>
 #include <iostream>
 #include <thread>
+#include <cassert>
 
 int main()
 {
@@ -36,6 +37,10 @@ int main()
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   });
+
+  assert(ball == 20);
+
+  std::cout << "OK" << std::endl;
 
   return 0;
 }
