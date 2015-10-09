@@ -17,7 +17,8 @@ class blocking_barrier
   public:
     inline explicit blocking_barrier(size_t num_threads)
       : count_init_(num_threads),
-        count_(num_threads)
+        count_(num_threads),
+        generation_(0)
 
     {
       if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
@@ -32,19 +33,24 @@ class blocking_barrier
         // initialize the count variable
         count_ = count_init_;
 
+        // bump the generation number
+        generation_++;
+
         // unblock all blocking threads
         cv_.notify_all();
       }
       else
       {
-        // block until either we are woken or the count is reinitialized
-        cv_.wait(lock, [this]{ return this->count_ == this->count_init_; });
+        // block until either we are woken or the generation changes
+        size_t old_generation = generation_;
+        cv_.wait(lock, [=]{ return this->generation_ != old_generation; });
       }
     }
 
   private:
     size_t                  count_init_;
     size_t                  count_;
+    size_t                  generation_;
     std::mutex              mutex_;
     std::condition_variable cv_;
 };
