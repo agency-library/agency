@@ -24,12 +24,12 @@ int sum(const std::vector<int>& data)
 
       // cut the number of active agents in half
       n -= n/2;
+    }
 
-      // the first agent stores the result
-      if(i == 0)
-      {
-        result = scratch[0];
-      }
+    // the first agent stores the result
+    if(i == 0)
+    {
+      result = scratch[0];
     }
   },
   share<0>(data));
