@@ -21,14 +21,14 @@ agency::cuda::future<void> async_square_transpose(size_t matrix_dim, float* tran
   int tile_dim = 32;
   int num_rows_per_block = 8;
 
-  size2 dim_grid{matrix_dim/tile_dim, matrix_dim/tile_dim};
-  size2 dim_block{tile_dim, num_rows_per_block};
+  size2 outer_shape{matrix_dim/tile_dim, matrix_dim/tile_dim};
+  size2 inner_shape{tile_dim, num_rows_per_block};
 
-  return cuda::bulk_async(grid(dim_grid, dim_block), [=] __device__ (parallel_group_2d<cuda::concurrent_agent_2d>& self)
+  return cuda::bulk_async(grid(outer_shape, inner_shape), [=] __device__ (parallel_group_2d<cuda::concurrent_agent_2d>& self)
   {
     auto idx = tile_dim * self.outer().index() + self.inner().index();
 
-    for(int j = 0; j < tile_dim; j+= num_rows_per_block)
+    for(int j = 0; j < tile_dim; j += num_rows_per_block)
     {
       transposed_matrix[idx[0]*matrix_dim + (idx[1]+j)] = input_matrix[(idx[1]+j)*matrix_dim + idx[0]];
     }
