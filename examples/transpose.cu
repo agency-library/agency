@@ -20,8 +20,8 @@ agency::cuda::future<void> async_square_transpose(size_t matrix_dim, float* tran
 {
   using namespace agency;
 
-  static constexpr int tile_dim = 32;
-  static constexpr int num_rows_per_block = 8;
+  int tile_dim = 32;
+  int num_rows_per_block = 8;
 
   size2 dim_grid{matrix_dim/tile_dim, matrix_dim/tile_dim};
   size2 dim_block{tile_dim, num_rows_per_block};
