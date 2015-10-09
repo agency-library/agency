@@ -61,7 +61,7 @@ double time_invocation(Function f, Args&&... args)
 }
 
 
-int main(int argc, char **argv)
+int main()
 {
   const int matrix_dim = 1024;
 
@@ -81,14 +81,17 @@ int main(int argc, char **argv)
     }
   }
 
+  // validate the algorithm
   async_square_transpose(matrix_dim, raw_pointer_cast(transposed_matrix.data()), raw_pointer_cast(input_matrix.data())).wait();
   assert(reference_matrix == transposed_matrix);
 
+  // time how long it takes
   double seconds = time_invocation([&]
   {
     async_square_transpose(matrix_dim, raw_pointer_cast(transposed_matrix.data()), raw_pointer_cast(input_matrix.data()));
   });
 
+  // compute bandwidth of the kernel
   double gigabytes = double(2 * matrix_dim * matrix_dim * sizeof(float)) / (1 << 30);
   double bandwidth = gigabytes / seconds;
 
