@@ -13,8 +13,6 @@ auto grid(agency::size2 outer_shape, agency::size2 inner_shape)
   return agency::cuda::par(outer_shape, agency::cuda::con(inner_shape)).on(agency::cuda::grid_executor_2d{});
 }
 
-using cuda_thread_2d = agency::parallel_group_2d<agency::cuda::concurrent_agent_2d>;
-
 
 agency::cuda::future<void> async_square_transpose(size_t matrix_dim, float* transposed_matrix, const float* input_matrix)
 {
@@ -26,7 +24,7 @@ agency::cuda::future<void> async_square_transpose(size_t matrix_dim, float* tran
   size2 dim_grid{matrix_dim/tile_dim, matrix_dim/tile_dim};
   size2 dim_block{tile_dim, num_rows_per_block};
 
-  return cuda::bulk_async(grid(dim_grid, dim_block), [=] __device__ (cuda_thread_2d& self)
+  return cuda::bulk_async(grid(dim_grid, dim_block), [=] __device__ (parallel_group_2d<cuda::concurrent_agent_2d>& self)
   {
     auto idx = tile_dim * self.outer().index() + self.inner().index();
 
