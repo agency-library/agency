@@ -1,17 +1,16 @@
-#include <cstdio>
 #include <cassert>
-#include <algorithm>
 #include <numeric>
+#include <chrono>
+#include <iostream>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <agency/cuda/execution_policy.hpp>
-#include <chrono>
 
 // XXX need to figure out how to make this par(con) select grid_executor_2d automatically
-auto grid(agency::size2 num_blocks, agency::size2 num_threads)
-  -> decltype(agency::cuda::par(num_blocks, agency::cuda::con(num_threads)).on(agency::cuda::grid_executor_2d{}))
+auto grid(agency::size2 outer_shape, agency::size2 inner_shape)
+  -> decltype(agency::cuda::par(outer_shape, agency::cuda::con(inner_shape)).on(agency::cuda::grid_executor_2d{}))
 {
-  return agency::cuda::par(num_blocks, agency::cuda::con(num_threads)).on(agency::cuda::grid_executor_2d{});
+  return agency::cuda::par(outer_shape, agency::cuda::con(inner_shape)).on(agency::cuda::grid_executor_2d{});
 }
 
 using cuda_thread_2d = agency::parallel_group_2d<agency::cuda::concurrent_agent_2d>;
@@ -42,14 +41,14 @@ agency::cuda::future<void> async_square_transpose(size_t matrix_dim, float* tran
 template<class Function, class... Args>
 double time_invocation(Function f, Args&&... args)
 {
-  int n = 100;
+  size_t num_trials = 100;
 
   // warm up
   f(std::forward<Args>(args)...);
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  for(int i = 0; i < n; i++)
+  for(size_t i = 0; i < num_trials; i++)
   {
     f(std::forward<Args>(args)...);
   }
@@ -58,7 +57,7 @@ double time_invocation(Function f, Args&&... args)
 
   std::chrono::duration<double> elapsed = std::chrono::high_resolution_clock::now() - start;
 
-  return elapsed.count() / 100;
+  return elapsed.count() / num_trials;
 }
 
 
@@ -66,33 +65,28 @@ int main(int argc, char **argv)
 {
   const int matrix_dim = 1024;
 
-  std::vector<float> input_matrix(matrix_dim * matrix_dim);
-  std::vector<float> reference_matrix(matrix_dim * matrix_dim);
-
-  thrust::device_vector<float> d_input_matrix(matrix_dim * matrix_dim);
-  thrust::device_vector<float> d_transposed_matrix(matrix_dim * matrix_dim);
+  thrust::device_vector<float> input_matrix(matrix_dim * matrix_dim);
+  thrust::device_vector<float> transposed_matrix(matrix_dim * matrix_dim);
     
   // initialize input
   std::iota(input_matrix.begin(), input_matrix.end(), 0);
 
-  // transpose input into reference for error checking
-  for(int j = 0; j < matrix_dim; j++)
+  // transpose sequentially to compute a reference
+  thrust::host_vector<float> reference_matrix = input_matrix;
+  for(int i = 0; i < matrix_dim - 1; ++i)
   {
-    for(int i = 0; i < matrix_dim; i++)
+    for(int j = i + 1; j < matrix_dim; ++j)
     {
-      reference_matrix[j*matrix_dim + i] = input_matrix[i*matrix_dim + j];
+      std::swap(reference_matrix[i*matrix_dim + j], reference_matrix[j*matrix_dim + i]);
     }
   }
-  
-  // copy input to device
-  d_input_matrix = input_matrix;
 
-  async_square_transpose(matrix_dim, raw_pointer_cast(d_transposed_matrix.data()), raw_pointer_cast(d_input_matrix.data())).wait();
-  assert(reference_matrix == d_transposed_matrix);
+  async_square_transpose(matrix_dim, raw_pointer_cast(transposed_matrix.data()), raw_pointer_cast(input_matrix.data())).wait();
+  assert(reference_matrix == transposed_matrix);
 
   double seconds = time_invocation([&]
   {
-    async_square_transpose(matrix_dim, raw_pointer_cast(d_transposed_matrix.data()), raw_pointer_cast(d_input_matrix.data()));
+    async_square_transpose(matrix_dim, raw_pointer_cast(transposed_matrix.data()), raw_pointer_cast(input_matrix.data()));
   });
 
   double gigabytes = double(2 * matrix_dim * matrix_dim * sizeof(float)) / (1 << 30);
