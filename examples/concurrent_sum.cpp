@@ -7,7 +7,7 @@ int sum(const std::vector<int>& data)
 
   int result = 0;
 
-  bulk_invoke(con(data.size() / 2), [&](concurrent_agent& self, std::vector<int>& scratch)
+  bulk_invoke(con(data.size()), [&](concurrent_agent& self, std::vector<int>& scratch)
   {
     auto i = self.index();
     auto n = scratch.size();
