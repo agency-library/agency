@@ -35,6 +35,14 @@ class movable_mutex
 // this function implements a single concurrent ping pong match
 size_t ping_pong_match(agency::concurrent_agent& self, const std::vector<std::string>& names, int num_volleys, movable_mutex& mut, int& ball)
 {
+  // agent 0 initializes the ball
+  if(self.index() == 0)
+  {
+    ball = 0;
+  }
+
+  self.wait();
+
   auto name = names[self.index()];
   
   for(int next_state = self.index();
@@ -88,11 +96,11 @@ size_t ping_pong_match(agency::concurrent_agent& self, const std::vector<std::st
 // this function implements a two concurrent semifinals ping pong matches
 // followed by a single final ping pong match
 void ping_pong_tournament(agency::concurrent_group<agency::concurrent_agent>& self,
-                          const std::vector<std::vector<std::string>>& semifinal_contestants,
+                          const std::vector<std::vector<std::string>>& semifinalists,
                           int num_volleys,
                           movable_mutex& mut,
                           int& ball,
-                          std::vector<std::string>& final_contestants)
+                          std::vector<std::string>& finalists)
 {
   if(self.inner().index() == 0)
   {
@@ -107,13 +115,13 @@ void ping_pong_tournament(agency::concurrent_group<agency::concurrent_agent>& se
   self.inner().wait();
 
   // play the semifinals matches
-  auto semifinal_winner_idx = ping_pong_match(self.inner(), semifinal_contestants[self.outer().index()], num_volleys, mut, ball);
+  auto semifinal_winner_idx = ping_pong_match(self.inner(), semifinalists[self.outer().index()], num_volleys, mut, ball);
 
   if(self.inner().index() == 0)
   {
     // the first agent of each group reports who won the semifinal match
-    auto semifinal_winner = semifinal_contestants[self.outer().index()][semifinal_winner_idx];
-    final_contestants[self.outer().index()] = semifinal_winner;
+    auto semifinal_winner = semifinalists[self.outer().index()][semifinal_winner_idx];
+    finalists[self.outer().index()] = semifinal_winner;
 
     // have the first player of each group wait for the other group
     self.outer().wait();
@@ -122,28 +130,25 @@ void ping_pong_tournament(agency::concurrent_group<agency::concurrent_agent>& se
   // have each inner group wait for each other
   self.inner().wait();
 
-  // group 0 plays the final match
-  // group 1 sits it out
+  // group 0 plays the final match while group 1 sits it out
   if(self.outer().index() == 0)
   {
-    // agent 0 initialzes the shared variables for the final match
+    // agent 0 initializes the contestant names for the final match
     if(self.inner().index() == 0)
     {
-      ball = 0;
-
-      std::cout << std::endl << final_contestants[0] << " and " << final_contestants[1] << " starting the final match..." << std::endl;
+      std::cout << std::endl << finalists[0] << " and " << finalists[1] << " starting the final match..." << std::endl;
     }
 
-    // wait until agent 0 initializes the shared variables before starting the final match
+    // wait until agent 0 initializes the contestant names before starting the final match
     self.inner().wait();
 
     // play the final match
-    auto final_winner_idx = ping_pong_match(self.inner(), final_contestants, num_volleys, mut, ball);
+    auto final_winner_idx = ping_pong_match(self.inner(), finalists, num_volleys, mut, ball);
 
     // have agent 0 of group 0 report the winner
     if(self.inner().index() == 0)
     {
-      std::cout << std::endl << final_contestants[final_winner_idx] << " is the champion!" << std::endl;
+      std::cout << std::endl << finalists[final_winner_idx] << " is the tournament champion!" << std::endl;
     }
   }
 }
@@ -155,9 +160,9 @@ int main()
   using namespace std;
 
   size_t num_volleys = 20;
-  vector<vector<string>> names = {{"ping", "pong"}, {"foo", "bar"}};
+  vector<vector<string>> semifinalists = {{"ping", "pong"}, {"foo", "bar"}};
 
-  bulk_invoke(con(2, con(2)), ping_pong_tournament, names, 20, share<0,movable_mutex>(), share<1,int>(), share<0,vector<string>>(2));
+  bulk_invoke(con(2, con(2)), ping_pong_tournament, semifinalists, num_volleys, share<0,movable_mutex>(), share<1,int>(), share<0,vector<string>>(2));
 
   return 0;
 }
