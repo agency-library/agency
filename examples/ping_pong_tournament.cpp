@@ -99,8 +99,8 @@ void ping_pong_tournament(agency::concurrent_group<agency::concurrent_agent>& se
                           const std::vector<std::vector<std::string>>& semifinalists,
                           int num_volleys,
                           movable_mutex& mut,
-                          int& ball,
-                          std::vector<std::string>& finalists)
+                          std::vector<std::string>& finalists,
+                          int& ball)
 {
   if(self.inner().index() == 0)
   {
@@ -162,7 +162,7 @@ int main()
   size_t num_volleys = 20;
   vector<vector<string>> semifinalists = {{"ping", "pong"}, {"foo", "bar"}};
 
-  bulk_invoke(con(2, con(2)), ping_pong_tournament, semifinalists, num_volleys, share<0,movable_mutex>(), share<1,int>(), share<0,vector<string>>(2));
+  bulk_invoke(con(2, con(2)), ping_pong_tournament, semifinalists, num_volleys, share<0,movable_mutex>(), share<0,vector<string>>(2), share<1,int>());
 
   return 0;
 }
