@@ -43,6 +43,13 @@ struct unpack_shared_parameters_from_executor_and_invoke
   }
 };
 
+template<class Function>
+__AGENCY_ANNOTATION
+unpack_shared_parameters_from_executor_and_invoke<Function> make_unpack_shared_parameters_from_executor_and_invoke(Function f)
+{
+  return unpack_shared_parameters_from_executor_and_invoke<Function>{f};
+}
+
 
 template<class BulkCall, class Executor, class Function, class Tuple, size_t... TupleIndices>
 typename BulkCall::result_type
@@ -181,6 +188,21 @@ struct enable_if_bulk_async_executor
 {};
 
 
+template<class Executor, class Function, class Tuple, size_t... TupleIndices>
+void
+  bulk_invoke_impl(Executor& exec, Function f, typename executor_traits<Executor>::shape_type shape, Tuple&& factory_tuple, detail::index_sequence<TupleIndices...>)
+{
+  executor_traits<Executor>::execute(exec, f, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
+}
+
+template<class Executor, class Function, class Tuple, size_t... TupleIndices>
+typename executor_traits<Executor>::template future<void>
+  bulk_async_impl(Executor& exec, Function f, typename executor_traits<Executor>::shape_type shape, Tuple&& factory_tuple, detail::index_sequence<TupleIndices...>)
+{
+  return executor_traits<Executor>::async_execute(exec, f, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
+}
+
+
 } // end detail
 
 
@@ -188,8 +210,26 @@ template<class Executor, class Function, class... Args>
 typename detail::enable_if_bulk_invoke_executor<Executor, Function, Args...>::type
   bulk_invoke(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
-  detail::call_execute<Executor> caller;
-  return detail::bulk_call_executor(caller, exec, shape, f, std::forward<Args>(args)...);
+  // the _1 is for the executor idx parameter, which is the first parameter passed to f
+  auto g = detail::bind_unshared_parameters(f, detail::placeholders::_1, std::forward<Args>(args)...);
+
+  // make a tuple of the shared args
+  auto shared_arg_tuple = detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
+
+  using traits = executor_traits<Executor>;
+
+  // package up the shared parameters for the executor
+  const size_t executor_depth = detail::execution_depth<
+    typename traits::execution_category
+  >::value;
+
+  // create a tuple of factories to use for shared parameters for the executor
+  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<executor_depth>(shared_arg_tuple);
+
+  // unpack shared parameters we receive from the executor
+  auto h = detail::make_unpack_shared_parameters_from_executor_and_invoke(g);
+
+  return detail::bulk_invoke_impl(exec, h, shape, factory_tuple, detail::make_index_sequence<executor_depth>());
 }
 
 
@@ -197,10 +237,26 @@ template<class Executor, class Function, class... Args>
 typename detail::enable_if_bulk_async_executor<Executor, Function, Args...>::type
   bulk_async(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
-  using result_type = detail::executor_future_t<Executor,void>;
+  // the _1 is for the executor idx parameter, which is the first parameter passed to f
+  auto g = detail::bind_unshared_parameters(f, detail::placeholders::_1, std::forward<Args>(args)...);
 
-  detail::call_async_execute<Executor,result_type> caller;
-  return detail::bulk_call_executor(caller, exec, shape, f, std::forward<Args>(args)...);
+  // make a tuple of the shared args
+  auto shared_arg_tuple = detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
+
+  using traits = executor_traits<Executor>;
+
+  // package up the shared parameters for the executor
+  const size_t executor_depth = detail::execution_depth<
+    typename traits::execution_category
+  >::value;
+
+  // create a tuple of factories to use for shared parameters for the executor
+  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<executor_depth>(shared_arg_tuple);
+
+  // unpack shared parameters we receive from the executor
+  auto h = detail::make_unpack_shared_parameters_from_executor_and_invoke(g);
+
+  return detail::bulk_async_impl(exec, h, shape, factory_tuple, detail::make_index_sequence<executor_depth>());
 }
 
 
