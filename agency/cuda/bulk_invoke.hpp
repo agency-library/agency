@@ -171,6 +171,13 @@ struct execute_agent_functor
   using agent_index_type    = typename AgentTraits::index_type;
   using executor_index_type = typename ExecutorTraits::index_type;
 
+  template<class OtherFunction, class Tuple, size_t... Indices>
+  __AGENCY_ANNOTATION
+  static void unpack_shared_params_and_execute(OtherFunction f, const agent_index_type& index, const agent_param_type& param, Tuple&& shared_params, agency::detail::index_sequence<Indices...>)
+  {
+    AgentTraits::execute(f, index, param, detail::get<Indices>(std::forward<Tuple>(shared_params))...);
+  }
+
   template<class... Args>
   __AGENCY_ANNOTATION
   void operator()(const executor_index_type& executor_idx, Args&&... args)
@@ -196,7 +203,8 @@ struct execute_agent_functor
     //};
     unpack_arguments_and_invoke_with_self<Function,decltype(user_args),UserArgIndices...> invoke_f{f_, user_args};
 
-    AgentTraits::execute(invoke_f, agent_idx, agent_param_, agent_shared_args);
+    constexpr size_t num_shared_args = std::tuple_size<decltype(agent_shared_args)>::value;
+    this->unpack_shared_params_and_execute(invoke_f, agent_idx, agent_param_, agent_shared_args, agency::detail::make_index_sequence<num_shared_args>());
   }
 };
 

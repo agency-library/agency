@@ -164,34 +164,6 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
 
 
   private:
-    template<class Function, class Tuple, size_t... Indices>
-    __AGENCY_ANNOTATION
-    static void unpack_shared_params_and_execute(Function f, const index_type& index, const param_type& param, Tuple& shared_params, detail::index_sequence<Indices...>)
-    {
-      execute(f, index, param, detail::get<Indices>(shared_params)...);
-    }
-
-    // XXX should ensure that the tuple elements are all the right type and are references
-    template<class Function, class Tuple>
-    struct enable_if_execute_with_shared_param_tuple
-      : std::enable_if<
-          detail::is_tuple<Tuple>::value
-        >
-    {};
-
-
-  public:
-
-  template<class Function, class Tuple>
-  __AGENCY_ANNOTATION
-  static typename enable_if_execute_with_shared_param_tuple<Function,Tuple>::type
-    execute(Function f, const index_type& index, const param_type& param, Tuple& shared_params)
-  {
-    unpack_shared_params_and_execute(f, index, param, shared_params, detail::make_index_sequence<std::tuple_size<Tuple>::value>());
-  }
-
-
-  private:
     template<class ExecutionAgent1>
     struct test_for_make_shared_param_tuple
     {
