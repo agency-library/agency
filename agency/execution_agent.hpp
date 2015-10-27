@@ -118,9 +118,11 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
 
   template<class Function>
   __AGENCY_ANNOTATION
-  static void execute(Function f, const index_type& index, const param_type& param)
+  static detail::result_of_t<Function(ExecutionAgent&)>
+    execute(Function f, const index_type& index, const param_type& param)
   {
-    ExecutionAgent agent(f, index, param);
+    ExecutionAgent agent(index, param);
+    return f(agent);
   }
 
 
@@ -133,17 +135,22 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
 
     template<class Function, class... Args>
     __AGENCY_ANNOTATION
-    static void execute_with_shared_params_impl(std::false_type, Function f, const index_type& index, const param_type& param, Args&&...)
+    static detail::result_of_t<Function(ExecutionAgent&)>
+      execute_with_shared_params_impl(std::false_type, Function f, const index_type& index, const param_type& param, Args&&...)
     {
-      ExecutionAgent agent(f, index, param);
+      return execution_agent_traits::execute(f, index, param);
     }
+
 
     template<class Function, class... Args>
     __AGENCY_ANNOTATION
-    static void execute_with_shared_params_impl(std::true_type, Function f, const index_type& index, const param_type& param, Args&... shared_params)
+    static detail::result_of_t<Function(ExecutionAgent&)>
+      execute_with_shared_params_impl(std::true_type, Function f, const index_type& index, const param_type& param, Args&... shared_params)
     {
-      ExecutionAgent agent(f, index, param, shared_params...);
+      ExecutionAgent agent(index, param, shared_params...);
+      return f(agent);
     }
+
 
   public:
 
@@ -157,9 +164,10 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
   // XXX should ensure that the SharedParams are all shared_param_type &
   template<class Function, class... SharedParams>
   __AGENCY_ANNOTATION
-  static void execute(Function f, const index_type& index, const param_type& param, shared_param_type& shared_param1, SharedParams&... shared_params)
+  static detail::result_of_t<Function(ExecutionAgent&)>
+    execute(Function f, const index_type& index, const param_type& param, shared_param_type& shared_param1, SharedParams&... shared_params)
   {
-    execute_with_shared_params_impl(typename detail::has_shared_param_type<execution_agent_type>::type(), f, index, param, shared_param1, shared_params...);
+    return execute_with_shared_params_impl(typename detail::has_shared_param_type<execution_agent_type>::type(), f, index, param, shared_param1, shared_params...);
   }
 
 
@@ -377,14 +385,8 @@ class basic_execution_agent
 
   protected:
     __agency_hd_warning_disable__
-    template<class Function>
     __AGENCY_ANNOTATION
-    basic_execution_agent(Function f, const index_type& index, const param_type& param)
-      : index_(index),
-        domain_(param.domain())
-    {
-      f(*this);
-    }
+    basic_execution_agent(const index_type& index, const param_type& param) : index_(index), domain_(param.domain()) {}
 
     friend struct agency::execution_agent_traits<basic_execution_agent>;
 
@@ -458,13 +460,10 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     agency::barrier &barrier_;
 
   protected:
-    template<class Function>
-    basic_concurrent_agent(Function f, const typename super_t::index_type& index, const typename super_t::param_type& param, shared_param_type& shared_param)
-      : super_t([](super_t&){}, index, param),
+    basic_concurrent_agent(const typename super_t::index_type& index, const typename super_t::param_type& param, shared_param_type& shared_param)
+      : super_t(index, param),
         barrier_(shared_param.barrier_)
-    {
-      f(*this);
-    }
+    {}
 
     // friend execution_agent_traits to give it access to the constructor
     friend struct agency::execution_agent_traits<basic_concurrent_agent>;
@@ -487,15 +486,10 @@ namespace detail
 template<class ExecutionAgent>
 struct agent_access_helper : public ExecutionAgent
 {
-  struct noop
-  {
-    __AGENCY_ANNOTATION void operator()(ExecutionAgent&) {}
-  };
-
   template<class... Args>
   __AGENCY_ANNOTATION
   agent_access_helper(Args&&... args)
-    : ExecutionAgent(noop(), std::forward<Args>(args)...)
+    : ExecutionAgent(std::forward<Args>(args)...)
   {}
 };
 
@@ -718,25 +712,20 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
 
   protected:
     __agency_hd_warning_disable__
-    template<class Function>
     __AGENCY_ANNOTATION
-    execution_group(Function f, const index_type& index, const param_type& param)
+    execution_group(const index_type& index, const param_type& param)
       : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), param.outer())),
         inner_agent_(detail::make_agent<inner_execution_agent_type>(inner_index(index), param.inner()))
-    {
-      f(*this);
-    }
+    {}
 
     // XXX ensure all the shared params are the right type
     __agency_hd_warning_disable__
-    template<class Function, class SharedParam1, class... SharedParams>
+    template<class SharedParam1, class... SharedParams>
     __AGENCY_ANNOTATION
-    execution_group(Function f, const index_type& index, const param_type& param, SharedParam1& shared_param1, SharedParams&... shared_params)
+    execution_group(const index_type& index, const param_type& param, SharedParam1& shared_param1, SharedParams&... shared_params)
       : outer_agent_(agency::detail::make_agent<outer_execution_agent_type>(outer_index(index), param.outer(), shared_param1)),
         inner_agent_(agency::detail::make_agent<inner_execution_agent_type>(inner_index(index), param.inner(), shared_params...))
-    {
-      f(*this);
-    }
+    {}
 
     // friend execution_agent_traits so it has access to the constructors
     template<class> friend struct agency::execution_agent_traits;

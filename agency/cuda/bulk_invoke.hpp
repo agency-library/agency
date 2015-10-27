@@ -173,9 +173,10 @@ struct execute_agent_functor
 
   template<class OtherFunction, class Tuple, size_t... Indices>
   __AGENCY_ANNOTATION
-  static void unpack_shared_params_and_execute(OtherFunction f, const agent_index_type& index, const agent_param_type& param, Tuple&& shared_params, agency::detail::index_sequence<Indices...>)
+  static agency::detail::result_of_t<OtherFunction(agent_type&)>
+    unpack_shared_params_and_execute(OtherFunction f, const agent_index_type& index, const agent_param_type& param, Tuple&& shared_params, agency::detail::index_sequence<Indices...>)
   {
-    AgentTraits::execute(f, index, param, detail::get<Indices>(std::forward<Tuple>(shared_params))...);
+    return AgentTraits::execute(f, index, param, detail::get<Indices>(std::forward<Tuple>(shared_params))...);
   }
 
   template<class... Args>
