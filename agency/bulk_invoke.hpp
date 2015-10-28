@@ -242,7 +242,8 @@ struct execute_agent_functor
   }
 
   template<class... Args>
-  void operator()(const executor_index_type& executor_idx, Args&&... args)
+  result_of_t<Function(agent_type&, pack_element_t<UserArgIndices, Args&&...>...)>
+    operator()(const executor_index_type& executor_idx, Args&&... args)
   {
     // collect all parameters into a tuple of references
     auto args_tuple = detail::forward_as_tuple(std::forward<Args>(args)...);
@@ -259,19 +260,36 @@ struct execute_agent_functor
     auto invoke_f = [&user_args,this](agent_type& self)
     {
       // invoke f by passing the agent, then the user's parameters
-      f_(self, detail::get<UserArgIndices>(user_args)...);
+      return f_(self, detail::get<UserArgIndices>(user_args)...);
     };
 
     constexpr size_t num_shared_args = std::tuple_size<decltype(agent_shared_args)>::value;
-    this->unpack_shared_params_and_execute(invoke_f, agent_idx, agent_param_, agent_shared_args, detail::make_index_sequence<num_shared_args>());
+    return this->unpack_shared_params_and_execute(invoke_f, agent_idx, agent_param_, agent_shared_args, detail::make_index_sequence<num_shared_args>());
   }
 };
 
 
+template<class ExecutionPolicy, class Function, class... Args>
+struct bulk_invoke_execution_policy_result
+{
+  using function_result = result_of_t<
+    Function(execution_policy_agent_t<ExecutionPolicy>&, decay_parameter_t<Args>...)
+  >;
+
+  using type = executor_result_t<execution_policy_executor_t<ExecutionPolicy>, function_result>;
+};
+
+template<class ExecutionPolicy, class Function, class... Args>
+using bulk_invoke_execution_policy_result_t = typename bulk_invoke_execution_policy_result<ExecutionPolicy,Function,Args...>::type;
+
+
 template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
-void bulk_invoke_execution_policy_impl(index_sequence<UserArgIndices...>,
-                                       index_sequence<SharedArgIndices...>,
-                                       ExecutionPolicy& policy, Function f, Args&&... args)
+bulk_invoke_execution_policy_result_t<
+  ExecutionPolicy, Function, Args...
+>
+  bulk_invoke_execution_policy_impl(index_sequence<UserArgIndices...>,
+                                    index_sequence<SharedArgIndices...>,
+                                    ExecutionPolicy& policy, Function f, Args&&... args)
 {
   using agent_type = typename ExecutionPolicy::execution_agent_type;
   using agent_traits = execution_agent_traits<agent_type>;
@@ -335,7 +353,7 @@ struct enable_if_bulk_invoke_execution_policy_impl<
          true, ExecutionPolicy, Function, Args...
        >
   : enable_if_call_possible<
-      void,
+      bulk_invoke_execution_policy_result_t<ExecutionPolicy,Function,Args...>,
       Function,
       execution_policy_agent_t<ExecutionPolicy>&,
       decay_parameter_t<Args>...
@@ -397,7 +415,7 @@ typename detail::enable_if_bulk_invoke_execution_policy<
   using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
   const size_t num_shared_params = detail::execution_depth<typename agent_traits::execution_category>::value;
 
-  detail::bulk_invoke_execution_policy_impl(detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
+  return detail::bulk_invoke_execution_policy_impl(detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
 }
 
 
