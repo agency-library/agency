@@ -31,20 +31,11 @@ class basic_concurrent_agent : public agency::detail::basic_execution_agent<conc
       __syncthreads();
     }
 
-  private:
-    struct noop
-    {
-      __device__ void operator()(super_t&){}
-    };
-
   protected:
-    template<class Function>
     __device__
-    basic_concurrent_agent(Function f, const typename super_t::index_type& index, const typename super_t::param_type& param)
-      : super_t(noop(), index, param)
-    {
-      f(*this);
-    }
+    basic_concurrent_agent(const typename super_t::index_type& index, const typename super_t::param_type& param)
+      : super_t(index, param)
+    {}
 
     // friend agency::execution_agent_traits to give it access to the constructor
     friend struct execution_agent_traits<basic_concurrent_agent>;
