@@ -22,16 +22,15 @@ T reduce(Iterator first, Iterator last, T init, BinaryFunction binary_op)
   // chop up data into partitions
   auto partition_size = 10000;
   auto num_partitions = (n + partition_size - 1) / partition_size;
-  std::vector<T> partial_sums(num_partitions);
 
-  agency::bulk_invoke(agency::par(num_partitions), [=,&partial_sums](agency::parallel_agent& g)
+  auto partial_sums = agency::bulk_invoke(agency::par(num_partitions), [=](agency::parallel_agent& g)
   {
     auto i = g.index();
 
     auto partition_begin = first + partition_size * i;
     auto partition_end   = std::min(last, partition_begin + partition_size);
 
-    partial_sums[i] = reduce(agency::seq, partition_begin + 1, partition_end, *partition_begin, binary_op);
+    return reduce(agency::seq, partition_begin + 1, partition_end, *partition_begin, binary_op);
   });
 
   return reduce(agency::seq, partial_sums.begin(), partial_sums.end(), init, binary_op);
