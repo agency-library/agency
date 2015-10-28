@@ -111,6 +111,18 @@ auto get(Tuple&& t)
 }
 
 
+// names the ith type of a parameter pack
+template<size_t i, class... Types>
+struct pack_element
+  : std::tuple_element<i,std::tuple<Types...>>
+{
+};
+
+
+template<size_t i, class... Types>
+using pack_element_t = typename pack_element<i,Types...>::type;
+
+
 struct forwarder
 {
   template<class... Args>
