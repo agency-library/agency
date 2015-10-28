@@ -28,51 +28,48 @@ struct unpack_shared_parameters_from_executor_and_invoke
 
   template<class Index, class Tuple, size_t... I>
   __AGENCY_ANNOTATION
-  void invoke_from_tuple(const Index& idx, const Tuple& t, agency::detail::index_sequence<I...>) const
+  auto invoke_from_tuple_impl(const Index& idx, const Tuple& t, agency::detail::index_sequence<I...>) const
+    -> decltype(
+         g(idx, agency::detail::get<I>(t)...)
+       )
   {
-    g(idx, agency::detail::get<I>(t)...);
+    return g(idx, agency::detail::get<I>(t)...);
+  }
+
+  template<class Index, class Tuple>
+  __AGENCY_ANNOTATION
+  auto invoke_from_tuple(const Index& idx, const Tuple& t) const
+    -> decltype(
+         this->invoke_from_tuple_impl(idx, t, agency::detail::make_index_sequence<std::tuple_size<Tuple>::value>())
+       )
+  {
+    return this->invoke_from_tuple_impl(idx, t, agency::detail::make_index_sequence<std::tuple_size<Tuple>::value>());
   }
 
   template<class Index, class... Types>
   __AGENCY_ANNOTATION
-  void operator()(const Index& idx, Types&... packaged_shared_params) const
+  auto operator()(const Index& idx, Types&... packaged_shared_params) const
+    -> decltype(
+         this->invoke_from_tuple(
+           idx,
+           agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params...)
+         )
+       )
   {
     auto shared_param_tuple = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params...);
 
-    invoke_from_tuple(idx, shared_param_tuple, agency::detail::make_index_sequence<std::tuple_size<decltype(shared_param_tuple)>::value>());
+    return this->invoke_from_tuple(idx, shared_param_tuple);
   }
 };
 
 
 template<class Executor, class Function, class Tuple, size_t... TupleIndices>
-void bulk_invoke_executor_impl(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Tuple&& shared_init_tuple, agency::detail::index_sequence<TupleIndices...>)
+auto bulk_invoke_executor_impl(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Tuple&& shared_init_tuple, agency::detail::index_sequence<TupleIndices...>)
+  -> decltype(
+       executor_traits<Executor>::execute(exec, f, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...)
+     )
 {
   return executor_traits<Executor>::execute(exec, f, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...);
-}
-
-
-template<class Executor, class Function, class... Args>
-void bulk_invoke_executor(Executor& exec, typename agency::executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
-{
-  // the _1 is for the executor idx parameter, which is the first parameter passed to f
-  auto g = detail::bind_unshared_parameters(f, placeholders::_1, std::forward<Args>(args)...);
-
-  // make a tuple of the shared args
-  auto shared_arg_tuple = agency::detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
-
-  using traits = executor_traits<Executor>;
-
-  // package up the shared parameters for the executor
-  const size_t executor_depth = agency::detail::execution_depth<
-    typename traits::execution_category
-  >::value;
-
-  // create a tuple of factories to use for shared parameters for the executor
-  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<executor_depth>(shared_arg_tuple);
-
-  auto functor = unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
-
-  return detail::bulk_invoke_executor_impl(exec, shape, functor, factory_tuple, agency::detail::make_index_sequence<executor_depth>());
 }
 
 
@@ -81,32 +78,6 @@ typename executor_traits<Executor>::template future<void>
   bulk_async_executor_impl(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Tuple&& shared_init_tuple, agency::detail::index_sequence<TupleIndices...>)
 {
   return executor_traits<Executor>::async_execute(exec, f, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...);
-}
-
-
-template<class Executor, class Function, class... Args>
-typename executor_traits<Executor>::template future<void>
-  bulk_async_executor(Executor& exec, typename agency::executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
-{
-  // the _1 is for the executor idx parameter, which is the first parameter passed to f
-  auto g = detail::bind_unshared_parameters(f, placeholders::_1, std::forward<Args>(args)...);
-
-  // make a tuple of the shared args
-  auto shared_arg_tuple = agency::detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
-
-  using traits = executor_traits<Executor>;
-
-  // package up the shared parameters for the executor
-  const size_t executor_depth = agency::detail::execution_depth<
-    typename traits::execution_category
-  >::value;
-
-  // create a tuple of factories to use for shared parameters for the executor
-  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<executor_depth>(shared_arg_tuple);
-
-  auto functor = unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
-
-  return detail::bulk_async_executor_impl(exec, shape, functor, factory_tuple, agency::detail::make_index_sequence<executor_depth>());
 }
 
 
@@ -119,7 +90,25 @@ typename agency::detail::enable_if_bulk_invoke_executor<
 >::type
   bulk_invoke(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
-  return detail::bulk_invoke_executor(exec, shape, f, std::forward<Args>(args)...);
+  // the _1 is for the executor idx parameter, which is the first parameter passed to f
+  auto g = detail::bind_unshared_parameters(f, detail::placeholders::_1, std::forward<Args>(args)...);
+
+  // make a tuple of the shared args
+  auto shared_arg_tuple = agency::detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
+
+  using traits = executor_traits<Executor>;
+
+  // package up the shared parameters for the executor
+  const size_t executor_depth = agency::detail::execution_depth<
+    typename traits::execution_category
+  >::value;
+
+  // create a tuple of factories to use for shared parameters for the executor
+  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<executor_depth>(shared_arg_tuple);
+
+  auto functor = detail::unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
+
+  return detail::bulk_invoke_executor_impl(exec, shape, functor, factory_tuple, agency::detail::make_index_sequence<executor_depth>());
 }
 
 
@@ -129,8 +118,25 @@ typename agency::detail::enable_if_bulk_async_executor<
 >::type
   bulk_async(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
+  // the _1 is for the executor idx parameter, which is the first parameter passed to f
+  auto g = detail::bind_unshared_parameters(f, detail::placeholders::_1, std::forward<Args>(args)...);
 
-  return detail::bulk_async_executor(exec, shape, f, std::forward<Args>(args)...);
+  // make a tuple of the shared args
+  auto shared_arg_tuple = agency::detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
+
+  using traits = executor_traits<Executor>;
+
+  // package up the shared parameters for the executor
+  const size_t executor_depth = agency::detail::execution_depth<
+    typename traits::execution_category
+  >::value;
+
+  // create a tuple of factories to use for shared parameters for the executor
+  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<executor_depth>(shared_arg_tuple);
+
+  auto functor = detail::unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
+
+  return detail::bulk_async_executor_impl(exec, shape, functor, factory_tuple, agency::detail::make_index_sequence<executor_depth>());
 }
 
 
