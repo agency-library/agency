@@ -331,17 +331,7 @@ class future
     {
       if(valid())
       {
-#if __cuda_lib_has_cudart
-        // swallow errors
-        cudaError_t e = cudaEventDestroy(event_);
-
-#if __cuda_lib_has_printf
-        if(e)
-        {
-          printf("CUDA error after cudaEventDestroy in agency::cuda::future<void> dtor: %s", cudaGetErrorString(e));
-        } // end if
-#endif // __cuda_lib_has_printf
-#endif // __cuda_lib_has_cudart
+        destroy_event();
       } // end if
     } // end ~future()
 
@@ -424,18 +414,24 @@ class future
     future<agency::detail::result_of_continuation_t<Function,future>>
       then(Function f)
     {
+      // create state for the continuation's result
       using result_type = agency::detail::result_of_continuation_t<Function,future>;
-
       detail::future_state<result_type> result_state(stream());
 
+      // get a pointer to the continuation's kernel
       using result_ptr_type = decltype(result_state.data());
       using arg_ptr_type = decltype(data());
-
       void (*kernel_ptr)(result_ptr_type, Function, arg_ptr_type) = detail::then_kernel<result_ptr_type, Function, arg_ptr_type>;
       detail::workaround_unused_variable_warning(kernel_ptr);
 
+      // launch the continuation
       cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), event(), result_state.data(), f, data());
 
+      // this future's event is no longer usable
+      // note this invalidates this future
+      destroy_event();
+
+      // return the continuation's future
       return future<result_type>(stream(), next_event, std::move(result_state));
     }
 
@@ -481,6 +477,23 @@ class future
     }
 
     static const int event_create_flags = cudaEventDisableTiming;
+
+    __host__ __device__
+    void destroy_event()
+    {
+#if __cuda_lib_has_cudart
+      // since this will likely be called from destructors, swallow errors
+      cudaError_t e = cudaEventDestroy(event_);
+      event_ = 0;
+
+#if __cuda_lib_has_printf
+      if(e)
+      {
+        printf("CUDA error after cudaEventDestroy in agency::cuda::future<void> dtor: %s", cudaGetErrorString(e));
+      } // end if
+#endif // __cuda_lib_has_printf
+#endif // __cuda_lib_has_cudart
+    }
 };
 
 

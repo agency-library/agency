@@ -532,8 +532,8 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
 #  endif // __CUDA_ARCH__
       }
 
-      int max_block_dimension_x = 0;
-      detail::throw_on_error(cudaDeviceGetAttribute(&max_block_dimension_x, cudaDevAttrMaxBlockDimX, gpu().native_handle()),
+      int max_grid_dimension_x = 0;
+      detail::throw_on_error(cudaDeviceGetAttribute(&max_grid_dimension_x, cudaDevAttrMaxGridDimX, gpu().native_handle()),
                              "cuda::grid_executor::max_shape(): cudaDeviceGetAttribute");
 
       cudaFuncAttributes attr{};
@@ -550,7 +550,7 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
 #  endif // __CUDA_ARCH__
       }
 
-      result = shape_type{static_cast<unsigned int>(max_block_dimension_x), static_cast<unsigned int>(attr.maxThreadsPerBlock)};
+      result = shape_type{static_cast<unsigned int>(max_grid_dimension_x), static_cast<unsigned int>(attr.maxThreadsPerBlock)};
 #endif // __cuda_lib_has_cudart
 
       return result;
