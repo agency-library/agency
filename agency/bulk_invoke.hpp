@@ -76,29 +76,6 @@ struct decay_parameter<shared_parameter<level,T,Args...>>
 };
 
 
-template<bool enable, class Executor, class Function, class... Args>
-struct enable_if_bulk_async_executor_impl {};
-
-template<class Executor, class Function, class... Args>
-struct enable_if_bulk_async_executor_impl<
-         true, Executor, Function, Args...
-       >
-  : enable_if_call_possible<
-      executor_future_t<Executor,void>,
-      Function,
-      executor_index_t<Executor>,
-      decay_parameter_t<Args>...
-    >
-{};
-
-template<class Executor, class Function, class... Args>
-struct enable_if_bulk_async_executor
-  : enable_if_bulk_async_executor_impl<
-      is_executor<Executor>::value, Executor, Function, Args...
-    >
-{};
-
-
 template<class Executor, class Function, class Tuple, size_t... TupleIndices>
 auto bulk_invoke_executor_impl(Executor& exec, Function f, typename executor_traits<Executor>::shape_type shape, Tuple&& factory_tuple, detail::index_sequence<TupleIndices...>)
   -> decltype(
@@ -109,8 +86,10 @@ auto bulk_invoke_executor_impl(Executor& exec, Function f, typename executor_tra
 }
 
 template<class Executor, class Function, class Tuple, size_t... TupleIndices>
-typename executor_traits<Executor>::template future<void>
-  bulk_async_executor_impl(Executor& exec, Function f, typename executor_traits<Executor>::shape_type shape, Tuple&& factory_tuple, detail::index_sequence<TupleIndices...>)
+auto bulk_async_executor_impl(Executor& exec, Function f, typename executor_traits<Executor>::shape_type shape, Tuple&& factory_tuple, detail::index_sequence<TupleIndices...>)
+  -> decltype(
+       executor_traits<Executor>::async_execute(exec, f, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...)
+     )
 {
   return executor_traits<Executor>::async_execute(exec, f, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
 }
@@ -152,6 +131,44 @@ struct enable_if_bulk_invoke_executor
       is_executor<Executor>::value, Executor, Function, Args...
     >
 {};
+
+
+// computes the result type of bulk_async(executor)
+template<class Executor, class Function, class... Args>
+struct bulk_async_executor_result
+{
+  using type = executor_future_t<
+    Executor, bulk_invoke_executor_result_t<Executor,Function,Args...>
+  >;
+};
+
+template<class Executor, class Function, class... Args>
+using bulk_async_executor_result_t = typename bulk_async_executor_result<Executor,Function,Args...>::type;
+
+
+template<bool enable, class Executor, class Function, class... Args>
+struct enable_if_bulk_async_executor_impl {};
+
+template<class Executor, class Function, class... Args>
+struct enable_if_bulk_async_executor_impl<
+         true, Executor, Function, Args...
+       >
+  : enable_if_call_possible<
+      bulk_async_executor_result_t<Executor,Function,Args...>,
+      Function,
+      executor_index_t<Executor>,
+      decay_parameter_t<Args>...
+    >
+{};
+
+template<class Executor, class Function, class... Args>
+struct enable_if_bulk_async_executor
+  : enable_if_bulk_async_executor_impl<
+      is_executor<Executor>::value, Executor, Function, Args...
+    >
+{};
+
+
 
 
 } // end detail
@@ -315,8 +332,23 @@ bulk_invoke_execution_policy_result_t<
 }
 
 
+template<class ExecutionPolicy, class Function, class... Args>
+struct bulk_async_execution_policy_result
+{
+  using type = policy_future_t<
+    ExecutionPolicy,
+    bulk_invoke_execution_policy_result_t<ExecutionPolicy,Function,Args...>
+  >;
+};
+
+template<class ExecutionPolicy, class Function, class... Args>
+using bulk_async_execution_policy_result_t = typename bulk_async_execution_policy_result<ExecutionPolicy,Function,Args...>::type;
+
+
 template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
-policy_future_t<ExecutionPolicy,void>
+bulk_async_execution_policy_result_t<
+  ExecutionPolicy, Function, Args...
+>
   bulk_async_execution_policy_impl(index_sequence<UserArgIndices...>,
                                    index_sequence<SharedArgIndices...>,
                                    ExecutionPolicy& policy, Function f, Args&&... args)
@@ -382,7 +414,7 @@ struct enable_if_bulk_async_execution_policy_impl<
          true, ExecutionPolicy, Function, Args...
        >
   : enable_if_call_possible<
-      policy_future_t<ExecutionPolicy,void>,
+      bulk_async_execution_policy_result_t<ExecutionPolicy,Function,Args...>,
       Function,
       execution_policy_agent_t<ExecutionPolicy>&,
       decay_parameter_t<Args>...
