@@ -81,14 +81,10 @@ class future_state
     {}
 
     __host__ __device__
-    future_state(future_state&& other) : data_(std::move(other.data_)) {}
+    future_state(future_state&& other) = default;
 
     __host__ __device__
-    future_state& operator=(future_state&& other)
-    {
-      data_ = std::move(other.data_);
-      return *this;
-    }
+    future_state& operator=(future_state&&) = default;
 
     __host__ __device__
     T* data()
@@ -177,9 +173,8 @@ class future_state<T,true>
     future_state(cudaStream_t) : valid_(true) {}
 
     __host__ __device__
-    future_state(future_state&& other) : valid_(false)
+    future_state(future_state&& other) : valid_(other.valid_)
     {
-      valid_ = other.valid_;
       other.valid_ = false;
     }
 
@@ -501,14 +496,6 @@ inline __host__ __device__
 future<void> make_ready_future()
 {
   return future<void>::make_ready();
-} // end make_ready_future()
-
-
-template<class T>
-inline __host__ __device__
-future<typename std::decay<T>::type> make_ready_future(T&& value)
-{
-  return future<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
 } // end make_ready_future()
 
 
