@@ -25,6 +25,8 @@
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/tuple.hpp>
+#include <agency/detail/pointer.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -57,13 +59,17 @@ struct state_requires_storage
 
 
 // XXX should maybe call this asynchronous_state to match the nomenclature of the std
+// XXX should try to collapse the implementation of this as much as possible between the two
 template<class T,
          bool requires_storage = state_requires_storage<T>::value>
-class future_state
+class future_state_impl
 {
   public:
+    using value_type = T;
+    using pointer = value_type*;
+
     __host__ __device__
-    future_state() = default;
+    future_state_impl() = default;
 
     template<class Arg1, class... Args,
              class = typename std::enable_if<
@@ -71,23 +77,23 @@ class future_state
              >::type
             >
     __host__ __device__
-    future_state(cudaStream_t s, Arg1&& ready_arg1, Args&&... ready_args)
+    future_state_impl(cudaStream_t s, Arg1&& ready_arg1, Args&&... ready_args)
       : data_(make_unique<T>(s, std::forward<Arg1>(ready_arg1), std::forward<Args>(ready_args)...))
     {}
 
     __host__ __device__
-    future_state(cudaStream_t s)
-      : future_state(s, T{})
+    future_state_impl(cudaStream_t s)
+      : future_state_impl(s, T{})
     {}
 
     __host__ __device__
-    future_state(future_state&& other) = default;
+    future_state_impl(future_state_impl&& other) = default;
 
     __host__ __device__
-    future_state& operator=(future_state&&) = default;
+    future_state_impl& operator=(future_state_impl&&) = default;
 
     __host__ __device__
-    T* data()
+    pointer data()
     {
       return data_.get();
     }
@@ -119,7 +125,7 @@ class future_state
     }
 
     __host__ __device__
-    void swap(future_state& other)
+    void swap(future_state_impl& other)
     {
       data_.swap(other.data_);
     }
@@ -154,11 +160,14 @@ struct empty_type_ptr<void> : unit_ptr {};
 
 // zero storage optimization
 template<class T>
-class future_state<T,true>
+class future_state_impl<T,true>
 {
   public:
+    using value_type = T;
+    using pointer = empty_type_ptr<T>;
+
     __host__ __device__
-    future_state() : valid_(false) {}
+    future_state_impl() : valid_(false) {}
 
     // constructs a valid state
     template<class U,
@@ -166,14 +175,14 @@ class future_state<T,true>
                std::is_constructible<T,U>::value
              >::type>
     __host__ __device__
-    future_state(cudaStream_t, U&&) : valid_(true) {}
+    future_state_impl(cudaStream_t, U&&) : valid_(true) {}
 
     // constructs a valid state
     __host__ __device__
-    future_state(cudaStream_t) : valid_(true) {}
+    future_state_impl(cudaStream_t) : valid_(true) {}
 
     __host__ __device__
-    future_state(future_state&& other) : valid_(other.valid_)
+    future_state_impl(future_state_impl&& other) : valid_(other.valid_)
     {
       other.valid_ = false;
     }
@@ -187,7 +196,7 @@ class future_state<T,true>
                (std::is_empty<T>::value && std::is_void<U>::value && std::is_constructible<T>::value)
              >::type>
     __host__ __device__
-    future_state(future_state<U>&& other)
+    future_state_impl(future_state_impl<U>&& other)
       : valid_(other.valid())
     {
       if(valid())
@@ -198,7 +207,7 @@ class future_state<T,true>
     }
 
     __host__ __device__
-    future_state& operator=(future_state&& other)
+    future_state_impl& operator=(future_state_impl&& other)
     {
       valid_ = other.valid_;
       other.valid_ = false;
@@ -237,7 +246,7 @@ class future_state<T,true>
     }
 
     __host__ __device__
-    void swap(future_state& other)
+    void swap(future_state_impl& other)
     {
       bool other_valid_old = other.valid_;
       other.valid_ = valid_;
@@ -258,6 +267,177 @@ class future_state<T,true>
     }
 
     bool valid_;
+};
+
+
+template<class T>
+class future_state : public future_state_impl<T>
+{
+  public:
+    using future_state_impl<T>::future_state_impl;
+};
+    
+
+__host__ __device__
+unit get_value_or_unit(future_state<void>&)
+{
+  return unit{};
+}
+
+template<class T>
+__host__ __device__
+T get_value_or_unit(future_state<T>& state)
+{
+  return state.get();
+}
+
+template<class T>
+__host__ __device__
+typename future_state<T>::pointer get_data_pointer(future_state<T>& state)
+{
+  return state.data();
+}
+
+
+template<class... Types>
+__host__ __device__
+static auto get_values_or_units(future_state<Types>&... states)
+  -> decltype(
+       agency::detail::make_tuple(get_value_or_unit(states)...)
+     )
+{
+  return agency::detail::make_tuple(get_value_or_unit(states)...);
+}
+
+template<class... Types>
+__host__ __device__
+static auto get_data_pointers(future_state<Types>&... states)
+  -> decltype(
+       agency::detail::make_tuple(get_data_pointer(states)...)
+     )
+{
+  return agency::detail::make_tuple(get_data_pointer(states)...);
+}
+
+struct get_values_or_units_from_tuple_functor
+{
+  template<class... Args>
+  __host__ __device__
+  auto operator()(Args&&... args) const
+    -> decltype(
+         get_values_or_units(std::forward<Args>(args)...)
+       )
+  {
+    return get_values_or_units(std::forward<Args>(args)...);
+  }
+};
+
+
+template<class... Types>
+__host__ __device__
+auto get_values_or_units_from_tuple(agency::detail::tuple<future_state<Types>...>& tuple)
+  -> decltype(
+       agency::detail::tuple_apply(get_values_or_units_from_tuple_functor{}, tuple)
+     )
+{
+  return agency::detail::tuple_apply(get_values_or_units_from_tuple_functor{}, tuple);
+}
+
+
+struct get_data_pointers_from_tuple_functor
+{
+  template<class... Args>
+  __host__ __device__
+  auto operator()(Args&&... args) const -> decltype(get_data_pointers(std::forward<Args>(args)...))
+  {
+    return get_data_pointers(std::forward<Args>(args)...);
+  }
+};
+
+
+template<class... Types>
+__host__ __device__
+auto get_data_pointers_from_tuple(agency::detail::tuple<future_state<Types>...>& tuple)
+  -> decltype(
+       agency::detail::tuple_apply(get_data_pointers_from_tuple_functor{}, tuple)
+     )
+{
+  return agency::detail::tuple_apply(get_data_pointers_from_tuple_functor{}, tuple);
+}
+
+
+template<class... Types>
+class future_state_tuple
+{
+  private:
+    agency::detail::tuple<future_state<Types>...> state_tuple_;
+
+    __host__ __device__
+    decltype(get_values_or_units_from_tuple(state_tuple_))
+      get_values_or_units_from_state_tuple()
+    {
+      return get_values_or_units_from_tuple(state_tuple_);
+    }
+    
+    template<class T>
+    struct is_not_unit : std::integral_constant<bool, !std::is_same<T,unit>::value> {};
+    
+    template<class Tuple>
+    __host__ __device__
+    static auto filter_non_unit(Tuple&& tuple)
+      -> decltype(
+           agency::detail::tuple_filter<is_not_unit>(std::forward<Tuple>(tuple))
+         )
+    {
+      return agency::detail::tuple_filter<is_not_unit>(std::forward<Tuple>(tuple));
+    }
+
+    struct call_valid
+    {
+      template<class T>
+      __AGENCY_ANNOTATION
+      bool operator()(const future_state<T>& state) const
+      {
+        return state.valid();
+      }
+    };
+
+  public:
+    __host__ __device__
+    future_state_tuple(future_state<Types>&... states)
+      : state_tuple_(std::move(states)...)
+    {}
+
+    __host__ __device__
+    auto get()
+      -> decltype(
+           agency::detail::unwrap_small_tuple(
+             filter_non_unit(
+               this->get_values_or_units_from_state_tuple()
+             )
+           )
+         )
+    {
+      return agency::detail::unwrap_small_tuple(
+        filter_non_unit(
+          get_values_or_units_from_state_tuple()
+        )
+      );
+    }
+
+    using pointer = agency::detail::zip_pointer<typename future_state<Types>::pointer...>;
+
+    __host__ __device__
+    pointer data()
+    {
+      return get_data_pointers_from_tuple(state_tuple_);
+    }
+
+    __host__ __device__
+    bool valid() const
+    {
+      return agency::detail::tuple_all_of(state_tuple_, call_valid{});
+    }
 };
 
 
