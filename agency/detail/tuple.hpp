@@ -318,6 +318,28 @@ auto tuple_gather(Tuple&& t)
 }
 
 
+template<class Function>
+struct tuple_all_of_functor
+{
+  Function f;
+
+  template<class Arg>
+  __AGENCY_ANNOTATION
+  bool operator()(bool prefix, Arg&& arg) const
+  {
+    return prefix && f(std::forward<Arg>(arg));
+  }
+};
+
+
+template<class Tuple, class Function>
+__AGENCY_ANNOTATION
+bool tuple_all_of(Tuple&& t, Function f)
+{
+  return __tu::tuple_reduce(std::forward<Tuple>(t), true, tuple_all_of_functor<Function>{f});
+}
+
+
 template<class Tuple>
 using tuple_indices = make_index_sequence<std::tuple_size<Tuple>::value>;
 
