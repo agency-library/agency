@@ -33,7 +33,7 @@ template<class Function>
 __AGENCY_ANNOTATION
 host_device_function<Function&&> host_device_cast(Function&& f)
 {
-  return host_device_function<Function&&>{f};
+  return host_device_function<Function&&>{std::forward<Function>(f)};
 }
 
 
