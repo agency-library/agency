@@ -114,16 +114,6 @@ class future_state_impl
       return data_;
     }
 
-    template<class... Args,
-             class = typename std::enable_if<
-               std::is_constructible<T,Args...>::value
-             >::type>
-    __host__ __device__
-    void set_valid(cudaStream_t s, Args&&... ready_args)
-    {
-      data_ = make_unique<T>(s, std::forward<Args>(ready_args)...);
-    }
-
     __host__ __device__
     void swap(future_state_impl& other)
     {
@@ -233,16 +223,6 @@ class future_state_impl<T,true>
     bool valid() const
     {
       return valid_;
-    }
-
-    // constructor arguments are simply ignored
-    // XXX if the constructor has a side effect, we probably need to actually invoke it, even though
-    //     the type has no state and requires no storage
-    template<class... Args>
-    __host__ __device__
-    void set_valid(cudaStream_t, Args&&...)
-    {
-      valid_ = true;
     }
 
     __host__ __device__
@@ -457,14 +437,16 @@ class future
     cudaEvent_t event_;
     detail::future_state<T> state_;
 
+    // XXX stream_ should default to per-thread default stream
+    static constexpr cudaStream_t default_stream{0};
+
   public:
     // XXX this should be private
     __host__ __device__
     future(cudaStream_t s) : future(s, 0) {}
 
-    // XXX stream_ should default to per-thread default stream
     __host__ __device__
-    future() : future(0) {}
+    future() : future(default_stream) {}
 
     __host__ __device__
     future(future&& other)
@@ -571,10 +553,7 @@ class future
       detail::terminate_with_message("agency::cuda::future<void>::make_ready() requires CUDART");
 #endif
 
-      future result;
-      result.set_valid(ready_event, std::forward<Args>(args)...);
-
-      return result;
+      return future(ready_event, std::forward<Args>(args)...);
     }
 
     // XXX this is only used by grid_executor::then_execute()
@@ -610,19 +589,6 @@ class future
       return future<result_type>(stream(), next_event, std::move(result_state));
     }
 
-    // XXX set_valid() should only be available to friends
-    //     such as future<U> and grid_executor
-    template<class... Args,
-             class = typename std::enable_if<
-               detail::is_constructible_or_void<T,Args...>::value
-             >::type>
-    __host__ __device__
-    void set_valid(cudaEvent_t e, Args&&... args)
-    {
-      event_ = e;
-      state_.set_valid(stream(), std::forward<Args>(args)...);
-    }
-
   private:
     template<class U> friend class future;
     template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
@@ -639,6 +605,15 @@ class future
     __host__ __device__
     future(cudaStream_t s, cudaEvent_t e, Args&&... ready_args)
       : future(s, e, detail::future_state<T>(s, std::forward<Args>(ready_args)...))
+    {}
+
+    template<class... Args,
+             class = typename std::enable_if<
+               detail::is_constructible_or_void<T,Args...>::value
+             >::type>
+    __host__ __device__
+    future(cudaEvent_t e, Args&&... ready_args)
+      : future(default_stream, e, detail::future_state<T>(default_stream, std::forward<Args>(ready_args)...))
     {}
 
     // implement swap to avoid depending on thrust::swap
