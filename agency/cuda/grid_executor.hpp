@@ -326,7 +326,7 @@ class basic_grid_executor
     future<Container> then_execute(Function f, shape_type shape, future<T>& fut, Factory1 outer_factory, Factory2 inner_factory)
     {
       // XXX shouldn't we use fut.stream() ?
-      detail::future_state<Container> result_state(stream(), shape);
+      detail::asynchronous_state<Container> result_state(stream(), shape);
 
       using outer_arg_type = agency::detail::result_of_factory_t<Factory1>;
       auto outer_arg = executor_traits<basic_grid_executor>::template make_ready_future<outer_arg_type>(*this, outer_factory());

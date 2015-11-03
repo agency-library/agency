@@ -4,12 +4,12 @@
 int main()
 {
   {
-    agency::cuda::detail::future_state<int> f1(0, 13);
-    agency::cuda::detail::future_state<int> f2(0, 7);
+    agency::cuda::detail::asynchronous_state<int> f1(0, 13);
+    agency::cuda::detail::asynchronous_state<int> f2(0, 7);
 
     std::cout << "pointers: " << f1.data() << ", " << f2.data() << std::endl;
 
-    agency::cuda::detail::future_state_tuple<int,int> f3(f1,f2);
+    agency::cuda::detail::asynchronous_state_tuple<int,int> f3(f1,f2);
 
     assert(f3.valid());
 
