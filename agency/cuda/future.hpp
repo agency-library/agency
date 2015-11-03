@@ -17,12 +17,11 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/detail/feature_test.hpp>
-#include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/unique_ptr.hpp>
 #include <agency/cuda/detail/then_kernel.hpp>
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
+#include <agency/cuda/detail/event.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/tuple.hpp>
@@ -434,7 +433,7 @@ class future
 {
   private:
     cudaStream_t stream_;
-    cudaEvent_t event_;
+    detail::event event_;
     detail::future_state<T> state_;
 
     // XXX stream_ should default to per-thread default stream
@@ -453,7 +452,7 @@ class future
       : future()
     {
       future::swap(stream_, other.stream_);
-      future::swap(event_,  other.event_);
+      event_.swap(other.event_);
       state_.swap(other.state_);
     } // end future()
 
@@ -480,36 +479,13 @@ class future
         state_(std::move(other.state_))
     {
       future::swap(stream_, other.stream_);
-      future::swap(event_,  other.event_);
+      event_.swap(other.event_);
     } // end future()
-
-    __host__ __device__
-    ~future()
-    {
-      if(valid())
-      {
-        destroy_event();
-      } // end if
-    } // end ~future()
 
     __host__ __device__
     void wait() const
     {
-      // XXX should probably check for valid() here
-
-#if __cuda_lib_has_cudart
-
-#ifndef __CUDA_ARCH__
-      // XXX need to capture the error as an exception and then throw it in .get()
-      detail::throw_on_error(cudaEventSynchronize(event_), "cudaEventSynchronize in agency::cuda<void>::future::wait");
-#else
-      // XXX need to capture the error as an exception and then throw it in .get()
-      detail::throw_on_error(cudaDeviceSynchronize(), "cudaDeviceSynchronize in agency::cuda<void>::future::wait");
-#endif // __CUDA_ARCH__
-
-#else
-      detail::terminate_with_message("agency::cuda::future<void>::wait() requires CUDART");
-#endif // __cuda_lib_has_cudart
+      event_.wait();
     } // end wait()
 
     __host__ __device__
@@ -523,11 +499,11 @@ class future
     __host__ __device__
     bool valid() const
     {
-      return (event_ != 0) && state_.valid();
+      return event_.valid() && state_.valid();
     } // end valid()
 
     __host__ __device__
-    cudaEvent_t event() const
+    detail::event& event()
     {
       return event_;
     } // end event()
@@ -545,15 +521,9 @@ class future
     __host__ __device__
     static future make_ready(Args&&... args)
     {
-      cudaEvent_t ready_event = 0;
+      detail::event ready_event(detail::event::construct_ready);
 
-#if __cuda_lib_has_cudart
-      detail::throw_on_error(cudaEventCreateWithFlags(&ready_event, event_create_flags), "cudaEventCreateWithFlags in agency::cuda::future<void>::make_ready");
-#else
-      detail::terminate_with_message("agency::cuda::future<void>::make_ready() requires CUDART");
-#endif
-
-      return future(ready_event, std::forward<Args>(args)...);
+      return future(std::move(ready_event), std::forward<Args>(args)...);
     }
 
     // XXX this is only used by grid_executor::then_execute()
@@ -579,11 +549,15 @@ class future
       detail::workaround_unused_variable_warning(kernel_ptr);
 
       // launch the continuation
-      cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), event(), result_state.data(), f, data());
+      // XXX this launch should consume the previous event and destroy it
+      // we should call .event().release() instead of .event().get()
+      // event better, teach this function about detail::event
+      cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), event().get(), result_state.data(), f, data());
 
       // this future's event is no longer usable
       // note this invalidates this future
-      destroy_event();
+      // XXX eliminate this
+      event().destroy_event();
 
       // return the continuation's future
       return future<result_type>(stream(), next_event, std::move(result_state));
@@ -594,8 +568,8 @@ class future
     template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
 
     __host__ __device__
-    future(cudaStream_t s, cudaEvent_t e, detail::future_state<T>&& state)
-      : stream_(s), event_(e), state_(std::move(state))
+    future(cudaStream_t s, detail::event&& e, detail::future_state<T>&& state)
+      : stream_(s), event_(std::move(e)), state_(std::move(state))
     {}
 
     template<class... Args,
@@ -603,8 +577,8 @@ class future
                detail::is_constructible_or_void<T,Args...>::value
              >::type>
     __host__ __device__
-    future(cudaStream_t s, cudaEvent_t e, Args&&... ready_args)
-      : future(s, e, detail::future_state<T>(s, std::forward<Args>(ready_args)...))
+    future(cudaStream_t s, detail::event&& e, Args&&... ready_args)
+      : future(s, std::move(e), detail::future_state<T>(s, std::forward<Args>(ready_args)...))
     {}
 
     template<class... Args,
@@ -612,8 +586,8 @@ class future
                detail::is_constructible_or_void<T,Args...>::value
              >::type>
     __host__ __device__
-    future(cudaEvent_t e, Args&&... ready_args)
-      : future(default_stream, e, detail::future_state<T>(default_stream, std::forward<Args>(ready_args)...))
+    future(detail::event&& e, Args&&... ready_args)
+      : future(default_stream, std::move(e), detail::future_state<T>(default_stream, std::forward<Args>(ready_args)...))
     {}
 
     // implement swap to avoid depending on thrust::swap
@@ -624,25 +598,6 @@ class future
       U tmp{a};
       a = b;
       b = tmp;
-    }
-
-    static const int event_create_flags = cudaEventDisableTiming;
-
-    __host__ __device__
-    void destroy_event()
-    {
-#if __cuda_lib_has_cudart
-      // since this will likely be called from destructors, swallow errors
-      cudaError_t e = cudaEventDestroy(event_);
-      event_ = 0;
-
-#if __cuda_lib_has_printf
-      if(e)
-      {
-        printf("CUDA error after cudaEventDestroy in agency::cuda::future<void> dtor: %s", cudaGetErrorString(e));
-      } // end if
-#endif // __cuda_lib_has_printf
-#endif // __cuda_lib_has_cudart
     }
 };
 

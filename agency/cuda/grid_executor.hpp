@@ -333,7 +333,7 @@ class basic_grid_executor
 
       auto g = make_then_execute_functor(result_state.data(), f, ThisIndexFunction(), fut.data(), outer_arg.data(), inner_factory);
 
-      cudaEvent_t next_event = then_execute_impl(g, shape, fut.event());
+      cudaEvent_t next_event = then_execute_impl(g, shape, fut.event().get());
 
       // XXX shouldn't we use dependency.stream() here?
       return future<Container>(stream(), next_event, std::move(result_state));
