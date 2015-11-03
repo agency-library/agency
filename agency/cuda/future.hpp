@@ -405,6 +405,13 @@ future<void> make_ready_future()
   return future<void>::make_ready();
 } // end make_ready_future()
 
+template<class T>
+inline __host__ __device__
+future<T> make_ready_future(T&& val)
+{
+  return future<T>::make_ready(std::forward<T>(val));
+}
+
 
 } // end namespace cuda
 } // end namespace agency
