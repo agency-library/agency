@@ -140,8 +140,9 @@ class event
     __host__ __device__
     event(cudaEvent_t e) : e_(e) {}
 
+    // this function returns 0 so that we can pass it as an argument to swallow(...)
     __host__ __device__
-    void destroy_event()
+    int destroy_event()
     {
 #if __cuda_lib_has_cudart
       // since this will likely be called from destructors, swallow errors
@@ -155,10 +156,14 @@ class event
       } // end if
 #endif // __cuda_lib_has_printf
 #endif // __cuda_lib_has_cudart
+
+      return 0;
     }
 
+    // this function returns 0 so that we can pass it as an argument to swallow(...)
+    // XXX this function should really be a member of a stream class
     __host__ __device__
-    void stream_wait(cudaStream_t s) const
+    int stream_wait(cudaStream_t s) const
     {
 #if __cuda_lib_has_cudart
       // make the next launch wait on the event
@@ -166,6 +171,26 @@ class event
 #else
       throw_on_error(cudaErrorNotSupported, "cuda::detail::event::stream_wait(): cudaStreamWaitEvent() requires CUDART");
 #endif // __cuda_lib_has_cudart
+
+      return 0;
+    }
+
+    template<class... Args>
+    inline __host__ __device__
+    void swallow(Args&&... args) {}
+
+    template<class... Events>
+    __host__ __device__
+    friend event when_all(cudaStream_t s, Events&... events)
+    {
+      // tell the stream to wait on all the events
+      swallow(events.stream_wait(s)...);
+
+      // invalidate the inputs
+      swallow(events.destroy_event()...);
+
+      // return a new event recorded on the stream
+      return event(s);
     }
 };
 
