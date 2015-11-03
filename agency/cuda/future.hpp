@@ -549,18 +549,10 @@ class future
       detail::workaround_unused_variable_warning(kernel_ptr);
 
       // launch the continuation
-      // XXX this launch should consume the previous event and destroy it
-      // we should call .event().release() instead of .event().get()
-      // event better, teach this function about detail::event
-      cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), event().get(), result_state.data(), f, data());
-
-      // this future's event is no longer usable
-      // note this invalidates this future
-      // XXX eliminate this
-      event().destroy_event();
+      detail::event next_event = event().then(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), result_state.data(), f, data());
 
       // return the continuation's future
-      return future<result_type>(stream(), next_event, std::move(result_state));
+      return future<result_type>(stream(), std::move(next_event), std::move(result_state));
     }
 
   private:
