@@ -19,7 +19,6 @@
 #include <agency/cuda/detail/unique_ptr.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/uninitialized.hpp>
-#include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/functional.hpp>
@@ -279,7 +278,7 @@ class basic_grid_executor
     // XXX we should push this call into then_execute() since there's no longer a reason to have this extra function
     template<class Function>
     __host__ __device__
-    cudaEvent_t then_execute_impl(Function f, shape_type shape, cudaEvent_t dependency)
+    event then_execute_impl(Function f, shape_type shape, event& dependency)
     {
       // XXX shouldn't we use the stream associated with dependency instead of stream()?
 
@@ -333,10 +332,10 @@ class basic_grid_executor
 
       auto g = make_then_execute_functor(result_state.data(), f, ThisIndexFunction(), fut.data(), outer_arg.data(), inner_factory);
 
-      cudaEvent_t next_event = then_execute_impl(g, shape, fut.event().get());
+      auto next_event = then_execute_impl(g, shape, fut.event());
 
       // XXX shouldn't we use dependency.stream() here?
-      return future<Container>(stream(), next_event, std::move(result_state));
+      return future<Container>(stream(), std::move(next_event), std::move(result_state));
     }
 
 
@@ -436,14 +435,14 @@ class basic_grid_executor
   private:
     template<class Arg>
     __host__ __device__
-    cudaEvent_t launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, cudaEvent_t dependency)
+    event launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, event& dependency)
     {
       return launch(kernel, arg, shape, shared_memory_size, stream, dependency, gpu());
     }
 
     template<class Arg>
     __host__ __device__
-    cudaEvent_t launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, cudaEvent_t dependency, gpu_id gpu)
+    event launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, event& dependency, gpu_id gpu)
     {
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
@@ -451,7 +450,7 @@ class basic_grid_executor
       ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
       ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
 
-      return detail::checked_launch_kernel_after_event_on_device_returning_next_event(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream, dependency, gpu.native_handle(), arg);
+      return dependency.then_on(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream, gpu.native_handle(), arg);
     }
 
     int shared_memory_size_;

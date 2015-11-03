@@ -247,7 +247,7 @@ class future
   public:
     // XXX this should be private
     __host__ __device__
-    future(cudaStream_t s) : future(s, 0) {}
+    future(cudaStream_t s) : future(s, detail::event{}) {}
 
     __host__ __device__
     future() : future(default_stream) {}

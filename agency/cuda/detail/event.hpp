@@ -4,6 +4,7 @@
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/launch_kernel.hpp>
+#include <agency/cuda/gpu.hpp>
 
 namespace agency
 {
@@ -24,11 +25,19 @@ class event
 
     static constexpr int event_create_flags = cudaEventDisableTiming;
 
+    // constructs a new event recorded on the given stream
     __host__ __device__
-    event(cudaEvent_t e) : e_(e) {}
+    event(cudaStream_t s) : event(construct_ready)
+    {
+#if __cuda_lib_has_cudart
+      detail::throw_on_error(cudaEventRecord(e_, s), "cudaEventRecord in cuda::detail::event ctor");
+#else
+      detail::terminate_with_message("cuda::detail::event ctor requires CUDART");
+#endif
+    }
 
     __host__ __device__
-    event() : event(0) {}
+    event() : event(cudaEvent_t{0}) {}
 
     __host__ __device__
     event(construct_not_ready_t) : event() {}
@@ -108,20 +117,35 @@ class event
     __host__ __device__
     event then(void* kernel, dim3 grid_dim, dim3 block_dim, int shared_memory_size, cudaStream_t stream, const Args&... args)
     {
-      // XXX should maybe instead give event a constructor that takes a stream and naturally records itself
-      //     could avoid this special checked_launch_kernel_after_event_returning_next_event function
-      //     then we wouldn't have to expose raw cudaEvent_t anywhere in the interface
+      // XXX should maybe insert a cudaStreamWaitEvent() ourself rather than have this function do it
 
-      cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(kernel, grid_dim, block_dim, shared_memory_size, stream, get(), args...);
+      detail::checked_launch_kernel_after_event(kernel, grid_dim, block_dim, shared_memory_size, stream, get(), args...);
 
       // invalidate ourself
       destroy_event();
 
-      return event(next_event);
+      return event(stream);
+    }
+
+    template<class... Args>
+    __host__ __device__
+    event then_on(void* kernel, dim3 grid_dim, dim3 block_dim, int shared_memory_size, cudaStream_t stream, const gpu_id& gpu, const Args&... args)
+    {
+      // XXX should maybe insert a cudaStreamWaitEvent() ourself rather than have this function do it
+
+      detail::checked_launch_kernel_after_event_on_device(kernel, grid_dim, block_dim, shared_memory_size, stream, get(), gpu.native_handle(), args...);
+
+      // invalidate ourself
+      destroy_event();
+
+      return event(stream);
     }
 
   private:
     cudaEvent_t e_;
+
+    __host__ __device__
+    event(cudaEvent_t e) : e_(e) {}
 
     // XXX eliminate this!
     __host__ __device__
