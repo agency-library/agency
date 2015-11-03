@@ -436,27 +436,6 @@ class basic_grid_executor
   private:
     template<class Arg>
     __host__ __device__
-    cudaEvent_t launch(void (*kernel)(Arg), const Arg& arg, shape_type shape)
-    {
-      return launch(kernel, arg, shape, shared_memory_size());
-    }
-
-    template<class Arg>
-    __host__ __device__
-    cudaEvent_t launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size)
-    {
-      return launch(kernel, arg, shape, shared_memory_size, stream());
-    }
-
-    template<class Arg>
-    __host__ __device__
-    cudaEvent_t launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream)
-    {
-      return launch(kernel, arg, shape, shared_memory_size, stream, 0);
-    }
-
-    template<class Arg>
-    __host__ __device__
     cudaEvent_t launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, cudaEvent_t dependency)
     {
       return launch(kernel, arg, shape, shared_memory_size, stream, dependency, gpu());
