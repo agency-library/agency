@@ -86,10 +86,8 @@ class event
 #if __cuda_lib_has_cudart
 
 #ifndef __CUDA_ARCH__
-      // XXX need to capture the error as an exception and then throw it in .get()
       detail::throw_on_error(cudaEventSynchronize(e_), "cudaEventSynchronize in cuda::detail::event::wait");
 #else
-      // XXX need to capture the error as an exception and then throw it in .get()
       detail::throw_on_error(cudaDeviceSynchronize(), "cudaDeviceSynchronize in cuda::detail::event::wait");
 #endif // __CUDA_ARCH__
 
@@ -106,20 +104,14 @@ class event
       other.e_ = tmp;
     }
 
-    // XXX eliminate this function
-    __host__ __device__
-    cudaEvent_t get() const
-    {
-      return e_;
-    }
-
     template<class... Args>
     __host__ __device__
     event then(void* kernel, dim3 grid_dim, dim3 block_dim, int shared_memory_size, cudaStream_t stream, const Args&... args)
     {
-      // XXX should maybe insert a cudaStreamWaitEvent() ourself rather than have this function do it
+      // make the stream wait before launching
+      stream_wait(stream);
 
-      detail::checked_launch_kernel_after_event(kernel, grid_dim, block_dim, shared_memory_size, stream, get(), args...);
+      detail::checked_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream, args...);
 
       // invalidate ourself
       destroy_event();
@@ -131,9 +123,10 @@ class event
     __host__ __device__
     event then_on(void* kernel, dim3 grid_dim, dim3 block_dim, int shared_memory_size, cudaStream_t stream, const gpu_id& gpu, const Args&... args)
     {
-      // XXX should maybe insert a cudaStreamWaitEvent() ourself rather than have this function do it
+      // make the stream wait before launching
+      stream_wait(stream);
 
-      detail::checked_launch_kernel_after_event_on_device(kernel, grid_dim, block_dim, shared_memory_size, stream, get(), gpu.native_handle(), args...);
+      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, stream, gpu.native_handle(), args...);
 
       // invalidate ourself
       destroy_event();
@@ -147,7 +140,6 @@ class event
     __host__ __device__
     event(cudaEvent_t e) : e_(e) {}
 
-    // XXX eliminate this!
     __host__ __device__
     void destroy_event()
     {
@@ -162,6 +154,17 @@ class event
         printf("CUDA error after cudaEventDestroy in cuda::detail::event::destroy_event: %s", cudaGetErrorString(error));
       } // end if
 #endif // __cuda_lib_has_printf
+#endif // __cuda_lib_has_cudart
+    }
+
+    __host__ __device__
+    void stream_wait(cudaStream_t s) const
+    {
+#if __cuda_lib_has_cudart
+      // make the next launch wait on the event
+      throw_on_error(cudaStreamWaitEvent(s, e_, 0), "cuda::detail::event::stream_wait(): cudaStreamWaitEvent()");
+#else
+      throw_on_error(cudaErrorNotSupported, "cuda::detail::event::stream_wait(): cudaStreamWaitEvent() requires CUDART");
 #endif // __cuda_lib_has_cudart
     }
 };
