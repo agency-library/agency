@@ -1,6 +1,9 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
 #include <agency/cuda/detail/asynchronous_state.hpp>
+#include <agency/detail/integer_sequence.hpp>
+#include <agency/detail/tuple.hpp>
 
 namespace agency
 {
@@ -10,61 +13,67 @@ namespace detail
 {
 
 
-template<class Function, class ResultPointer, class ArgumentPointer>
+// XXX we may wish to do all of this inside of detail::cuda_kernel to avoid additional nested templates
+
+
+template<class Function, class ResultPointer, class PointerTuple>
 struct continuation
 {
   mutable Function f_;
-  ResultPointer result_ptr_;
-  ArgumentPointer arg_ptr_;
+  mutable ResultPointer result_ptr_;
+  mutable PointerTuple arg_ptr_tuple_;
 
-  template<class Function1>
-  __device__
-  static void impl(Function1 f, unit, unit)
-  {
-    f();
-  }
+  __host__ __device__
+  continuation(Function f, ResultPointer result_ptr, PointerTuple arg_ptr_tuple)
+    : f_(f), result_ptr_(result_ptr), arg_ptr_tuple_(arg_ptr_tuple)
+  {}
 
-  template<class Function1, class T>
+  template<size_t... Indices>
   __device__
-  static void impl(Function1 f, T& result, unit)
+  void impl(agency::detail::index_sequence<Indices...>) const
   {
-    result = f();
-  }
-
-  template<class Function1, class T>
-  __device__
-  static void impl(Function1 f, unit, T& arg)
-  {
-    f(arg);
-  }
-
-  template<class Function1, class T1, class T2>
-  __device__
-  static void impl(Function1 f, T1& result, T2& arg)
-  {
-    result = f(arg);
+    *result_ptr_ = f_(*agency::detail::get<Indices>(arg_ptr_tuple_)...);
   }
 
   __device__
   void operator()() const
   {
-    impl(f_, *result_ptr_, *arg_ptr_);
+    impl(agency::detail::make_index_sequence<std::tuple_size<PointerTuple>::value>{});
   }
 };
 
 
-template<class Function>
-__host__ __device__
-Function make_continuation(Function f, empty_type_ptr<void>, empty_type_ptr<void>)
+template<class Function, class PointerTuple>
+struct continuation<Function, empty_type_ptr<void>, PointerTuple>
 {
-  return f;
-}
+  mutable Function f_;
+  mutable PointerTuple arg_ptr_tuple_;
 
-template<class Function, class ResultPointer, class ArgumentPointer>
+  __host__ __device__
+  continuation(Function f, empty_type_ptr<void>, PointerTuple arg_ptr_tuple)
+    : f_(f), arg_ptr_tuple_(arg_ptr_tuple)
+  {}
+
+  template<size_t... Indices>
+  __device__
+  void impl(agency::detail::index_sequence<Indices...>) const
+  {
+    f_(*agency::detail::get<Indices>(arg_ptr_tuple_)...);
+  }
+
+  __device__
+  void operator()() const
+  {
+    impl(agency::detail::make_index_sequence<std::tuple_size<PointerTuple>::value>{});
+  }
+};
+
+
+template<class Function, class ResultPointer, class PointerTuple>
 __host__ __device__
-continuation<Function,ResultPointer,ArgumentPointer> make_continuation(Function f, ResultPointer result_ptr, ArgumentPointer arg_ptr)
+continuation<Function,ResultPointer,PointerTuple> make_continuation(Function f, ResultPointer result_ptr, PointerTuple arg_ptr_tuple)
 {
-  return continuation<Function,ResultPointer,ArgumentPointer>{f, result_ptr, arg_ptr};
+  return continuation<Function,ResultPointer,PointerTuple>(f, result_ptr, arg_ptr_tuple);
 }
 
 

@@ -336,6 +336,12 @@ class future
       return state_.data();
     }
 
+    template<class U>
+    using element_type_is_not_unit = std::integral_constant<
+      bool,
+      !std::is_same<typename std::pointer_traits<U>::element_type, detail::unit>::value
+    >;
+
     template<class Function>
     __host__ __device__
     future<agency::detail::result_of_continuation_t<Function,future>>
@@ -345,8 +351,14 @@ class future
       using result_type = agency::detail::result_of_continuation_t<Function,future>;
       detail::asynchronous_state<result_type> result_state(stream());
 
+      // tuple up f's input state
+      auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
+
+      // filter void states
+      auto pointer_tuple = agency::detail::tuple_filter<element_type_is_not_unit>(unfiltered_pointer_tuple);
+
       // make a function implementing the continuation
-      auto continuation = detail::make_continuation(f, result_state.data(), data());
+      auto continuation = detail::make_continuation(f, result_state.data(), pointer_tuple);
 
       // get a pointer to the kernel
       // XXX should try to push this down into event.then()
