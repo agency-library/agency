@@ -17,11 +17,9 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/detail/then_kernel.hpp>
-#include <agency/cuda/detail/launch_kernel.hpp>
-#include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/cuda/detail/event.hpp>
 #include <agency/cuda/detail/asynchronous_state.hpp>
+#include <agency/cuda/detail/continuation.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/tuple.hpp>
@@ -347,14 +345,15 @@ class future
       using result_type = agency::detail::result_of_continuation_t<Function,future>;
       detail::asynchronous_state<result_type> result_state(stream());
 
-      // get a pointer to the continuation's kernel
-      using result_ptr_type = decltype(result_state.data());
-      using arg_ptr_type = decltype(data());
-      void (*kernel_ptr)(result_ptr_type, Function, arg_ptr_type) = detail::then_kernel<result_ptr_type, Function, arg_ptr_type>;
-      detail::workaround_unused_variable_warning(kernel_ptr);
+      // make a function implementing the continuation
+      auto continuation = detail::make_continuation(f, result_state.data(), data());
+
+      // get a pointer to the kernel
+      // XXX should try to push this down into event.then()
+      auto continuation_kernel = &detail::cuda_kernel<decltype(continuation)>;
 
       // launch the continuation
-      detail::event next_event = event().then(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), result_state.data(), f, data());
+      detail::event next_event = event().then(reinterpret_cast<void*>(continuation_kernel), dim3{1}, dim3{1}, 0, stream(), continuation);
 
       // return the continuation's future
       return future<result_type>(stream(), std::move(next_event), std::move(result_state));

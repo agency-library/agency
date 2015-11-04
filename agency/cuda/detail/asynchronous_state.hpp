@@ -12,6 +12,26 @@ namespace detail
 {
 
 
+struct unit {};
+
+struct unit_ptr : unit
+{
+  using element_type = unit;
+
+  __host__ __device__
+  unit& operator*()
+  {
+    return *this;
+  }
+
+  __host__ __device__
+  const unit& operator*() const
+  {
+    return *this;
+  }
+};
+
+
 template<class T>
 struct state_requires_storage
   : std::integral_constant<

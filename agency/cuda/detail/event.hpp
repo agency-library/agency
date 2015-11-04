@@ -4,6 +4,7 @@
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/launch_kernel.hpp>
+#include <agency/cuda/detail/kernel.hpp>
 #include <agency/cuda/gpu.hpp>
 
 namespace agency
