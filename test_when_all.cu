@@ -4,28 +4,68 @@
 int main()
 {
   {
-    agency::cuda::detail::asynchronous_state<int> f1(0, 13);
-    agency::cuda::detail::asynchronous_state<int> f2(0, 7);
+    // int, int -> (int, int)
+    auto f1 = agency::cuda::make_ready_future<int>(7);
+    auto f2 = agency::cuda::make_ready_future<int>(13);
 
-    std::cout << "pointers: " << f1.data() << ", " << f2.data() << std::endl;
+    auto f3 = agency::cuda::when_all(f1, f2);
 
-    agency::cuda::detail::asynchronous_state_tuple<int,int> f3(f1,f2);
+    auto result = f3.get();
 
-    assert(f3.valid());
+    assert(result == agency::detail::make_tuple(7,13));
+    assert(!f1.valid());
+    assert(!f2.valid());
+  }
 
-    auto pointer_tuple = f3.data();
+  {
+    // int, void -> int
+    auto f1 = agency::cuda::make_ready_future<int>(7);
+    auto f2 = agency::cuda::make_ready_future();
 
-    assert(f3.valid());
+    auto f3 = agency::cuda::when_all(f1, f2);
 
-    std::cout << "pointers: " << agency::detail::get<0>(pointer_tuple) << ", " << agency::detail::get<1>(pointer_tuple) << std::endl;
+    auto result = f3.get();
 
-    auto ref_tuple = *pointer_tuple;
+    assert(result == 7);
+    assert(!f1.valid());
+    assert(!f2.valid());
+  }
 
-    auto tuple = f3.get();
+  {
+    // void, int -> int
+    auto f1 = agency::cuda::make_ready_future();
+    auto f2 = agency::cuda::make_ready_future<int>(7);
 
-    assert(!f3.valid());
+    auto f3 = agency::cuda::when_all(f1, f2);
 
-    std::cout << "tuple: " << agency::detail::get<0>(tuple) << ", " << agency::detail::get<1>(tuple) << std::endl;
+    auto result = f3.get();
+
+    assert(result == 7);
+    assert(!f1.valid());
+    assert(!f2.valid());
+  }
+
+  {
+    // int -> int
+    auto f1 = agency::cuda::make_ready_future<int>(7);
+
+    auto f2 = agency::cuda::when_all(f1);
+
+    auto result = f2.get();
+
+    assert(result == 7);
+    assert(!f1.valid());
+  }
+
+  {
+    // void -> void
+    auto f1 = agency::cuda::make_ready_future();
+
+    auto f2 = agency::cuda::when_all(f1);
+
+    f2.wait();
+
+    assert(!f1.valid());
   }
 
   std::cout << "OK" << std::endl;

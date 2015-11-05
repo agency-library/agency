@@ -186,7 +186,7 @@ class asynchronous_state_tuple : private agency::detail::tuple<asynchronous_stat
 
   public:
     __host__ __device__
-    asynchronous_state_tuple(asynchronous_state<Types>&... states)
+    asynchronous_state_tuple(asynchronous_state<Types>&&... states)
       : super_t(std::move(states)...)
     {}
 
@@ -226,6 +226,12 @@ class asynchronous_state_tuple : private agency::detail::tuple<asynchronous_stat
 // declare this so future may befriend it
 template<class Shape, class Index, class ThisIndexFunction>
 class basic_grid_executor;
+
+template<class U>
+using element_type_is_not_unit = std::integral_constant<
+  bool,
+  !std::is_same<typename std::pointer_traits<U>::element_type, detail::unit>::value
+>;
 
 
 } // end detail
@@ -336,12 +342,6 @@ class future
       return state_.data();
     }
 
-    template<class U>
-    using element_type_is_not_unit = std::integral_constant<
-      bool,
-      !std::is_same<typename std::pointer_traits<U>::element_type, detail::unit>::value
-    >;
-
     template<class Function>
     __host__ __device__
     future<agency::detail::result_of_continuation_t<Function,future>>
@@ -355,7 +355,7 @@ class future
       auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
 
       // filter void states
-      auto pointer_tuple = agency::detail::tuple_filter<element_type_is_not_unit>(unfiltered_pointer_tuple);
+      auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
 
       // make a function implementing the continuation
       auto continuation = detail::make_continuation(f, result_state.data(), pointer_tuple);
@@ -407,6 +407,15 @@ class future
       a = b;
       b = tmp;
     }
+
+    template<class... Types>
+    friend __host__ __device__
+    future<
+      agency::detail::when_all_result_t<
+        future<Types>...
+      >
+    >
+    when_all(future<Types>&... futures);
 };
 
 
@@ -421,6 +430,74 @@ inline __host__ __device__
 future<T> make_ready_future(T&& val)
 {
   return future<T>::make_ready(std::forward<T>(val));
+}
+
+
+namespace detail
+{
+
+
+template<class Result>
+struct when_all_functor
+{
+  template<class... Args>
+  __host__ __device__
+  Result operator()(Args&... args)
+  {
+    return Result(std::move(args)...);
+  }
+};
+
+
+} // end detail
+
+
+template<class... Types>
+__host__ __device__
+future<
+  agency::detail::when_all_result_t<
+    future<Types>...
+  >
+>
+when_all(future<Types>&... futures)
+{
+  cudaStream_t stream = 0;
+
+  // join the events
+  detail::event when_all_ready = detail::when_all(stream, futures.event()...);
+
+  using result_type = agency::detail::when_all_result_t<
+    future<Types>...
+  >;
+
+  detail::asynchronous_state<result_type> result_state(stream);
+
+  // tuple up the input states
+  auto unfiltered_pointer_tuple = agency::detail::make_tuple(futures.data()...);
+
+  // filter void states
+  auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
+
+  // make a function implementing the continuation
+  auto continuation = detail::make_continuation(detail::when_all_functor<result_type>{}, result_state.data(), pointer_tuple);
+
+  // get a pointer to the kernel
+  // XXX should try to push this down into event.then()
+  auto continuation_kernel = &detail::cuda_kernel<decltype(continuation)>;
+
+  // launch the continuation
+  detail::event next_event = when_all_ready.then(reinterpret_cast<void*>(continuation_kernel), dim3{1}, dim3{1}, 0, stream, continuation);
+
+  // return the continuation's future
+  return future<result_type>(stream, std::move(next_event), std::move(result_state));
+}
+
+
+template<class T>
+__host__ __device__
+future<T> when_all(future<T>& future)
+{
+  return std::move(future);
 }
 
 
