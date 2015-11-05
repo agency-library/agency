@@ -170,9 +170,9 @@ unique_ptr<T> make_unique(cudaStream_t s, Args&&... args)
   allocator<T> alloc;
 
   unique_ptr<T> result(alloc.allocate(1), default_delete<T>(s));
-  
+
   // XXX should use allocator_traits::construct()
-  ::new(result.get()) T(std::forward<Args>(args)...);
+  alloc.template construct<T>(result.get(), std::forward<Args>(args)...);
 
   return std::move(result);
 }
