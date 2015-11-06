@@ -68,6 +68,9 @@ class asynchronous_state_impl
     {}
 
     // constructs a not ready state
+    // XXX we should avoid creating an object here
+    //     instead, we should just create it uninitialized
+    // XXX the destructor should check whether the state requires destruction
     __host__ __device__
     asynchronous_state_impl(cudaStream_t s)
       : asynchronous_state_impl(s, T{})
