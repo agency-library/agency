@@ -360,18 +360,14 @@ class future
       // make a function implementing the continuation
       auto continuation = detail::make_continuation(f, result_state.data(), pointer_tuple);
 
-      // get a pointer to the kernel
-      // XXX should try to push this down into event.then()
-      auto continuation_kernel = &detail::cuda_kernel<decltype(continuation)>;
-
       // launch the continuation
-      detail::event next_event = event().then(reinterpret_cast<void*>(continuation_kernel), dim3{1}, dim3{1}, 0, stream(), continuation);
+      detail::event next_event = event().then(continuation, dim3{1}, dim3{1}, 0, stream());
 
       // return the continuation's future
       return future<result_type>(stream(), std::move(next_event), std::move(result_state));
     }
 
-  private:
+//  private:
     template<class U> friend class future;
     template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
 
@@ -481,12 +477,8 @@ when_all(future<Types>&... futures)
   // make a function implementing the continuation
   auto continuation = detail::make_continuation(detail::when_all_functor<result_type>{}, result_state.data(), pointer_tuple);
 
-  // get a pointer to the kernel
-  // XXX should try to push this down into event.then()
-  auto continuation_kernel = &detail::cuda_kernel<decltype(continuation)>;
-
   // launch the continuation
-  detail::event next_event = when_all_ready.then(reinterpret_cast<void*>(continuation_kernel), dim3{1}, dim3{1}, 0, stream, continuation);
+  detail::event next_event = when_all_ready.then(continuation, dim3{1}, dim3{1}, 0, stream);
 
   // return the continuation's future
   return future<result_type>(stream, std::move(next_event), std::move(result_state));

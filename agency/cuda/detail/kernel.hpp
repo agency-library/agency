@@ -10,10 +10,10 @@ namespace detail
 {
 
 
-template<class Function>
-__global__ void cuda_kernel(Function f)
+template<class Function, class... Args>
+__global__ void cuda_kernel(Function f, Args... args)
 {
-  f();
+  f(args...);
 }
 
 
