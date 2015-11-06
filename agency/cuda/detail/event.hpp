@@ -105,14 +105,18 @@ class event
       other.e_ = tmp;
     }
 
-    template<class... Args>
+    template<class Function, class... Args>
     __host__ __device__
-    event then(void* kernel, dim3 grid_dim, dim3 block_dim, int shared_memory_size, cudaStream_t stream, const Args&... args)
+    event then(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, cudaStream_t stream, const Args&... args)
     {
       // make the stream wait before launching
       stream_wait(stream);
 
-      detail::checked_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream, args...);
+      // get the address of the kernel
+      auto kernel = &cuda_kernel<Function,Args...>;
+
+      // launch the kernel
+      detail::checked_launch_kernel(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream, f, args...);
 
       // invalidate ourself
       destroy_event();
