@@ -331,8 +331,8 @@ struct functor
   {
     if(idx[0] == 0 && idx[1] == 0)
     {
-      past_arg1 = 13;
-      past_arg2 = 7;
+      ++past_arg1;
+      ++past_arg2;
     }
   }
 };
@@ -340,19 +340,125 @@ struct functor
 
 int main()
 {
-  agency::cuda::future<int>   f1 = agency::cuda::make_ready_future<int>(7);
-  agency::cuda::future<float> f2 = agency::cuda::make_ready_future<float>(13);
+  {
+    // int, float -> (int, float)
+    agency::cuda::future<int>   f1 = agency::cuda::make_ready_future<int>(7);
+    agency::cuda::future<float> f2 = agency::cuda::make_ready_future<float>(13);
 
-  auto outer_factory = factory{};
-  auto inner_factory = factory{};
+    auto outer_factory = factory{};
+    auto inner_factory = factory{};
 
-  auto f3 = when_all_execute(functor{}, agency::cuda::grid_executor::shape_type{100,256}, agency::detail::make_tuple(std::move(f1),std::move(f2)), outer_factory, inner_factory);
+    auto f3 = when_all_execute(functor{}, agency::cuda::grid_executor::shape_type{100,256}, agency::detail::make_tuple(std::move(f1),std::move(f2)), outer_factory, inner_factory);
 
-  auto result = f3.get();
+    auto result = f3.get();
 
-  std::cout << "result: " << result << std::endl;
+    assert(result == agency::detail::make_tuple(8,14));
+  }
 
-  assert(result == agency::detail::make_tuple(13,7));
+  {
+    // int, void -> int
+    agency::cuda::future<int>  f1 = agency::cuda::make_ready_future<int>(7);
+    agency::cuda::future<void> f2 = agency::cuda::make_ready_future();
+
+    auto outer_factory = factory{};
+    auto inner_factory = factory{};
+
+    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
+    {
+      if(idx[0] == 0 && idx[1] == 0)
+      {
+        ++past_arg;
+      }
+    },
+    agency::cuda::grid_executor::shape_type{100,256},
+    agency::detail::make_tuple(std::move(f1),std::move(f2)),
+    outer_factory,
+    inner_factory);
+
+    auto result = f3.get();
+
+    assert(result == 8);
+  }
+
+  {
+    // void, int -> int
+    agency::cuda::future<void> f1 = agency::cuda::make_ready_future();
+    agency::cuda::future<int>  f2 = agency::cuda::make_ready_future<int>(7);
+
+    auto outer_factory = factory{};
+    auto inner_factory = factory{};
+
+    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
+    {
+      if(idx[0] == 0 && idx[1] == 0)
+      {
+        ++past_arg;
+      }
+    },
+    agency::cuda::grid_executor::shape_type{100,256},
+    agency::detail::make_tuple(std::move(f1),std::move(f2)),
+    outer_factory,
+    inner_factory);
+
+    auto result = f3.get();
+
+    assert(result == 8);
+  }
+
+  {
+    // void -> void
+    agency::cuda::future<void> f1 = agency::cuda::make_ready_future();
+
+    auto outer_factory = factory{};
+    auto inner_factory = factory{};
+
+    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
+    {
+    },
+    agency::cuda::grid_executor::shape_type{100,256},
+    agency::detail::make_tuple(std::move(f1)),
+    outer_factory,
+    inner_factory);
+
+    f3.get();
+  }
+
+  {
+    // void, void -> void
+    agency::cuda::future<void> f1 = agency::cuda::make_ready_future();
+    agency::cuda::future<void> f2 = agency::cuda::make_ready_future();
+
+    auto outer_factory = factory{};
+    auto inner_factory = factory{};
+
+    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
+    {
+    },
+    agency::cuda::grid_executor::shape_type{100,256},
+    agency::detail::make_tuple(std::move(f1), std::move(f2)),
+    outer_factory,
+    inner_factory);
+
+    f3.get();
+  }
+
+  {
+    // -> void
+    auto outer_factory = factory{};
+    auto inner_factory = factory{};
+
+    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
+    {
+    },
+    agency::cuda::grid_executor::shape_type{100,256},
+    agency::detail::make_tuple(),
+    outer_factory,
+    inner_factory);
+
+    f3.get();
+  }
+
+  std::cout << "OK" << std::endl;
 
   return 0;
 }
