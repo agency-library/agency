@@ -84,20 +84,20 @@ struct move_construct_result_functor
 
   using result_type = typename std::pointer_traits<ResultPointer>::element_type;
 
-  __host__ __device__
+  __AGENCY_ANNOTATION
   move_construct_result_functor(ResultPointer result_ptr, Pointers... ptrs)
     : result_ptr_(result_ptr),
       ptrs_(ptrs...)
   {}
 
   template<size_t... Indices>
-  __host__ __device__
+  __AGENCY_ANNOTATION
   inline void impl(agency::detail::index_sequence<Indices...>)
   {
     *result_ptr_ = result_type(std::move(*agency::detail::get<Indices>(ptrs_))...);
   }
 
-  __host__ __device__
+  __AGENCY_ANNOTATION
   inline void operator()()
   {
     impl(agency::detail::index_sequence_for<Pointers...>());
@@ -105,7 +105,7 @@ struct move_construct_result_functor
 };
 
 template<class ResultPointer, class... Pointers>
-__host__ __device__
+__AGENCY_ANNOTATION
 move_construct_result_functor<ResultPointer,Pointers...>
   make_move_construct_result_functor(ResultPointer result_ptr, Pointers... ptrs)
 {
@@ -314,41 +314,27 @@ agency::cuda::future<
 }
 
 
-struct factory
-{
-  __host__ __device__
-  int operator()()
-  {
-    return 7;
-  }
-};
-
-
-struct functor
-{
-  __device__
-  void operator()(agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
-  {
-    if(idx[0] == 0 && idx[1] == 0)
-    {
-      ++past_arg1;
-      ++past_arg2;
-    }
-  }
-};
-
-
 int main()
 {
+  auto factory = [] __device__ { return 7; };
+
   {
     // int, float -> (int, float)
     agency::cuda::future<int>   f1 = agency::cuda::make_ready_future<int>(7);
     agency::cuda::future<float> f2 = agency::cuda::make_ready_future<float>(13);
 
-    auto outer_factory = factory{};
-    auto inner_factory = factory{};
-
-    auto f3 = when_all_execute(functor{}, agency::cuda::grid_executor::shape_type{100,256}, agency::detail::make_tuple(std::move(f1),std::move(f2)), outer_factory, inner_factory);
+    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
+    {
+      if(idx[0] == 0 && idx[1] == 0)
+      {
+        ++past_arg1;
+        ++past_arg2;
+      }
+    },
+    agency::cuda::grid_executor::shape_type{100,256},
+    agency::detail::make_tuple(std::move(f1),std::move(f2)),
+    factory,
+    factory);
 
     auto result = f3.get();
 
@@ -360,9 +346,6 @@ int main()
     agency::cuda::future<int>  f1 = agency::cuda::make_ready_future<int>(7);
     agency::cuda::future<void> f2 = agency::cuda::make_ready_future();
 
-    auto outer_factory = factory{};
-    auto inner_factory = factory{};
-
     auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
     {
       if(idx[0] == 0 && idx[1] == 0)
@@ -372,8 +355,8 @@ int main()
     },
     agency::cuda::grid_executor::shape_type{100,256},
     agency::detail::make_tuple(std::move(f1),std::move(f2)),
-    outer_factory,
-    inner_factory);
+    factory,
+    factory);
 
     auto result = f3.get();
 
@@ -385,9 +368,6 @@ int main()
     agency::cuda::future<void> f1 = agency::cuda::make_ready_future();
     agency::cuda::future<int>  f2 = agency::cuda::make_ready_future<int>(7);
 
-    auto outer_factory = factory{};
-    auto inner_factory = factory{};
-
     auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
     {
       if(idx[0] == 0 && idx[1] == 0)
@@ -397,8 +377,8 @@ int main()
     },
     agency::cuda::grid_executor::shape_type{100,256},
     agency::detail::make_tuple(std::move(f1),std::move(f2)),
-    outer_factory,
-    inner_factory);
+    factory,
+    factory);
 
     auto result = f3.get();
 
@@ -409,16 +389,13 @@ int main()
     // void -> void
     agency::cuda::future<void> f1 = agency::cuda::make_ready_future();
 
-    auto outer_factory = factory{};
-    auto inner_factory = factory{};
-
     auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
     agency::cuda::grid_executor::shape_type{100,256},
     agency::detail::make_tuple(std::move(f1)),
-    outer_factory,
-    inner_factory);
+    factory,
+    factory);
 
     f3.get();
   }
@@ -428,32 +405,27 @@ int main()
     agency::cuda::future<void> f1 = agency::cuda::make_ready_future();
     agency::cuda::future<void> f2 = agency::cuda::make_ready_future();
 
-    auto outer_factory = factory{};
-    auto inner_factory = factory{};
-
     auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
     agency::cuda::grid_executor::shape_type{100,256},
     agency::detail::make_tuple(std::move(f1), std::move(f2)),
-    outer_factory,
-    inner_factory);
+    factory,
+    factory);
 
     f3.get();
   }
 
   {
     // -> void
-    auto outer_factory = factory{};
-    auto inner_factory = factory{};
 
     auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
     agency::cuda::grid_executor::shape_type{100,256},
     agency::detail::make_tuple(),
-    outer_factory,
-    inner_factory);
+    factory,
+    factory);
 
     f3.get();
   }
