@@ -117,7 +117,7 @@ agency::cuda::future<
     >...
   >
 >
-  move_construct_result(agency::cuda::detail::event& dependency, Pointer ptr, Pointers... ptrs)
+  move_construct_result(agency::cuda::detail::stream& stream, agency::cuda::detail::event& dependency, Pointer ptr, Pointers... ptrs)
 {
   using result_type = agency::detail::when_all_result_t<
     agency::cuda::future<typename std::pointer_traits<Pointer>::element_type>,
@@ -131,7 +131,6 @@ agency::cuda::future<
   auto f = make_move_construct_result_functor(result_state.data(), ptr, ptrs...);
 
   // launch the function
-  agency::cuda::detail::stream stream;
   agency::cuda::detail::event result_event = dependency.then(f, dim3{1}, dim3{1}, 0, stream.native_handle());
 
   return agency::cuda::future<result_type>(std::move(stream), std::move(result_event), std::move(result_state));
@@ -140,18 +139,18 @@ agency::cuda::future<
 
 inline __host__ __device__
 agency::cuda::future<void>
-  move_construct_result(agency::cuda::detail::event& dependency)
+  move_construct_result(agency::cuda::detail::stream& stream, agency::cuda::detail::event& dependency)
 {
-  return agency::cuda::future<void>(std::move(dependency), agency::cuda::detail::asynchronous_state<void>(agency::cuda::detail::construct_not_ready));
+  return agency::cuda::future<void>(std::move(stream), std::move(dependency), agency::cuda::detail::asynchronous_state<void>(agency::cuda::detail::construct_not_ready));
 }
 
 
 template<size_t... Indices, class TupleOfFutures>
 __host__ __device__
-auto move_construct_result_from_tuple_of_futures(agency::detail::index_sequence<Indices...>, agency::cuda::detail::event& dependency, TupleOfFutures& futures)
-  -> decltype(move_construct_result(dependency, agency::detail::get<Indices>(futures).data()...))
+auto move_construct_result_from_tuple_of_futures(agency::detail::index_sequence<Indices...>, agency::cuda::detail::stream& stream, agency::cuda::detail::event& dependency, TupleOfFutures& futures)
+  -> decltype(move_construct_result(stream, dependency, agency::detail::get<Indices>(futures).data()...))
 {
-  return move_construct_result(dependency, agency::detail::get<Indices>(futures).data()...);
+  return move_construct_result(stream, dependency, agency::detail::get<Indices>(futures).data()...);
 }
 
 
@@ -294,14 +293,13 @@ agency::cuda::future<new_when_all_execute_and_select_result_t<agency::detail::in
 {
   // XXX we should static_assert that SelectedIndices are unique and in the correct range
 
-  cudaStream_t stream = 0;
-
   // create a future to contain the outer argument
   using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
   auto outer_arg_future = agency::cuda::make_ready_future<outer_arg_type>(outer_factory());
 
   // join the events
-  agency::cuda::detail::event when_all_ready = agency::cuda::detail::when_all(stream, outer_arg_future.event(), agency::detail::get<TupleIndices>(tuple_of_futures).event()...);
+  agency::cuda::detail::stream stream;
+  agency::cuda::detail::event when_all_ready = agency::cuda::detail::when_all(stream.native_handle(), outer_arg_future.event(), agency::detail::get<TupleIndices>(tuple_of_futures).event()...);
 
   // get a view of the non-void futures
   auto view_of_non_void_futures = agency::detail::tuple_filter_view<value_type_is_not_void>(tuple_of_futures);
@@ -325,7 +323,7 @@ agency::cuda::future<new_when_all_execute_and_select_result_t<agency::detail::in
   //     we can't do that because that memory cannot be deallocated by a __device__ function
   // XXX we should implement a better memory allocator that can be used uniformly in __host__ & __device__ code
 
-  return move_construct_result_from_tuple_of_futures(agency::detail::make_tuple_indices(view_of_selected_non_void_futures), when_all_execute_event, view_of_selected_non_void_futures);
+  return move_construct_result_from_tuple_of_futures(agency::detail::make_tuple_indices(view_of_selected_non_void_futures), stream, when_all_execute_event, view_of_selected_non_void_futures);
 }
 
 
