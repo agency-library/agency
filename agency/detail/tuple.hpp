@@ -493,6 +493,43 @@ homogeneous_tuple<T,size> make_homogeneous_tuple(const T& val)
 }
 
 
+// this is the inverse operation of tuple_elements
+template<class TypeList>
+struct tuple_from_type_list;
+
+template<class... Types>
+struct tuple_from_type_list<agency::detail::type_list<Types...>>
+{
+  using type = agency::detail::tuple<Types...>;
+};
+
+template<class TypeList>
+using tuple_from_type_list_t = typename tuple_from_type_list<TypeList>::type;
+
+
+template<class TypeList>
+struct tuple_or_single_type_or_void_from_type_list
+{
+  using type = tuple_from_type_list_t<TypeList>;
+};
+
+template<class T>
+struct tuple_or_single_type_or_void_from_type_list<agency::detail::type_list<T>>
+{
+  using type = T;
+};
+
+template<>
+struct tuple_or_single_type_or_void_from_type_list<agency::detail::type_list<>>
+{
+  using type = void;
+};
+
+
+template<class TypeList>
+using tuple_or_single_type_or_void_from_type_list_t = typename tuple_or_single_type_or_void_from_type_list<TypeList>::type;
+
+
 
 } // end detail
 } // end agency

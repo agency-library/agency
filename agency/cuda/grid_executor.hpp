@@ -18,7 +18,7 @@
 #include <agency/cuda/detail/bind.hpp>
 #include <agency/cuda/detail/unique_ptr.hpp>
 #include <agency/cuda/detail/terminate.hpp>
-#include <agency/cuda/detail/uninitialized.hpp>
+#include <agency/cuda/detail/on_chip_shared_parameter.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/functional.hpp>
@@ -35,82 +35,6 @@ namespace cuda
 {
 namespace detail
 {
-
-
-template<class Factory>
-struct result_of_factory_is_empty
-  : std::integral_constant<
-      bool,
-      (std::is_empty<agency::detail::result_of_factory_t<Factory>>::value ||
-      agency::detail::is_empty_tuple<agency::detail::result_of_factory_t<Factory>>::value)
-    >
-{};
-
-
-template<class Factory, bool = result_of_factory_is_empty<Factory>::value>
-struct inner_shared_parameter
-{
-  using value_type = agency::detail::result_of_factory_t<Factory>;
-
-  __device__
-  inner_shared_parameter(bool is_leader, Factory factory)
-    : is_leader_(is_leader)
-  {
-    __shared__ uninitialized<value_type> inner_shared_param;
-
-    if(is_leader_)
-    {
-      inner_shared_param.construct(factory());
-    }
-    __syncthreads();
-
-    inner_shared_param_ = &inner_shared_param;
-  }
-
-  inner_shared_parameter(const inner_shared_parameter&) = delete;
-  inner_shared_parameter(inner_shared_parameter&&) = delete;
-
-  __device__
-  ~inner_shared_parameter()
-  {
-    __syncthreads();
-
-    if(is_leader_)
-    {
-      inner_shared_param_->destroy();
-    }
-  }
-
-  __device__
-  value_type& get()
-  {
-    return inner_shared_param_->get();
-  }
-
-  const bool is_leader_;
-  uninitialized<value_type>* inner_shared_param_;
-};
-
-
-template<class Factory>
-struct inner_shared_parameter<Factory,true>
-{
-  using value_type = agency::detail::result_of_factory_t<Factory>;
-
-  __device__
-  inner_shared_parameter(bool is_leader_, Factory) {}
-
-  inner_shared_parameter(const inner_shared_parameter&) = delete;
-  inner_shared_parameter(inner_shared_parameter&&) = delete;
-
-  __device__
-  value_type& get()
-  {
-    return param_;
-  }
-
-  value_type param_;
-};
 
 
 // XXX should use empty base class optimization for this class because any of these members could be empty types
@@ -152,7 +76,7 @@ struct then_execute_functor {
 
     // XXX i don't think we're doing the leader calculation in a portable way
     //     we need a way to compare idx to the origin idex to figure out if this invocation represents the CTA leader
-    inner_shared_parameter<InnerFactory> inner_param(idx[1] == 0, inner_factory);
+    on_chip_shared_parameter<InnerFactory> inner_param(idx[1] == 0, inner_factory);
 
     impl(
       f_,
