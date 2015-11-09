@@ -44,6 +44,7 @@ struct when_all_execute_functor
   }
 };
 
+
 template<class Function, class IndexFunction, class OuterArgumentPointer, class InnerFactory, class... DependencyPointers>
 __host__ __device__
 when_all_execute_functor<Function, IndexFunction, OuterArgumentPointer, InnerFactory, DependencyPointers...>
@@ -51,18 +52,6 @@ when_all_execute_functor<Function, IndexFunction, OuterArgumentPointer, InnerFac
 {
   return when_all_execute_functor<Function, IndexFunction, OuterArgumentPointer, InnerFactory, DependencyPointers...>(f, index_function, outer_arg_ptr, inner_factory, dependency_ptrs...);
 }
-
-
-struct call_data
-{
-  template<class Arg>
-  __AGENCY_ANNOTATION
-  auto operator()(Arg& arg) const
-    -> decltype(arg.data())
-  {
-    return arg.data();
-  }
-};
 
 
 template<class FutureOrFutureReference>
@@ -106,6 +95,7 @@ struct move_construct_result_functor
   }
 };
 
+
 template<class ResultPointer, class... Pointers>
 __AGENCY_ANNOTATION
 move_construct_result_functor<ResultPointer,Pointers...>
@@ -116,6 +106,7 @@ move_construct_result_functor<ResultPointer,Pointers...>
 
 
 template<class Pointer, class... Pointers>
+__host__ __device__
 agency::cuda::future<
   agency::detail::when_all_result_t<
     agency::cuda::future<
@@ -147,7 +138,8 @@ agency::cuda::future<
 }
 
 
-inline agency::cuda::future<void>
+inline __host__ __device__
+agency::cuda::future<void>
   move_construct_result(agency::cuda::detail::event& dependency)
 {
   return agency::cuda::future<void>(std::move(dependency), agency::cuda::detail::asynchronous_state<void>(agency::cuda::detail::construct_not_ready));
@@ -155,6 +147,7 @@ inline agency::cuda::future<void>
 
 
 template<size_t... Indices, class TupleOfFutures>
+__host__ __device__
 auto move_construct_result_from_tuple_of_futures(agency::detail::index_sequence<Indices...>, agency::cuda::detail::event& dependency, TupleOfFutures& futures)
   -> decltype(move_construct_result(dependency, agency::detail::get<Indices>(futures).data()...))
 {
@@ -253,9 +246,9 @@ template<class... Types>
 using new_when_all_result_t = typename new_when_all_result<Types...>::type;
 
 
-template<class Function, class OuterArgPointer, class InnerFactory, class... Pointers>
+template<class Function, class Shape, class OuterArgPointer, class InnerFactory, class... Pointers>
 agency::cuda::detail::event
-  launch_when_all_execute_operation_impl(agency::cuda::detail::event& dependency, Function f, agency::cuda::grid_executor::shape_type shape, OuterArgPointer outer_arg_ptr, InnerFactory inner_factory, Pointers... ptrs)
+  launch_when_all_execute_operation_impl(agency::cuda::detail::event& dependency, Function f, Shape shape, OuterArgPointer outer_arg_ptr, InnerFactory inner_factory, Pointers... ptrs)
 {
   cudaStream_t stream = 0;
 
@@ -274,21 +267,27 @@ agency::cuda::detail::event
 }
 
 
-template<size_t... Indices, class Function, class OuterArgumentPointer, class InnerFactory, class TupleOfNonVoidFutures>
+template<size_t... Indices, class Function, class Shape, class OuterArgumentPointer, class InnerFactory, class TupleOfNonVoidFutures>
 agency::cuda::detail::event
-  launch_when_all_execute_operation(agency::detail::index_sequence<Indices...>, agency::cuda::detail::event& dependency, Function f, agency::cuda::grid_executor::shape_type shape, OuterArgumentPointer outer_arg_ptr, InnerFactory inner_factory, TupleOfNonVoidFutures& futures)
+  launch_when_all_execute_operation(agency::detail::index_sequence<Indices...>,
+                                    agency::cuda::detail::event& dependency,
+                                    Function f,
+                                    Shape shape,
+                                    OuterArgumentPointer outer_arg_ptr,
+                                    InnerFactory inner_factory,
+                                    TupleOfNonVoidFutures& futures)
 {
   // unpack the futures and pass their data pointers to when_all_execute_impl3
   return launch_when_all_execute_operation_impl(dependency, f, shape, outer_arg_ptr, inner_factory, agency::cuda::detail::get<Indices>(futures).data()...);
 }
 
 
-template<size_t... SelectedIndices, size_t... TupleIndices, class TupleOfFutures, class Function, class OuterFactory, class InnerFactory>
+template<size_t... SelectedIndices, size_t... TupleIndices, class Function, class Shape, class TupleOfFutures, class OuterFactory, class InnerFactory>
 agency::cuda::future<new_when_all_execute_and_select_result_t<agency::detail::index_sequence<SelectedIndices...>, TupleOfFutures>>
   when_all_execute_and_select_impl(agency::detail::index_sequence<SelectedIndices...>,
                                    agency::detail::index_sequence<TupleIndices...>,
                                    Function f,
-                                   agency::cuda::grid_executor::shape_type shape,
+                                   Shape shape,
                                    TupleOfFutures tuple_of_futures,
                                    OuterFactory outer_factory,
                                    InnerFactory inner_factory)
@@ -353,13 +352,13 @@ template<class TupleOfFutures>
 using when_all_execute_result_t = typename when_all_execute_result<TupleOfFutures>::type;
 
 
-template<class Function, class TupleOfFutures, class OuterFactory, class InnerFactory>
+template<class Function, class Shape, class TupleOfFutures, class OuterFactory, class InnerFactory>
 agency::cuda::future<
   when_all_execute_result_t<
     typename std::decay<TupleOfFutures>::type
   >
 >
-  when_all_execute(Function f, agency::cuda::grid_executor::shape_type shape, TupleOfFutures&& futures, OuterFactory outer_factory, InnerFactory inner_factory)
+  when_all_execute(Function f, Shape shape, TupleOfFutures&& futures, OuterFactory outer_factory, InnerFactory inner_factory)
 {
   auto indices = agency::detail::make_tuple_indices(futures);
   return ::when_all_execute_and_select_impl(indices, indices, f, shape, std::move(futures), outer_factory, inner_factory);
