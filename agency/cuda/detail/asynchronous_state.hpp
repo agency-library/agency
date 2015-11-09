@@ -40,6 +40,12 @@ struct state_requires_storage
    >
 {};
 
+struct construct_ready_t {};
+struct construct_not_ready_t {};
+
+constexpr static construct_ready_t     construct_ready{};
+constexpr static construct_not_ready_t construct_not_ready{};
+
 
 // XXX this is suffixed with _impl because of nvbug 1700337
 //     eliminate the suffix when that bug is resolved
@@ -57,14 +63,14 @@ class asynchronous_state_impl
     asynchronous_state_impl() = default;
 
     // constructs an immediately ready state
-    template<class Arg1, class... Args,
+    template<class... Args,
              class = typename std::enable_if<
-               std::is_constructible<T,Arg1,Args...>::value
+               std::is_constructible<T,Args...>::value
              >::type
             >
     __host__ __device__
-    asynchronous_state_impl(cudaStream_t s, Arg1&& ready_arg1, Args&&... ready_args)
-      : data_(make_unique<T>(s, std::forward<Arg1>(ready_arg1), std::forward<Args>(ready_args)...))
+    asynchronous_state_impl(construct_ready_t, Args&&... ready_args)
+      : data_(make_unique<T>(std::forward<Args>(ready_args)...))
     {}
 
     // constructs a not ready state
@@ -72,8 +78,8 @@ class asynchronous_state_impl
     //     instead, we should just create it uninitialized
     // XXX the destructor should check whether the state requires destruction
     __host__ __device__
-    asynchronous_state_impl(cudaStream_t s)
-      : asynchronous_state_impl(s, T{})
+    asynchronous_state_impl(construct_not_ready_t)
+      : asynchronous_state_impl(T{})
     {}
 
     __host__ __device__
@@ -156,11 +162,15 @@ class asynchronous_state_impl<T,true>
                std::is_constructible<T,U>::value
              >::type>
     __host__ __device__
-    asynchronous_state_impl(cudaStream_t, U&&) : valid_(true) {}
+    asynchronous_state_impl(construct_ready_t, U&&) : valid_(true) {}
+
+    __host__ __device__
+    asynchronous_state_impl(construct_ready_t) : valid_(true) {}
+    {}
 
     // constructs a not ready state
     __host__ __device__
-    asynchronous_state_impl(cudaStream_t) : valid_(true) {}
+    asynchronous_state_impl(construct_not_ready_t) : valid_(true) {}
 
     __host__ __device__
     asynchronous_state_impl(asynchronous_state_impl&& other) : valid_(other.valid_)

@@ -18,12 +18,12 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/event.hpp>
+#include <agency/cuda/detail/stream.hpp>
 #include <agency/cuda/detail/asynchronous_state.hpp>
 #include <agency/cuda/detail/continuation.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/tuple.hpp>
-#include <agency/detail/pointer.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -134,95 +134,6 @@ auto get_data_pointers_from_tuple(agency::detail::tuple<asynchronous_state<Types
 }
 
 
-template<class... Types>
-class asynchronous_state_tuple : private agency::detail::tuple<asynchronous_state<Types>...>
-{
-  private:
-    using super_t = agency::detail::tuple<asynchronous_state<Types>...>;
-
-    __host__ __device__
-    super_t& state_tuple()
-    {
-      return *this;
-    }
-
-    __host__ __device__
-    const super_t& state_tuple() const
-    {
-      return *this;
-    }
-
-    __host__ __device__
-    auto get_values_or_units_from_state_tuple()
-      -> decltype(
-           get_values_or_units_from_tuple(state_tuple())
-         )
-    {
-      return get_values_or_units_from_tuple(state_tuple());
-    }
-    
-    template<class T>
-    struct is_not_unit : std::integral_constant<bool, !std::is_same<T,unit>::value> {};
-    
-    template<class Tuple>
-    __host__ __device__
-    static auto filter_non_unit(Tuple&& tuple)
-      -> decltype(
-           agency::detail::tuple_filter<is_not_unit>(std::forward<Tuple>(tuple))
-         )
-    {
-      return agency::detail::tuple_filter<is_not_unit>(std::forward<Tuple>(tuple));
-    }
-
-    struct call_valid
-    {
-      template<class T>
-      __AGENCY_ANNOTATION
-      bool operator()(const asynchronous_state<T>& state) const
-      {
-        return state.valid();
-      }
-    };
-
-  public:
-    __host__ __device__
-    asynchronous_state_tuple(asynchronous_state<Types>&&... states)
-      : super_t(std::move(states)...)
-    {}
-
-    __host__ __device__
-    auto get()
-      -> decltype(
-           agency::detail::unwrap_small_tuple(
-             filter_non_unit(
-               this->get_values_or_units_from_state_tuple()
-             )
-           )
-         )
-    {
-      return agency::detail::unwrap_small_tuple(
-        filter_non_unit(
-          get_values_or_units_from_state_tuple()
-        )
-      );
-    }
-
-    using pointer = agency::detail::zip_pointer<typename asynchronous_state<Types>::pointer...>;
-
-    __host__ __device__
-    pointer data()
-    {
-      return get_data_pointers_from_tuple(state_tuple());
-    }
-
-    __host__ __device__
-    bool valid() const
-    {
-      return agency::detail::tuple_all_of(state_tuple(), call_valid{});
-    }
-};
-
-
 // declare this so future may befriend it
 template<class Shape, class Index, class ThisIndexFunction>
 class basic_grid_executor;
@@ -241,26 +152,19 @@ template<typename T>
 class future
 {
   private:
-    cudaStream_t stream_;
+    detail::stream stream_;
     detail::event event_;
     detail::asynchronous_state<T> state_;
 
-    // XXX stream_ should default to per-thread default stream
-    static constexpr cudaStream_t default_stream{0};
-
   public:
-    // XXX this should be private
     __host__ __device__
-    future(cudaStream_t s) : future(s, detail::event{}) {}
-
-    __host__ __device__
-    future() : future(default_stream) {}
+    future() = default;
 
     __host__ __device__
     future(future&& other)
       : future()
     {
-      future::swap(stream_, other.stream_);
+      stream_.swap(other.stream_);
       event_.swap(other.event_);
       state_.swap(other.state_);
     } // end future()
@@ -268,9 +172,9 @@ class future
     __host__ __device__
     future &operator=(future&& other)
     {
-      future::swap(stream_, other.stream_);
-      future::swap(event_,  other.event_);
-      future::swap(state_,  other.state_);
+      stream_.swap(other.stream_);
+      event_.swap(other.event_);
+      state_.swap(other.state_);
       return *this;
     } // end operator=()
 
@@ -287,7 +191,7 @@ class future
         event_(),
         state_(std::move(other.state_))
     {
-      future::swap(stream_, other.stream_);
+      stream_.swap(other.stream_);
       event_.swap(other.event_);
     } // end future()
 
@@ -318,7 +222,13 @@ class future
     } // end event()
 
     __host__ __device__
-    cudaStream_t stream() const
+    const detail::stream& stream() const
+    {
+      return stream_;
+    } // end stream()
+
+    __host__ __device__
+    detail::stream& stream()
     {
       return stream_;
     } // end stream()
@@ -372,8 +282,8 @@ class future
     template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
 
     __host__ __device__
-    future(cudaStream_t s, detail::event&& e, detail::asynchronous_state<T>&& state)
-      : stream_(s), event_(std::move(e)), state_(std::move(state))
+    future(detail::stream&& s, detail::event&& e, detail::asynchronous_state<T>&& state)
+      : stream_(std::move(s)), event_(std::move(e)), state_(std::move(state))
     {}
 
     template<class... Args,
@@ -381,8 +291,8 @@ class future
                detail::is_constructible_or_void<T,Args...>::value
              >::type>
     __host__ __device__
-    future(cudaStream_t s, detail::event&& e, Args&&... ready_args)
-      : future(s, std::move(e), detail::asynchronous_state<T>(s, std::forward<Args>(ready_args)...))
+    future(detail::stream&& s, detail::event&& e, Args&&... ready_args)
+      : future(std::move(s), std::move(e), detail::asynchronous_state<T>(detail::construct_ready, std::forward<Args>(ready_args)...))
     {}
 
     template<class... Args,
@@ -391,7 +301,7 @@ class future
              >::type>
     __host__ __device__
     future(detail::event&& e, Args&&... ready_args)
-      : future(default_stream, std::move(e), detail::asynchronous_state<T>(default_stream, std::forward<Args>(ready_args)...))
+      : future(detail::stream{}, std::move(e), std::forward<Args>(ready_args)...)
     {}
 
     // implement swap to avoid depending on thrust::swap

@@ -240,9 +240,8 @@ class basic_grid_executor
 
 
     __host__ __device__
-    explicit basic_grid_executor(int shared_memory_size = 0, cudaStream_t stream = 0, gpu_id gpu = detail::current_gpu())
+    explicit basic_grid_executor(int shared_memory_size = 0, gpu_id gpu = detail::current_gpu())
       : shared_memory_size_(shared_memory_size),
-        stream_(stream),
         gpu_(gpu)
     {}
 
@@ -251,13 +250,6 @@ class basic_grid_executor
     int shared_memory_size() const
     {
       return shared_memory_size_;
-    }
-
-
-    __host__ __device__
-    cudaStream_t stream() const
-    {
-      return stream_; 
     }
 
 
@@ -278,11 +270,11 @@ class basic_grid_executor
     // XXX we should push this call into then_execute() since there's no longer a reason to have this extra function
     template<class Function>
     __host__ __device__
-    event then_execute_impl(Function f, shape_type shape, event& dependency)
+    event then_execute_impl(Function f, shape_type shape, stream& stream, event& dependency)
     {
       // XXX shouldn't we use the stream associated with dependency instead of stream()?
 
-      return this->launch(grid_executor_kernel<Function>, f, shape, shared_memory_size(), stream(), dependency);
+      return this->launch(grid_executor_kernel<Function>, f, shape, shared_memory_size(), stream, dependency);
     }
 
 
@@ -324,18 +316,18 @@ class basic_grid_executor
     __host__ __device__
     future<Container> then_execute(Function f, shape_type shape, future<T>& fut, Factory1 outer_factory, Factory2 inner_factory)
     {
-      // XXX shouldn't we use fut.stream() ?
-      detail::asynchronous_state<Container> result_state(stream(), shape);
+      detail::stream stream = std::move(fut.stream());
+
+      detail::asynchronous_state<Container> result_state(construct_ready, shape);
 
       using outer_arg_type = agency::detail::result_of_factory_t<Factory1>;
       auto outer_arg = executor_traits<basic_grid_executor>::template make_ready_future<outer_arg_type>(*this, outer_factory());
 
       auto g = make_then_execute_functor(result_state.data(), f, ThisIndexFunction(), fut.data(), outer_arg.data(), inner_factory);
 
-      auto next_event = then_execute_impl(g, shape, fut.event());
+      auto next_event = then_execute_impl(g, shape, stream, fut.event());
 
-      // XXX shouldn't we use dependency.stream() here?
-      return future<Container>(stream(), std::move(next_event), std::move(result_state));
+      return future<Container>(std::move(stream), std::move(next_event), std::move(result_state));
     }
 
 
@@ -435,14 +427,14 @@ class basic_grid_executor
   private:
     template<class Arg>
     __host__ __device__
-    event launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, event& dependency)
+    event launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, stream& stream, event& dependency)
     {
       return launch(kernel, arg, shape, shared_memory_size, stream, dependency, gpu());
     }
 
     template<class Arg>
     __host__ __device__
-    event launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, cudaStream_t stream, event& dependency, gpu_id gpu)
+    event launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, stream& stream, event& dependency, gpu_id gpu)
     {
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
@@ -450,11 +442,10 @@ class basic_grid_executor
       ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
       ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
 
-      return dependency.then_on(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream, gpu.native_handle(), arg);
+      return dependency.then_on(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream.native_handle(), gpu.native_handle(), arg);
     }
 
     int shared_memory_size_;
-    cudaStream_t stream_;
     gpu_id gpu_;
 };
 
