@@ -79,7 +79,7 @@ class asynchronous_state_impl
     // XXX the destructor should check whether the state requires destruction
     __host__ __device__
     asynchronous_state_impl(construct_not_ready_t)
-      : asynchronous_state_impl(T{})
+      : asynchronous_state_impl(construct_ready, T{})
     {}
 
     __host__ __device__

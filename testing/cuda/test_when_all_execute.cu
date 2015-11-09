@@ -126,32 +126,29 @@ agency::cuda::future<
 >
   move_construct_result(agency::cuda::detail::event& dependency, Pointer ptr, Pointers... ptrs)
 {
-  cudaStream_t stream = 0;
-
   using result_type = agency::detail::when_all_result_t<
     agency::cuda::future<typename std::pointer_traits<Pointer>::element_type>,
     agency::cuda::future<typename std::pointer_traits<Pointers>::element_type>...
   >;
 
   // create a state to hold the result
-  agency::cuda::detail::asynchronous_state<result_type> result_state(stream);
+  agency::cuda::detail::asynchronous_state<result_type> result_state(agency::cuda::detail::construct_not_ready);
 
   // create a function to do the move construction
   auto f = make_move_construct_result_functor(result_state.data(), ptr, ptrs...);
 
   // launch the function
-  agency::cuda::detail::event result_event = dependency.then(f, dim3{1}, dim3{1}, 0, stream);
+  agency::cuda::detail::stream stream;
+  agency::cuda::detail::event result_event = dependency.then(f, dim3{1}, dim3{1}, 0, stream.native_handle());
 
-  return agency::cuda::future<result_type>(stream, std::move(result_event), std::move(result_state));
+  return agency::cuda::future<result_type>(std::move(stream), std::move(result_event), std::move(result_state));
 }
 
 
 inline agency::cuda::future<void>
   move_construct_result(agency::cuda::detail::event& dependency)
 {
-  cudaStream_t stream = 0;
-
-  return agency::cuda::future<void>(stream, std::move(dependency), agency::cuda::detail::asynchronous_state<void>(stream));
+  return agency::cuda::future<void>(std::move(dependency), agency::cuda::detail::asynchronous_state<void>(agency::cuda::detail::construct_ready));
 }
 
 

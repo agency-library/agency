@@ -259,7 +259,7 @@ class future
     {
       // create state for the continuation's result
       using result_type = agency::detail::result_of_continuation_t<Function,future>;
-      detail::asynchronous_state<result_type> result_state(stream());
+      detail::asynchronous_state<result_type> result_state(detail::construct_not_ready);
 
       // tuple up f's input state
       auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
@@ -271,10 +271,10 @@ class future
       auto continuation = detail::make_continuation(f, result_state.data(), pointer_tuple);
 
       // launch the continuation
-      detail::event next_event = event().then(continuation, dim3{1}, dim3{1}, 0, stream());
+      detail::event next_event = event().then(continuation, dim3{1}, dim3{1}, 0, stream().native_handle());
 
       // return the continuation's future
-      return future<result_type>(stream(), std::move(next_event), std::move(result_state));
+      return future<result_type>(std::move(stream()), std::move(next_event), std::move(result_state));
     }
 
 //  private:
@@ -295,13 +295,18 @@ class future
       : future(std::move(s), std::move(e), detail::asynchronous_state<T>(detail::construct_ready, std::forward<Args>(ready_args)...))
     {}
 
+    __host__ __device__
+    future(detail::event&& e, detail::asynchronous_state<T>&& state)
+      : future(detail::stream{}, std::move(e), std::move(state))
+    {}
+
     template<class... Args,
              class = typename std::enable_if<
                detail::is_constructible_or_void<T,Args...>::value
              >::type>
     __host__ __device__
     future(detail::event&& e, Args&&... ready_args)
-      : future(detail::stream{}, std::move(e), std::forward<Args>(ready_args)...)
+      : future(std::move(e), detail::asynchronous_state<T>(detail::construct_ready, std::forward<Args>(ready_args)...))
     {}
 
     // implement swap to avoid depending on thrust::swap
@@ -367,16 +372,16 @@ future<
 >
 when_all(future<Types>&... futures)
 {
-  cudaStream_t stream = 0;
+  detail::stream stream;
 
   // join the events
-  detail::event when_all_ready = detail::when_all(stream, futures.event()...);
+  detail::event when_all_ready = detail::when_all(stream.native_handle(), futures.event()...);
 
   using result_type = agency::detail::when_all_result_t<
     future<Types>...
   >;
 
-  detail::asynchronous_state<result_type> result_state(stream);
+  detail::asynchronous_state<result_type> result_state(detail::construct_not_ready);
 
   // tuple up the input states
   auto unfiltered_pointer_tuple = agency::detail::make_tuple(futures.data()...);
@@ -388,10 +393,10 @@ when_all(future<Types>&... futures)
   auto continuation = detail::make_continuation(detail::when_all_functor<result_type>{}, result_state.data(), pointer_tuple);
 
   // launch the continuation
-  detail::event next_event = when_all_ready.then(continuation, dim3{1}, dim3{1}, 0, stream);
+  detail::event next_event = when_all_ready.then(continuation, dim3{1}, dim3{1}, 0, stream.native_handle());
 
   // return the continuation's future
-  return future<result_type>(stream, std::move(next_event), std::move(result_state));
+  return future<result_type>(std::move(stream), std::move(next_event), std::move(result_state));
 }
 
 

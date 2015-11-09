@@ -65,12 +65,14 @@ struct call_data
 };
 
 
-template<class Future>
+template<class FutureOrFutureReference>
 struct value_type_is_not_void
   : std::integral_constant<
       bool,
       !std::is_void<
-        typename agency::future_traits<Future>::value_type
+        typename agency::future_traits<
+          typename std::decay<FutureOrFutureReference>::type
+        >::value_type
       >::value
     >
 {};
@@ -126,32 +128,29 @@ agency::cuda::future<
 >
   move_construct_result(agency::cuda::detail::event& dependency, Pointer ptr, Pointers... ptrs)
 {
-  cudaStream_t stream = 0;
-
   using result_type = agency::detail::when_all_result_t<
     agency::cuda::future<typename std::pointer_traits<Pointer>::element_type>,
     agency::cuda::future<typename std::pointer_traits<Pointers>::element_type>...
   >;
 
   // create a state to hold the result
-  agency::cuda::detail::asynchronous_state<result_type> result_state(stream);
+  agency::cuda::detail::asynchronous_state<result_type> result_state(agency::cuda::detail::construct_not_ready);
 
   // create a function to do the move construction
   auto f = make_move_construct_result_functor(result_state.data(), ptr, ptrs...);
 
   // launch the function
-  agency::cuda::detail::event result_event = dependency.then(f, dim3{1}, dim3{1}, 0, stream);
+  agency::cuda::detail::stream stream;
+  agency::cuda::detail::event result_event = dependency.then(f, dim3{1}, dim3{1}, 0, stream.native_handle());
 
-  return agency::cuda::future<result_type>(stream, std::move(result_event), std::move(result_state));
+  return agency::cuda::future<result_type>(std::move(stream), std::move(result_event), std::move(result_state));
 }
 
 
 inline agency::cuda::future<void>
   move_construct_result(agency::cuda::detail::event& dependency)
 {
-  cudaStream_t stream = 0;
-
-  return agency::cuda::future<void>(stream, std::move(dependency), agency::cuda::detail::asynchronous_state<void>(stream));
+  return agency::cuda::future<void>(std::move(dependency), agency::cuda::detail::asynchronous_state<void>(agency::cuda::detail::construct_not_ready));
 }
 
 
@@ -184,6 +183,46 @@ struct type_list_to_tuple_or_single_type_or_void<agency::detail::type_list<>>
 {
   using type = void;
 };
+
+
+template<class IndexSequence, class TypeList>
+struct new_when_all_execute_and_select_result_from_type_list;
+
+template<size_t... Indices, class TypeList>
+struct new_when_all_execute_and_select_result_from_type_list<agency::detail::index_sequence<Indices...>, TypeList>
+{
+  using unfiltered_type_list = agency::detail::type_list<
+    agency::detail::type_list_element<Indices,TypeList>...
+  >;
+
+  template<class T>
+  struct is_not_void : std::integral_constant<bool, !std::is_void<T>::value> {};
+
+  using non_void_types = agency::detail::type_list_filter<is_not_void,unfiltered_type_list>;
+
+  using type = typename type_list_to_tuple_or_single_type_or_void<non_void_types>::type;
+};
+
+template<class IndexSequence, class TupleOfFutures>
+struct new_when_all_execute_and_select_result
+{
+  // get the tuple's type_list of futures
+  using future_types = agency::detail::tuple_elements<TupleOfFutures>;
+
+  template<class Future>
+  struct future_value_type
+  {
+    using type = typename agency::future_traits<Future>::value_type;
+  };
+
+  // get each future's value_type
+  using value_types = agency::detail::type_list_map<future_value_type, future_types>;
+
+  using type = typename new_when_all_execute_and_select_result_from_type_list<IndexSequence, value_types>::type;
+};
+
+template<class IndexSequence, class TupleOfFutures>
+using new_when_all_execute_and_select_result_t = typename new_when_all_execute_and_select_result<IndexSequence, TupleOfFutures>::type;
 
 
 template<class TypeList>
@@ -244,10 +283,18 @@ agency::cuda::detail::event
 }
 
 
-template<class Function, class OuterFactory, class InnerFactory, class... Types>
-agency::cuda::future<new_when_all_result_t<Types...>>
-  when_all_execute_impl1(Function f, agency::cuda::grid_executor::shape_type shape, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::future<Types>&... futures)
+template<size_t... SelectedIndices, size_t... TupleIndices, class TupleOfFutures, class Function, class OuterFactory, class InnerFactory>
+agency::cuda::future<new_when_all_execute_and_select_result_t<agency::detail::index_sequence<SelectedIndices...>, TupleOfFutures>>
+  when_all_execute_and_select_impl(agency::detail::index_sequence<SelectedIndices...>,
+                                   agency::detail::index_sequence<TupleIndices...>,
+                                   Function f,
+                                   agency::cuda::grid_executor::shape_type shape,
+                                   TupleOfFutures tuple_of_futures,
+                                   OuterFactory outer_factory,
+                                   InnerFactory inner_factory)
 {
+  // XXX we should static_assert that SelectedIndices are unique and in the correct range
+
   cudaStream_t stream = 0;
 
   // create a future to contain the outer argument
@@ -255,37 +302,31 @@ agency::cuda::future<new_when_all_result_t<Types...>>
   auto outer_arg_future = agency::cuda::make_ready_future<outer_arg_type>(outer_factory());
 
   // join the events
-  agency::cuda::detail::event when_all_ready = agency::cuda::detail::when_all(stream, outer_arg_future.event(), futures.event()...);
-
-  // move the futures into a tuple
-  auto tuple_of_futures = agency::detail::make_tuple(std::move(futures)...);
+  agency::cuda::detail::event when_all_ready = agency::cuda::detail::when_all(stream, outer_arg_future.event(), agency::detail::get<TupleIndices>(tuple_of_futures).event()...);
 
   // get a view of the non-void futures
   auto view_of_non_void_futures = agency::detail::tuple_filter_view<value_type_is_not_void>(tuple_of_futures);
 
-  // launch the main
+  // launch the main operation
   auto when_all_execute_event = launch_when_all_execute_operation(agency::detail::make_tuple_indices(view_of_non_void_futures), when_all_ready, f, shape, outer_arg_future.data(), inner_factory, view_of_non_void_futures);
 
-  // XXX to implement when_all_execute_and_select, we'd pass:
-  // 1. the selected indices as an index_sequence
-  // 2. the full tuple of futures
-  // XXX we should static_assert that each selected element is not void
-  return move_construct_result_from_tuple_of_futures(agency::detail::make_tuple_indices(view_of_non_void_futures), when_all_execute_event, view_of_non_void_futures);
-}
+  // get a view of the selected futures
+  auto view_of_selected_futures = agency::detail::forward_as_tuple(agency::detail::get<SelectedIndices>(tuple_of_futures)...);
 
+  // get a view of the selected futures which are non-void
+  auto view_of_selected_non_void_futures = agency::detail::tuple_filter_view<value_type_is_not_void>(view_of_selected_futures);
 
-template<size_t... Indices, class Function, class TupleOfFutures, class OuterFactory, class InnerFactory>
-agency::cuda::future<
-  new_when_all_result_t<
-    typename agency::future_traits<
-      typename std::tuple_element<Indices,typename std::decay<TupleOfFutures>::type>::type
-    >::value_type...
-  >
->
-  when_all_execute_impl0(agency::detail::index_sequence<Indices...>, Function f, agency::cuda::grid_executor::shape_type shape, TupleOfFutures&& futures, OuterFactory outer_factory, InnerFactory inner_factory)
-{
-  // unpack the futures tuple
-  return when_all_execute_impl1(f, shape, outer_factory, inner_factory, agency::detail::get<Indices>(futures)...);
+  // XXX we need to figure out how to safely end the futures' lifetimes
+  //     we can't destroy them before their values have been moved into the result future
+  //     we need to garbage collect them somehow
+  //     or we need to take their data pointer and make the result construction kernel the owner
+
+  // XXX to do this the right way, we'd move each future's pointer into the result construction kernel
+  //     the agent that executes that operation would take ownership of the unique_ptrs and they would naturally get destroyed when that agent ended its computation
+  //     we can't do that because that memory cannot be deallocated by a __device__ function
+  // XXX we should implement a better memory allocator that can be used uniformly in __host__ & __device__ code
+
+  return move_construct_result_from_tuple_of_futures(agency::detail::make_tuple_indices(view_of_selected_non_void_futures), when_all_execute_event, view_of_selected_non_void_futures);
 }
 
 
@@ -320,7 +361,8 @@ agency::cuda::future<
 >
   when_all_execute(Function f, agency::cuda::grid_executor::shape_type shape, TupleOfFutures&& futures, OuterFactory outer_factory, InnerFactory inner_factory)
 {
-  return when_all_execute_impl0(agency::detail::make_tuple_indices(futures), f, shape, std::forward<TupleOfFutures>(futures), outer_factory, inner_factory);
+  auto indices = agency::detail::make_tuple_indices(futures);
+  return ::when_all_execute_and_select_impl(indices, indices, f, shape, std::move(futures), outer_factory, inner_factory);
 }
 
 
