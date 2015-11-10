@@ -235,7 +235,7 @@ class basic_grid_executor
                                   Factory1 outer_factory,
                                   Factory2 inner_factory)
     {
-      return detail::when_all_execute_and_select(f, shape, ThisIndexFunction(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory);
+      return detail::when_all_execute_and_select<Indices...>(f, shape, ThisIndexFunction(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory);
     }
 
     template<class Container, class Function, class T, class Factory1, class Factory2,
