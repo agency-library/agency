@@ -181,6 +181,7 @@ auto move_construct_result_from_tuple_of_futures(agency::detail::index_sequence<
 
 
 template<class Function, class Shape, class IndexFunction, class OuterArgPointer, class InnerFactory, class... Pointers>
+__host__ __device__
 event launch_when_all_execute_operation_impl(event& dependency,
                                              Function f,
                                              Shape shape,
@@ -207,6 +208,7 @@ event launch_when_all_execute_operation_impl(event& dependency,
 
 
 template<size_t... Indices, class Function, class Shape, class IndexFunction, class OuterArgumentPointer, class InnerFactory, class TupleOfNonVoidFutures>
+__host__ __device__
 event launch_when_all_execute_operation(agency::detail::index_sequence<Indices...>,
                                         event& dependency,
                                         Function f,
@@ -263,6 +265,7 @@ using when_all_execute_and_select_result_t = typename when_all_execute_and_selec
 
 
 template<size_t... SelectedIndices, size_t... TupleIndices, class Function, class Shape, class IndexFunction, class TupleOfFutures, class OuterFactory, class InnerFactory>
+__host__ __device__
 future<when_all_execute_and_select_result_t<agency::detail::index_sequence<SelectedIndices...>, TupleOfFutures>>
   when_all_execute_and_select_impl(agency::detail::index_sequence<SelectedIndices...>,
                                    agency::detail::index_sequence<TupleIndices...>,
@@ -314,6 +317,7 @@ template<size_t... SelectedIndices,
          class TupleOfFutures,
          class OuterFactory,
          class InnerFactory>
+__host__ __device__
 future<when_all_execute_and_select_result_t<agency::detail::index_sequence<SelectedIndices...>, TupleOfFutures>>
   when_all_execute_and_select(Function f,
                               Shape shape,
