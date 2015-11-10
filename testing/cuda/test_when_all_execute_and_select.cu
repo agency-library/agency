@@ -43,25 +43,26 @@ template<class TupleOfFutures>
 using when_all_execute_result_t = typename when_all_execute_result<TupleOfFutures>::type;
 
 
-template<size_t... Indices, class Function, class Shape, class IndexFunction, class TupleOfFutures, class OuterFactory, class InnerFactory>
+template<size_t... Indices, class Function, class TupleOfFutures, class OuterFactory, class InnerFactory>
 agency::cuda::future<
   when_all_execute_result_t<
     typename std::decay<TupleOfFutures>::type
   >
 >
-  when_all_execute_impl(agency::detail::index_sequence<Indices...> indices, Function f, Shape shape, IndexFunction index_function, TupleOfFutures&& futures, OuterFactory outer_factory, InnerFactory inner_factory)
+  when_all_execute_impl(agency::detail::index_sequence<Indices...> indices, Function f, agency::cuda::grid_executor::shape_type shape, TupleOfFutures&& futures, OuterFactory outer_factory, InnerFactory inner_factory)
 {
-  return agency::cuda::detail::when_all_execute_and_select<Indices...>(f, shape, index_function, std::forward<TupleOfFutures>(futures), outer_factory, inner_factory);
+  agency::cuda::grid_executor exec;
+  return exec.template when_all_execute_and_select<Indices...>(f, shape, std::forward<TupleOfFutures>(futures), outer_factory, inner_factory);
 }
 
 
-template<class Function, class Shape, class IndexFunction, class TupleOfFutures, class OuterFactory, class InnerFactory>
+template<class Function, class TupleOfFutures, class OuterFactory, class InnerFactory>
 agency::cuda::future<
   when_all_execute_result_t<
     typename std::decay<TupleOfFutures>::type
   >
 >
-  when_all_execute(Function f, Shape shape, IndexFunction index_function, TupleOfFutures&& futures, OuterFactory outer_factory, InnerFactory inner_factory)
+  when_all_execute(Function f, agency::grid_executor::shape_type shape, TupleOfFutures&& futures, OuterFactory outer_factory, InnerFactory inner_factory)
 {
   auto indices = agency::detail::make_tuple_indices(futures);
   return ::when_all_execute_impl(indices, f, shape, index_function, std::forward<TupleOfFutures>(futures), outer_factory, inner_factory);
@@ -71,8 +72,7 @@ agency::cuda::future<
 int main()
 {
   auto factory = [] __device__ { return 7; };
-
-  auto index_function = agency::cuda::detail::this_index_1d{};
+  auto shape = agency::cuda::grid_executor::shape_type{100,256};
 
   {
     // int, float -> (int, float)
@@ -87,8 +87,7 @@ int main()
         ++past_arg2;
       }
     },
-    agency::cuda::grid_executor::shape_type{100,256},
-    index_function,
+    shape,
     agency::detail::make_tuple(std::move(f1),std::move(f2)),
     factory,
     factory);
@@ -110,8 +109,7 @@ int main()
         ++past_arg;
       }
     },
-    agency::cuda::grid_executor::shape_type{100,256},
-    index_function,
+    shape,
     agency::detail::make_tuple(std::move(f1),std::move(f2)),
     factory,
     factory);
@@ -133,8 +131,7 @@ int main()
         ++past_arg;
       }
     },
-    agency::cuda::grid_executor::shape_type{100,256},
-    index_function,
+    shape,
     agency::detail::make_tuple(std::move(f1),std::move(f2)),
     factory,
     factory);
@@ -151,8 +148,7 @@ int main()
     auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
-    agency::cuda::grid_executor::shape_type{100,256},
-    index_function,
+    shape,
     agency::detail::make_tuple(std::move(f1)),
     factory,
     factory);
@@ -168,8 +164,7 @@ int main()
     auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
-    agency::cuda::grid_executor::shape_type{100,256},
-    index_function,
+    shape,
     agency::detail::make_tuple(std::move(f1), std::move(f2)),
     factory,
     factory);
@@ -183,8 +178,7 @@ int main()
     auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
-    agency::cuda::grid_executor::shape_type{100,256},
-    index_function,
+    shape,
     agency::detail::make_tuple(),
     factory,
     factory);

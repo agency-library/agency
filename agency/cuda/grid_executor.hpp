@@ -20,6 +20,7 @@
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
+#include <agency/cuda/detail/when_all_execute_and_select.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/functional.hpp>
 #include <agency/detail/shape_cast.hpp>
@@ -225,6 +226,18 @@ class basic_grid_executor
     }
 
   public:
+    template<size_t... Indices, class Function, class TupleOfFutures, class Factory1, class Factory2>
+    __host__ __device__
+    future<detail::when_all_execute_and_select_result_t<agency::detail::index_sequence<Indices...>, TupleOfFutures>>
+      when_all_execute_and_select(Function f,
+                                  shape_type shape,
+                                  TupleOfFutures&& tuple_of_futures,
+                                  Factory1 outer_factory,
+                                  Factory2 inner_factory)
+    {
+      return detail::when_all_execute_and_select(f, shape, ThisIndexFunction(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory);
+    }
+
     template<class Container, class Function, class T, class Factory1, class Factory2,
              class = typename std::enable_if<
                agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
