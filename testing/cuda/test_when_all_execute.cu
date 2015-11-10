@@ -28,7 +28,7 @@ struct when_all_execute_functor
 
     // XXX i don't think we're doing the leader calculation in a portable way
     //     we need a way to compare idx to the origin idx to figure out if this invocation represents the CTA leader
-    agency::cuda::detail::inner_shared_parameter<InnerFactory> inner_param(idx[1] == 0, inner_factory_);
+    agency::cuda::detail::on_chip_shared_parameter<InnerFactory> inner_param(idx[1] == 0, inner_factory_);
 
     // convert the references to raw references before passing them to f_
     f_(idx,

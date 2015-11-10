@@ -3,6 +3,23 @@
 #include <memory>
 
 
+template<class TypeList>
+struct when_all_result_from_type_list
+{
+  template<class T>
+  using is_not_void = std::integral_constant<bool, !std::is_void<T>::value>;
+
+  // filter void types
+  using filtered_type_list = agency::detail::type_list_filter<is_not_void,TypeList>;
+
+  // get a tuple, or single type of the filtered types
+  using type = agency::detail::tuple_or_single_type_or_void_from_type_list_t<filtered_type_list>;
+};
+
+template<class TypeList>
+using when_all_result_from_type_list_t = typename when_all_result_from_type_list<TypeList>::type;
+
+
 template<class TupleOfFutures>
 struct when_all_execute_result
 {
@@ -18,7 +35,7 @@ struct when_all_execute_result
   // turn the type list of futures into a type list of their value_types
   using value_types = agency::detail::type_list_map<map_futures_to_value_type,future_types>;
 
-  using type = new_when_all_result_from_type_list_t<value_types>;
+  using type = when_all_result_from_type_list_t<value_types>;
 };
 
 
