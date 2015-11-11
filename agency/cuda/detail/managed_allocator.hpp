@@ -42,6 +42,19 @@ class managed_allocator
         throw thrust::system_error(error, thrust::cuda_category(), "managed_allocator::deallocate(): cudaFree");
       }
     }
+
+    template<class U, class... Args>
+    void construct(U* ptr, Args&&... args)
+    {
+      cudaError_t error = cudaDeviceSynchronize();
+
+      if(error != cudaSuccess)
+      {
+        throw thrust::system_error(error, thrust::cuda_category(), "managed_allocator::allocate(): cudaDeviceSynchronize");
+      }
+
+      new(ptr) T(std::forward<Args>(args)...);
+    }
 };
 
 

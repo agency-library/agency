@@ -51,6 +51,18 @@ class allocator
       free(ptr);
 #endif
     }
+
+    template<class U, class... Args>
+    __host__ __device__
+    void construct(U* ptr, Args&&... args)
+    {
+#ifndef __CUDA_ARCH__
+      managed_allocator<U> alloc;
+      alloc.template construct<U>(ptr, std::forward<Args>(args)...);
+#else
+      new(ptr) U(std::forward<Args>(args)...);
+#endif
+    }
 }; // end allocator
 
 
