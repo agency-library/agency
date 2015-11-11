@@ -659,6 +659,9 @@ class flattened_executor<cuda::grid_executor>
     template<class T>
     using future = cuda::grid_executor::template future<T>;
 
+    template<class T>
+    using container = cuda::grid_executor::template container<T>;
+
     // XXX initialize outer_subscription_ correctly
     __host__ __device__
     flattened_executor(const base_executor_type& base_executor = base_executor_type())
@@ -666,6 +669,7 @@ class flattened_executor<cuda::grid_executor>
         base_executor_(base_executor)
     {}
 
+    // XXX correctly return future<Container> here
     template<class Function, class T>
     future<void> then_execute(Function f, shape_type shape, future<T>& dependency)
     {
@@ -681,6 +685,7 @@ class flattened_executor<cuda::grid_executor>
       return base_executor().then_execute(execute_me, partitioning, dependency);
     }
 
+    // XXX correctly return future<Container> here
     template<class Function, class T, class Factory>
     future<void> then_execute(Function f, shape_type shape, future<T>& dependency, Factory factory)
     {

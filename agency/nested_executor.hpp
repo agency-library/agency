@@ -66,6 +66,9 @@ class nested_executor
     template<class T>
     using future = typename outer_traits::template future<T>;
 
+    template<class T>
+    using container = typename outer_traits::template container<T>;
+
     future<void> make_ready_future()
     {
       return outer_traits::make_ready_future(outer_executor());

@@ -74,8 +74,10 @@ auto bulk_invoke_executor_impl(Executor& exec, typename executor_traits<Executor
 
 
 template<class Executor, class Function, class Tuple, size_t... TupleIndices>
-typename executor_traits<Executor>::template future<void>
-  bulk_async_executor_impl(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Tuple&& shared_init_tuple, agency::detail::index_sequence<TupleIndices...>)
+auto bulk_async_executor_impl(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Tuple&& shared_init_tuple, agency::detail::index_sequence<TupleIndices...>)
+  -> decltype(
+       executor_traits<Executor>::async_execute(exec, f, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...)
+     )
 {
   return executor_traits<Executor>::async_execute(exec, f, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...);
 }
@@ -152,9 +154,12 @@ struct unpack_arguments_and_invoke_with_self
 
   template<class ExecutionAgent>
   __AGENCY_ANNOTATION
-  void operator()(ExecutionAgent& self)
+  auto operator()(ExecutionAgent& self)
+    -> decltype(
+         f(self, agency::detail::get<Indices>(args)...)
+       )
   {
-    f(self, agency::detail::get<Indices>(args)...);
+    return f(self, agency::detail::get<Indices>(args)...);
   }
 };
 
@@ -188,7 +193,8 @@ struct execute_agent_functor
 
   template<class... Args>
   __AGENCY_ANNOTATION
-  void operator()(const executor_index_type& executor_idx, Args&&... args)
+  agency::detail::result_of_t<Function(agent_type&, agency::detail::pack_element_t<UserArgIndices, Args&&...>...)>
+    operator()(const executor_index_type& executor_idx, Args&&... args)
   {
     // collect all parameters into a tuple of references
     auto args_tuple = agency::detail::forward_as_tuple(std::forward<Args>(args)...);
@@ -212,15 +218,18 @@ struct execute_agent_functor
     unpack_arguments_and_invoke_with_self<Function,decltype(user_args),UserArgIndices...> invoke_f{f_, user_args};
 
     constexpr size_t num_shared_args = std::tuple_size<decltype(agent_shared_args)>::value;
-    this->unpack_shared_params_and_execute(invoke_f, agent_idx, agent_param_, agent_shared_args, agency::detail::make_index_sequence<num_shared_args>());
+    return this->unpack_shared_params_and_execute(invoke_f, agent_idx, agent_param_, agent_shared_args, agency::detail::make_index_sequence<num_shared_args>());
   }
 };
 
 
 template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
-void bulk_invoke_execution_policy(agency::detail::index_sequence<UserArgIndices...>,
-                                  agency::detail::index_sequence<SharedArgIndices...>,
-                                  ExecutionPolicy& policy, Function f, Args&&... args)
+agency::detail::bulk_invoke_execution_policy_result_t<
+  ExecutionPolicy, Function, Args...
+>
+  bulk_invoke_execution_policy(agency::detail::index_sequence<UserArgIndices...>,
+                               agency::detail::index_sequence<SharedArgIndices...>,
+                               ExecutionPolicy& policy, Function f, Args&&... args)
 {
   using agent_type = typename ExecutionPolicy::execution_agent_type;
   using agent_traits = execution_agent_traits<agent_type>;
@@ -246,7 +255,9 @@ void bulk_invoke_execution_policy(agency::detail::index_sequence<UserArgIndices.
 
 
 template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
-agency::detail::policy_future_t<ExecutionPolicy,void>
+agency::detail::bulk_async_execution_policy_result_t<
+  ExecutionPolicy, Function, Args...
+>
   bulk_async_execution_policy(agency::detail::index_sequence<UserArgIndices...>,
                               agency::detail::index_sequence<SharedArgIndices...>,
                               ExecutionPolicy& policy, Function f, Args&&... args)
