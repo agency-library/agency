@@ -102,6 +102,21 @@ struct take_first_two_parameters_and_invoke
 }; // end take_first_two_parameters_and_invoke
 
 
+template<class Function>
+struct invoke_and_return_unit
+{
+  mutable Function f_;
+
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  unit operator()(Args&&... args)
+  {
+    agency::invoke(f_, std::forward<Args>(args)...);
+    return unit{};
+  }
+};
+
+
 } // end detail
 
 

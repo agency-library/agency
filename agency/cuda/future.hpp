@@ -17,14 +17,13 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/detail/feature_test.hpp>
-#include <agency/cuda/detail/terminate.hpp>
-#include <agency/cuda/detail/unique_ptr.hpp>
-#include <agency/cuda/detail/then_kernel.hpp>
-#include <agency/cuda/detail/launch_kernel.hpp>
-#include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
+#include <agency/cuda/detail/event.hpp>
+#include <agency/cuda/detail/stream.hpp>
+#include <agency/cuda/detail/asynchronous_state.hpp>
+#include <agency/cuda/detail/continuation.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/tuple.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -47,228 +46,103 @@ struct is_constructible_or_void
 {};
 
 
-template<class T>
-struct state_requires_storage
-  : std::integral_constant<
-      bool,
-      std::is_empty<T>::value || std::is_void<T>::value || agency::detail::is_empty_tuple<T>::value
-   >
-{};
-
-
-// XXX should maybe call this asynchronous_state to match the nomenclature of the std
-template<class T,
-         bool requires_storage = state_requires_storage<T>::value>
-class future_state
+__host__ __device__
+unit get_value_or_unit(asynchronous_state<void>&)
 {
-  public:
-    __host__ __device__
-    future_state() = default;
+  return unit{};
+}
 
-    template<class Arg1, class... Args,
-             class = typename std::enable_if<
-               std::is_constructible<T,Arg1,Args...>::value
-             >::type
-            >
-    __host__ __device__
-    future_state(cudaStream_t s, Arg1&& ready_arg1, Args&&... ready_args)
-      : data_(make_unique<T>(s, std::forward<Arg1>(ready_arg1), std::forward<Args>(ready_args)...))
-    {}
-
-    __host__ __device__
-    future_state(cudaStream_t s)
-      : future_state(s, T{})
-    {}
-
-    __host__ __device__
-    future_state(future_state&& other) : data_(std::move(other.data_)) {}
-
-    __host__ __device__
-    future_state& operator=(future_state&& other)
-    {
-      data_ = std::move(other.data_);
-      return *this;
-    }
-
-    __host__ __device__
-    T* data()
-    {
-      return data_.get();
-    }
-
-    __host__ __device__
-    T get()
-    {
-      T result = std::move(*data_);
-
-      data_.reset();
-
-      return std::move(result);
-    }
-
-    __host__ __device__
-    bool valid() const
-    {
-      return data_;
-    }
-
-    template<class... Args,
-             class = typename std::enable_if<
-               std::is_constructible<T,Args...>::value
-             >::type>
-    __host__ __device__
-    void set_valid(cudaStream_t s, Args&&... ready_args)
-    {
-      data_ = make_unique<T>(s, std::forward<Args>(ready_args)...);
-    }
-
-    __host__ __device__
-    void swap(future_state& other)
-    {
-      data_.swap(other.data_);
-    }
-
-  private:
-    unique_ptr<T> data_;
-};
-
-
-// when a type is empty, we can create it on the fly upon dereference
 template<class T>
-struct empty_type_ptr : T
+__host__ __device__
+T get_value_or_unit(asynchronous_state<T>& state)
 {
-  using element_type = T;
+  return state.get();
+}
 
-  __host__ __device__
-  T& operator*()
-  {
-    return *this;
-  }
+template<class T>
+__host__ __device__
+typename asynchronous_state<T>::pointer get_data_pointer(asynchronous_state<T>& state)
+{
+  return state.data();
+}
 
+
+template<class... Types>
+__host__ __device__
+static auto get_values_or_units(asynchronous_state<Types>&... states)
+  -> decltype(
+       agency::detail::make_tuple(get_value_or_unit(states)...)
+     )
+{
+  return agency::detail::make_tuple(get_value_or_unit(states)...);
+}
+
+template<class... Types>
+__host__ __device__
+static auto get_data_pointers(asynchronous_state<Types>&... states)
+  -> decltype(
+       agency::detail::make_tuple(get_data_pointer(states)...)
+     )
+{
+  return agency::detail::make_tuple(get_data_pointer(states)...);
+}
+
+struct get_values_or_units_from_tuple_functor
+{
+  template<class... Args>
   __host__ __device__
-  const T& operator*() const
+  auto operator()(Args&&... args) const
+    -> decltype(
+         get_values_or_units(std::forward<Args>(args)...)
+       )
   {
-    return *this;
+    return get_values_or_units(std::forward<Args>(args)...);
   }
 };
 
-template<>
-struct empty_type_ptr<void> : unit_ptr {};
 
-
-// zero storage optimization
-template<class T>
-class future_state<T,true>
+template<class... Types>
+__host__ __device__
+auto get_values_or_units_from_tuple(agency::detail::tuple<asynchronous_state<Types>...>& tuple)
+  -> decltype(
+       agency::detail::tuple_apply(get_values_or_units_from_tuple_functor{}, tuple)
+     )
 {
-  public:
-    __host__ __device__
-    future_state() : valid_(false) {}
+  return agency::detail::tuple_apply(get_values_or_units_from_tuple_functor{}, tuple);
+}
 
-    // constructs a valid state
-    template<class U,
-             class = typename std::enable_if<
-               std::is_constructible<T,U>::value
-             >::type>
-    __host__ __device__
-    future_state(cudaStream_t, U&&) : valid_(true) {}
 
-    // constructs a valid state
-    __host__ __device__
-    future_state(cudaStream_t) : valid_(true) {}
-
-    __host__ __device__
-    future_state(future_state&& other) : valid_(false)
-    {
-      valid_ = other.valid_;
-      other.valid_ = false;
-    }
-
-    // 1. allow moves to void states (this simply discards the state)
-    // 2. allow moves to empty types if the type can be constructed from an empty argument list
-    template<class U,
-             class T1 = T,
-             class = typename std::enable_if<
-               std::is_void<T1>::value ||
-               (std::is_empty<T>::value && std::is_void<U>::value && std::is_constructible<T>::value)
-             >::type>
-    __host__ __device__
-    future_state(future_state<U>&& other)
-      : valid_(other.valid())
-    {
-      if(valid())
-      {
-        // invalidate the old state by calling .get() if it was valid when we received it
-        other.get();
-      }
-    }
-
-    __host__ __device__
-    future_state& operator=(future_state&& other)
-    {
-      valid_ = other.valid_;
-      other.valid_ = false;
-
-      return *this;
-    }
-
-    __host__ __device__
-    empty_type_ptr<T> data()
-    {
-      return empty_type_ptr<T>();
-    }
-
-    __host__ __device__
-    T get()
-    {
-      valid_ = false;
-
-      return get_impl(std::is_void<T>());
-    }
-
-    __host__ __device__
-    bool valid() const
-    {
-      return valid_;
-    }
-
-    // constructor arguments are simply ignored
-    // XXX if the constructor has a side effect, we probably need to actually invoke it, even though
-    //     the type has no state and requires no storage
-    template<class... Args>
-    __host__ __device__
-    void set_valid(cudaStream_t, Args&&...)
-    {
-      valid_ = true;
-    }
-
-    __host__ __device__
-    void swap(future_state& other)
-    {
-      bool other_valid_old = other.valid_;
-      other.valid_ = valid_;
-      valid_ = other_valid_old;
-    }
-
-  private:
-    __host__ __device__
-    static T get_impl(std::false_type)
-    {
-      return T{};
-    }
-
-    __host__ __device__
-    static T get_impl(std::true_type)
-    {
-      return;
-    }
-
-    bool valid_;
+struct get_data_pointers_from_tuple_functor
+{
+  template<class... Args>
+  __host__ __device__
+  auto operator()(Args&&... args) const -> decltype(get_data_pointers(std::forward<Args>(args)...))
+  {
+    return get_data_pointers(std::forward<Args>(args)...);
+  }
 };
+
+
+template<class... Types>
+__host__ __device__
+auto get_data_pointers_from_tuple(agency::detail::tuple<asynchronous_state<Types>...>& tuple)
+  -> decltype(
+       agency::detail::tuple_apply(get_data_pointers_from_tuple_functor{}, tuple)
+     )
+{
+  return agency::detail::tuple_apply(get_data_pointers_from_tuple_functor{}, tuple);
+}
 
 
 // declare this so future may befriend it
 template<class Shape, class Index, class ThisIndexFunction>
 class basic_grid_executor;
+
+template<class U>
+using element_type_is_not_unit = std::integral_constant<
+  bool,
+  !std::is_same<typename std::pointer_traits<U>::element_type, detail::unit>::value
+>;
 
 
 } // end detail
@@ -278,42 +152,37 @@ template<typename T>
 class future
 {
   private:
-    cudaStream_t stream_;
-    cudaEvent_t event_;
-    detail::future_state<T> state_;
+    detail::stream stream_;
+    detail::event event_;
+    detail::asynchronous_state<T> state_;
 
   public:
-    // XXX this should be private
     __host__ __device__
-    future(cudaStream_t s) : future(s, 0) {}
-
-    // XXX stream_ should default to per-thread default stream
-    __host__ __device__
-    future() : future(0) {}
+    future() = default;
 
     __host__ __device__
     future(future&& other)
       : future()
     {
-      future::swap(stream_, other.stream_);
-      future::swap(event_,  other.event_);
+      stream_.swap(other.stream_);
+      event_.swap(other.event_);
       state_.swap(other.state_);
     } // end future()
 
     __host__ __device__
     future &operator=(future&& other)
     {
-      future::swap(stream_, other.stream_);
-      future::swap(event_,  other.event_);
-      future::swap(state_,  other.state_);
+      stream_.swap(other.stream_);
+      event_.swap(other.event_);
+      state_.swap(other.state_);
       return *this;
     } // end operator=()
 
     template<class U,
              class = typename std::enable_if<
                std::is_constructible<
-                 detail::future_state<T>,
-                 detail::future_state<U>&&
+                 detail::asynchronous_state<T>,
+                 detail::asynchronous_state<U>&&
                >::value
              >::type>
     __host__ __device__
@@ -322,37 +191,14 @@ class future
         event_(),
         state_(std::move(other.state_))
     {
-      future::swap(stream_, other.stream_);
-      future::swap(event_,  other.event_);
+      stream_.swap(other.stream_);
+      event_.swap(other.event_);
     } // end future()
-
-    __host__ __device__
-    ~future()
-    {
-      if(valid())
-      {
-        destroy_event();
-      } // end if
-    } // end ~future()
 
     __host__ __device__
     void wait() const
     {
-      // XXX should probably check for valid() here
-
-#if __cuda_lib_has_cudart
-
-#ifndef __CUDA_ARCH__
-      // XXX need to capture the error as an exception and then throw it in .get()
-      detail::throw_on_error(cudaEventSynchronize(event_), "cudaEventSynchronize in agency::cuda<void>::future::wait");
-#else
-      // XXX need to capture the error as an exception and then throw it in .get()
-      detail::throw_on_error(cudaDeviceSynchronize(), "cudaDeviceSynchronize in agency::cuda<void>::future::wait");
-#endif // __CUDA_ARCH__
-
-#else
-      detail::terminate_with_message("agency::cuda::future<void>::wait() requires CUDART");
-#endif // __cuda_lib_has_cudart
+      event_.wait();
     } // end wait()
 
     __host__ __device__
@@ -366,17 +212,23 @@ class future
     __host__ __device__
     bool valid() const
     {
-      return (event_ != 0) && state_.valid();
+      return event_.valid() && state_.valid();
     } // end valid()
 
     __host__ __device__
-    cudaEvent_t event() const
+    detail::event& event()
     {
       return event_;
     } // end event()
 
     __host__ __device__
-    cudaStream_t stream() const
+    const detail::stream& stream() const
+    {
+      return stream_;
+    } // end stream()
+
+    __host__ __device__
+    detail::stream& stream()
     {
       return stream_;
     } // end stream()
@@ -388,23 +240,13 @@ class future
     __host__ __device__
     static future make_ready(Args&&... args)
     {
-      cudaEvent_t ready_event = 0;
+      detail::event ready_event(detail::event::construct_ready);
 
-#if __cuda_lib_has_cudart
-      detail::throw_on_error(cudaEventCreateWithFlags(&ready_event, event_create_flags), "cudaEventCreateWithFlags in agency::cuda::future<void>::make_ready");
-#else
-      detail::terminate_with_message("agency::cuda::future<void>::make_ready() requires CUDART");
-#endif
-
-      future result;
-      result.set_valid(ready_event, std::forward<Args>(args)...);
-
-      return result;
+      return future(std::move(ready_event), std::forward<Args>(args)...);
     }
 
-    // XXX this is only used by grid_executor::then_execute()
     __host__ __device__
-    auto data() -> decltype(state_.data())
+    auto data() const -> decltype(state_.data())
     {
       return state_.data();
     }
@@ -416,45 +258,31 @@ class future
     {
       // create state for the continuation's result
       using result_type = agency::detail::result_of_continuation_t<Function,future>;
-      detail::future_state<result_type> result_state(stream());
+      detail::asynchronous_state<result_type> result_state(detail::construct_not_ready);
 
-      // get a pointer to the continuation's kernel
-      using result_ptr_type = decltype(result_state.data());
-      using arg_ptr_type = decltype(data());
-      void (*kernel_ptr)(result_ptr_type, Function, arg_ptr_type) = detail::then_kernel<result_ptr_type, Function, arg_ptr_type>;
-      detail::workaround_unused_variable_warning(kernel_ptr);
+      // tuple up f's input state
+      auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
+
+      // filter void states
+      auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
+
+      // make a function implementing the continuation
+      auto continuation = detail::make_continuation(f, result_state.data(), pointer_tuple);
 
       // launch the continuation
-      cudaEvent_t next_event = detail::checked_launch_kernel_after_event_returning_next_event(reinterpret_cast<void*>(kernel_ptr), dim3{1}, dim3{1}, 0, stream(), event(), result_state.data(), f, data());
-
-      // this future's event is no longer usable
-      // note this invalidates this future
-      destroy_event();
+      detail::event next_event = event().then(continuation, dim3{1}, dim3{1}, 0, stream().native_handle());
 
       // return the continuation's future
-      return future<result_type>(stream(), next_event, std::move(result_state));
+      return future<result_type>(std::move(stream()), std::move(next_event), std::move(result_state));
     }
 
-    // XXX set_valid() should only be available to friends
-    //     such as future<U> and grid_executor
-    template<class... Args,
-             class = typename std::enable_if<
-               detail::is_constructible_or_void<T,Args...>::value
-             >::type>
-    __host__ __device__
-    void set_valid(cudaEvent_t e, Args&&... args)
-    {
-      event_ = e;
-      state_.set_valid(stream(), std::forward<Args>(args)...);
-    }
-
-  private:
+//  private:
     template<class U> friend class future;
     template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
 
     __host__ __device__
-    future(cudaStream_t s, cudaEvent_t e, detail::future_state<T>&& state)
-      : stream_(s), event_(e), state_(std::move(state))
+    future(detail::stream&& s, detail::event&& e, detail::asynchronous_state<T>&& state)
+      : stream_(std::move(s)), event_(std::move(e)), state_(std::move(state))
     {}
 
     template<class... Args,
@@ -462,8 +290,22 @@ class future
                detail::is_constructible_or_void<T,Args...>::value
              >::type>
     __host__ __device__
-    future(cudaStream_t s, cudaEvent_t e, Args&&... ready_args)
-      : future(s, e, detail::future_state<T>(s, std::forward<Args>(ready_args)...))
+    future(detail::stream&& s, detail::event&& e, Args&&... ready_args)
+      : future(std::move(s), std::move(e), detail::asynchronous_state<T>(detail::construct_ready, std::forward<Args>(ready_args)...))
+    {}
+
+    __host__ __device__
+    future(detail::event&& e, detail::asynchronous_state<T>&& state)
+      : future(detail::stream{}, std::move(e), std::move(state))
+    {}
+
+    template<class... Args,
+             class = typename std::enable_if<
+               detail::is_constructible_or_void<T,Args...>::value
+             >::type>
+    __host__ __device__
+    future(detail::event&& e, Args&&... ready_args)
+      : future(std::move(e), detail::asynchronous_state<T>(detail::construct_ready, std::forward<Args>(ready_args)...))
     {}
 
     // implement swap to avoid depending on thrust::swap
@@ -476,24 +318,14 @@ class future
       b = tmp;
     }
 
-    static const int event_create_flags = cudaEventDisableTiming;
-
-    __host__ __device__
-    void destroy_event()
-    {
-#if __cuda_lib_has_cudart
-      // since this will likely be called from destructors, swallow errors
-      cudaError_t e = cudaEventDestroy(event_);
-      event_ = 0;
-
-#if __cuda_lib_has_printf
-      if(e)
-      {
-        printf("CUDA error after cudaEventDestroy in agency::cuda::future<void> dtor: %s", cudaGetErrorString(e));
-      } // end if
-#endif // __cuda_lib_has_printf
-#endif // __cuda_lib_has_cudart
-    }
+    template<class... Types>
+    friend __host__ __device__
+    future<
+      agency::detail::when_all_result_t<
+        future<Types>...
+      >
+    >
+    when_all(future<Types>&... futures);
 };
 
 
@@ -503,13 +335,76 @@ future<void> make_ready_future()
   return future<void>::make_ready();
 } // end make_ready_future()
 
+template<class T>
+__host__ __device__
+future<T> make_ready_future(T&& val)
+{
+  return future<T>::make_ready(std::forward<T>(val));
+}
+
+
+namespace detail
+{
+
+
+template<class Result>
+struct when_all_functor
+{
+  template<class... Args>
+  __host__ __device__
+  Result operator()(Args&... args)
+  {
+    return Result(std::move(args)...);
+  }
+};
+
+
+} // end detail
+
+
+template<class... Types>
+__host__ __device__
+future<
+  agency::detail::when_all_result_t<
+    future<Types>...
+  >
+>
+when_all(future<Types>&... futures)
+{
+  detail::stream stream;
+
+  // join the events
+  detail::event when_all_ready = detail::when_all(stream.native_handle(), futures.event()...);
+
+  using result_type = agency::detail::when_all_result_t<
+    future<Types>...
+  >;
+
+  detail::asynchronous_state<result_type> result_state(detail::construct_not_ready);
+
+  // tuple up the input states
+  auto unfiltered_pointer_tuple = agency::detail::make_tuple(futures.data()...);
+
+  // filter void states
+  auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
+
+  // make a function implementing the continuation
+  auto continuation = detail::make_continuation(detail::when_all_functor<result_type>{}, result_state.data(), pointer_tuple);
+
+  // launch the continuation
+  detail::event next_event = when_all_ready.then(continuation, dim3{1}, dim3{1}, 0, stream.native_handle());
+
+  // return the continuation's future
+  return future<result_type>(std::move(stream), std::move(next_event), std::move(result_state));
+}
+
 
 template<class T>
-inline __host__ __device__
-future<typename std::decay<T>::type> make_ready_future(T&& value)
+__host__ __device__
+future<T> when_all(future<T>& future)
 {
-  return future<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
-} // end make_ready_future()
+  return std::move(future);
+}
 
 
 } // end namespace cuda

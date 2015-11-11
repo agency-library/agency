@@ -24,20 +24,6 @@ class default_delete
 {
   public:
     __host__ __device__
-    default_delete(cudaStream_t s)
-      : stream_(s)
-    {}
-
-    __host__ __device__
-    default_delete() : default_delete(cudaStreamPerThread) {}
-
-    __host__ __device__
-    cudaStream_t stream() const
-    {
-      return stream_;
-    }
-
-    __host__ __device__
     void operator()(T* ptr) const
     {
       // destroy the object
@@ -48,9 +34,6 @@ class default_delete
       allocator<T> alloc;
       alloc.deallocate(ptr, 1);
     }
-
-  private:
-    cudaStream_t stream_;
 };
 
 
@@ -165,14 +148,14 @@ class unique_ptr
 
 template<class T, class... Args>
 __host__ __device__
-unique_ptr<T> make_unique(cudaStream_t s, Args&&... args)
+unique_ptr<T> make_unique(Args&&... args)
 {
   allocator<T> alloc;
 
-  unique_ptr<T> result(alloc.allocate(1), default_delete<T>(s));
-  
+  unique_ptr<T> result(alloc.allocate(1), default_delete<T>());
+
   // XXX should use allocator_traits::construct()
-  ::new(result.get()) T(std::forward<Args>(args)...);
+  alloc.template construct<T>(result.get(), std::forward<Args>(args)...);
 
   return std::move(result);
 }

@@ -330,6 +330,28 @@ auto tuple_gather(Tuple&& t)
 }
 
 
+template<class Function>
+struct tuple_all_of_functor
+{
+  Function f;
+
+  template<class Arg>
+  __AGENCY_ANNOTATION
+  bool operator()(bool prefix, Arg&& arg) const
+  {
+    return prefix && f(std::forward<Arg>(arg));
+  }
+};
+
+
+template<class Tuple, class Function>
+__AGENCY_ANNOTATION
+bool tuple_all_of(Tuple&& t, Function f)
+{
+  return __tu::tuple_reduce(std::forward<Tuple>(t), true, tuple_all_of_functor<Function>{f});
+}
+
+
 template<class Tuple>
 using tuple_indices = make_index_sequence<std::tuple_size<Tuple>::value>;
 
@@ -481,6 +503,43 @@ homogeneous_tuple<T,size> make_homogeneous_tuple(const T& val)
 {
   return detail::tuple_repeat<size>(val);
 }
+
+
+// this is the inverse operation of tuple_elements
+template<class TypeList>
+struct tuple_from_type_list;
+
+template<class... Types>
+struct tuple_from_type_list<agency::detail::type_list<Types...>>
+{
+  using type = agency::detail::tuple<Types...>;
+};
+
+template<class TypeList>
+using tuple_from_type_list_t = typename tuple_from_type_list<TypeList>::type;
+
+
+template<class TypeList>
+struct tuple_or_single_type_or_void_from_type_list
+{
+  using type = tuple_from_type_list_t<TypeList>;
+};
+
+template<class T>
+struct tuple_or_single_type_or_void_from_type_list<agency::detail::type_list<T>>
+{
+  using type = T;
+};
+
+template<>
+struct tuple_or_single_type_or_void_from_type_list<agency::detail::type_list<>>
+{
+  using type = void;
+};
+
+
+template<class TypeList>
+using tuple_or_single_type_or_void_from_type_list_t = typename tuple_or_single_type_or_void_from_type_list<TypeList>::type;
 
 
 
