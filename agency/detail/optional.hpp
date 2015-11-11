@@ -64,6 +64,7 @@ class optional
     optional& operator=(nullopt_t)
     {
       clear();
+      return *this;
     }
 
     template<class U,
