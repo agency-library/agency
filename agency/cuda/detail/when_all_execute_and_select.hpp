@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/future.hpp>
@@ -318,7 +319,7 @@ template<size_t... SelectedIndices,
          class OuterFactory,
          class InnerFactory>
 __host__ __device__
-future<when_all_execute_and_select_result_t<agency::detail::index_sequence<SelectedIndices...>, TupleOfFutures>>
+future<when_all_execute_and_select_result_t<agency::detail::index_sequence<SelectedIndices...>, agency::detail::decay_t<TupleOfFutures>>>
   when_all_execute_and_select(Function f,
                               Shape shape,
                               IndexFunction index_function,

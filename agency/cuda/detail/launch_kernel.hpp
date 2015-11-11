@@ -197,6 +197,8 @@ void checked_launch_kernel_after_event_on_device(void* kernel, ::dim3 grid_dim, 
   throw_on_error(cudaErrorNotSupported, error_message);
 #endif // __cuda_lib_has_cudart
 
+  printf("about to call checked_launch_kernel_after_event\n");
+
   checked_launch_kernel_after_event(kernel, grid_dim, block_dim, shared_memory_size, stream, dependency, args...);
 
 #if __cuda_lib_has_cudart

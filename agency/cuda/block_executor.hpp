@@ -59,7 +59,6 @@ class block_executor : private grid_executor
     }
 
     using super_t::super_t;
-    using super_t::shared_memory_size;
     using super_t::gpu;
 
     template<class Function>

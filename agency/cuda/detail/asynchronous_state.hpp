@@ -89,7 +89,7 @@ class asynchronous_state_impl
     asynchronous_state_impl& operator=(asynchronous_state_impl&&) = default;
 
     __host__ __device__
-    pointer data()
+    pointer data() const
     {
       return data_.get();
     }
@@ -207,7 +207,7 @@ class asynchronous_state_impl<T,true>
     }
 
     __host__ __device__
-    empty_type_ptr<T> data()
+    empty_type_ptr<T> data() const
     {
       return empty_type_ptr<T>();
     }

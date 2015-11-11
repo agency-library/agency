@@ -245,9 +245,8 @@ class future
       return future(std::move(ready_event), std::forward<Args>(args)...);
     }
 
-    // XXX this is only used by grid_executor::then_execute()
     __host__ __device__
-    auto data() -> decltype(state_.data())
+    auto data() const -> decltype(state_.data())
     {
       return state_.data();
     }

@@ -21,6 +21,7 @@
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/cuda/detail/when_all_execute_and_select.hpp>
+#include <agency/cuda/detail/then_execute.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/functional.hpp>
 #include <agency/detail/shape_cast.hpp>
@@ -36,107 +37,6 @@ namespace cuda
 {
 namespace detail
 {
-
-
-// XXX should use empty base class optimization for this class because any of these members could be empty types
-//     a simple way to apply this operation would be to derive this class from a tuple of its members, since tuple already applies EBO
-// XXX should try to find a way to take an InnerParameterPointer instead of InnerFactory to make the way all the parameters are handled uniformly
-// XXX the problem is that the inner parameter needs to know who the leader is, and that info isn't easily passed through pointer dereference syntax
-template<class ContainerPointer, class Function, class IndexFunction, class PastParameterPointer, class OuterParameterPointer, class InnerFactory>
-struct then_execute_functor {
-  ContainerPointer      container_ptr_;
-  Function              f_;
-  IndexFunction         index_function_;
-  PastParameterPointer  past_param_ptr_;
-  OuterParameterPointer outer_param_ptr_;
-  InnerFactory          inner_factory;
-
-  // this gets called when the future we depend on is not void
-  template<class Index, class T1, class T2, class T3, class T4>
-  __device__ static inline void impl(Function f, const Index &idx, T1& container, T2& past_param, T3& outer_param, T4& inner_param)
-  {
-    container[idx] = f(idx, past_param, outer_param, inner_param);
-  }
-
-  // this gets called when the future we depend on is void
-  template<class Index, class T1, class T3, class T4>
-  __device__ static inline void impl(Function f, const Index &idx, T1& container, unit, T3& outer_param, T4& inner_param)
-  {
-    container[idx] = f(idx, outer_param, inner_param);
-  }
-  
-  __device__ inline void operator()()
-  {
-    // we need to cast each dereference below to convert proxy references to ensure that f() only sees raw references
-    // XXX isn't there a more elegant way to deal with this?
-    using container_reference   = typename std::pointer_traits<ContainerPointer>::element_type &;
-    using past_param_reference  = typename std::pointer_traits<PastParameterPointer>::element_type &;
-    using outer_param_reference = typename std::pointer_traits<OuterParameterPointer>::element_type &;
-
-    auto idx = index_function_();
-
-    // XXX i don't think we're doing the leader calculation in a portable way
-    //     we need a way to compare idx to the origin idex to figure out if this invocation represents the CTA leader
-    on_chip_shared_parameter<InnerFactory> inner_param(idx[1] == 0, inner_factory);
-
-    impl(
-      f_,
-      idx,
-      static_cast<container_reference>(*container_ptr_),
-      static_cast<past_param_reference>(*past_param_ptr_),
-      static_cast<outer_param_reference>(*outer_param_ptr_),
-      inner_param.get()
-    );
-  }
-};
-
-
-template<class ContainerPointer, class Function, class IndexFunction, class PastParameterPointer, class OuterParameterPointer, class InnerFactory>
-__host__ __device__
-then_execute_functor<ContainerPointer,Function,IndexFunction,PastParameterPointer,OuterParameterPointer,InnerFactory>
-  make_then_execute_functor(ContainerPointer container_ptr, Function f, IndexFunction index_function, PastParameterPointer past_param_ptr, OuterParameterPointer outer_param_ptr, InnerFactory inner_factory)
-{
-  return then_execute_functor<ContainerPointer,Function,IndexFunction,PastParameterPointer,OuterParameterPointer,InnerFactory>{container_ptr, f, index_function, past_param_ptr, outer_param_ptr, inner_factory};
-}
-
-
-template<class Function>
-__global__ void grid_executor_kernel(Function f)
-{
-  f();
-}
-
-
-// this computes the type of the result returned by basic_grid_executor::then_execute_kernel_impl()
-// XXX eliminate this
-template<class Container, class Function, class IndexFunction, class PastParameterType, class OuterFactory, class InnerFactory>
-struct then_execute_kernel_impl_result
-{
-  // XXX these types need to agree the way then_execute() creates the then_execute_functor
-  // XXX there must be a sounder way to do this stuff
-
-  using container_ptr_type = decltype(std::declval<future<Container>>().data());
-  using past_parameter_ptr_type = decltype(std::declval<future<PastParameterType>>().data());
-
-  using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
-  using outer_parameter_ptr_type = decltype(std::declval<future<outer_arg_type>>().data());
-
-  using functor_type = then_execute_functor<container_ptr_type, Function, IndexFunction, past_parameter_ptr_type, outer_parameter_ptr_type, InnerFactory>;
-
-  using type = decltype(&detail::grid_executor_kernel<functor_type>);
-};
-
-
-template<class Function, class FutureValueType>
-struct take_first_two_parameters_and_invoke : agency::detail::take_first_two_parameters_and_invoke<Function>
-{
-};
-
-
-template<class Function>
-struct take_first_two_parameters_and_invoke<Function,void> : agency::detail::take_first_parameter_and_invoke<Function>
-{
-};
 
 
 template<class Shape, class Index, class ThisIndexFunction>
@@ -165,17 +65,9 @@ class basic_grid_executor
 
 
     __host__ __device__
-    explicit basic_grid_executor(int shared_memory_size = 0, gpu_id gpu = detail::current_gpu())
-      : shared_memory_size_(shared_memory_size),
-        gpu_(gpu)
+    explicit basic_grid_executor(gpu_id gpu = detail::current_gpu())
+      : gpu_(gpu)
     {}
-
-
-    __host__ __device__
-    int shared_memory_size() const
-    {
-      return shared_memory_size_;
-    }
 
 
     __host__ __device__
@@ -191,44 +83,9 @@ class basic_grid_executor
       return cuda::make_ready_future();
     }
 
-  private:
-    // XXX we should push this call into then_execute() since there's no longer a reason to have this extra function
-    template<class Function>
-    __host__ __device__
-    event then_execute_impl(Function f, shape_type shape, stream& stream, event& dependency)
-    {
-      // XXX shouldn't we use the stream associated with dependency instead of stream()?
-
-      return this->launch(grid_executor_kernel<Function>, f, shape, shared_memory_size(), stream, dependency);
-    }
-
-
-    // this returns a pointer to the __global__ function used to implement then_execute()
-    template<class Container, class Function, class T, class OuterFactory, class InnerFactory>
-    __host__ __device__
-    static typename then_execute_kernel_impl_result<
-        Container, Function, ThisIndexFunction, T, OuterFactory, InnerFactory
-    >::type
-      then_execute_kernel_impl(const Function&, const future<T>&, const OuterFactory&, const InnerFactory&)
-    {
-      // XXX these types need to agree the way then_execute() creates the then_execute_functor
-      // XXX there must be a sounder way to do this stuff
-
-      using container_ptr_type = decltype(std::declval<future<Container>>().data());
-      using past_parameter_ptr_type = decltype(std::declval<future<T>>().data());
-
-      using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
-      using outer_parameter_ptr_type = decltype(std::declval<future<outer_arg_type>>().data());
-
-      using functor_type = then_execute_functor<container_ptr_type, Function, ThisIndexFunction, past_parameter_ptr_type, outer_parameter_ptr_type, InnerFactory>;
-
-      return &detail::grid_executor_kernel<functor_type>;
-    }
-
-  public:
     template<size_t... Indices, class Function, class TupleOfFutures, class Factory1, class Factory2>
     __host__ __device__
-    future<detail::when_all_execute_and_select_result_t<agency::detail::index_sequence<Indices...>, TupleOfFutures>>
+    future<detail::when_all_execute_and_select_result_t<agency::detail::index_sequence<Indices...>, agency::detail::decay_t<TupleOfFutures>>>
       when_all_execute_and_select(Function f,
                                   shape_type shape,
                                   TupleOfFutures&& tuple_of_futures,
@@ -253,18 +110,7 @@ class basic_grid_executor
     __host__ __device__
     future<Container> then_execute(Function f, shape_type shape, future<T>& fut, Factory1 outer_factory, Factory2 inner_factory)
     {
-      detail::stream stream = std::move(fut.stream());
-
-      detail::asynchronous_state<Container> result_state(construct_ready, shape);
-
-      using outer_arg_type = agency::detail::result_of_factory_t<Factory1>;
-      auto outer_arg = executor_traits<basic_grid_executor>::template make_ready_future<outer_arg_type>(*this, outer_factory());
-
-      auto g = make_then_execute_functor(result_state.data(), f, ThisIndexFunction(), fut.data(), outer_arg.data(), inner_factory);
-
-      auto next_event = then_execute_impl(g, shape, stream, fut.event());
-
-      return future<Container>(std::move(stream), std::move(next_event), std::move(result_state));
+      return detail::then_execute<Container>(f, shape, ThisIndexFunction(), fut, outer_factory, inner_factory, gpu());
     }
 
 
@@ -274,53 +120,34 @@ class basic_grid_executor
 
     template<class Container, class Function, class T, class OuterFactory, class InnerFactory>
     __host__ __device__
-    static auto then_execute_kernel(const Function& f, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory)
-      -> decltype(
-           then_execute_kernel_impl<Container>(f, fut, outer_factory, inner_factory)
-         )
+    void* then_execute_kernel(const Function& f, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
-      return then_execute_kernel_impl<Container>(f, fut, outer_factory, inner_factory);
+      return detail::then_execute_kernel<Container>(f, shape_type{}, ThisIndexFunction(), fut, outer_factory, inner_factory, gpu());
     }
 
 
     template<class Function, class T, class OuterFactory, class InnerFactory>
     __host__ __device__
-    static auto then_execute_kernel(const Function& f, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory)
-      -> decltype(
-           then_execute_kernel_impl<agency::detail::new_executor_traits_detail::discarding_container>(
-             agency::detail::new_executor_traits_detail::invoke_and_return_empty<Function>{f}, // XXX replace with invoke_and_return_unit
-             fut,
-             outer_factory,
-             inner_factory
-           )
-         )
+    void* then_execute_kernel(const Function& f, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
-      // XXX these types need to agree the way executor_traits lowers multi-agent then_execute() with shared inits returning void onto
-      //     the more general version of then_execute()
-      // XXX there must be a sounder way to do this stuff
-      return then_execute_kernel_impl<agency::detail::new_executor_traits_detail::discarding_container>(
-        agency::detail::new_executor_traits_detail::invoke_and_return_empty<Function>{f}, // XXX replace with invoke_and_return_unit
-        fut,
-        outer_factory,
-        inner_factory
-      );
+      using container_type = agency::detail::new_executor_traits_detail::discarding_container;
+      auto g = agency::detail::invoke_and_return_unit<Function>{f};
+      return detail::then_execute_kernel<container_type>(g, shape_type{}, ThisIndexFunction(), fut, outer_factory, inner_factory, gpu());
     }
 
     template<class Function, class T>
     __host__ __device__
-    static auto then_execute_kernel(const Function& f, const future<T>& fut)
-      -> decltype(
-           then_execute_kernel(detail::take_first_two_parameters_and_invoke<Function,T>{f}, fut, agency::detail::unit_factory(), agency::detail::unit_factory())
-         )
+    static void* then_execute_kernel(const Function& f, const future<T>& fut)
     {
-      return then_execute_kernel(detail::take_first_two_parameters_and_invoke<Function,T>{f}, fut, agency::detail::unit_factory(), agency::detail::unit_factory());
+      using container_type = agency::detail::new_executor_traits_detail::discarding_container;
+      auto g = agency::detail::invoke_and_return_unit<Function>{f};
+      return detail::then_execute_kernel<container_type>(g, shape_type{}, ThisIndexFunction(), fut);
     }
 
 
     template<class Function>
     __host__ __device__
-    static auto then_execute_kernel(const Function& f)
-      -> decltype(then_execute_kernel(f, future<void>()))
+    static void* then_execute_kernel(const Function& f)
     {
       return then_execute_kernel(f, future<void>());
     }
@@ -362,27 +189,6 @@ class basic_grid_executor
 
 
   private:
-    template<class Arg>
-    __host__ __device__
-    event launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, stream& stream, event& dependency)
-    {
-      return launch(kernel, arg, shape, shared_memory_size, stream, dependency, gpu());
-    }
-
-    template<class Arg>
-    __host__ __device__
-    event launch(void (*kernel)(Arg), const Arg& arg, shape_type shape, int shared_memory_size, stream& stream, event& dependency, gpu_id gpu)
-    {
-      uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
-      uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
-
-      ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
-      ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
-
-      return dependency.then_on(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream.native_handle(), gpu.native_handle(), arg);
-    }
-
-    int shared_memory_size_;
     gpu_id gpu_;
 };
 
@@ -467,21 +273,21 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
     __host__ __device__
     shape_type max_shape(const Function& f) const
     {
-      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel(f)));
+      return max_shape_impl(then_execute_kernel(f));
     }
 
     template<class Function, class T>
     __host__ __device__
     shape_type max_shape(const Function& f, const future<T>& fut)
     {
-      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel(f,fut)));
+      return max_shape_impl(then_execute_kernel(f,fut));
     }
 
     template<class T, class Function, class Factory1, class Factory2>
     __host__ __device__
     shape_type max_shape(const Function& f, const future<T>& fut, const Factory1& outer_factory, const Factory2& inner_factory) const
     {
-      return max_shape_impl(reinterpret_cast<void*>(then_execute_kernel(f, fut, outer_factory, inner_factory)));
+      return max_shape_impl(then_execute_kernel(f, fut, outer_factory, inner_factory));
     }
 };
 

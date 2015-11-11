@@ -108,16 +108,30 @@ class event
 
     template<class Function, class... Args>
     __host__ __device__
+    static void *then_kernel()
+    {
+      return reinterpret_cast<void*>(&cuda_kernel<Function,Args...>);
+    }
+
+    template<class Function, class... Args>
+    __host__ __device__
+    static void *then_kernel(const Function&, const Args&...)
+    {
+      return then_kernel<Function,Args...>();
+    }
+
+    template<class Function, class... Args>
+    __host__ __device__
     event then(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, cudaStream_t stream, const Args&... args)
     {
       // make the stream wait before launching
       stream_wait(stream);
 
       // get the address of the kernel
-      auto kernel = &cuda_kernel<Function,Args...>;
+      auto kernel = then_kernel(f,args...);
 
       // launch the kernel
-      detail::checked_launch_kernel(reinterpret_cast<void*>(kernel), grid_dim, block_dim, shared_memory_size, stream, f, args...);
+      detail::checked_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream, f, args...);
 
       // invalidate ourself
       destroy_event();
@@ -125,14 +139,31 @@ class event
       return event(stream);
     }
 
-    template<class... Args>
+    template<class Function, class... Args>
     __host__ __device__
-    event then_on(void* kernel, dim3 grid_dim, dim3 block_dim, int shared_memory_size, cudaStream_t stream, const gpu_id& gpu, const Args&... args)
+    static void *then_on_kernel()
+    {
+      return reinterpret_cast<void*>(&cuda_kernel<Function,Args...>);
+    }
+
+    template<class Function, class... Args>
+    __host__ __device__
+    static void *then_on_kernel(const Function&, const Args&...)
+    {
+      return then_on_kernel<Function,Args...>();
+    }
+
+    template<class Function, class... Args>
+    __host__ __device__
+    event then_on(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, cudaStream_t stream, const gpu_id& gpu, const Args&... args)
     {
       // make the stream wait before launching
       stream_wait(stream);
 
-      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, stream, gpu.native_handle(), args...);
+      // get the address of the kernel
+      auto kernel = then_on_kernel(f,args...);
+
+      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, stream, gpu.native_handle(), f, args...);
 
       // invalidate ourself
       destroy_event();
