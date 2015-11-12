@@ -133,17 +133,24 @@ class optional
     }
 
     __AGENCY_ANNOTATION
-    T& value()
+    T& value() &
     {
       // XXX should check contains_value_ and throw otherwise
       return value_.get();
     }
 
     __AGENCY_ANNOTATION
-    const T& value() const
+    const T& value() const &
     {
       // XXX should check contains_value_ and throw otherwise
       return value_.get();
+    }
+
+    __AGENCY_ANNOTATION
+    T&& value() &&
+    {
+      // XXX should check contains_value_ and throw otherwise
+      return std::move(value_.get());
     }
 
     __AGENCY_ANNOTATION
@@ -189,6 +196,14 @@ class optional
     bool contains_value_;
     uninitialized<T> value_;
 };
+
+
+template<class T>
+__AGENCY_ANNOTATION
+optional<typename std::decay<T>::type> make_optional(T&& value)
+{
+  return optional<typename std::decay<T>::type>(std::forward<T>(value));
+}
 
 
 } // end detail
