@@ -56,7 +56,7 @@ typename new_executor_traits<Executor>::template future<
     >
   >;
 
-  return new_executor_traits<Executor>::new_then_execute(ex, f, container_factory<container_type>{}, shape, fut, shared_factories...);
+  return new_executor_traits<Executor>::then_execute(ex, f, container_factory<container_type>{}, shape, fut, shared_factories...);
 } // end multi_agent_then_execute_with_shared_inits_returning_default_container()
 
 

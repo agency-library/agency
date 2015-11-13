@@ -84,12 +84,12 @@ struct use_multi_agent_then_execute_with_shared_inits_returning_user_specified_c
 using use_strategy_6 = use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_member_function;
 
 template<class Executor, class Function, class Factory, class... Factories>
-using has_strategy_6 = new_has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Executor,Function,Factory,typename new_executor_traits<Executor>::template future<void>, Factories...>;
+using has_strategy_6 = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Executor,Function,Factory,typename new_executor_traits<Executor>::template future<void>, Factories...>;
 
 template<class Executor, class Function, class Factory, class... Factories>
 struct has_strategy_6_workaround_nvbug_1665745
 {
-  using type = new_has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Executor,Function,Factory,typename new_executor_traits<Executor>::template future<void>, Factories...>;
+  using type = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<Executor,Function,Factory,typename new_executor_traits<Executor>::template future<void>, Factories...>;
 };
 
 
@@ -129,7 +129,7 @@ struct use_multi_agent_then_execute_returning_user_specified_container_member_fu
 using use_strategy_9 = use_multi_agent_then_execute_returning_user_specified_container_member_function;
 
 template<class Executor, class Function, class Factory, class... Factories>
-using has_strategy_9 = new_has_multi_agent_then_execute_returning_user_specified_container<Executor, Function, Factory, typename new_executor_traits<Executor>::template future<void>>;
+using has_strategy_9 = has_multi_agent_then_execute_returning_user_specified_container<Executor, Function, Factory, typename new_executor_traits<Executor>::template future<void>>;
 
 
 // 10.
@@ -744,7 +744,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
 
   // XXX should go through executor_traits for this get()
-  return ex.new_then_execute(g, result_factory, shape, ready).get();
+  return ex.then_execute(g, result_factory, shape, ready).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 

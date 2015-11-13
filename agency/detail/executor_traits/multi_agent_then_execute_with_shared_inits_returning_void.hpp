@@ -37,7 +37,7 @@ typename new_executor_traits<Executor>::template future<void>
                                                             Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut, Factories... shared_factories)
 {
   // invoke f and generate dummy results into a discarding_container
-  auto fut2 = new_executor_traits<Executor>::new_then_execute(ex, invoke_and_return_empty<Function>{f}, container_factory<discarding_container>{}, shape, fut, shared_factories...);
+  auto fut2 = new_executor_traits<Executor>::then_execute(ex, invoke_and_return_empty<Function>{f}, container_factory<discarding_container>{}, shape, fut, shared_factories...);
 
   // cast the discarding_container to void
   return new_executor_traits<Executor>::template future_cast<void>(ex, fut2);

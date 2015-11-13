@@ -432,7 +432,7 @@ struct multi_agent_then_execute_returning_user_defined_container_executor : test
 {
   template<class Function, class Factory, class T>
   std::future<typename std::result_of<Factory(size_t)>::type>
-    new_then_execute(Function f, Factory result_factory, size_t n, std::future<T>& fut)
+    then_execute(Function f, Factory result_factory, size_t n, std::future<T>& fut)
   {
     function_called = true;
 
@@ -451,7 +451,7 @@ struct multi_agent_then_execute_returning_user_defined_container_executor : test
 
   template<class Function, class Factory>
   std::future<typename std::result_of<Factory(size_t)>::type>
-    new_then_execute(Function f, Factory result_factory, size_t n, std::future<void>& fut)
+    then_execute(Function f, Factory result_factory, size_t n, std::future<void>& fut)
   {
     function_called = true;
 
@@ -487,7 +487,7 @@ struct multi_agent_then_execute_returning_default_container_executor : test_exec
       return container_type(n);
     };
 
-    return exec.new_then_execute(f, result_factory, n, fut);
+    return exec.then_execute(f, result_factory, n, fut);
   }
 
   template<class Function>
@@ -511,7 +511,7 @@ struct multi_agent_then_execute_returning_default_container_executor : test_exec
       return container_type(n);
     };
 
-    return exec.new_then_execute(f, result_factory, n, fut);
+    return exec.then_execute(f, result_factory, n, fut);
   }
 };
 
@@ -559,7 +559,7 @@ struct multi_agent_then_execute_with_shared_inits_returning_user_defined_contain
 {
   template<class Function, class Factory1, class T, class Factory2>
   std::future<typename std::result_of<Factory1(size_t)>::type>
-    new_then_execute(Function f, Factory1 result_factory, size_t n, std::future<T>& fut, Factory2 shared_factory)
+    then_execute(Function f, Factory1 result_factory, size_t n, std::future<T>& fut, Factory2 shared_factory)
   {
     function_called = true;
 
@@ -581,7 +581,7 @@ struct multi_agent_then_execute_with_shared_inits_returning_user_defined_contain
 
   template<class Function, class Factory1, class Factory2>
   std::future<typename std::result_of<Factory1(size_t)>::type>
-    new_then_execute(Function f, Factory1 result_factory, size_t n, std::future<void>& fut, Factory2 shared_factory)
+    then_execute(Function f, Factory1 result_factory, size_t n, std::future<void>& fut, Factory2 shared_factory)
   {
     function_called = true;
 
@@ -617,7 +617,7 @@ struct multi_agent_then_execute_with_shared_inits_returning_default_container_ex
       return container_type(n);
     };
 
-    return exec.new_then_execute(f, result_factory, n, fut, shared_factory);
+    return exec.then_execute(f, result_factory, n, fut, shared_factory);
   }
 
   template<class Function, class Factory>
@@ -641,7 +641,7 @@ struct multi_agent_then_execute_with_shared_inits_returning_default_container_ex
       return container_type(n);
     };
 
-    return exec.new_then_execute(f, result_factory, n, fut, shared_factory);
+    return exec.then_execute(f, result_factory, n, fut, shared_factory);
   }
 };
 

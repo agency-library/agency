@@ -325,22 +325,6 @@ struct new_executor_traits
       then_execute(executor_type& ex, Function f, Future& fut);
 
     // multi-agent then_execute() returning user-specified Container
-    template<class Container, class Function, class Future,
-             class = typename std::enable_if<
-               detail::new_executor_traits_detail::is_container<Container,index_type>::value
-             >::type,
-             class = typename std::enable_if<
-               detail::is_future<Future>::value
-             >::type,
-             class = detail::result_of_continuation_t<
-               Function,
-               index_type,
-               Future
-             >
-            >
-    __AGENCY_ANNOTATION
-    static future<Container> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut);
-
     template<class Function, class Future, class Factory,
              class = typename std::enable_if<
                detail::is_future<Future>::value
@@ -352,28 +336,9 @@ struct new_executor_traits
              >
             >
     __AGENCY_ANNOTATION
-    static future<typename std::result_of<Factory(shape_type)>::type> new_then_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Future& fut);
+    static future<typename std::result_of<Factory(shape_type)>::type> then_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Future& fut);
 
     // multi-agent then_execute() with shared inits returning user-specified Container
-    template<class Container, class Function, class Future, class... Factories,
-             class = typename std::enable_if<
-               detail::new_executor_traits_detail::is_container<Container,index_type>::value
-             >::type,
-             class = typename std::enable_if<
-               detail::is_future<Future>::value
-             >::type,
-             class = typename std::enable_if<
-               sizeof...(Factories) == execution_depth
-             >::type,
-             class = detail::result_of_continuation_t<
-               Function,
-               index_type,
-               Future,
-               typename std::result_of<Factories()>::type&...
-             >>
-    __AGENCY_ANNOTATION
-    static future<Container> then_execute(executor_type& ex, Function f, shape_type shape, Future& fut, Factories... shared_factories);
-
     template<class Function, class Factory, class Future, class... Factories,
              class = typename std::enable_if<
                detail::is_future<Future>::value
@@ -388,7 +353,7 @@ struct new_executor_traits
                typename std::result_of<Factories()>::type&...
              >>
     __AGENCY_ANNOTATION
-    static future<typename std::result_of<Factory(shape_type)>::type> new_then_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Future& fut, Factories... shared_factories);
+    static future<typename std::result_of<Factory(shape_type)>::type> then_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Future& fut, Factories... shared_factories);
 
     // multi-agent then_execute() returning default container
     template<class Function, class Future,
@@ -634,11 +599,9 @@ struct new_executor_traits
 #include <agency/detail/executor_traits/multi_agent_when_all_execute_and_select_with_shared_inits.hpp>
 #include <agency/detail/executor_traits/single_agent_then_execute.hpp>
 #include <agency/detail/executor_traits/multi_agent_then_execute_returning_user_specified_container.hpp>
-#include <agency/detail/executor_traits/new_multi_agent_then_execute_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_then_execute_returning_default_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_then_execute_returning_void.hpp>
 #include <agency/detail/executor_traits/multi_agent_then_execute_with_shared_inits_returning_user_specified_container.hpp>
-#include <agency/detail/executor_traits/new_multi_agent_then_execute_with_shared_inits_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_then_execute_with_shared_inits_returning_default_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_then_execute_with_shared_inits_returning_void.hpp>
 #include <agency/detail/executor_traits/single_agent_async_execute.hpp>

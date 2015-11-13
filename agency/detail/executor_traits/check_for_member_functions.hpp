@@ -517,36 +517,8 @@ template<class Executor, class Function = test_function_returning_int, class Fut
 using has_multi_agent_then_execute_returning_default_container = typename has_multi_agent_then_execute_returning_default_container_impl<Executor,Function,Future>::type;
 
 
-template<class Container, class Executor, class Function, class Future>
-struct has_multi_agent_then_execute_returning_user_specified_container_impl
-{
-  using expected_return_type = typename new_executor_traits<Executor>::template future<Container>;
-
-  template<class Executor1,
-           class ReturnType = decltype(
-             std::declval<Executor1>().template then_execute<Container>(
-               std::declval<Function>(),
-               std::declval<typename new_executor_traits<Executor1>::shape_type>(),
-               *std::declval<Future*>()
-             )
-           ),
-           class = typename std::enable_if<
-             std::is_same<ReturnType, expected_return_type>::value
-           >::type>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-template<class Container, class Executor, class Function, class Future>
-using has_multi_agent_then_execute_returning_user_specified_container = typename has_multi_agent_then_execute_returning_user_specified_container_impl<Container,Executor,Function,Future>::type;
-
-
 template<class Executor, class Function, class Factory, class Future>
-struct new_has_multi_agent_then_execute_returning_user_specified_container_impl
+struct has_multi_agent_then_execute_returning_user_specified_container_impl
 {
   using shape_type = typename new_executor_traits<Executor>::shape_type;
   using container_type = typename std::result_of<Factory(shape_type)>::type;
@@ -554,7 +526,7 @@ struct new_has_multi_agent_then_execute_returning_user_specified_container_impl
 
   template<class Executor1,
            class ReturnType = decltype(
-             std::declval<Executor1>().new_then_execute(
+             std::declval<Executor1>().then_execute(
                std::declval<Function>(),
                std::declval<Factory>(),
                std::declval<typename new_executor_traits<Executor1>::shape_type>(),
@@ -573,7 +545,7 @@ struct new_has_multi_agent_then_execute_returning_user_specified_container_impl
 };
 
 template<class Executor, class Function, class Factory, class Future>
-using new_has_multi_agent_then_execute_returning_user_specified_container = typename new_has_multi_agent_then_execute_returning_user_specified_container_impl<Executor,Function,Factory,Future>::type;
+using has_multi_agent_then_execute_returning_user_specified_container = typename has_multi_agent_then_execute_returning_user_specified_container_impl<Executor,Function,Factory,Future>::type;
 
 
 template<class Executor, class Function, class Future>
@@ -638,38 +610,8 @@ template<class Executor, class Function, class Future, class... Factories>
 using has_multi_agent_then_execute_with_shared_inits_returning_default_container = typename has_multi_agent_then_execute_with_shared_inits_returning_default_container_impl<Executor,Function,Future,Factories...>::type;
 
 
-template<class Container, class Executor, class Function, class Future, class... Types>
-struct has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_impl
-{
-  using shape_type = typename new_executor_traits<Executor>::shape_type;
-  using expected_return_type = typename new_executor_traits<Executor>::template future<Container>;
-
-  template<class Executor1,
-           class ReturnType = decltype(
-             std::declval<Executor1>().template then_execute<Container>(
-               std::declval<Function>(),
-               std::declval<shape_type>(),
-               *std::declval<Future*>(),
-               std::declval<Types>()...
-             )
-           ),
-           class = typename std::enable_if<
-             std::is_same<ReturnType,expected_return_type>::value
-           >::type>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-template<class Container, class Executor, class Function, class Future, class... Types>
-using has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container = typename has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_impl<Container,Executor,Function,Future,Types...>::type;
-
-
 template<class Executor, class Function, class Factory, class Future, class... Factories>
-struct new_has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_impl
+struct has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_impl
 {
   using shape_type = typename new_executor_traits<Executor>::shape_type;
   using container_type = typename std::result_of<Factory(shape_type)>::type;
@@ -677,7 +619,7 @@ struct new_has_multi_agent_then_execute_with_shared_inits_returning_user_specifi
 
   template<class Executor1,
            class ReturnType = decltype(
-             std::declval<Executor1>().new_then_execute(
+             std::declval<Executor1>().then_execute(
                std::declval<Function>(),
                std::declval<Factory>(),
                std::declval<shape_type>(),
@@ -697,7 +639,7 @@ struct new_has_multi_agent_then_execute_with_shared_inits_returning_user_specifi
 };
 
 template<class Executor, class Function, class Factory, class Future, class... Factories>
-using new_has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container = typename new_has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_impl<Executor,Function,Factory,Future,Factories...>::type;
+using has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container = typename has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_impl<Executor,Function,Factory,Future,Factories...>::type;
 
 
 template<class Executor, class Function, class Future, class... Types>
