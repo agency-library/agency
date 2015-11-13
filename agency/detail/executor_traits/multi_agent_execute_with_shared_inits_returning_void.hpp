@@ -63,6 +63,18 @@ struct multi_agent_execute_with_shared_inits_returning_void_functor
 };
 
 
+template<class Result>
+struct factory
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  Result operator()(Args&&... args) const
+  {
+    return Result(std::forward<Args>(args)...);
+  }
+};
+
+
 template<class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 void multi_agent_execute_with_shared_inits_returning_void(use_multi_agent_execute_with_shared_inits_returning_user_specified_container,
@@ -71,7 +83,7 @@ void multi_agent_execute_with_shared_inits_returning_void(use_multi_agent_execut
 {
   auto g = multi_agent_execute_with_shared_inits_returning_void_functor<Function>{f};
 
-  new_executor_traits<Executor>::template execute<discarding_container>(ex, g, shape, shared_factories...);
+  new_executor_traits<Executor>::new_execute(ex, g, factory<discarding_container>{}, shape, shared_factories...);
 } // end multi_agent_execute_returning_void()
 
 

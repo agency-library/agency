@@ -523,6 +523,11 @@ struct new_executor_traits
     __AGENCY_ANNOTATION
     static Container execute(executor_type& ex, Function f, shape_type shape);
 
+    // multi-agent execute returning user-specified Container
+    template<class Function, class Factory>
+    __AGENCY_ANNOTATION
+    static typename std::result_of<Factory(shape_type)>::type new_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape);
+
     // multi-agent execute with shared inits returning user-specified Container
     template<class Container, class Function, class... Factories,
              class = typename std::enable_if<
@@ -530,6 +535,13 @@ struct new_executor_traits
              >::type>
     __AGENCY_ANNOTATION
     static Container execute(executor_type& ex, Function f, shape_type shape, Factories... shared_factories);
+
+    template<class Function, class Factory, class... Factories,
+             class = typename std::enable_if<
+               execution_depth == sizeof...(Factories)
+             >::type>
+    __AGENCY_ANNOTATION
+    static typename std::result_of<Factory(shape_type)>::type new_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Factories... shared_factories);
 
     // multi-agent execute returning default container
     template<class Function,
@@ -619,9 +631,11 @@ struct new_executor_traits
 #include <agency/detail/executor_traits/multi_agent_async_execute_with_shared_inits_returning_void.hpp>
 #include <agency/detail/executor_traits/single_agent_execute.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_returning_user_specified_container.hpp>
+#include <agency/detail/executor_traits/new_multi_agent_execute_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_returning_default_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_returning_void.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_with_shared_inits_returning_user_specified_container.hpp>
+#include <agency/detail/executor_traits/new_multi_agent_execute_with_shared_inits_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_with_shared_inits_returning_default_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_execute_with_shared_inits_returning_void.hpp>
 #include <agency/detail/executor_traits/when_all.hpp>

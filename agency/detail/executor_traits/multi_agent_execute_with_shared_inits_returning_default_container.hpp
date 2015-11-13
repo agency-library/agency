@@ -48,6 +48,18 @@ typename new_executor_traits<Executor>::template container<
 } // end multi_agent_execute_with_shared_inits_returning_default_container()
 
 
+template<class Result>
+struct factory
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  Result operator()(Args&&... args) const
+  {
+    return Result(std::forward<Args>(args)...);
+  }
+};
+
+
 template<class Executor, class Function, class... Factories>
 typename new_executor_traits<Executor>::template container<
   typename std::result_of<
@@ -70,7 +82,7 @@ typename new_executor_traits<Executor>::template container<
     >::type
   >;
 
-  return new_executor_traits<Executor>::template execute<container_type>(ex, f, shape, shared_factories...);
+  return new_executor_traits<Executor>::new_execute(ex, f, factory<container_type>{}, shape, shared_factories...);
 } // end multi_agent_execute_with_shared_inits_returning_default_container()
 
 
