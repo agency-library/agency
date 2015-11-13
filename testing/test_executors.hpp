@@ -308,7 +308,7 @@ struct multi_agent_async_execute_returning_user_defined_container_executor : tes
 {
   template<class Function, class Factory>
   std::future<typename std::result_of<Factory(size_t)>::type>
-    new_async_execute(Function f, Factory result_factory, size_t n)
+    async_execute(Function f, Factory result_factory, size_t n)
   {
     function_called = true;
 
@@ -326,7 +326,7 @@ struct multi_agent_async_execute_with_shared_inits_returning_user_defined_contai
 {
   template<class Function, class Factory1, class Factory2>
   std::future<typename std::result_of<Factory1(size_t)>::type>
-    new_async_execute(Function f, Factory1 result_factory, size_t n, Factory2 shared_factory)
+    async_execute(Function f, Factory1 result_factory, size_t n, Factory2 shared_factory)
   {
     function_called = true;
 
@@ -362,7 +362,7 @@ struct multi_agent_async_execute_returning_default_container_executor : test_exe
       return container_type(n);
     };
 
-    return exec.new_async_execute(f, result_factory, n);
+    return exec.async_execute(f, result_factory, n);
   }
 };
 
@@ -389,7 +389,7 @@ struct multi_agent_async_execute_with_shared_inits_returning_default_container_e
       return container_type(n);
     };
 
-    return exec.new_async_execute(f, result_factory, n, shared_factory);
+    return exec.async_execute(f, result_factory, n, shared_factory);
   }
 };
 
@@ -441,7 +441,7 @@ struct multi_agent_then_execute_returning_user_defined_container_executor : test
     multi_agent_async_execute_returning_user_defined_container_executor exec;
 
     // we need mutable on the lambda because we pass val to f via mutable reference
-    return exec.new_async_execute([=](const size_t& idx) mutable
+    return exec.async_execute([=](const size_t& idx) mutable
     {
       return f(idx, val);
     },
@@ -459,7 +459,7 @@ struct multi_agent_then_execute_returning_user_defined_container_executor : test
 
     multi_agent_async_execute_returning_user_defined_container_executor exec;
 
-    return exec.new_async_execute(f, result_factory, n);
+    return exec.async_execute(f, result_factory, n);
   }
 };
 
@@ -570,7 +570,7 @@ struct multi_agent_then_execute_with_shared_inits_returning_user_defined_contain
     using shared_arg_type = decltype(shared_factory());
 
     // XXX val should actually be moved in here, not captured by value
-    return exec.new_async_execute([=](const size_t& idx, shared_arg_type& shared_arg) mutable
+    return exec.async_execute([=](const size_t& idx, shared_arg_type& shared_arg) mutable
     {
       return f(idx, val, shared_arg);
     },
@@ -589,7 +589,7 @@ struct multi_agent_then_execute_with_shared_inits_returning_user_defined_contain
 
     multi_agent_async_execute_with_shared_inits_returning_user_defined_container_executor exec;
 
-    return exec.new_async_execute(f, result_factory, n, shared_factory);
+    return exec.async_execute(f, result_factory, n, shared_factory);
   }
 };
 

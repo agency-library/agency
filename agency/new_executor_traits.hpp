@@ -443,24 +443,15 @@ struct new_executor_traits
       async_execute(executor_type& ex, Function f);
 
     // multi-agent async_execute() returning user-specified Container
-    template<class Container, class Function>
-    static future<Container> async_execute(executor_type& ex, Function f, shape_type shape);
-
     template<class Function, class Factory>
-    static future<typename std::result_of<Factory(shape_type)>::type> new_async_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape);
+    static future<typename std::result_of<Factory(shape_type)>::type> async_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape);
 
     // multi-agent async_execute() with shared inits returning user-specified Container
-    template<class Container, class Function, class... Factories,
-             class = typename std::enable_if<
-               sizeof...(Factories) == execution_depth
-             >::type>
-    static future<Container> async_execute(executor_type& ex, Function f, shape_type shape, Factories... shared_factories);
-
     template<class Function, class Factory, class... Factories,
              class = typename std::enable_if<
                sizeof...(Factories) == execution_depth
              >::type>
-    static future<typename std::result_of<Factory(shape_type)>::type> new_async_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Factories... shared_factories);
+    static future<typename std::result_of<Factory(shape_type)>::type> async_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Factories... shared_factories);
 
     // multi-agent async_execute() returning default container
     template<class Function,
@@ -615,11 +606,9 @@ struct new_executor_traits
 #include <agency/detail/executor_traits/multi_agent_then_execute_with_shared_inits_returning_void.hpp>
 #include <agency/detail/executor_traits/single_agent_async_execute.hpp>
 #include <agency/detail/executor_traits/multi_agent_async_execute_returning_user_specified_container.hpp>
-#include <agency/detail/executor_traits/new_multi_agent_async_execute_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_async_execute_returning_default_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_async_execute_returning_void.hpp>
 #include <agency/detail/executor_traits/multi_agent_async_execute_with_shared_inits_returning_user_specified_container.hpp>
-#include <agency/detail/executor_traits/new_multi_agent_async_execute_with_shared_inits_returning_user_specified_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_async_execute_with_shared_inits_returning_default_container.hpp>
 #include <agency/detail/executor_traits/multi_agent_async_execute_with_shared_inits_returning_void.hpp>
 #include <agency/detail/executor_traits/single_agent_execute.hpp>

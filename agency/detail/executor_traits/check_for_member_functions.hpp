@@ -108,36 +108,8 @@ template<class Executor, class Function = test_function_returning_int>
 using has_multi_agent_async_execute_returning_default_container = typename has_multi_agent_async_execute_returning_default_container_impl<Executor,Function>::type;
 
 
-template<class Container, class Executor, class Function>
-struct has_multi_agent_async_execute_returning_user_specified_container_impl
-{
-  using shape_type = typename new_executor_traits<Executor>::shape_type;
-  using expected_return_type = typename new_executor_traits<Executor>::template future<Container>;
-
-  template<class Executor1,
-           class ReturnType = decltype(
-             std::declval<Executor1>().template async_execute<Container>(
-               std::declval<Function>(),
-               std::declval<shape_type>()
-             )
-           ),
-           class = typename std::enable_if<
-             std::is_same<ReturnType,expected_return_type>::value
-           >::type>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-template<class Container, class Executor, class Function>
-using has_multi_agent_async_execute_returning_user_specified_container = typename has_multi_agent_async_execute_returning_user_specified_container_impl<Container,Executor,Function>::type;
-
-
 template<class Executor, class Function, class Factory>
-struct new_has_multi_agent_async_execute_returning_user_specified_container_impl
+struct has_multi_agent_async_execute_returning_user_specified_container_impl
 {
   using shape_type = typename new_executor_traits<Executor>::shape_type;
   using container_type = typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_type)>::type;
@@ -145,7 +117,7 @@ struct new_has_multi_agent_async_execute_returning_user_specified_container_impl
 
   template<class Executor1,
            class ReturnType = decltype(
-             std::declval<Executor1>().new_async_execute(
+             std::declval<Executor1>().async_execute(
                std::declval<Function>(),
                std::declval<Factory>(),
                std::declval<shape_type>()
@@ -163,7 +135,7 @@ struct new_has_multi_agent_async_execute_returning_user_specified_container_impl
 };
 
 template<class Executor, class Function, class Factory>
-using new_has_multi_agent_async_execute_returning_user_specified_container = typename new_has_multi_agent_async_execute_returning_user_specified_container_impl<Executor,Function,Factory>::type;
+using has_multi_agent_async_execute_returning_user_specified_container = typename has_multi_agent_async_execute_returning_user_specified_container_impl<Executor,Function,Factory>::type;
 
 
 template<class Executor, class Function>
@@ -227,7 +199,7 @@ using has_multi_agent_async_execute_with_shared_inits_returning_default_containe
 
 
 template<class Executor, class Function, class Factory, class... Factories>
-struct new_has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_impl
+struct has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_impl
 {
   using shape_type = typename new_executor_traits<Executor>::shape_type;
   using container_type = typename std::result_of<Factory(shape_type)>::type;
@@ -235,7 +207,7 @@ struct new_has_multi_agent_async_execute_with_shared_inits_returning_user_specif
 
   template<class Executor1,
            class ReturnType = decltype(
-             std::declval<Executor1>().new_async_execute(
+             std::declval<Executor1>().async_execute(
                std::declval<Function>(),
                std::declval<Factory>(),
                std::declval<shape_type>(),
@@ -254,36 +226,7 @@ struct new_has_multi_agent_async_execute_with_shared_inits_returning_user_specif
 };
 
 template<class Executor, class Function, class Factory, class... Factories>
-using new_has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container = typename new_has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_impl<Executor,Function,Factory,Factories...>::type;
-
-
-template<class Container, class Executor, class Function, class... Types>
-struct has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_impl
-{
-  using shape_type = typename new_executor_traits<Executor>::shape_type;
-  using expected_return_type = typename new_executor_traits<Executor>::template future<Container>;
-
-  template<class Executor1,
-           class ReturnType = decltype(
-             std::declval<Executor1>().template async_execute<Container>(
-               std::declval<Function>(),
-               std::declval<shape_type>(),
-               std::declval<Types>()...
-             )
-           ),
-           class = typename std::enable_if<
-             std::is_same<ReturnType,expected_return_type>::value
-           >::type>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-template<class Container, class Executor, class Function, class... Types>
-using has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container = typename has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_impl<Container,Executor,Function,Types...>::type;
+using has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container = typename has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_impl<Executor,Function,Factory,Factories...>::type;
 
 
 template<class Executor, class Function, class... Types>

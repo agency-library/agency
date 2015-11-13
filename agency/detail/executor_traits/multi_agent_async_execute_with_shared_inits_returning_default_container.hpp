@@ -45,7 +45,7 @@ typename new_executor_traits<Executor>::template future<
     >::type
   >;
 
-  return new_executor_traits<Executor>::new_async_execute(ex, f, container_factory<container_type>{}, shape, shared_factories...);
+  return new_executor_traits<Executor>::async_execute(ex, f, container_factory<container_type>{}, shape, shared_factories...);
 } // end multi_agent_async_with_shared_inits_returning_default_specified_container()
 
 

@@ -69,12 +69,12 @@ struct use_multi_agent_async_execute_with_shared_inits_returning_user_specified_
 using use_strategy_5 = use_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_member_function;
 
 template<class Executor, class Function, class Factory, class... Factories>
-using has_strategy_5 = new_has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container<Executor,Function,Factory,Factories...>;
+using has_strategy_5 = has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container<Executor,Function,Factory,Factories...>;
 
 template<class Executor, class Function, class Factory, class... Factories>
 struct has_strategy_5_workaround_nvbug_1665745
 {
-  using type = new_has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container<Executor,Function,Factory,Factories...>;
+  using type = has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container<Executor,Function,Factory,Factories...>;
 };
 
 
@@ -120,7 +120,7 @@ struct use_multi_agent_async_execute_returning_user_specified_container_member_f
 using use_strategy_8 = use_multi_agent_async_execute_returning_user_specified_container_member_function;
 
 template<class Executor, class Function, class Factory, class... Factories>
-using has_strategy_8 = new_has_multi_agent_async_execute_returning_user_specified_container<Executor, Function, Factory>;
+using has_strategy_8 = has_multi_agent_async_execute_returning_user_specified_container<Executor, Function, Factory>;
 
 
 // 9.
@@ -628,7 +628,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
                                                                            Factories... shared_factories)
 {
   // XXX should go through executor_traits for the get()
-  return ex.new_async_execute(f, result_factory, shape, shared_factories...).get();
+  return ex.async_execute(f, result_factory, shape, shared_factories...).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -646,7 +646,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
 
   // XXX should go through executor_traits for the get()
-  return ex.new_then_execute(f, result_factory, shape, ready, shared_factories...).get();
+  return ex.then_execute(f, result_factory, shape, ready, shared_factories...).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -712,7 +712,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   auto g = make_multi_agent_execute_with_shared_inits_functor<result_type>(f, shape, shared_param_containers_tuple);
 
   // XXX should go through executor_traits for this get()
-  return ex.new_async_execute(g, result_factory, shape).get();
+  return ex.async_execute(g, result_factory, shape).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
