@@ -83,7 +83,7 @@ void multi_agent_execute_with_shared_inits_returning_void(use_multi_agent_execut
 {
   auto g = multi_agent_execute_with_shared_inits_returning_void_functor<Function>{f};
 
-  new_executor_traits<Executor>::new_execute(ex, g, factory<discarding_container>{}, shape, shared_factories...);
+  new_executor_traits<Executor>::execute(ex, g, factory<discarding_container>{}, shape, shared_factories...);
 } // end multi_agent_execute_returning_void()
 
 

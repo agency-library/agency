@@ -37,7 +37,7 @@ void multi_agent_execute_returning_void(std::false_type, Executor& ex, Function 
     return 0;
   };
 
-  new_executor_traits<Executor>::new_execute(ex, g, container_factory<discarding_container>{}, shape);
+  new_executor_traits<Executor>::execute(ex, g, container_factory<discarding_container>{}, shape);
 } // end multi_agent_execute_returning_void()
 
 

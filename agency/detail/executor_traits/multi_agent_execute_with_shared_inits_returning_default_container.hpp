@@ -82,7 +82,7 @@ typename new_executor_traits<Executor>::template container<
     >::type
   >;
 
-  return new_executor_traits<Executor>::new_execute(ex, f, factory<container_type>{}, shape, shared_factories...);
+  return new_executor_traits<Executor>::execute(ex, f, factory<container_type>{}, shape, shared_factories...);
 } // end multi_agent_execute_with_shared_inits_returning_default_container()
 
 

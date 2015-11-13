@@ -190,7 +190,7 @@ struct multi_agent_execute_returning_user_defined_container_executor : test_exec
 {
   template<class Function, class Factory>
   typename std::result_of<Factory(size_t)>::type
-    new_execute(Function f, Factory result_factory, size_t n)
+    execute(Function f, Factory result_factory, size_t n)
   {
     function_called = true;
 
@@ -210,7 +210,7 @@ struct multi_agent_execute_with_shared_inits_returning_user_defined_container_ex
 {
   template<class Function, class Factory1, class Factory2>
   typename std::result_of<Factory1(size_t)>::type
-    new_execute(Function f, Factory1 result_factory, size_t n, Factory2 shared_factory)
+    execute(Function f, Factory1 result_factory, size_t n, Factory2 shared_factory)
   {
     function_called = true;
 
@@ -316,7 +316,7 @@ struct multi_agent_async_execute_returning_user_defined_container_executor : tes
     {
       multi_agent_execute_returning_user_defined_container_executor exec;
 
-      return exec.new_execute(f, result_factory, n);
+      return exec.execute(f, result_factory, n);
     });
   }
 };
@@ -334,7 +334,7 @@ struct multi_agent_async_execute_with_shared_inits_returning_user_defined_contai
     {
       multi_agent_execute_with_shared_inits_returning_user_defined_container_executor exec;
 
-      return exec.new_execute(f, result_factory, n, shared_factory);
+      return exec.execute(f, result_factory, n, shared_factory);
     });
   }
 };
