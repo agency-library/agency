@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/executor_traits/container_factory.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -52,7 +53,7 @@ typename new_executor_traits<Executor>::template future<
     >
   >;
 
-  return new_executor_traits<Executor>::template then_execute<container_type>(ex, f, shape, fut);
+  return new_executor_traits<Executor>::new_then_execute(ex, f, container_factory<container_type>{}, shape, fut);
 } // end multi_agent_then_execute_returning_default_container()
 
 
