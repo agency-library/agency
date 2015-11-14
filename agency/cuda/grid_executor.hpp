@@ -97,36 +97,18 @@ class basic_grid_executor
       return detail::when_all_execute_and_select<Indices...>(f, shape, ThisIndexFunction(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory);
     }
 
-    template<class Container, class Function, class T, class Factory1, class Factory2,
-             class = typename std::enable_if<
-               agency::detail::new_executor_traits_detail::is_container<Container,index_type>::value
-             >::type,
+    template<class Function, class Factory1, class T, class Factory2, class Factory3,
              class = agency::detail::result_of_continuation_t<
                Function,
                index_type,
                future<T>,
-               agency::detail::result_of_factory_t<Factory1>&,
-               agency::detail::result_of_factory_t<Factory2>&
+               agency::detail::result_of_factory_t<Factory2>&,
+               agency::detail::result_of_factory_t<Factory3>&
              >
             >
     __host__ __device__
-    future<Container> then_execute(Function f, shape_type shape, future<T>& fut, Factory1 outer_factory, Factory2 inner_factory)
-    {
-      return detail::then_execute<Container>(f, shape, ThisIndexFunction(), fut, outer_factory, inner_factory, gpu());
-    }
-
-    template<class Function, class Factory, class T, class Factory1, class Factory2,
-             class = agency::detail::result_of_continuation_t<
-               Function,
-               index_type,
-               future<T>,
-               agency::detail::result_of_factory_t<Factory1>&,
-               agency::detail::result_of_factory_t<Factory2>&
-             >
-            >
-    __host__ __device__
-    future<typename std::result_of<Factory(shape_type)>::type>
-      new_then_execute(Function f, Factory result_factory, shape_type shape, future<T>& fut, Factory1 outer_factory, Factory2 inner_factory)
+    future<typename std::result_of<Factory1(shape_type)>::type>
+      then_execute(Function f, Factory1 result_factory, shape_type shape, future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
     {
       return detail::new_then_execute(f, result_factory, shape, ThisIndexFunction(), fut, outer_factory, inner_factory, gpu());
     }
@@ -524,7 +506,7 @@ class flattened_executor<cuda::grid_executor>
 
     template<class Function, class Factory, class T>
     future<typename std::result_of<Factory(shape_type)>::type>
-      new_then_execute(Function f, Factory result_factory, shape_type shape, future<T>& dependency)
+      then_execute(Function f, Factory result_factory, shape_type shape, future<T>& dependency)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::new_flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
@@ -537,10 +519,11 @@ class flattened_executor<cuda::grid_executor>
 
       cuda::detail::guarded_container_factory<Factory,shape_type> wrapped_result_factory{result_factory,shape};
 
-      return base_executor().new_then_execute(execute_me, wrapped_result_factory, partitioning, dependency);
+      return base_executor().then_execute(execute_me, wrapped_result_factory, partitioning, dependency);
     }
 
 
+    // XXX eliminate me
     template<class Function, class T>
     future<void> then_execute(Function f, shape_type shape, future<T>& dependency)
     {
@@ -558,7 +541,7 @@ class flattened_executor<cuda::grid_executor>
 
     template<class Function, class Factory1, class T, class Factory2>
     future<typename std::result_of<Factory1(shape_type)>::type>
-      new_then_execute(Function f, Factory1 result_factory, shape_type shape, future<T>& dependency, Factory2 shared_parameter_factory)
+      then_execute(Function f, Factory1 result_factory, shape_type shape, future<T>& dependency, Factory2 shared_parameter_factory)
     {
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::new_flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
@@ -571,9 +554,10 @@ class flattened_executor<cuda::grid_executor>
       // create a function to execute
       auto execute_me = cuda::detail::new_flattened_grid_executor_functor<Function>{f, shape, partitioning};
 
-      return base_executor().new_then_execute(execute_me, wrapped_result_factory, partitioning, dependency, shared_parameter_factory, agency::detail::unit_factory());
+      return base_executor().then_execute(execute_me, wrapped_result_factory, partitioning, dependency, shared_parameter_factory, agency::detail::unit_factory());
     }
 
+    // XXX eliminate me
     template<class Function, class T, class Factory>
     future<void> then_execute(Function f, shape_type shape, future<T>& dependency, Factory factory)
     {
