@@ -195,7 +195,6 @@ class basic_grid_executor
       this->async_execute(f, shape, outer_factory, inner_factory).wait();
     }
 
-
   private:
     gpu_id gpu_;
 };
@@ -523,22 +522,6 @@ class flattened_executor<cuda::grid_executor>
     }
 
 
-    //// XXX eliminate me
-    //template<class Function, class T>
-    //future<void> then_execute(Function f, shape_type shape, future<T>& dependency)
-    //{
-    //  // create a dummy function for partitioning purposes
-    //  auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
-
-    //  // partition up the iteration space
-    //  auto partitioning = partition(dependency, dummy_function, shape);
-
-    //  // create a function to execute
-    //  auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
-
-    //  return base_executor().then_execute(execute_me, partitioning, dependency);
-    //}
-
     template<class Function, class Factory1, class T, class Factory2>
     future<typename std::result_of<Factory1(shape_type)>::type>
       then_execute(Function f, Factory1 result_factory, shape_type shape, future<T>& dependency, Factory2 shared_parameter_factory)
@@ -556,22 +539,6 @@ class flattened_executor<cuda::grid_executor>
 
       return base_executor().then_execute(execute_me, wrapped_result_factory, partitioning, dependency, shared_parameter_factory, agency::detail::unit_factory());
     }
-
-    //// XXX eliminate me
-    //template<class Function, class T, class Factory>
-    //future<void> then_execute(Function f, shape_type shape, future<T>& dependency, Factory factory)
-    //{
-    //  // create a dummy function for partitioning purposes
-    //  auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
-
-    //  // partition up the iteration space
-    //  auto partitioning = partition(dependency, dummy_function, shape, factory, agency::detail::unit_factory());
-
-    //  // create a function to execute
-    //  auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
-
-    //  return agency::executor_traits<base_executor_type>::then_execute(base_executor(), execute_me, partitioning, dependency, factory, agency::detail::unit_factory());
-    //}
 
     __host__ __device__
     const base_executor_type& base_executor() const
