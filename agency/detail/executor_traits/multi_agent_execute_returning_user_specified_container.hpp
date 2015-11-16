@@ -12,58 +12,67 @@ namespace detail
 {
 namespace new_executor_traits_detail
 {
+namespace multi_agent_execute_returning_user_specified_container_implementation_strategies
+{
 
 
 __agency_hd_warning_disable__
-template<class Container, class Executor, class Function>
+template<class Executor, class Function, class Factory>
 __AGENCY_ANNOTATION
-Container multi_agent_execute_returning_user_specified_container(std::true_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
+typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_type)>::type
+  multi_agent_execute_returning_user_specified_container(std::true_type, Executor& ex, Function f, Factory result_factory, typename new_executor_traits<Executor>::shape_type shape)
 {
-  return ex.template execute<Container>(f, shape);
+  return ex.execute(f, result_factory, shape);
 } // end multi_agent_execute_returning_user_specified_container()
 
 
 
 
-template<class Container, size_t... Indices, class Executor, class Function, class Tuple>
+template<size_t... Indices, class Executor, class Function, class Factory, class Tuple>
 __AGENCY_ANNOTATION
-Container multi_agent_execute_returning_user_specified_container_impl(detail::index_sequence<Indices...>,
-                                                                      Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
-                                                                      const Tuple& tuple_of_unit_factories)
+typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_type)>::type
+  multi_agent_execute_returning_user_specified_container_impl(detail::index_sequence<Indices...>,
+                                                              Executor& ex, Function f, Factory result_factory, typename new_executor_traits<Executor>::shape_type shape,
+                                                              const Tuple& tuple_of_unit_factories)
 {
-  return new_executor_traits<Executor>::template execute<Container>(ex, ignore_tail_parameters_and_invoke<Function>{f}, shape, std::get<Indices>(tuple_of_unit_factories)...);
+  return new_executor_traits<Executor>::execute(ex, ignore_tail_parameters_and_invoke<Function>{f}, result_factory, shape, std::get<Indices>(tuple_of_unit_factories)...);
 } // end multi_agent_execute_returning_user_specified_container()
 
 
-template<class Container, class Executor, class Function>
+template<class Executor, class Function, class Factory>
 __AGENCY_ANNOTATION
-Container multi_agent_execute_returning_user_specified_container(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
+typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_type)>::type
+  multi_agent_execute_returning_user_specified_container(std::false_type, Executor& ex, Function f, Factory result_factory, typename new_executor_traits<Executor>::shape_type shape)
 {
   auto tuple_of_unit_factories = new_executor_traits_detail::make_tuple_of_unit_factories(ex);
 
-  return multi_agent_execute_returning_user_specified_container_impl<Container>(detail::make_index_sequence<std::tuple_size<decltype(tuple_of_unit_factories)>::value>(), ex, f, shape, tuple_of_unit_factories);
+  return multi_agent_execute_returning_user_specified_container_impl(detail::make_index_sequence<std::tuple_size<decltype(tuple_of_unit_factories)>::value>(), ex, f, result_factory, shape, tuple_of_unit_factories);
 } // end multi_agent_execute_returning_user_specified_container()
 
 
+} // end multi_agent_execute_returning_user_specified_container_implementation_strategies
 } // end new_executor_traits_detail
 } // end detail
 
 
 template<class Executor>
-  template<class Container, class Function>
+  template<class Function, class Factory>
 __AGENCY_ANNOTATION
-Container new_executor_traits<Executor>
+typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_type)>::type new_executor_traits<Executor>
   ::execute(typename new_executor_traits<Executor>::executor_type& ex,
             Function f,
+            Factory result_factory,
             typename new_executor_traits<Executor>::shape_type shape)
 {
-  using check_for_member_function = detail::new_executor_traits_detail::has_multi_agent_execute_returning_user_specified_container<
-    Container,
+  namespace ns = detail::new_executor_traits_detail::multi_agent_execute_returning_user_specified_container_implementation_strategies;
+
+  using check_for_member_function = agency::detail::new_executor_traits_detail::has_multi_agent_execute_returning_user_specified_container<
     Executor,
-    Function
+    Function,
+    Factory
   >;
 
-  return detail::new_executor_traits_detail::multi_agent_execute_returning_user_specified_container<Container>(check_for_member_function(), ex, f, shape);
+  return ns::multi_agent_execute_returning_user_specified_container(check_for_member_function(), ex, f, result_factory, shape);
 } // end new_executor_traits::execute()
 
 

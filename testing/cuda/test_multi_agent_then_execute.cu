@@ -16,6 +16,18 @@ struct increment_and_return_void
 };
 
 
+template<class Container>
+struct container_factory
+{
+  template<class Shape>
+  __host__ __device__
+  Container operator()(const Shape& shape)
+  {
+    return Container(shape);
+  }
+};
+
+
 template<class Executor>
 void test()
 {
@@ -36,10 +48,11 @@ void test()
 
     using index_type = typename executor_type::index_type;
 
-    auto fut = traits::template then_execute<container_type>(exec, [] __device__ (index_type idx, int& past)
+    auto fut = traits::then_execute(exec, [] __device__ (index_type idx, int& past)
     {
       return past;
     },
+    container_factory<container_type>{},
     shape,
     past);
 

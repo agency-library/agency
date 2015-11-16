@@ -85,6 +85,16 @@ class asynchronous_state_impl
     __host__ __device__
     asynchronous_state_impl(asynchronous_state_impl&& other) = default;
 
+    template<class U,
+             class = typename std::enable_if<
+               std::is_constructible<unique_ptr<T>, unique_ptr<U>&&>::value
+             >::type
+            >
+    __host__ __device__
+    asynchronous_state_impl(asynchronous_state_impl<U>&& other)
+      : data_(std::move(other.data_))
+    {}
+
     __host__ __device__
     asynchronous_state_impl& operator=(asynchronous_state_impl&&) = default;
 
@@ -117,6 +127,9 @@ class asynchronous_state_impl
     }
 
   private:
+    template<class, bool>
+    friend class asynchronous_state_impl;
+
     unique_ptr<T> data_;
 };
 
@@ -166,7 +179,6 @@ class asynchronous_state_impl<T,true>
 
     __host__ __device__
     asynchronous_state_impl(construct_ready_t) : valid_(true) {}
-    {}
 
     // constructs a not ready state
     __host__ __device__
@@ -180,11 +192,13 @@ class asynchronous_state_impl<T,true>
 
     // 1. allow moves to void states (this simply discards the state)
     // 2. allow moves to empty types if the type can be constructed from an empty argument list
+    // 3. allow upcasts to a base T from a derived U
     template<class U,
              class T1 = T,
              class = typename std::enable_if<
                std::is_void<T1>::value ||
-               (std::is_empty<T>::value && std::is_void<U>::value && std::is_constructible<T>::value)
+               (std::is_empty<T>::value && std::is_void<U>::value && std::is_constructible<T>::value) ||
+               std::is_base_of<T,U>::value
              >::type>
     __host__ __device__
     asynchronous_state_impl(asynchronous_state_impl<U>&& other)

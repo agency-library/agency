@@ -25,12 +25,16 @@ void test()
     int shared_arg = 0;
 
     std::mutex mut;
-    std::future<std::vector<int>> fut = agency::new_executor_traits<executor_type>::template then_execute<std::vector<int>>(exec, [&](size_t idx, int& past, int& shared_arg)
+    std::future<std::vector<int>> fut = agency::new_executor_traits<executor_type>::then_execute(exec, [&](size_t idx, int& past, int& shared_arg)
     {
       mut.lock();
       ++shared_arg;
       mut.unlock();
       return past;
+    },
+    [](size_t n)
+    {
+      return std::vector<int>(n);
     },
     n,
     past,
@@ -59,12 +63,16 @@ void test()
     int shared_arg = 0;
 
     std::mutex mut;
-    std::future<std::vector<int>> fut = agency::new_executor_traits<executor_type>::template then_execute<std::vector<int>>(exec, [&](size_t idx, int& shared_arg)
+    std::future<std::vector<int>> fut = agency::new_executor_traits<executor_type>::then_execute(exec, [&](size_t idx, int& shared_arg)
     {
       mut.lock();
       ++shared_arg;
       mut.unlock();
       return 13;
+    },
+    [](size_t n)
+    {
+      return std::vector<int>(n);
     },
     n,
     past,
@@ -127,7 +135,7 @@ void test()
     int shared_arg = 0;
 
     std::mutex mut;
-    auto fut = agency::new_executor_traits<executor_type>::template then_execute(exec, [&](size_t idx, int& shared_arg)
+    auto fut = agency::new_executor_traits<executor_type>::then_execute(exec, [&](size_t idx, int& shared_arg)
     {
       mut.lock();
       ++shared_arg;

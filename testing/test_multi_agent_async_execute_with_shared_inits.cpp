@@ -24,12 +24,16 @@ void test()
     int shared_arg = 0;
 
     std::mutex mut;
-    std::vector<int> result = agency::new_executor_traits<executor_type>::template async_execute<std::vector<int>>(exec, [&mut](size_t idx, int& shared_arg)
+    std::vector<int> result = agency::new_executor_traits<executor_type>::async_execute(exec, [&mut](size_t idx, int& shared_arg)
     {
       mut.lock();
       ++shared_arg;
       mut.unlock();
       return idx;
+    },
+    [](size_t n)
+    {
+      return std::vector<int>(n);
     },
     n,
     [&]

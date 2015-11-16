@@ -24,12 +24,16 @@ void test()
     int shared_arg = 0;
 
     std::mutex mut;
-    std::vector<int> result = agency::new_executor_traits<executor_type>::template execute<std::vector<int>>(exec, [&mut](size_t idx, int& shared_arg)
+    std::vector<int> result = agency::new_executor_traits<executor_type>::execute(exec, [&mut](size_t idx, int& shared_arg)
     {
       mut.lock();
       ++shared_arg;
       mut.unlock();
       return idx;
+    },
+    [](size_t n)
+    {
+      return std::vector<int>(n);
     },
     n,
     [&]
@@ -114,10 +118,10 @@ int main()
   test<empty_executor>();
 
   // single-agent executors
-  test<single_agent_execute_executor>();
-  test<single_agent_async_execute_executor>();
-  test<single_agent_then_execute_executor>();
   test<single_agent_when_all_execute_and_select_executor>();
+  test<single_agent_then_execute_executor>();
+  test<single_agent_async_execute_executor>();
+  test<single_agent_execute_executor>();
 
   // multi-agent when_all_execute_and_select()
   test<multi_agent_when_all_execute_and_select_executor>();

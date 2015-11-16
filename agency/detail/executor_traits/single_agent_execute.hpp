@@ -4,6 +4,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/single_element_container.hpp>
+#include <agency/detail/executor_traits/container_factory.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <type_traits>
 
@@ -59,11 +60,12 @@ typename std::result_of<Function()>::type
   using shape_type = typename new_executor_traits<Executor>::shape_type;
   using index_type = typename new_executor_traits<Executor>::index_type;
 
-  return new_executor_traits<Executor>::template execute<container_type>(ex, [=](const index_type&)
+  return new_executor_traits<Executor>::execute(ex, [=](const index_type&)
   {
     // XXX should use std::invoke()
     return f();
   },
+  container_factory<container_type>{},
   detail::shape_cast<shape_type>(1)).element;
 }
 

@@ -16,14 +16,13 @@
 
 #pragma once
 
+#include <agency/detail/config.hpp>
 #include <new>
 #include <type_traits>
 #include <utility>
 
 
 namespace agency
-{
-namespace cuda
 {
 namespace detail
 {
@@ -38,14 +37,14 @@ template<typename T>
       std::alignment_of<T>::value
     >::type storage[1];
 
-    __host__ __device__
+    __AGENCY_ANNOTATION
     const T* ptr() const
     {
       const void *result = storage;
       return reinterpret_cast<const T*>(result);
     }
 
-    __host__ __device__
+    __AGENCY_ANNOTATION
     T* ptr()
     {
       void *result = storage;
@@ -54,7 +53,7 @@ template<typename T>
 
   public:
     // copy assignment
-    __host__ __device__
+    __AGENCY_ANNOTATION
     uninitialized<T> &operator=(const T &other)
     {
       T& self = *this;
@@ -62,38 +61,38 @@ template<typename T>
       return *this;
     }
 
-    __host__ __device__
+    __AGENCY_ANNOTATION
     T& get()
     {
       return *ptr();
     }
 
-    __host__ __device__
+    __AGENCY_ANNOTATION
     const T& get() const
     {
       return *ptr();
     }
 
-    __host__ __device__
+    __AGENCY_ANNOTATION
     operator T& ()
     {
       return get();
     }
 
-    __host__ __device__
+    __AGENCY_ANNOTATION
     operator const T&() const
     {
       return get();
     }
 
     template<class... Args>
-    __host__ __device__
+    __AGENCY_ANNOTATION
     void construct(Args&&... args)
     {
       ::new(ptr()) T(std::forward<Args>(args)...);
     }
 
-    __host__ __device__
+    __AGENCY_ANNOTATION
     void destroy()
     {
       T& self = *this;
@@ -103,6 +102,5 @@ template<typename T>
 
 
 } // end detail
-} // end cuda
 } // end agency
 

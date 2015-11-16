@@ -69,6 +69,14 @@ factory<T,T> make_factory(const T& arg)
 }
 
 
+template<class T, class... Args>
+__AGENCY_ANNOTATION
+factory<T,typename std::decay<Args>::type...> make_factory(Args&&... args)
+{
+  return factory<T,typename std::decay<Args>::type...>(agency::detail::make_tuple(std::forward<Args>(args)...));
+}
+
+
 struct unit {};
 
 

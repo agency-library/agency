@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/factory.hpp>
-#include <agency/cuda/detail/uninitialized.hpp>
+#include <agency/detail/uninitialized.hpp>
 #include <type_traits>
 
 namespace agency
@@ -32,7 +32,7 @@ struct on_chip_shared_parameter
   on_chip_shared_parameter(bool is_leader, Factory factory)
     : is_leader_(is_leader)
   {
-    __shared__ uninitialized<value_type> inner_shared_param;
+    __shared__ agency::detail::uninitialized<value_type> inner_shared_param;
 
     if(is_leader_)
     {
@@ -64,7 +64,7 @@ struct on_chip_shared_parameter
   }
 
   const bool is_leader_;
-  uninitialized<value_type>* inner_shared_param_;
+  agency::detail::uninitialized<value_type>* inner_shared_param_;
 };
 
 

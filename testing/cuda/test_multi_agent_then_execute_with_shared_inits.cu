@@ -50,6 +50,18 @@ factory<T> make_factory(const T& value)
 }
 
 
+template<class Container>
+struct container_factory
+{
+  template<class Shape>
+  __host__ __device__
+  Container operator()(const Shape& shape)
+  {
+    return Container(shape);
+  }
+};
+
+
 template<class Executor>
 void test()
 {
@@ -70,7 +82,7 @@ void test()
 
     using index_type = typename executor_type::index_type;
 
-    auto fut = traits::template then_execute<container_type>(exec, sum_13_7_and_42(), shape, past, make_factory(7), make_factory(42.0f));
+    auto fut = traits::then_execute(exec, sum_13_7_and_42(), container_factory<container_type>{}, shape, past, make_factory(7), make_factory(42.0f));
 
     auto got = fut.get();
 

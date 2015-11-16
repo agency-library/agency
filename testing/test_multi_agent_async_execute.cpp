@@ -20,9 +20,13 @@ void test()
 
     size_t n = 100;
 
-    std::future<std::vector<int>> fut = agency::new_executor_traits<executor_type>::template async_execute<std::vector<int>>(exec, [](size_t idx)
+    std::future<std::vector<int>> fut = agency::new_executor_traits<executor_type>::async_execute(exec, [](size_t idx)
     {
       return idx;
+    },
+    [](size_t n)
+    {
+      return std::vector<int>(n);
     },
     n);
 
