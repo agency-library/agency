@@ -429,12 +429,10 @@ template<class Container>
 struct guarded_container : Container
 {
   using Container::Container;
-  grid_executor::shape_type shape_;
 
   __host__ __device__
-  guarded_container(Container&& other, grid_executor::shape_type shape)
-    : Container(std::move(other)),
-      shape_(shape)
+  guarded_container(Container&& other)
+    : Container(std::move(other))
   {}
 
   struct reference
@@ -463,9 +461,9 @@ struct guarded_container : Container
 
 template<class Container>
 __host__ __device__
-guarded_container<typename std::decay<Container>::type> make_guarded_container(Container&& value, grid_executor::shape_type shape)
+guarded_container<typename std::decay<Container>::type> make_guarded_container(Container&& value)
 {
-  return guarded_container<typename std::decay<Container>::type>(std::forward<Container>(value), shape);
+  return guarded_container<typename std::decay<Container>::type>(std::forward<Container>(value));
 }
 
 
@@ -481,7 +479,7 @@ struct guarded_container_factory
   __host__ __device__
   guarded_container<container_type> operator()(const grid_executor::shape_type& shape) const
   {
-    return cuda::detail::make_guarded_container(factory_(user_shape_), shape);
+    return cuda::detail::make_guarded_container(factory_(user_shape_));
   }
 };
 
@@ -526,7 +524,7 @@ class flattened_executor<cuda::grid_executor>
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
 
-      cuda::detail::guarded_container_factory<Factory1> intermediate_result_factory{result_factory,shape};
+      cuda::detail::guarded_container_factory<Factory1> intermediate_result_factory{result_factory};
 
       // partition up the iteration space
       auto partitioning = partition(dummy_function, intermediate_result_factory, shape, dependency, shared_parameter_factory, agency::detail::unit_factory());
