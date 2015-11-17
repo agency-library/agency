@@ -90,8 +90,7 @@ int main()
 
     auto result = f.get();
 
-    // XXX this doesn't work because flattened_executor's container doesn't flatten correctly
-    //assert(std::all_of(result.begin(), result.end(), [](int x) { return x == 20; }));
+    assert(std::all_of(result.begin(), result.end(), [](int x) { return x == 20; }));
   }
 
   {
@@ -118,8 +117,7 @@ int main()
 
     auto result = f.get();
 
-    // XXX this doesn't work because flattened_executor's container doesn't flatten correctly
-    //assert(std::all_of(result.begin(), result.end(), [](int x) { return x == 7; }));
+    assert(std::all_of(result.begin(), result.end(), [](int x) { return x == 7; }));
   }
 
   std::cout << "OK" << std::endl;
