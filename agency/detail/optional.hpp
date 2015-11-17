@@ -2,7 +2,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/uninitialized.hpp>
-#include <thrust/detail/swap.h>
 #include <utility>
 #include <type_traits>
 
@@ -14,6 +13,24 @@ namespace detail
 
 struct nullopt_t {};
 constexpr nullopt_t nullopt{};
+
+
+namespace optional_detail
+{
+
+
+__agency_hd_warning_disable__
+template<class T1, class T2>
+__AGENCY_ANNOTATION
+static void swap(T1& a, T2& b)
+{
+  T1 temp = a;
+  a = b;
+  b = temp;
+}
+
+
+} // end optional_detail
 
 
 template<class T>
@@ -160,7 +177,9 @@ class optional
       {
         if(*this)
         {
-          thrust::swap(value_, other.value_);
+          using optional_detail::swap;
+
+          swap(value_, other.value_);
         }
         else
         {
