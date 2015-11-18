@@ -524,7 +524,7 @@ class flattened_executor<cuda::grid_executor>
       // create a dummy function for partitioning purposes
       auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
 
-      cuda::detail::guarded_container_factory<Factory1> intermediate_result_factory{result_factory};
+      cuda::detail::guarded_container_factory<Factory1> intermediate_result_factory{result_factory,shape};
 
       // partition up the iteration space
       auto partitioning = partition(dummy_function, intermediate_result_factory, shape, dependency, shared_parameter_factory, agency::detail::unit_factory());
