@@ -27,6 +27,7 @@
 #include <agency/functional.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_tuple.hpp>
+#include <agency/detail/index_cast.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/cuda/detail/array.hpp>
@@ -327,58 +328,75 @@ namespace detail
 {
 
 
-template<class Function>
-struct flattened_grid_executor_functor
+template<class Index, class Function, class Shape>
+struct project_index_and_invoke
 {
-  Function f_;
-  std::size_t shape_;
-  cuda::grid_executor::shape_type partitioning_;
+  using index_type = Index;
+  using shape_type = Shape;
+
+  using projected_index_type = decltype(
+    agency::detail::project_index(std::declval<index_type>(), std::declval<shape_type>())
+  );
+
+  using projected_shape_type  = std::size_t; // XXX this needs to be generalized to be shape_type minus one dimension
+
+  Function             f_;
+  shape_type           shape_;
+  projected_shape_type projected_shape_;
+
+  __host__ __device__
+  project_index_and_invoke(const Function& f, shape_type shape, projected_shape_type projected_shape)
+    : f_(f),
+      shape_(shape),
+      projected_shape_(projected_shape)
+  {}
 
   // this type stores the result of f_(index)
   template<class T>
   struct value_and_index
   {
     T value;
-    std::size_t index;
+    projected_index_type index;
   };
 
   template<class T>
   __host__ __device__
-  value_and_index<typename std::decay<T>::type> make_value_and_index(T&& value, size_t idx)
+  value_and_index<typename std::decay<T>::type> make_value_and_index(T&& value, projected_index_type idx)
   {
     return value_and_index<typename std::decay<T>::type>{std::forward<T>(value), idx};
   }
 
+  // this is the type of result returned by f_
+  template<class... Args>
+  using result_of_function_t = typename std::result_of<Function(projected_index_type,Args...)>::type;
+
   template<class T>
-  using result_t = typename std::conditional<
+  using void_or_optionally_value_and_index_t = typename std::conditional<
     std::is_void<T>::value,
     void,
     agency::detail::optional<value_and_index<T>>
   >::type;
 
-  __host__ __device__
-  flattened_grid_executor_functor(const Function& f, std::size_t shape, cuda::grid_executor::shape_type partitioning)
-    : f_(f),
-      shape_(shape),
-      partitioning_(partitioning)
-  {}
+  // this is the type of result returned by this functor
+  template<class... Args>
+  using result_t = void_or_optionally_value_and_index_t<result_of_function_t<Args...>>;
 
   // when f_(idx) has no result, we just return void
   template<class... Args,
            class = typename std::enable_if<
              std::is_void<
-               typename std::result_of<Function(size_t,Args&&...)>::type
+               result_of_function_t<Args&&...>
              >::value
            >::type
           >
   __device__
-  void flatten_index_and_invoke(const grid_executor::index_type& idx, Args&&... args)
+  void impl(const Index& idx, Args&&... args)
   {
-    auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning_) + agency::detail::get<1>(idx);
+    auto projected_idx = agency::detail::project_index(idx, shape_);
 
-    if(flat_idx < shape_)
+    if(projected_idx < projected_shape_)
     {
-      f_(flat_idx, std::forward<Args>(args)...);
+      f_(projected_idx, std::forward<Args>(args)...);
     }
   }
 
@@ -387,19 +405,19 @@ struct flattened_grid_executor_functor
   template<class... Args,
            class = typename std::enable_if<
              !std::is_void<
-               typename std::result_of<Function(size_t,Args&&...)>::type
+               result_of_function_t<Args&&...>
              >::value
            >::type
           >
   __device__
-  result_t<typename std::result_of<Function(size_t,Args&&...)>::type>
-    flatten_index_and_invoke(const grid_executor::index_type& idx, Args&&... args)
+  result_t<Args&&...>
+    impl(const Index& idx, Args&&... args)
   {
-    auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning_) + agency::detail::get<1>(idx);
+    auto projected_idx = agency::detail::project_index(idx, shape_);
 
-    if(flat_idx < shape_)
+    if(projected_idx < projected_shape_)
     {
-      return make_value_and_index(f_(flat_idx, std::forward<Args>(args)...), flat_idx);
+      return make_value_and_index(f_(projected_idx, std::forward<Args>(args)...), projected_idx);
     }
 
     return agency::detail::nullopt;
@@ -408,21 +426,29 @@ struct flattened_grid_executor_functor
   // this overload implements the functor for then_execute() when the dependency future is void
   template<class T>
   __device__
-  result_t<typename std::result_of<Function(size_t, T&)>::type>
-    operator()(cuda::grid_executor::index_type idx, T& outer_shared_parameter, agency::detail::unit)
+  result_t<T&>
+    operator()(const Index& idx, T& outer_shared_parameter, agency::detail::unit)
   {
-    return flatten_index_and_invoke(idx, outer_shared_parameter);
+    return impl(idx, outer_shared_parameter);
   }
 
   // this overload implements the functor for then_execute() when the dependency future is not void
   template<class T1, class T2>
   __device__
-  result_t<typename std::result_of<Function(size_t, T1&, T2&)>::type>
-    operator()(cuda::grid_executor::index_type idx, T1& past_parameter, T2& outer_shared_parameter, agency::detail::unit)
+  result_t<T1&,T2&>
+    operator()(const Index& idx, T1& past_parameter, T2& outer_shared_parameter, agency::detail::unit)
   {
-    return flatten_index_and_invoke(idx, past_parameter, outer_shared_parameter);
+    return impl(idx, past_parameter, outer_shared_parameter);
   }
 };
+
+
+template<class Index, class Function, class Shape1, class Shape2>
+__host__ __device__
+project_index_and_invoke<Index,Function,Shape1> make_project_index_and_invoke(Function f, Shape1 higher_dimensional_shape, Shape2 lower_dimensional_shape)
+{
+  return project_index_and_invoke<Index,Function,Shape1>{f,higher_dimensional_shape,lower_dimensional_shape};
+}
 
 
 template<class Container>
@@ -522,7 +548,7 @@ class flattened_executor<cuda::grid_executor>
       then_execute(Function f, Factory1 result_factory, shape_type shape, future<T>& dependency, Factory2 shared_parameter_factory)
     {
       // create a dummy function for partitioning purposes
-      auto dummy_function = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
+      auto dummy_function = cuda::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partition_type{}, shape);
 
       cuda::detail::guarded_container_factory<Factory1> intermediate_result_factory{result_factory,shape};
 
@@ -530,7 +556,7 @@ class flattened_executor<cuda::grid_executor>
       auto partitioning = partition(dummy_function, intermediate_result_factory, shape, dependency, shared_parameter_factory, agency::detail::unit_factory());
 
       // create a function to execute
-      auto execute_me = cuda::detail::flattened_grid_executor_functor<Function>{f, shape, partitioning};
+      auto execute_me = cuda::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partitioning, shape);
 
       return base_executor().then_execute(execute_me, intermediate_result_factory, partitioning, dependency, shared_parameter_factory, agency::detail::unit_factory());
     }
