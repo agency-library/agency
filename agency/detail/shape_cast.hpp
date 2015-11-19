@@ -33,24 +33,41 @@ struct make
 
 // reduces the dimensionality of x by eliding the last dimension
 // and multiplying the second-to-last dimension by the last 
+// this function always returns a tuple, even if it's a one-element tuple
 template<class Point>
 __AGENCY_ANNOTATION
 rebind_point_size_t<
   Point,
   point_size<Point>::value - 1
-> project_shape(const Point& x)
+> project_shape_impl(const Point& x)
 {
   using result_type = rebind_point_size_t<Point,std::tuple_size<Point>::value-1>;
 
   auto last = __tu::tuple_last(x);
 
-  // XXX WAR nvcc 7's issue with tuple_drop_invoke
-  //auto result = __tu::tuple_drop_invoke<1>(x, shape_cast_detail::make<result_type>());
-  auto result = __tu::tuple_take_invoke<std::tuple_size<Point>::value - 1>(x, shape_cast_detail::make<result_type>());
+  auto result = __tu::tuple_drop_invoke<1>(x, shape_cast_detail::make<result_type>());
 
   __tu::tuple_last(result) *= last;
 
   return result;
+}
+
+
+// reduces the dimensionality of shape by eliding the last dimension
+// and multiplying the second-to-last dimension by the last
+// this function unwraps single element tuples
+template<class ShapeTuple>
+__AGENCY_ANNOTATION
+auto project_shape(const ShapeTuple& shape)
+  -> typename std::decay<
+       decltype(
+         detail::unwrap_single_element_tuple(
+           detail::project_shape_impl(shape)
+         )
+       )
+     >::type
+{
+  return detail::unwrap_single_element_tuple(detail::project_shape_impl(shape));
 }
 
 
