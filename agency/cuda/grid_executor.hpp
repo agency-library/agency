@@ -338,7 +338,9 @@ struct project_index_and_invoke
     agency::detail::project_index(std::declval<index_type>(), std::declval<shape_type>())
   );
 
-  using projected_shape_type  = std::size_t; // XXX this needs to be generalized to be shape_type minus one dimension
+  using projected_shape_type  = decltype(
+    agency::detail::project_shape(std::declval<shape_type>())
+  );
 
   Function             f_;
   shape_type           shape_;
@@ -471,7 +473,7 @@ struct guarded_container : Container
     {
       if(opt)
       {
-        size_t idx = opt.value().index;
+        auto idx = opt.value().index;
         self_[idx] = std::forward<OptionalValueAndIndex>(opt).value().value;
       }
     }
