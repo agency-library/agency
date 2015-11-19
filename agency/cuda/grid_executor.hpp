@@ -32,6 +32,7 @@
 #include <agency/cuda/future.hpp>
 #include <agency/cuda/detail/array.hpp>
 #include <agency/detail/optional.hpp>
+#include <agency/detail/project_index_and_invoke.hpp>
 
 
 namespace agency
@@ -328,134 +329,6 @@ namespace detail
 {
 
 
-template<class Index, class Function, class Shape>
-struct project_index_and_invoke
-{
-  using index_type = Index;
-  using shape_type = Shape;
-
-  using projected_index_type = decltype(
-    agency::detail::project_index(std::declval<index_type>(), std::declval<shape_type>())
-  );
-
-  using projected_shape_type  = decltype(
-    agency::detail::project_shape(std::declval<shape_type>())
-  );
-
-  Function             f_;
-  shape_type           shape_;
-  projected_shape_type projected_shape_;
-
-  __host__ __device__
-  project_index_and_invoke(const Function& f, shape_type shape, projected_shape_type projected_shape)
-    : f_(f),
-      shape_(shape),
-      projected_shape_(projected_shape)
-  {}
-
-  // this type stores the result of f_(index)
-  template<class T>
-  struct value_and_index
-  {
-    T value;
-    projected_index_type index;
-  };
-
-  template<class T>
-  __host__ __device__
-  value_and_index<typename std::decay<T>::type> make_value_and_index(T&& value, projected_index_type idx)
-  {
-    return value_and_index<typename std::decay<T>::type>{std::forward<T>(value), idx};
-  }
-
-  // this is the type of result returned by f_
-  template<class... Args>
-  using result_of_function_t = typename std::result_of<Function(projected_index_type,Args...)>::type;
-
-  template<class T>
-  using void_or_optionally_value_and_index_t = typename std::conditional<
-    std::is_void<T>::value,
-    void,
-    agency::detail::optional<value_and_index<T>>
-  >::type;
-
-  // this is the type of result returned by this functor
-  template<class... Args>
-  using result_t = void_or_optionally_value_and_index_t<result_of_function_t<Args...>>;
-
-  // when f_(idx) has no result, we just return void
-  template<class... Args,
-           class = typename std::enable_if<
-             std::is_void<
-               result_of_function_t<Args&&...>
-             >::value
-           >::type
-          >
-  __device__
-  void impl(const Index& idx, Args&&... args)
-  {
-    auto projected_idx = agency::detail::project_index(idx, shape_);
-
-    if(projected_idx < projected_shape_)
-    {
-      f_(projected_idx, std::forward<Args>(args)...);
-    }
-  }
-
-  // when f_(idx) has a result, we optionally return f_'s result and the index,
-  // but only at points where f_(idx) is defined
-  template<class... Args,
-           class = typename std::enable_if<
-             !std::is_void<
-               result_of_function_t<Args&&...>
-             >::value
-           >::type
-          >
-  __device__
-  result_t<Args&&...>
-    impl(const Index& idx, Args&&... args)
-  {
-    auto projected_idx = agency::detail::project_index(idx, shape_);
-
-    if(projected_idx < projected_shape_)
-    {
-      return make_value_and_index(f_(projected_idx, std::forward<Args>(args)...), projected_idx);
-    }
-
-    return agency::detail::nullopt;
-  }
-
-  // this overload implements the functor for then_execute() when the dependency future is void
-  template<class T>
-  __device__
-  result_t<T&>
-    operator()(const Index& idx, T& outer_shared_parameter, agency::detail::unit)
-  {
-    return impl(idx, outer_shared_parameter);
-  }
-
-  // this overload implements the functor for then_execute() when the dependency future is not void
-  template<class T1, class T2>
-  __device__
-  result_t<T1&,T2&>
-    operator()(const Index& idx, T1& past_parameter, T2& outer_shared_parameter, agency::detail::unit)
-  {
-    return impl(idx, past_parameter, outer_shared_parameter);
-  }
-};
-
-
-template<class Index, class Function, class Shape>
-__host__ __device__
-project_index_and_invoke<Index,Function,Shape>
-  make_project_index_and_invoke(Function f,
-                                Shape higher_dimensional_shape,
-                                typename project_index_and_invoke<Index,Function,Shape>::projected_shape_type lower_dimensional_shape)
-{
-  return project_index_and_invoke<Index,Function,Shape>{f,higher_dimensional_shape,lower_dimensional_shape};
-}
-
-
 template<class Container>
 struct guarded_container : Container
 {
@@ -553,7 +426,7 @@ class flattened_executor<cuda::grid_executor>
       then_execute(Function f, Factory1 result_factory, shape_type shape, future<T>& dependency, Factory2 shared_parameter_factory)
     {
       // create a dummy function for partitioning purposes
-      auto dummy_function = cuda::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partition_type{}, shape);
+      auto dummy_function = agency::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partition_type{}, shape);
 
       cuda::detail::guarded_container_factory<Factory1> intermediate_result_factory{result_factory,shape};
 
@@ -561,7 +434,7 @@ class flattened_executor<cuda::grid_executor>
       auto partitioning = partition(dummy_function, intermediate_result_factory, shape, dependency, shared_parameter_factory, agency::detail::unit_factory());
 
       // create a function to execute
-      auto execute_me = cuda::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partitioning, shape);
+      auto execute_me = agency::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partitioning, shape);
 
       return base_executor().then_execute(execute_me, intermediate_result_factory, partitioning, dependency, shared_parameter_factory, agency::detail::unit_factory());
     }
