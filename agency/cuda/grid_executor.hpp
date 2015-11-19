@@ -445,11 +445,14 @@ struct project_index_and_invoke
 };
 
 
-template<class Index, class Function, class Shape1, class Shape2>
+template<class Index, class Function, class Shape>
 __host__ __device__
-project_index_and_invoke<Index,Function,Shape1> make_project_index_and_invoke(Function f, Shape1 higher_dimensional_shape, Shape2 lower_dimensional_shape)
+project_index_and_invoke<Index,Function,Shape>
+  make_project_index_and_invoke(Function f,
+                                Shape higher_dimensional_shape,
+                                typename project_index_and_invoke<Index,Function,Shape>::projected_shape_type lower_dimensional_shape)
 {
-  return project_index_and_invoke<Index,Function,Shape1>{f,higher_dimensional_shape,lower_dimensional_shape};
+  return project_index_and_invoke<Index,Function,Shape>{f,higher_dimensional_shape,lower_dimensional_shape};
 }
 
 
