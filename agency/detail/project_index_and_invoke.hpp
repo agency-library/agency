@@ -77,7 +77,7 @@ struct project_index_and_invoke
              >::value
            >::type
           >
-  __device__
+  __AGENCY_ANNOTATION
   void impl(const Index& idx, Args&&... args)
   {
     auto projected_idx = detail::project_index(idx, shape_);
@@ -97,7 +97,7 @@ struct project_index_and_invoke
              >::value
            >::type
           >
-  __device__
+  __AGENCY_ANNOTATION
   result_t<Args&&...>
     impl(const Index& idx, Args&&... args)
   {
@@ -113,7 +113,7 @@ struct project_index_and_invoke
 
   // this overload implements the functor for then_execute() when the dependency future is void
   template<class T>
-  __device__
+  __AGENCY_ANNOTATION
   result_t<T&>
     operator()(const Index& idx, T& outer_shared_parameter, unit)
   {
@@ -122,7 +122,7 @@ struct project_index_and_invoke
 
   // this overload implements the functor for then_execute() when the dependency future is not void
   template<class T1, class T2>
-  __device__
+  __AGENCY_ANNOTATION
   result_t<T1&,T2&>
     operator()(const Index& idx, T1& past_parameter, T2& outer_shared_parameter, unit)
   {
@@ -132,7 +132,7 @@ struct project_index_and_invoke
 
 
 template<class Index, class Function, class Shape>
-__host__ __device__
+__AGENCY_ANNOTATION
 project_index_and_invoke<Index,Function,Shape>
   make_project_index_and_invoke(Function f,
                                 Shape higher_dimensional_shape,
