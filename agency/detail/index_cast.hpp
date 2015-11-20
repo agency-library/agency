@@ -14,60 +14,6 @@ namespace detail
 {
 
 
-template<class Index, class Size>
-__AGENCY_ANNOTATION
-auto project_index_helper(const Index& idx, Size size_of_second_to_last_dimension)
-  -> typename std::decay<
-       decltype(
-         unwrap_single_element_tuple(__tu::tuple_drop_last(idx))
-       )
-     >::type
-{
-  auto result = detail::tuple_drop_last(idx);
-
-  // multiply the index by the size of the second to last dimension and add
-  // that to the second to last index
-  __tu::tuple_last(result) += size_of_second_to_last_dimension * __tu::tuple_last(idx);
-
-  return unwrap_single_element_tuple(result);
-}
-
-
-template<class Index, class Shape>
-__AGENCY_ANNOTATION
-auto project_index(const Index& idx, const Shape& shape)
-  -> decltype(
-       detail::make_tuple(
-         project_index_helper(idx, __tu::tuple_last(shape)),
-         project_shape(shape)
-       )
-     )
-{
-  // to project an index into the next lower dimension,
-  // we combine the last two dimensions into one
-
-  // for a 2D example, consider finding the 1D rank of element (2,2) 
-  // in a 5 x 4-shaped grid.
-  // element (2,2)'s rank is 12 in this grid
-  // given idx = (x,y) = (2,2) and shape = (width,height) = (5,4)
-  // (2,2)'s 1D rank is computed as
-  // y * width + x
-
-  auto size_of_second_to_last_dimension = __tu::tuple_last(detail::tuple_drop_last(shape));
-
-  auto projected_index = project_index_helper(idx, size_of_second_to_last_dimension);
-
-  // project the shape
-  // this creates a lower dimensional grid with
-  // the same number of cells
-  // for the shape = (5,4) example, this will compute
-  // a 1D shape of 20
-  auto projected_shape = project_shape(shape);
-
-  return detail::make_tuple(projected_index, projected_shape);
-}
-
-
 template<class Tuple,
          class = typename std::enable_if<
            !std::is_integral<
@@ -101,6 +47,48 @@ auto wrap_scalar(T&& x)
     typename std::decay<T>::type,
     1
   >{std::forward<T>(x)};
+}
+
+
+template<class IndexTuple, class Size>
+__AGENCY_ANNOTATION
+auto project_index_helper(const IndexTuple& idx, Size size_of_second_to_last_dimension)
+  -> typename std::decay<
+       decltype(
+         unwrap_single_element_tuple(__tu::tuple_drop_last(idx))
+       )
+     >::type
+{
+  auto result = detail::tuple_drop_last(idx);
+
+  // multiply the index by the size of the second to last dimension and add
+  // that to the second to last index
+  __tu::tuple_last(result) += size_of_second_to_last_dimension * __tu::tuple_last(idx);
+
+  return unwrap_single_element_tuple(result);
+}
+
+
+template<class IndexTuple, class ShapeTuple>
+__AGENCY_ANNOTATION
+auto project_index(const IndexTuple& idx, const ShapeTuple& shape)
+  -> decltype(
+       project_index_helper(idx, __tu::tuple_last(detail::tuple_drop_last(shape)))
+     )
+{
+  // to project an index into the next lower dimension,
+  // we combine the last two dimensions into one
+
+  // for a 2D example, consider finding the 1D rank of element (2,2) 
+  // in a 5 x 4-shaped grid.
+  // element (2,2)'s rank is 12 in this grid
+  // given idx = (x,y) = (2,2) and shape = (width,height) = (5,4)
+  // (2,2)'s 1D rank is computed as
+  // y * width + x
+
+  auto size_of_second_to_last_dimension = __tu::tuple_last(detail::tuple_drop_last(shape));
+
+  return detail::project_index_helper(idx, size_of_second_to_last_dimension);
 }
 
 
@@ -299,8 +287,7 @@ typename std::enable_if<
              const FromShape& from_shape,
              const ToShape& to_shape)
 {
-  auto projected_idx_and_shape = project_index(from_idx, from_shape);
-  return index_cast<ToIndex>(detail::get<0>(projected_idx_and_shape), detail::get<1>(projected_idx_and_shape), to_shape);
+  return index_cast<ToIndex>(detail::project_index(from_idx, from_shape), detail::project_shape(from_shape), to_shape);
 }
 
                      

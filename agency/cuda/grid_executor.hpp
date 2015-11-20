@@ -27,10 +27,12 @@
 #include <agency/functional.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_tuple.hpp>
+#include <agency/detail/index_cast.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/cuda/detail/array.hpp>
 #include <agency/detail/optional.hpp>
+#include <agency/detail/project_index_and_invoke.hpp>
 
 
 namespace agency
@@ -327,91 +329,6 @@ namespace detail
 {
 
 
-template<class Function>
-struct flattened_grid_executor_functor
-{
-  Function f_;
-  std::size_t shape_;
-  cuda::grid_executor::shape_type partitioning_;
-
-  __host__ __device__
-  flattened_grid_executor_functor(const Function& f, std::size_t shape, cuda::grid_executor::shape_type partitioning)
-    : f_(f),
-      shape_(shape),
-      partitioning_(partitioning)
-  {}
-
-  template<class T>
-  __device__
-  void operator()(cuda::grid_executor::index_type idx, T& outer_shared_param, agency::detail::unit)
-  {
-    auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning_) + agency::detail::get<1>(idx);
-
-    if(flat_idx < shape_)
-    {
-      f_(flat_idx, outer_shared_param);
-    }
-  }
-
-  inline __device__
-  void operator()(cuda::grid_executor::index_type idx)
-  {
-    auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning_) + agency::detail::get<1>(idx);
-
-    if(flat_idx < shape_)
-    {
-      f_(flat_idx);
-    }
-  }
-};
-
-
-template<class Function>
-struct new_flattened_grid_executor_functor
-{
-  Function f_;
-  std::size_t shape_;
-  cuda::grid_executor::shape_type partitioning_;
-
-  __host__ __device__
-  new_flattened_grid_executor_functor(const Function& f, std::size_t shape, cuda::grid_executor::shape_type partitioning)
-    : f_(f),
-      shape_(shape),
-      partitioning_(partitioning)
-  {}
-
-  template<class T>
-  __device__
-  agency::detail::optional<typename std::result_of<Function(size_t, T&)>::type>
-    operator()(cuda::grid_executor::index_type idx, T& outer_shared_param, agency::detail::unit)
-  {
-    auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning_) + agency::detail::get<1>(idx);
-
-    if(flat_idx < shape_)
-    {
-      return f_(flat_idx, outer_shared_param);
-    }
-
-    return agency::detail::nullopt;
-  }
-
-  template<class Index>
-  inline __device__
-  agency::detail::optional<typename std::result_of<Function(Index)>::type>
-    operator()(Index idx)
-  {
-    auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning_) + agency::detail::get<1>(idx);
-
-    if(flat_idx < shape_)
-    {
-      return f_(flat_idx);
-    }
-
-    return agency::detail::nullopt;
-  }
-};
-
-
 template<class Container>
 struct guarded_container : Container
 {
@@ -422,28 +339,26 @@ struct guarded_container : Container
     : Container(std::move(other))
   {}
 
-  template<class Index>
   struct reference
   {
     Container& self_;
-    Index idx_;
 
-    template<class Optional>
+    template<class OptionalValueAndIndex>
     __host__ __device__
-    void operator=(Optional&& opt)
+    void operator=(OptionalValueAndIndex&& opt)
     {
       if(opt)
       {
-        self_[idx_] = std::forward<Optional>(opt).value();
+        auto idx = opt.value().index;
+        self_[idx] = std::forward<OptionalValueAndIndex>(opt).value().value;
       }
     }
   };
 
-  template<class Index>
   __host__ __device__
-  reference<Index> operator[](const Index& idx)
+  reference operator[](const grid_executor::index_type&)
   {
-    return reference<Index>{*this,idx};
+    return reference{*this};
   }
 };
 
@@ -456,20 +371,19 @@ guarded_container<typename std::decay<Container>::type> make_guarded_container(C
 }
 
 
-template<class Factory, class Shape>
+template<class Factory>
 struct guarded_container_factory
 {
-  Factory factory_;
-  Shape shape_;
+  mutable Factory factory_;
+  size_t user_shape_;
 
-  using container_type = typename std::result_of<Factory(Shape)>::type;
+  using container_type = typename std::result_of<Factory(size_t)>::type;
 
   __agency_hd_warning_disable__
-  template<class Arg>
   __host__ __device__
-  guarded_container<container_type> operator()(const Arg&)
+  guarded_container<container_type> operator()(const grid_executor::shape_type& shape) const
   {
-    return make_guarded_container(factory_(shape_));
+    return cuda::detail::make_guarded_container(factory_(user_shape_));
   }
 };
 
@@ -490,11 +404,14 @@ class flattened_executor<cuda::grid_executor>
     // XXX maybe use whichever of the first two elements of base_executor_type::shape_type has larger dimensionality?
     using shape_type = size_t;
 
+    // XXX maybe use whichever of the first two elements of base_executor_type::index_type has larger dimensionality?
+    using index_type = size_t;
+
     template<class T>
     using future = cuda::grid_executor::template future<T>;
 
     template<class T>
-    using container = cuda::grid_executor::template container<T>;
+    using container = cuda::detail::array<T>;
 
     // XXX initialize outer_subscription_ correctly
     __host__ __device__
@@ -503,41 +420,23 @@ class flattened_executor<cuda::grid_executor>
         base_executor_(base_executor)
     {}
 
-    template<class Function, class Factory, class T>
-    future<typename std::result_of<Factory(shape_type)>::type>
-      then_execute(Function f, Factory result_factory, shape_type shape, future<T>& dependency)
-    {
-      // create a dummy function for partitioning purposes
-      auto dummy_function = cuda::detail::new_flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
-
-      // partition up the iteration space
-      auto partitioning = partition(dependency, dummy_function, shape);
-
-      // create a function to execute
-      auto execute_me = cuda::detail::new_flattened_grid_executor_functor<Function>{f, shape, partitioning};
-
-      cuda::detail::guarded_container_factory<Factory,shape_type> wrapped_result_factory{result_factory,shape};
-
-      return base_executor().then_execute(execute_me, wrapped_result_factory, partitioning, dependency);
-    }
-
-
+    // XXX needs __host__ __device__
     template<class Function, class Factory1, class T, class Factory2>
     future<typename std::result_of<Factory1(shape_type)>::type>
       then_execute(Function f, Factory1 result_factory, shape_type shape, future<T>& dependency, Factory2 shared_parameter_factory)
     {
       // create a dummy function for partitioning purposes
-      auto dummy_function = cuda::detail::new_flattened_grid_executor_functor<Function>{f, shape, partition_type{}};
+      auto dummy_function = agency::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partition_type{}, shape);
 
-      cuda::detail::guarded_container_factory<Factory1,shape_type> wrapped_result_factory{result_factory,shape};
+      cuda::detail::guarded_container_factory<Factory1> intermediate_result_factory{result_factory,shape};
 
       // partition up the iteration space
-      auto partitioning = new_partition(dummy_function, wrapped_result_factory, shape, dependency, shared_parameter_factory, agency::detail::unit_factory());
+      auto partitioning = partition(dummy_function, intermediate_result_factory, shape, dependency, shared_parameter_factory, agency::detail::unit_factory());
 
       // create a function to execute
-      auto execute_me = cuda::detail::new_flattened_grid_executor_functor<Function>{f, shape, partitioning};
+      auto execute_me = agency::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partitioning, shape);
 
-      return base_executor().then_execute(execute_me, wrapped_result_factory, partitioning, dependency, shared_parameter_factory, agency::detail::unit_factory());
+      return base_executor().then_execute(execute_me, intermediate_result_factory, partitioning, dependency, shared_parameter_factory, agency::detail::unit_factory());
     }
 
     __host__ __device__
@@ -571,25 +470,9 @@ class flattened_executor<cuda::grid_executor>
       return partition_type{outer_size, inner_size};
     }
 
-    // returns (outer size, inner size)
-    template<class Function>
-    __host__ __device__
-    partition_type partition(const Function& f, shape_type shape) const
-    {
-      return partition_impl(base_executor().max_shape(f), shape);
-    }
-
-    // returns (outer size, inner size)
-    template<class T, class Function, class Factory1, class Factory2>
-    __host__ __device__
-    partition_type partition(const future<T>& dependency, const Function& f, shape_type shape, const Factory1& outer_factory, const Factory2& inner_factory) const
-    {
-      return partition_impl(base_executor().max_shape(f,dependency,outer_factory,inner_factory), shape);
-    }
-
     template<class Function, class Factory1, class T, class Factory2, class Factory3>
     __host__ __device__
-    partition_type new_partition(const Function& f, const Factory1& result_factory, shape_type shape, const future<T>& dependency, const Factory2& outer_factory, const Factory3& inner_factory) const
+    partition_type partition(const Function& f, const Factory1& result_factory, shape_type shape, const future<T>& dependency, const Factory2& outer_factory, const Factory3& inner_factory) const
     {
       return partition_impl(base_executor().max_shape(f, result_factory, dependency, outer_factory, inner_factory), shape);
     }

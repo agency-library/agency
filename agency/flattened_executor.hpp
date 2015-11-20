@@ -6,9 +6,78 @@
 #include <agency/execution_categories.hpp>
 #include <agency/nested_executor.hpp>
 #include <agency/detail/factory.hpp>
+#include <agency/detail/optional.hpp>
+#include <agency/detail/project_index_and_invoke.hpp>
 
 namespace agency
 {
+namespace detail
+{
+
+
+// XXX we should find a better home for this functionality because grid_executor.hpp replicates this code
+template<class Container>
+struct guarded_container : Container
+{
+  using Container::Container;
+
+  __AGENCY_ANNOTATION
+  guarded_container(Container&& other)
+    : Container(std::move(other))
+  {}
+
+  struct reference
+  {
+    Container& self_;
+
+    template<class OptionalValueAndIndex>
+    __AGENCY_ANNOTATION
+    void operator=(OptionalValueAndIndex&& opt)
+    {
+      if(opt)
+      {
+        auto idx = opt.value().index;
+        self_[idx] = std::forward<OptionalValueAndIndex>(opt).value().value;
+      }
+    }
+  };
+
+  template<class Index>
+  __AGENCY_ANNOTATION
+  reference operator[](const Index&)
+  {
+    return reference{*this};
+  }
+};
+
+
+template<class Container>
+__AGENCY_ANNOTATION
+guarded_container<typename std::decay<Container>::type> make_guarded_container(Container&& value)
+{
+  return guarded_container<typename std::decay<Container>::type>(std::forward<Container>(value));
+}
+
+
+template<class Factory, class Shape>
+struct guarded_container_factory
+{
+  Factory factory_;
+  Shape shape_;
+
+  using container_type = typename std::result_of<Factory(Shape)>::type;
+
+  __agency_hd_warning_disable__
+  template<class Arg>
+  __AGENCY_ANNOTATION
+  guarded_container<container_type> operator()(const Arg&)
+  {
+    return make_guarded_container(factory_(shape_));
+  }
+};
+
+
+} // end detail
 
 
 template<class Executor>
@@ -29,6 +98,8 @@ class flattened_executor
     // XXX maybe use whichever of the first two elements of base_executor_type::shape_type has larger dimensionality?
     using shape_type = size_t;
 
+    using index_type = size_t;
+
     template<class T>
     using future = typename executor_traits<base_executor_type>::template future<T>;
 
@@ -43,10 +114,25 @@ class flattened_executor
         base_executor_(base_executor)
     {}
 
-    template<class Function, class Future, class Factory>
-    future<void> then_execute(Function f, shape_type shape, Future& dependency, Factory shared_factory)
+    template<class Function, class Factory1, class Future, class Factory2>
+    future<typename std::result_of<Factory1(shape_type)>::type>
+      then_execute(Function f, Factory1 result_factory, shape_type shape, Future& dependency, Factory2 shared_factory)
     {
-      return this->then_execute_impl(base_executor(), dependency, f, shape, shared_factory);
+      auto partitioning = partition(shape);
+
+      // store results into an intermediate result
+      detail::guarded_container_factory<Factory1,shape_type> intermediate_result_factory{result_factory,shape};
+
+      // create a function to execute
+      using base_index_type = typename executor_traits<base_executor_type>::index_type;
+      auto execute_me = detail::make_project_index_and_invoke<base_index_type>(f, partitioning, shape);
+
+      // execute
+      auto intermediate_fut = executor_traits<base_executor_type>::then_execute(base_executor(), execute_me, intermediate_result_factory, partitioning, dependency, shared_factory, agency::detail::unit_factory());
+
+      // cast the intermediate result to the type of result expected by the caller
+      using result_type = typename std::result_of<Factory1(shape_type)>::type;
+      return executor_traits<base_executor_type>::template future_cast<result_type>(base_executor(), intermediate_fut);
     }
 
     const base_executor_type& base_executor() const
@@ -61,101 +147,6 @@ class flattened_executor
 
   private:
     using partition_type = typename executor_traits<base_executor_type>::shape_type;
-
-    template<class Function>
-    struct then_execute_generic_functor
-    {
-      Function f;
-      shape_type shape;
-      partition_type partitioning;
-
-      template<class Index, class T>
-      void operator()(const Index& idx, T& outer_shared_param, const agency::detail::unit&)
-      {
-        auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning) + agency::detail::get<1>(idx);
-
-        if(flat_idx < shape)
-        {
-          f(flat_idx, outer_shared_param);
-        }
-      }
-
-      template<class Index, class T1, class T2>
-      void operator()(const Index& idx, T1& past_shared_param, T2& outer_shared_param, const agency::detail::ignore_t&)
-      {
-        auto flat_idx = agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning) + agency::detail::get<1>(idx);
-
-        if(flat_idx < shape)
-        {
-          f(flat_idx, past_shared_param, outer_shared_param);
-        }
-      }
-    };
-
-    template<class OtherExecutor, class Future, class Function, class Factory>
-    future<void> then_execute_impl(OtherExecutor& exec, Future& dependency, Function f, shape_type shape, Factory shared_factory)
-    {
-      auto partitioning = partition(shape);
-
-      return executor_traits<OtherExecutor>::then_execute(exec, then_execute_generic_functor<Function>{f, shape, partitioning}, partitioning, dependency, shared_factory, agency::detail::unit_factory());
-    }
-
-    template<class Function, class OuterExecutor, class InnerExecutor>
-    struct then_execute_nested_functor
-    {
-      nested_executor<OuterExecutor,InnerExecutor>& exec;
-      Function                                      f;
-      shape_type                                    shape;
-      partition_type                                partitioning;
-
-      template<class Index, class T>
-      void operator()(const Index& outer_idx, T& shared_param)
-      {
-        auto subgroup_begin = outer_idx * agency::detail::get<1>(partitioning);
-        auto subgroup_end   = std::min(shape, subgroup_begin + agency::detail::get<1>(partitioning));
-
-        using inner_index_type = typename executor_traits<InnerExecutor>::index_type;
-
-        executor_traits<InnerExecutor>::execute(exec.inner_executor(), [=,&shared_param](const inner_index_type& inner_idx) mutable
-        {
-          auto index = subgroup_begin + inner_idx;
-    
-          f(index, shared_param);
-        },
-        subgroup_end - subgroup_begin
-        );
-      }
-
-      template<class Index, class T1, class T2>
-      void operator()(const Index& outer_idx, T1& past_shared_param, T2& shared_param)
-      {
-        auto subgroup_begin = outer_idx * agency::detail::get<1>(partitioning);
-        auto subgroup_end   = std::min(shape, subgroup_begin + agency::detail::get<1>(partitioning));
-
-        using inner_index_type = typename executor_traits<InnerExecutor>::index_type;
-
-        executor_traits<InnerExecutor>::execute(exec.inner_executor(), [=,&past_shared_param,&shared_param](const inner_index_type& inner_idx) mutable
-        {
-          auto index = subgroup_begin + inner_idx;
-    
-          f(index, past_shared_param, shared_param);
-        },
-        subgroup_end - subgroup_begin
-        );
-      }
-    };
-
-    // we can avoid the if(flat_idx < shape) branch above by providing a specialization for nested_executor
-    template<class OuterExecutor, class InnerExecutor, class Function, class Future, class Factory>
-    future<void> then_execute_impl(nested_executor<OuterExecutor,InnerExecutor>& exec, Function f, shape_type shape, Future& dependency, Factory shared_factory)
-    {
-      auto partitioning = partition(shape);
-      return executor_traits<OuterExecutor>::then_execute(exec.outer_executor(),
-                                                          then_execute_nested_functor<Function,OuterExecutor,InnerExecutor>{exec,f,shape,partitioning},
-                                                          agency::detail::get<0>(partitioning),
-                                                          dependency,
-                                                          shared_factory);
-    }
 
     // returns (outer size, inner size)
     partition_type partition(shape_type shape) const
