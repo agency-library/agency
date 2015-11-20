@@ -103,6 +103,9 @@ class flattened_executor
     template<class T>
     using future = typename executor_traits<base_executor_type>::template future<T>;
 
+    template<class T>
+    using container = typename executor_traits<base_executor_type>::template container<T>;
+
     future<void> make_ready_future()
     {
       return executor_traits<base_executor_type>::make_ready_future(base_executor());

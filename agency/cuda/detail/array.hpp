@@ -40,6 +40,16 @@ class array
     }
 
     __host__ __device__
+    array(const shape_type& shape, const T& val)
+      : array(shape)
+    {
+      for(auto& x : *this)
+      {
+        x = val;
+      }
+    }
+
+    __host__ __device__
     array(const array& other)
       : array(other.shape())
     {
