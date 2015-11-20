@@ -56,4 +56,4 @@ Programs with filenames ending in the `.cu` extension are compilable with the NV
 
     $ nvcc -std=c++11 -I. example.cu
     
-These programs are known to compile with `g++` v4.8, `clang` v3.5, `nvcc` v7.0, and `icc` 15.0.
+These programs are known to compile with `g++` v4.8, `clang` v3.5, `nvcc` v8.0, and `icc` 15.0.

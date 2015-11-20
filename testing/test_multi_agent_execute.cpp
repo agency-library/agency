@@ -20,9 +20,13 @@ void test()
 
     size_t n = 100;
 
-    std::vector<int> result = agency::new_executor_traits<executor_type>::template execute<std::vector<int>>(exec, [](size_t idx)
+    std::vector<int> result = agency::new_executor_traits<executor_type>::execute(exec, [](size_t idx)
     {
       return idx;
+    },
+    [](size_t n)
+    {
+      return std::vector<int>(n);
     },
     n);
 

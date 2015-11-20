@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/executor_traits/container_factory.hpp>
 #include <type_traits>
 
 namespace agency
@@ -44,7 +45,7 @@ typename new_executor_traits<Executor>::template future<
     >::type
   >;
 
-  return new_executor_traits<Executor>::template async_execute<container_type>(ex, f, shape);
+  return new_executor_traits<Executor>::async_execute(ex, f, container_factory<container_type>{}, shape);
 } // end multi_agent_async_returning_default_specified_container()
 
 

@@ -188,12 +188,13 @@ struct when_all_executor : test_executor
 
 struct multi_agent_execute_returning_user_defined_container_executor : test_executor
 {
-  template<class Container, class Function>
-  Container execute(Function f, size_t n)
+  template<class Function, class Factory>
+  typename std::result_of<Factory(size_t)>::type
+    execute(Function f, Factory result_factory, size_t n)
   {
     function_called = true;
 
-    Container result(n);
+    auto result = result_factory(n);
 
     for(size_t i = 0; i < n; ++i)
     {
@@ -207,12 +208,13 @@ struct multi_agent_execute_returning_user_defined_container_executor : test_exec
 
 struct multi_agent_execute_with_shared_inits_returning_user_defined_container_executor : test_executor
 {
-  template<class Container, class Function, class Factory>
-  Container execute(Function f, size_t n, Factory shared_factory)
+  template<class Function, class Factory1, class Factory2>
+  typename std::result_of<Factory1(size_t)>::type
+    execute(Function f, Factory1 result_factory, size_t n, Factory2 shared_factory)
   {
     function_called = true;
 
-    Container result(n);
+    auto result = result_factory(n);
 
     auto shared_arg = shared_factory();
 
@@ -304,8 +306,9 @@ struct multi_agent_execute_with_shared_inits_returning_void_executor : test_exec
 
 struct multi_agent_async_execute_returning_user_defined_container_executor : test_executor
 {
-  template<class Container, class Function>
-  std::future<Container> async_execute(Function f, size_t n)
+  template<class Function, class Factory>
+  std::future<typename std::result_of<Factory(size_t)>::type>
+    async_execute(Function f, Factory result_factory, size_t n)
   {
     function_called = true;
 
@@ -313,7 +316,7 @@ struct multi_agent_async_execute_returning_user_defined_container_executor : tes
     {
       multi_agent_execute_returning_user_defined_container_executor exec;
 
-      return exec.execute<Container>(f, n);
+      return exec.execute(f, result_factory, n);
     });
   }
 };
@@ -321,8 +324,9 @@ struct multi_agent_async_execute_returning_user_defined_container_executor : tes
 
 struct multi_agent_async_execute_with_shared_inits_returning_user_defined_container_executor : test_executor
 {
-  template<class Container, class Function, class Factory>
-  std::future<Container> async_execute(Function f, size_t n, Factory shared_factory)
+  template<class Function, class Factory1, class Factory2>
+  std::future<typename std::result_of<Factory1(size_t)>::type>
+    async_execute(Function f, Factory1 result_factory, size_t n, Factory2 shared_factory)
   {
     function_called = true;
 
@@ -330,7 +334,7 @@ struct multi_agent_async_execute_with_shared_inits_returning_user_defined_contai
     {
       multi_agent_execute_with_shared_inits_returning_user_defined_container_executor exec;
 
-      return exec.execute<Container>(f, n, shared_factory);
+      return exec.execute(f, result_factory, n, shared_factory);
     });
   }
 };
@@ -353,7 +357,12 @@ struct multi_agent_async_execute_returning_default_container_executor : test_exe
       typename std::result_of<Function(size_t)>::type
     >;
 
-    return exec.async_execute<container_type>(f, n);
+    auto result_factory = [](size_t n)
+    {
+      return container_type(n);
+    };
+
+    return exec.async_execute(f, result_factory, n);
   }
 };
 
@@ -375,7 +384,12 @@ struct multi_agent_async_execute_with_shared_inits_returning_default_container_e
       typename std::result_of<Function(size_t, typename std::result_of<Factory()>::type&)>::type
     >;
 
-    return exec.async_execute<container_type>(f, n, shared_factory);
+    auto result_factory = [](size_t n)
+    {
+      return container_type(n);
+    };
+
+    return exec.async_execute(f, result_factory, n, shared_factory);
   }
 };
 
@@ -416,8 +430,9 @@ struct multi_agent_async_execute_with_shared_inits_returning_void_executor : tes
 
 struct multi_agent_then_execute_returning_user_defined_container_executor : test_executor
 {
-  template<class Container, class Function, class T>
-  std::future<Container> then_execute(Function f, size_t n, std::future<T>& fut)
+  template<class Function, class Factory, class T>
+  std::future<typename std::result_of<Factory(size_t)>::type>
+    then_execute(Function f, Factory result_factory, size_t n, std::future<T>& fut)
   {
     function_called = true;
 
@@ -426,15 +441,17 @@ struct multi_agent_then_execute_returning_user_defined_container_executor : test
     multi_agent_async_execute_returning_user_defined_container_executor exec;
 
     // we need mutable on the lambda because we pass val to f via mutable reference
-    return exec.async_execute<Container>([=](const size_t& idx) mutable
+    return exec.async_execute([=](const size_t& idx) mutable
     {
       return f(idx, val);
     },
+    result_factory,
     n);
   }
 
-  template<class Container, class Function>
-  std::future<Container> then_execute(Function f, size_t n, std::future<void>& fut)
+  template<class Function, class Factory>
+  std::future<typename std::result_of<Factory(size_t)>::type>
+    then_execute(Function f, Factory result_factory, size_t n, std::future<void>& fut)
   {
     function_called = true;
 
@@ -442,7 +459,7 @@ struct multi_agent_then_execute_returning_user_defined_container_executor : test
 
     multi_agent_async_execute_returning_user_defined_container_executor exec;
 
-    return exec.async_execute<Container>(f, n);
+    return exec.async_execute(f, result_factory, n);
   }
 };
 
@@ -465,7 +482,12 @@ struct multi_agent_then_execute_returning_default_container_executor : test_exec
       typename std::result_of<Function(size_t,T&)>::type
     >;
 
-    return exec.then_execute<container_type>(f, n, fut);
+    auto result_factory = [](size_t n)
+    {
+      return container_type(n);
+    };
+
+    return exec.then_execute(f, result_factory, n, fut);
   }
 
   template<class Function>
@@ -484,7 +506,12 @@ struct multi_agent_then_execute_returning_default_container_executor : test_exec
       typename std::result_of<Function(size_t)>::type
     >;
 
-    return exec.then_execute<container_type>(f, n, fut);
+    auto result_factory = [](size_t n)
+    {
+      return container_type(n);
+    };
+
+    return exec.then_execute(f, result_factory, n, fut);
   }
 };
 
@@ -530,8 +557,9 @@ struct multi_agent_then_execute_returning_void_executor : test_executor
 
 struct multi_agent_then_execute_with_shared_inits_returning_user_defined_container_executor : test_executor
 {
-  template<class Container, class Function, class T, class Factory>
-  std::future<Container> then_execute(Function f, size_t n, std::future<T>& fut, Factory shared_factory)
+  template<class Function, class Factory1, class T, class Factory2>
+  std::future<typename std::result_of<Factory1(size_t)>::type>
+    then_execute(Function f, Factory1 result_factory, size_t n, std::future<T>& fut, Factory2 shared_factory)
   {
     function_called = true;
 
@@ -542,16 +570,18 @@ struct multi_agent_then_execute_with_shared_inits_returning_user_defined_contain
     using shared_arg_type = decltype(shared_factory());
 
     // XXX val should actually be moved in here, not captured by value
-    return exec.async_execute<Container>([=](const size_t& idx, shared_arg_type& shared_arg) mutable
+    return exec.async_execute([=](const size_t& idx, shared_arg_type& shared_arg) mutable
     {
       return f(idx, val, shared_arg);
     },
+    result_factory,
     n,
     shared_factory);
   }
 
-  template<class Container, class Function, class T>
-  std::future<Container> then_execute(Function f, size_t n, std::future<void>& fut, T&& shared_init)
+  template<class Function, class Factory1, class Factory2>
+  std::future<typename std::result_of<Factory1(size_t)>::type>
+    then_execute(Function f, Factory1 result_factory, size_t n, std::future<void>& fut, Factory2 shared_factory)
   {
     function_called = true;
 
@@ -559,7 +589,7 @@ struct multi_agent_then_execute_with_shared_inits_returning_user_defined_contain
 
     multi_agent_async_execute_with_shared_inits_returning_user_defined_container_executor exec;
 
-    return exec.async_execute<Container>(f, n, std::forward<T>(shared_init));
+    return exec.async_execute(f, result_factory, n, shared_factory);
   }
 };
 
@@ -582,7 +612,12 @@ struct multi_agent_then_execute_with_shared_inits_returning_default_container_ex
       typename std::result_of<Function(size_t, T&, typename std::result_of<Factory()>::type&)>::type
     >;
 
-    return exec.then_execute<container_type>(f, n, fut, shared_factory);
+    auto result_factory = [](size_t n)
+    {
+      return container_type(n);
+    };
+
+    return exec.then_execute(f, result_factory, n, fut, shared_factory);
   }
 
   template<class Function, class Factory>
@@ -601,7 +636,12 @@ struct multi_agent_then_execute_with_shared_inits_returning_default_container_ex
       typename std::result_of<Function(size_t, typename std::result_of<Factory()>::type&)>::type
     >;
 
-    return exec.then_execute<container_type>(f, n, fut, shared_factory);
+    auto result_factory = [](size_t n)
+    {
+      return container_type(n);
+    };
+
+    return exec.then_execute(f, result_factory, n, fut, shared_factory);
   }
 };
 

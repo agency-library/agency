@@ -66,9 +66,9 @@ struct has_any_multi_agent_then_execute_impl<Executor, T, type_list<Factories...
   >::template type_template<U>;
 
   static constexpr bool has_then_execute_with_shared_inits_returning_user_specified_container = new_executor_traits_detail::has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<
-    new_executor_traits_detail::discarding_container,
     Executor,
     new_executor_traits_detail::test_function_returning_int,
+    new_executor_traits_detail::container_factory<new_executor_traits_detail::discarding_container>,
     future<void>,
     Factories...
   >::value;

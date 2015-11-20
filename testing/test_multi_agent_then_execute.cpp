@@ -21,9 +21,13 @@ void test()
 
     auto past = agency::detail::make_ready_future(13);
 
-    std::future<std::vector<int>> fut = agency::new_executor_traits<executor_type>::template then_execute<std::vector<int>>(exec, [](size_t idx, int& past)
+    std::future<std::vector<int>> fut = agency::new_executor_traits<executor_type>::then_execute(exec, [](size_t idx, int& past)
     {
       return past;
+    },
+    [](size_t n)
+    {
+      return std::vector<int>(n);
     },
     n,
     past);

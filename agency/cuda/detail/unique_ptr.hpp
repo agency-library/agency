@@ -24,6 +24,20 @@ class default_delete
 {
   public:
     __host__ __device__
+    default_delete() = default;
+
+    __host__ __device__
+    default_delete(const default_delete&) = default;
+
+    template<class U,
+             class = typename std::enable_if<
+               std::is_convertible<U*,T*>::value
+             >::type
+            >
+    __host__ __device__
+    default_delete(const default_delete<U>&) {}
+
+    __host__ __device__
     void operator()(T* ptr) const
     {
       // destroy the object
@@ -62,6 +76,17 @@ class unique_ptr
       thrust::swap(ptr_, other.ptr_);
       thrust::swap(deleter_, other.deleter_);
     }
+
+    template<class U,
+             class = typename std::enable_if<
+               std::is_convertible<typename unique_ptr<U>::pointer,pointer>::value
+             >::type
+            >
+    __host__ __device__
+    unique_ptr(unique_ptr<U>&& other)
+      : ptr_(other.release()),
+        deleter_(std::move(other.get_deleter()))
+    {}
   
     __host__ __device__
     ~unique_ptr()

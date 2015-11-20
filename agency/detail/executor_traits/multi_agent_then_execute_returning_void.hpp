@@ -5,6 +5,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/discarding_container.hpp>
+#include <agency/detail/executor_traits/container_factory.hpp>
 #include <agency/functional.hpp>
 #include <type_traits>
 #include <utility>
@@ -99,7 +100,7 @@ typename new_executor_traits<Executor>::template future<void>
                                           Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Future& fut)
 {
   // invoke f and generate dummy results into a discarding_container
-  auto fut2 = new_executor_traits<Executor>::template then_execute<discarding_container>(ex, invoke_and_return_empty<Function>{f}, shape, fut);
+  auto fut2 = new_executor_traits<Executor>::then_execute(ex, invoke_and_return_empty<Function>{f}, container_factory<discarding_container>{}, shape, fut);
 
   // cast the discarding_container to void
   return new_executor_traits<Executor>::template future_cast<void>(ex, fut2);

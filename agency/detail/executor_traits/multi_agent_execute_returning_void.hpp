@@ -4,6 +4,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/discarding_container.hpp>
+#include <agency/detail/executor_traits/container_factory.hpp>
 #include <agency/functional.hpp>
 #include <type_traits>
 
@@ -36,7 +37,7 @@ void multi_agent_execute_returning_void(std::false_type, Executor& ex, Function 
     return 0;
   };
 
-  new_executor_traits<Executor>::template execute<discarding_container>(ex, g, shape);
+  new_executor_traits<Executor>::execute(ex, g, container_factory<discarding_container>{}, shape);
 } // end multi_agent_execute_returning_void()
 
 
