@@ -7,6 +7,7 @@
 #include <agency/nested_executor.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/optional.hpp>
+#include <agency/detail/project_index_and_invoke.hpp>
 
 namespace agency
 {
@@ -25,28 +26,27 @@ struct guarded_container : Container
     : Container(std::move(other))
   {}
 
-  template<class Index>
   struct reference
   {
     Container& self_;
-    Index idx_;
 
-    template<class Optional>
+    template<class OptionalValueAndIndex>
     __AGENCY_ANNOTATION
-    void operator=(Optional&& opt)
+    void operator=(OptionalValueAndIndex&& opt)
     {
       if(opt)
       {
-        self_[idx_] = std::forward<Optional>(opt).value();
+        auto idx = opt.value().index;
+        self_[idx] = std::forward<OptionalValueAndIndex>(opt).value().value;
       }
     }
   };
 
   template<class Index>
   __AGENCY_ANNOTATION
-  reference<Index> operator[](const Index& idx)
+  reference operator[](const Index&)
   {
-    return reference<Index>{*this,idx};
+    return reference{*this};
   }
 };
 
@@ -98,6 +98,8 @@ class flattened_executor
     // XXX maybe use whichever of the first two elements of base_executor_type::shape_type has larger dimensionality?
     using shape_type = size_t;
 
+    using index_type = size_t;
+
     template<class T>
     using future = typename executor_traits<base_executor_type>::template future<T>;
 
@@ -121,8 +123,12 @@ class flattened_executor
       // store results into an intermediate result
       detail::guarded_container_factory<Factory1,shape_type> intermediate_result_factory{result_factory,shape};
 
+      // create a function to execute
+      using base_index_type = typename executor_traits<base_executor_type>::index_type;
+      auto execute_me = detail::make_project_index_and_invoke<base_index_type>(f, partitioning, shape);
+
       // execute
-      auto intermediate_fut = executor_traits<base_executor_type>::then_execute(base_executor(), then_execute_functor<Function>{f, shape, partitioning}, intermediate_result_factory, partitioning, dependency, shared_factory, agency::detail::unit_factory());
+      auto intermediate_fut = executor_traits<base_executor_type>::then_execute(base_executor(), execute_me, intermediate_result_factory, partitioning, dependency, shared_factory, agency::detail::unit_factory());
 
       // cast the intermediate result to the type of result expected by the caller
       using result_type = typename std::result_of<Factory1(shape_type)>::type;
@@ -141,81 +147,6 @@ class flattened_executor
 
   private:
     using partition_type = typename executor_traits<base_executor_type>::shape_type;
-
-    template<class Function>
-    struct then_execute_functor
-    {
-      Function f;
-      shape_type shape;
-      partition_type partitioning;
-
-      // the result of this functor is void when the result of f(...) is void
-      // when the result of f(...) is any other type T, the result is optional<T>
-      template<class T>
-      using result_t = typename std::conditional<
-        std::is_void<T>::value,
-        void,
-        detail::optional<T>
-      >::type;
-
-      template<class Index>
-      __AGENCY_ANNOTATION
-      auto flatten_index(const Index& idx) const
-        -> decltype(
-             agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning) + agency::detail::get<1>(idx)
-           )
-      {
-        return agency::detail::get<0>(idx) * agency::detail::get<1>(partitioning) + agency::detail::get<1>(idx);
-      }
-
-      template<class Index>
-      __AGENCY_ANNOTATION
-      result_t<typename std::result_of<Function(Index)>::type>
-        operator()(const Index& idx)
-      {
-        auto flat_idx = flatten_index(idx);
-
-        if(flat_idx < shape)
-        {
-          return f(flat_idx);
-        }
-
-        using result_type = result_t<typename std::result_of<Function(Index)>::type>;
-        return static_cast<result_type>(detail::nullopt);
-      }
-
-      template<class Index, class Arg>
-      __AGENCY_ANNOTATION
-      result_t<typename std::result_of<Function(Index,Arg&)>::type>
-        operator()(const Index& idx, Arg& arg, agency::detail::unit)
-      {
-        auto flat_idx = flatten_index(idx);
-
-        if(flat_idx < shape)
-        {
-          return f(flat_idx, arg);
-        }
-
-        using result_type = result_t<typename std::result_of<Function(Index,Arg&)>::type>;
-        return static_cast<result_type>(detail::nullopt);
-      }
-
-      template<class Index, class Arg1, class Arg2>
-      __AGENCY_ANNOTATION
-      result_t<typename std::result_of<Function(Index,Arg1&,Arg2&)>::type>
-        operator()(const Index& idx, Arg1& arg1, Arg2& arg2, agency::detail::unit)
-      {
-        auto flat_idx = flatten_index(idx);
-
-        if(flat_idx < shape)
-        {
-          return f(flat_idx, arg1, arg2);
-        }
-
-        using result_type = result_t<typename std::result_of<Function(Index,Arg1&,Arg2&)>::type>;
-        return static_cast<result_type>(detail::nullopt);
-      }
-    };
 
     // returns (outer size, inner size)
     partition_type partition(shape_type shape) const
