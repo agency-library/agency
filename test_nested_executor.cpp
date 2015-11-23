@@ -11,7 +11,7 @@ int main()
 {
   agency::nested_executor<agency::concurrent_executor, agency::sequential_executor> ex;
 
-  bulk_async(ex, std::make_pair(2,2), [](std::tuple<size_t,size_t> idx)
+  agency::bulk_async(ex, std::make_pair(2,2), [](std::tuple<size_t,size_t> idx)
   {
     mut.lock();
     std::cout << "Hello world from thread " << std::this_thread::get_id() << std::endl;
