@@ -18,7 +18,7 @@ int main()
 {
   auto exec = par2d({0,0}, {2,2});
 
-  agency::cuda::bulk_invoke(exec, functor());
+  agency::bulk_invoke(exec, functor());
 
   cudaError_t error = cudaDeviceSynchronize();
 

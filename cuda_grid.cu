@@ -41,9 +41,9 @@ auto grid(agency::size2 num_blocks, agency::size2 num_threads)
 
 int main()
 {
-  bulk_invoke(grid(2,32), kernel());
+  agency::bulk_invoke(grid(2,32), kernel());
 
-//  agency::cuda::bulk_invoke(grid({1,2}, {1,32}), kernel());
+//  agency::bulk_invoke(grid({1,2}, {1,32}), kernel());
 
   return 0;
 }
