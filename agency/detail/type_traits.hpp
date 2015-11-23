@@ -268,10 +268,6 @@ template<class T>
 using decay_if_not_void_t = typename decay_if_not_void<T>::type;
 
 
-template<class T>
-using void_t = void;
-
-
 } // end detail
 } // end agency
 

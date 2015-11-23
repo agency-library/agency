@@ -10,7 +10,6 @@
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
-#include <agency/detail/is_detected.hpp>
 
 namespace agency
 {
@@ -436,10 +435,21 @@ struct enable_if_bulk_async_execution_policy
 
 // detect whether the call bulk_invoke(args...) is well-formed
 template<class... Args>
-using bulk_invoke_t = decltype(bulk_invoke(std::declval<Args>()...));
+struct has_bulk_invoke_impl
+{
+  template<class... UArgs,
+           class = decltype(bulk_invoke(std::declval<UArgs>()...))
+          >
+  static std::true_type test(int);
+
+  template<class...>
+  static std::false_type test(...);
+
+  using type = decltype(test<Args...>(0));
+};
 
 template<class... Args>
-using has_bulk_invoke = is_detected<bulk_invoke_t, Args...>;
+using has_bulk_invoke = typename has_bulk_invoke_impl<Args...>::type;
 
 
 // generic implementation of bulk_invoke() for execution policies
