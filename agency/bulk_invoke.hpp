@@ -10,6 +10,7 @@
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
+#include <agency/detail/is_detected.hpp>
 
 namespace agency
 {
@@ -169,11 +170,6 @@ struct enable_if_bulk_async_executor
 {};
 
 
-
-
-} // end detail
-
-
 template<class Executor, class Function, class... Args>
 typename detail::enable_if_bulk_invoke_executor<Executor, Function, Args...>::type
   bulk_invoke(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
@@ -199,6 +195,9 @@ typename detail::enable_if_bulk_invoke_executor<Executor, Function, Args...>::ty
 
   return detail::bulk_invoke_executor_impl(exec, h, shape, factory_tuple, detail::make_index_sequence<executor_depth>());
 }
+
+
+} // end detail
 
 
 template<class Executor, class Function, class... Args>
@@ -435,10 +434,21 @@ struct enable_if_bulk_async_execution_policy
 {};
 
 
-} // end detail
+// detect whether the call bulk_invoke(args...) is well-formed
+template<class... Args>
+using bulk_invoke_t = decltype(bulk_invoke(std::declval<Args>()...));
+
+template<class... Args>
+using has_bulk_invoke = is_detected<bulk_invoke_t, Args...>;
 
 
-template<class ExecutionPolicy, class Function, class... Args>
+// generic implementation of bulk_invoke() for execution policies
+// only enable it if there is not already some other implementation
+template<class ExecutionPolicy, class Function, class... Args,
+         class = typename std::enable_if<
+           !has_bulk_invoke<ExecutionPolicy&&,Function,Args&&...>::value
+         >::type
+        >
 typename detail::enable_if_bulk_invoke_execution_policy<
   ExecutionPolicy, Function, Args...
 >::type
@@ -449,6 +459,30 @@ typename detail::enable_if_bulk_invoke_execution_policy<
 
   return detail::bulk_invoke_execution_policy_impl(detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
 }
+
+
+struct call_bulk_invoke_via_adl
+{
+  template<class ExecutionPolicy, class Function, class... Args>
+  auto operator()(ExecutionPolicy&& policy, Function f, Args&&... args) const ->
+    decltype(bulk_invoke(std::forward<ExecutionPolicy>(policy), f, std::forward<Args>(args)...))
+  {
+    return bulk_invoke(std::forward<ExecutionPolicy>(policy), f, std::forward<Args>(args)...);
+  }
+};
+
+
+} // end detail
+
+
+//namespace
+//{
+
+
+constexpr const detail::call_bulk_invoke_via_adl bulk_invoke{};
+
+
+//} // end anon namespace
 
 
 template<class ExecutionPolicy, class Function, class... Args>
