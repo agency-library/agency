@@ -294,7 +294,7 @@ struct new_executor_traits
         typename std::decay<TupleOfFutures>::type
       >
     >
-      when_all_execute_and_select(executor_type& ex, Function f, TupleOfFutures&& futures);
+      when_all_execute_and_select(executor_type& ex, Function&& f, TupleOfFutures&& futures);
 
     // multi-agent when_all_execute_and_select()
     template<size_t... Indices, class Function, class TupleOfFutures>
@@ -322,7 +322,7 @@ struct new_executor_traits
     static future<
       detail::result_of_continuation_t<Function,Future>
     >
-      then_execute(executor_type& ex, Function f, Future& fut);
+      then_execute(executor_type& ex, Function&& f, Future& fut);
 
     // multi-agent then_execute() returning user-specified Container
     template<class Function, class Future, class Factory,
@@ -440,7 +440,7 @@ struct new_executor_traits
     static future<
       typename std::result_of<Function()>::type
     >
-      async_execute(executor_type& ex, Function f);
+      async_execute(executor_type& ex, Function&& f);
 
     // multi-agent async_execute() returning user-specified Container
     template<class Function, class Factory>
@@ -510,7 +510,7 @@ struct new_executor_traits
     // single-agent execute()
     template<class Function>
     static typename std::result_of<Function()>::type
-      execute(executor_type& ex, Function f);
+      execute(executor_type& ex, Function&& f);
 
     // multi-agent execute returning user-specified Container
     template<class Function, class Factory>

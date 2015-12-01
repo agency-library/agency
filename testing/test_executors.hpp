@@ -54,17 +54,41 @@ struct single_agent_async_execute_executor : test_executor
 
 struct single_agent_then_execute_executor : test_executor
 {
-  template<class Function, class T>
-  std::future<typename std::result_of<Function(T&)>::type>
-    then_execute(Function f, std::future<T>& fut)
+  template<class Function>
+  struct continuation_with_argument
   {
-    function_called = true;
+    Function f;
 
-    return agency::detail::then(fut, [=](std::future<T>& fut)
+    template<class T>
+    typename std::result_of<Function(T&)>::type
+      operator()(std::future<T>& fut)
     {
       auto arg = fut.get();
       return f(arg);
-    });
+    }
+  };
+
+  template<class Function>
+  struct continuation_without_argument
+  {
+    Function f;
+
+    typename std::result_of<Function()>::type
+      operator()(std::future<void>& fut)
+    {
+      return f();
+    }
+  };
+
+  template<class Function, class T>
+  std::future<typename std::result_of<Function(T&)>::type>
+    then_execute(Function&& f, std::future<T>& fut)
+  {
+    function_called = true;
+
+    auto g = continuation_with_argument<typename std::decay<Function>::type>{std::forward<Function>(f)};
+
+    return agency::detail::then(fut, std::move(g));
   }
 
   template<class Function>
@@ -73,10 +97,9 @@ struct single_agent_then_execute_executor : test_executor
   {
     function_called = true;
 
-    return agency::detail::then(fut, [=](std::future<void>& fut)
-    {
-      return f();
-    });
+    auto g = continuation_without_argument<typename std::decay<Function>::type>{std::forward<Function>(f)};
+
+    return agency::detail::then(fut, std::move(g));
   }
 };
 
@@ -90,11 +113,11 @@ struct single_agent_when_all_execute_and_select_executor : test_executor
       typename std::decay<TupleOfFutures>::type
     >
   >
-    when_all_execute_and_select(Function f, TupleOfFutures&& futures)
+    when_all_execute_and_select(Function&& f, TupleOfFutures&& futures)
   {
     function_called = true;
 
-    return agency::when_all_execute_and_select<SelectedIndices...>(f, std::forward<TupleOfFutures>(futures));
+    return agency::when_all_execute_and_select<SelectedIndices...>(std::forward<Function>(f), std::forward<TupleOfFutures>(futures));
   }
 };
 
