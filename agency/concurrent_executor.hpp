@@ -7,6 +7,7 @@
 #include <agency/execution_categories.hpp>
 #include <agency/functional.hpp>
 #include <algorithm>
+#include <utility>
 
 
 namespace agency
@@ -18,130 +19,117 @@ class concurrent_executor
   public:
     using execution_category = concurrent_execution_tag;
 
-    template<class Function, class Factory>
-    std::future<void> then_execute(Function f, size_t n, std::future<void>& fut, Factory shared_factory)
+    template<class Function, class Factory1, class T, class Factory2>
+    std::future<typename std::result_of<Factory1(size_t)>::type>
+      then_execute(Function f, Factory1 result_factory, size_t n, std::future<T>& fut, Factory2 shared_factory)
     {
-      std::future<void> result = detail::make_ready_future();
-
       if(n > 0)
       {
-        result = detail::then(fut, std::launch::async, [=](std::future<void>&) mutable
+        return detail::then(fut, std::launch::async, [=](std::future<T>& past) mutable
         {
-          // put the shared parameter on the first thread's stack
-          auto shared_parm = shared_factory();
+          // put all the shared parameters on the first thread's stack
+          auto result = result_factory(n);
+          auto past_parameter = past.get();
+          auto shared_parameter = shared_factory();
+
+          // create a lambda to handle parameter passing
+          auto g = [&,f](size_t idx)
+          {
+            result[idx] = agency::invoke(f, idx, past_parameter, shared_parameter);
+          };
 
           size_t mid = n / 2;
 
           std::future<void> left = detail::make_ready_future();
           if(0 < mid)
           {
-            left = this->async_execute(f, 0, mid, shared_parm);
+            left = this->async_execute(g, 0, mid);
           }
 
           std::future<void> right = detail::make_ready_future();
           if(mid + 1 < n)
           {
-            right = this->async_execute(f, mid + 1, n, shared_parm);
+            right = this->async_execute(g, mid + 1, n);
           }
 
-          f(mid, shared_parm);
+          g(mid);
 
           left.wait();
           right.wait();
+
+          return std::move(result);
         });
       }
 
-      return result;
+      return detail::make_ready_future(result_factory(n));
     }
 
-
-    template<class Function, class T, class Factory>
-    std::future<void> then_execute(Function f, size_t n, std::future<T>& fut, Factory shared_factory)
+    template<class Function, class Factory1, class Factory2>
+    std::future<typename std::result_of<Factory1(size_t)>::type>
+      then_execute(Function f, Factory1 result_factory, size_t n, std::future<void>& fut, Factory2 shared_factory)
     {
-      std::future<void> result = detail::make_ready_future();
-
       if(n > 0)
       {
-        result = detail::then(fut, std::launch::async, [=](std::future<T>& fut) mutable
+        return detail::then(fut, std::launch::async, [=](std::future<void>&) mutable
         {
-          T past_parameter = fut.get();
+          // put all the shared parameters on the first thread's stack
+          auto result = result_factory(n);
+          auto shared_parameter = shared_factory();
 
-          // put the shared parameter on the first thread's stack
-          auto shared_parm = shared_factory();
+          // create a lambda to handle parameter passing
+          auto g = [&,f](size_t idx)
+          {
+            result[idx] = agency::invoke(f, idx, shared_parameter);
+          };
 
           size_t mid = n / 2;
 
           std::future<void> left = detail::make_ready_future();
           if(0 < mid)
           {
-            left = this->async_execute(f, 0, mid, past_parameter, shared_parm);
+            left = this->async_execute(g, 0, mid);
           }
 
           std::future<void> right = detail::make_ready_future();
           if(mid + 1 < n)
           {
-            right = this->async_execute(f, mid + 1, n, past_parameter, shared_parm);
+            right = this->async_execute(g, mid + 1, n);
           }
 
-          f(mid, past_parameter, shared_parm);
+          g(mid);
 
           left.wait();
           right.wait();
+
+          return std::move(result);
         });
       }
 
-      return result;
+      return detail::make_ready_future(result_factory(n));
     }
 
   private:
     // first must be less than last
-    template<class Function, class T>
-    std::future<void> async_execute(Function f, size_t first, size_t last, T& shared_parm)
+    template<class Function>
+    std::future<void> async_execute(Function f, size_t first, size_t last)
     {
-      return std::async(std::launch::async, [=,&shared_parm]() mutable
+      return std::async(std::launch::async, [=]() mutable
       {
         size_t mid = (last + first) / 2;
 
         std::future<void> left = detail::make_ready_future();
         if(first < mid)
         {
-          left = this->async_execute(f, first, mid, shared_parm);
+          left = this->async_execute(f, first, mid);
         }
 
         std::future<void> right = detail::make_ready_future();
         if(mid + 1 < last)
         {
-          right = this->async_execute(f, mid + 1, last, shared_parm);
+          right = this->async_execute(f, mid + 1, last);
         }
 
-        f(mid, shared_parm);
-
-        left.wait();
-        right.wait();
-      });
-    }
-
-    // first must be less than last
-    template<class Function, class T1, class T2>
-    std::future<void> async_execute(Function f, size_t first, size_t last, T1& shared_parm1, T2& shared_parm2)
-    {
-      return std::async(std::launch::async, [=,&shared_parm1,&shared_parm2]() mutable
-      {
-        size_t mid = (last + first) / 2;
-
-        std::future<void> left = detail::make_ready_future();
-        if(first < mid)
-        {
-          left = this->async_execute(f, first, mid, shared_parm1, shared_parm2);
-        }
-
-        std::future<void> right = detail::make_ready_future();
-        if(mid + 1 < last)
-        {
-          right = this->async_execute(f, mid + 1, last, shared_parm1, shared_parm2);
-        }
-
-        f(mid, shared_parm1, shared_parm2);
+        agency::invoke(f,mid);
 
         left.wait();
         right.wait();
