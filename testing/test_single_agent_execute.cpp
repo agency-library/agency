@@ -1,8 +1,19 @@
 #include <agency/new_executor_traits.hpp>
+#include <future>
 #include <cassert>
 #include <iostream>
 
 #include "test_executors.hpp"
+
+struct move_only
+{
+  std::future<void> f;
+
+  int operator()()
+  {
+    return 13;
+  }
+};
 
 template<class Executor>
 void test()
@@ -32,6 +43,16 @@ void test()
     {
       return 13;
     });
+
+    assert(result == 13);
+    assert(exec.valid());
+  }
+
+  {
+    // with move-only functor
+    executor_type exec;
+
+    auto result = agency::new_executor_traits<executor_type>::execute(exec, move_only());
 
     assert(result == 13);
     assert(exec.valid());

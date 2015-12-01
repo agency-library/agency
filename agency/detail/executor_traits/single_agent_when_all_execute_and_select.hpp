@@ -2,6 +2,7 @@
 
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/executor_traits/copy_constructible_function.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/select.hpp>
@@ -47,16 +48,31 @@ typename new_executor_traits<Executor>::template future<
     typename std::decay<TupleOfFutures>::type
   >
 >
-  single_agent_when_all_execute_and_select(use_single_agent_when_all_execute_and_select_member_function, Executor& ex, Function f, TupleOfFutures&& futures)
+  single_agent_when_all_execute_and_select(use_single_agent_when_all_execute_and_select_member_function, Executor& ex, Function&& f, TupleOfFutures&& futures)
 {
-  return ex.template when_all_execute_and_select<Indices...>(f, std::forward<TupleOfFutures>(futures));
+  return ex.template when_all_execute_and_select<Indices...>(std::forward<Function>(f), std::forward<TupleOfFutures>(futures));
 } // end single_agent_when_all_execute_and_select()
 
 
+// this functor can turn a move-only function into a copiable function
+// we do this when lowering a call to single-agent when_all_execute_and_select()
+// to multi-agent when_all_execute_and_select() below
 template<class Function>
 struct single_agent_when_all_execute_and_select_functor
 {
-  mutable Function f;
+  mutable copy_constructible_function_t<Function> f;
+
+  template<class Function1,
+           class = typename std::enable_if<
+             std::is_constructible<
+               copy_constructible_function_t<Function>,
+               Function1&&
+             >::value
+           >::type>
+  __AGENCY_ANNOTATION
+  single_agent_when_all_execute_and_select_functor(Function1&& function)
+    : f(std::forward<Function1>(function))
+  {}
 
   template<class Index, class... Args>
   __AGENCY_ANNOTATION
@@ -74,14 +90,15 @@ typename new_executor_traits<Executor>::template future<
     typename std::decay<TupleOfFutures>::type
   >
 >
-  single_agent_when_all_execute_and_select(use_multi_agent_when_all_execute_and_select_member_function, Executor& ex, Function f, TupleOfFutures&& futures)
+  single_agent_when_all_execute_and_select(use_multi_agent_when_all_execute_and_select_member_function, Executor& ex, Function&& f, TupleOfFutures&& futures)
 {
   // create a multi-agent task with only a single agent
   using shape_type = typename new_executor_traits<Executor>::shape_type;
   using index_type = typename new_executor_traits<Executor>::index_type;
 
-  // XXX should std::move f into the functor
-  return ex.template when_all_execute_and_select<Indices...>(single_agent_when_all_execute_and_select_functor<Function>{f}, detail::shape_cast<shape_type>(1), std::forward<TupleOfFutures>(futures));
+  auto g = single_agent_when_all_execute_and_select_functor<typename std::decay<Function>::type>(std::forward<Function>(f));
+
+  return ex.template when_all_execute_and_select<Indices...>(g, detail::shape_cast<shape_type>(1), std::forward<TupleOfFutures>(futures));
 } // end single_agent_when_all_execute_and_select()
 
 
@@ -264,6 +281,15 @@ struct invoke_and_select<1, Function, index_sequence<SelectedIndices...>>
 };
 
 
+template<size_t num_nonvoid_arguments, class IndexSequence, class Function>
+__AGENCY_ANNOTATION
+invoke_and_select<num_nonvoid_arguments, typename std::decay<Function>::type, IndexSequence>
+  make_invoke_and_select(Function&& f)
+{
+  return invoke_and_select<num_nonvoid_arguments, typename std::decay<Function>::type, IndexSequence>{std::forward<Function>(f)};
+}
+
+
 template<size_t... Indices, class Executor, class Function, class TupleOfFutures>
 typename new_executor_traits<Executor>::template future<
   detail::when_all_execute_and_select_result_t<
@@ -271,7 +297,7 @@ typename new_executor_traits<Executor>::template future<
     typename std::decay<TupleOfFutures>::type
   >
 >
-  single_agent_when_all_execute_and_select(use_when_all_and_single_agent_then_execute, Executor& ex, Function f, TupleOfFutures&& futures)
+  single_agent_when_all_execute_and_select(use_when_all_and_single_agent_then_execute, Executor& ex, Function&& f, TupleOfFutures&& futures)
 {
   // join the futures into a single one
   auto fut = when_all_from_tuple(ex, std::forward<TupleOfFutures>(futures));
@@ -289,14 +315,9 @@ typename new_executor_traits<Executor>::template future<
   using mapped_indices = index_sequence_gather<index_sequence<Indices...>, scanned_flags>;
 
   // create a functor which will pass the arguments to f and return a selection of those arguments
-  auto g = invoke_and_select<num_nonvoid_arguments, Function, mapped_indices>{f};
+  auto g = make_invoke_and_select<num_nonvoid_arguments, mapped_indices>(std::forward<Function>(f));
 
-  using result_type = detail::when_all_execute_and_select_result_t<
-    detail::index_sequence<Indices...>,
-    typename std::decay<TupleOfFutures>::type
-  >;
-
-  return new_executor_traits<Executor>::then_execute(ex, g, fut);
+  return new_executor_traits<Executor>::then_execute(ex, std::move(g), fut);
 } // end single_agent_when_all_execute_and_select()
 
 
@@ -316,7 +337,7 @@ template<size_t... Indices, class Function, class TupleOfFutures>
   >
   new_executor_traits<Executor>
     ::when_all_execute_and_select(typename new_executor_traits<Executor>::executor_type& ex,
-                                  Function f,
+                                  Function&& f,
                                   TupleOfFutures&& futures)
 {
   namespace ns = detail::new_executor_traits_detail::single_agent_when_all_execute_and_select_implementation_strategies;
@@ -328,7 +349,7 @@ template<size_t... Indices, class Function, class TupleOfFutures>
     Indices...
   >;
 
-  return ns::single_agent_when_all_execute_and_select<Indices...>(implementation_strategy(), ex, f, std::forward<TupleOfFutures>(futures));
+  return ns::single_agent_when_all_execute_and_select<Indices...>(implementation_strategy(), ex, std::forward<Function>(f), std::forward<TupleOfFutures>(futures));
 } // end new_executor_traits::when_all_execute_and_select()
 
 

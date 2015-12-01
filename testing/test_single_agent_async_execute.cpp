@@ -4,6 +4,16 @@
 
 #include "test_executors.hpp"
 
+struct move_only
+{
+  std::future<void> f;
+
+  int operator()()
+  {
+    return 13;
+  }
+};
+
 template<class Executor>
 void test()
 {
@@ -36,6 +46,16 @@ void test()
     {
       return 13;
     });
+
+    assert(f.get() == 13);
+    assert(exec.valid());
+  }
+
+  {
+    // with move-only functor
+    executor_type exec;
+
+    auto f = agency::new_executor_traits<executor_type>::async_execute(exec, move_only());
 
     assert(f.get() == 13);
     assert(exec.valid());

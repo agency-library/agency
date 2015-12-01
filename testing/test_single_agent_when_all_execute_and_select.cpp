@@ -5,32 +5,77 @@
 
 #include "test_executors.hpp"
 
+struct move_only
+{
+  std::future<void> f;
+
+  void operator()(int &x)
+  {
+    x = 13;
+  }
+
+  void operator()(){}
+};
+
 template<class Executor>
 void test()
 {
   using executor_type = Executor;
   
-  size_t n = 1;
-  
-  auto int_ready   = agency::detail::make_ready_future(0);
-  auto void_ready  = agency::detail::make_ready_future();
-  
-  auto futures = std::make_tuple(std::move(void_ready), std::move(int_ready));
-  
-  std::mutex mut;
-  executor_type exec;
-  std::future<int> fut = agency::new_executor_traits<executor_type>::template when_all_execute_and_select<1>(exec, [&mut](int& x)
   {
-    mut.lock();
-    x += 1;
-    mut.unlock();
-  },
-  std::move(futures));
-  
-  auto got = fut.get();
-  
-  assert(got == n);
-  assert(exec.valid());
+    size_t n = 1;
+    
+    auto int_ready   = agency::detail::make_ready_future(0);
+    auto void_ready  = agency::detail::make_ready_future();
+    
+    auto futures = std::make_tuple(std::move(void_ready), std::move(int_ready));
+    
+    std::mutex mut;
+    executor_type exec;
+    std::future<int> fut = agency::new_executor_traits<executor_type>::template when_all_execute_and_select<1>(exec, [&mut](int& x)
+    {
+      mut.lock();
+      x += 1;
+      mut.unlock();
+    },
+    std::move(futures));
+    
+    auto got = fut.get();
+    
+    assert(got == n);
+    assert(exec.valid());
+  }
+
+  {
+    // test move-only function with argument
+    auto int_ready = agency::detail::make_ready_future(0);
+    
+    auto futures = std::make_tuple(std::move(int_ready));
+    
+    std::mutex mut;
+    executor_type exec;
+    std::future<int> fut = agency::new_executor_traits<executor_type>::template when_all_execute_and_select<0>(exec, move_only(), std::move(futures));
+    
+    auto got = fut.get();
+    
+    assert(got == 13);
+    assert(exec.valid());
+  }
+
+  {
+    // test move-only function without argument
+    auto void_ready = agency::detail::make_ready_future();
+    
+    auto futures = std::make_tuple(std::move(void_ready));
+    
+    std::mutex mut;
+    executor_type exec;
+    std::future<void> fut = agency::new_executor_traits<executor_type>::template when_all_execute_and_select(exec, move_only(), std::move(futures));
+    
+    fut.wait();
+    
+    assert(exec.valid());
+  }
 }
 
 int main()
