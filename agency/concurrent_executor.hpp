@@ -77,7 +77,7 @@ class concurrent_executor
           auto shared_parameter = shared_factory();
 
           // create a lambda to handle parameter passing
-          auto g = [&,f](size_t idx)
+          auto g = [&,f](size_t idx) mutable
           {
             result[idx] = agency::invoke(f, idx, shared_parameter);
           };
