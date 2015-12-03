@@ -79,9 +79,8 @@ class unique_ptr
       : ptr_(),
         deleter_(std::move(other.get_deleter()))
     {
-      using agency::detail::swap;
-      swap(ptr_, other.ptr_);
-      swap(deleter_, other.deleter_);
+      agency::detail::swap(ptr_, other.ptr_);
+      agency::detail::swap(deleter_, other.deleter_);
     }
 
     template<class OtherT,
