@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/shape_cast.hpp>
+#include <agency/detail/swap.hpp>
 #include <utility>
 #include <memory>
 
@@ -66,7 +67,7 @@ class array
     array(array&& other)
       : shape_{}, data_{}
     {
-      using std::swap;
+      using agency::detail::swap;
       swap(shape_, other.shape_);
       swap(data_,  other.data_);
     }
@@ -81,7 +82,7 @@ class array
     __AGENCY_ANNOTATION
     array& operator=(array&& other)
     {
-      using std::swap;
+      using agency::detail::swap;
       swap(shape_, other.shape_);
       swap(data_,  other.data_);
 
@@ -144,6 +145,7 @@ class array
       return begin() + size();
     }
 
+    __agency_hd_warning_disable__
     template<class Range>
     __AGENCY_ANNOTATION
     bool operator==(const Range& rhs) const
