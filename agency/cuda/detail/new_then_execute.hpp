@@ -29,7 +29,7 @@ future<typename std::result_of<Factory(Shape)>::type>
   detail::stream stream = std::move(fut.stream());
   
   using result_type = typename std::result_of<Factory(Shape)>::type;
-  detail::asynchronous_state<result_type> result_state(construct_ready, result_factory(shape));
+  detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory(shape));
   
   using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
   auto outer_arg = cuda::make_ready_future<outer_arg_type>(outer_factory());
