@@ -39,6 +39,7 @@ class deleter
     __AGENCY_ANNOTATION
     deleter(const deleter<OtherAllocator>&) {}
 
+    __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     void operator()(pointer ptr) const
     {
@@ -172,9 +173,8 @@ class unique_ptr
     __AGENCY_ANNOTATION
     void swap(unique_ptr& other)
     {
-      using agency::detail::swap;
-      swap(ptr_, other.ptr_);
-      swap(deleter_, other.deleter_);
+      agency::detail::swap(ptr_, other.ptr_);
+      agency::detail::swap(deleter_, other.deleter_);
     }
 
   private:

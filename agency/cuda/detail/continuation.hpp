@@ -44,13 +44,13 @@ struct continuation
 
 
 template<class Function, class PointerTuple>
-struct continuation<Function, empty_type_ptr<void>, PointerTuple>
+struct continuation<Function, agency::detail::empty_type_ptr<void>, PointerTuple>
 {
   mutable Function f_;
   mutable PointerTuple arg_ptr_tuple_;
 
   __host__ __device__
-  continuation(Function f, empty_type_ptr<void>, PointerTuple arg_ptr_tuple)
+  continuation(Function f, agency::detail::empty_type_ptr<void>, PointerTuple arg_ptr_tuple)
     : f_(f), arg_ptr_tuple_(arg_ptr_tuple)
   {}
 

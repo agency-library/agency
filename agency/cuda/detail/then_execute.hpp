@@ -42,7 +42,7 @@ struct then_execute_functor {
 
   // this gets called when the future we depend on is void
   template<class Index, class T1, class T3, class T4>
-  __device__ static inline void impl(Function f, const Index &idx, T1& container, unit, T3& outer_param, T4& inner_param)
+  __device__ static inline void impl(Function f, const Index &idx, T1& container, agency::detail::unit, T3& outer_param, T4& inner_param)
   {
     container[idx] = f(idx, outer_param, inner_param);
   }
@@ -88,7 +88,7 @@ future<Container> then_execute(Function f, Shape shape, IndexFunction index_func
 {
   detail::stream stream = std::move(fut.stream());
   
-  detail::asynchronous_state<Container> result_state(construct_ready, shape);
+  detail::asynchronous_state<Container> result_state(agency::detail::construct_ready, shape);
   
   using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
   auto outer_arg = cuda::make_ready_future<outer_arg_type>(outer_factory());

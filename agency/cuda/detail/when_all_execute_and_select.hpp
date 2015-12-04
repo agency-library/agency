@@ -152,7 +152,7 @@ agency::cuda::future<
   >;
 
   // create a state to hold the result
-  agency::cuda::detail::asynchronous_state<result_type> result_state(agency::cuda::detail::construct_not_ready);
+  agency::cuda::detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready);
 
   // create a function to do the move construction
   auto f = make_move_construct_result_functor(result_state.data(), ptr, ptrs...);
@@ -168,7 +168,7 @@ inline __host__ __device__
 agency::cuda::future<void>
   move_construct_result(agency::cuda::detail::stream& stream, agency::cuda::detail::event& dependency)
 {
-  return agency::cuda::future<void>(std::move(stream), std::move(dependency), agency::cuda::detail::asynchronous_state<void>(agency::cuda::detail::construct_not_ready));
+  return agency::cuda::future<void>(std::move(stream), std::move(dependency), agency::cuda::detail::asynchronous_state<void>(agency::detail::construct_not_ready));
 }
 
 

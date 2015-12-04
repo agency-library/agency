@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/tuple.hpp>
+#include <agency/detail/unit.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -75,9 +76,6 @@ factory<T,typename std::decay<Args>::type...> make_factory(Args&&... args)
 {
   return factory<T,typename std::decay<Args>::type...>(agency::detail::make_tuple(std::forward<Args>(args)...));
 }
-
-
-struct unit {};
 
 
 struct unit_factory : factory<unit> {};

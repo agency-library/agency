@@ -21,6 +21,7 @@
 #include <agency/cuda/detail/stream.hpp>
 #include <agency/cuda/detail/asynchronous_state.hpp>
 #include <agency/cuda/detail/continuation.hpp>
+#include <agency/detail/unit.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/tuple.hpp>
@@ -47,9 +48,9 @@ struct is_constructible_or_void
 
 
 __host__ __device__
-unit get_value_or_unit(asynchronous_state<void>&)
+agency::detail::unit get_value_or_unit(asynchronous_state<void>&)
 {
-  return unit{};
+  return agency::detail::unit{};
 }
 
 template<class T>
@@ -141,7 +142,7 @@ class basic_grid_executor;
 template<class U>
 using element_type_is_not_unit = std::integral_constant<
   bool,
-  !std::is_same<typename std::pointer_traits<U>::element_type, detail::unit>::value
+  !std::is_same<typename std::pointer_traits<U>::element_type, agency::detail::unit>::value
 >;
 
 
@@ -258,7 +259,7 @@ class future
     {
       // create state for the continuation's result
       using result_type = agency::detail::result_of_continuation_t<Function,future>;
-      detail::asynchronous_state<result_type> result_state(detail::construct_not_ready);
+      detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready);
 
       // tuple up f's input state
       auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
@@ -291,7 +292,7 @@ class future
              >::type>
     __host__ __device__
     future(detail::stream&& s, detail::event&& e, Args&&... ready_args)
-      : future(std::move(s), std::move(e), detail::asynchronous_state<T>(detail::construct_ready, std::forward<Args>(ready_args)...))
+      : future(std::move(s), std::move(e), detail::asynchronous_state<T>(agency::detail::construct_ready, std::forward<Args>(ready_args)...))
     {}
 
     __host__ __device__
@@ -305,7 +306,7 @@ class future
              >::type>
     __host__ __device__
     future(detail::event&& e, Args&&... ready_args)
-      : future(std::move(e), detail::asynchronous_state<T>(detail::construct_ready, std::forward<Args>(ready_args)...))
+      : future(std::move(e), detail::asynchronous_state<T>(agency::detail::construct_ready, std::forward<Args>(ready_args)...))
     {}
 
     // implement swap to avoid depending on thrust::swap
@@ -380,7 +381,7 @@ when_all(future<Types>&... futures)
     future<Types>...
   >;
 
-  detail::asynchronous_state<result_type> result_state(detail::construct_not_ready);
+  detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready);
 
   // tuple up the input states
   auto unfiltered_pointer_tuple = agency::detail::make_tuple(futures.data()...);
