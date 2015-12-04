@@ -8,6 +8,7 @@
 #include <agency/detail/factory.hpp>
 #include <agency/detail/optional.hpp>
 #include <agency/detail/project_index_and_invoke.hpp>
+#include <agency/detail/array.hpp>
 
 namespace agency
 {
@@ -20,6 +21,11 @@ template<class Container>
 struct guarded_container : Container
 {
   using Container::Container;
+
+  __AGENCY_ANNOTATION
+  guarded_container()
+    : Container()
+  {}
 
   __AGENCY_ANNOTATION
   guarded_container(Container&& other)
@@ -77,6 +83,87 @@ struct guarded_container_factory
 };
 
 
+template<class ExecutionCategory>
+struct flattened_execution_tag_impl;
+
+template<class OuterCategory, class InnerCategory>
+struct flattened_execution_tag_impl<nested_execution_tag<OuterCategory,InnerCategory>>
+{
+  using type = parallel_execution_tag;
+};
+
+template<class OuterCategory, class InnerCategory, class InnerInnerCategory>
+struct flattened_execution_tag_impl<nested_execution_tag<OuterCategory, nested_execution_tag<InnerCategory,InnerInnerCategory>>>
+{
+  // OuterCategory and InnerInnerCategory merge into parallel as the outer category
+  // while InnerInnerCategory is promoted to the inner category
+  using type = nested_execution_tag<
+    parallel_execution_tag,
+    InnerInnerCategory
+  >;
+};
+
+template<class ExecutionCategory>
+using flattened_execution_tag = typename flattened_execution_tag_impl<ExecutionCategory>::type;
+
+
+template<class TypeList>
+struct flattened_shape_type;
+
+template<class Shape1, class Shape2, class... Shapes>
+struct flattened_shape_type<type_list<Shape1,Shape2,Shapes...>>
+{
+  // XXX we probably want to think carefully about what it means two "merge" two arithmetic tuples together
+  template<class T1, class T2>
+  using merge_shapes_t = typename std::common_type<T1,T2>::type;
+
+  using tuple_type = shape_tuple<
+    merge_shapes_t<Shape1,Shape2>,
+    Shapes...
+  >;
+
+  // unwrap single-element tuples
+  using type = typename std::conditional<
+    (std::tuple_size<tuple_type>::value == 1),
+    typename std::tuple_element<0,tuple_type>::type,
+    tuple_type
+  >::type;
+};
+
+
+// XXX need to do something similar as execution_category
+//     the two leftmost indices merge into one while the rest of the indices shift one space left
+template<class ShapeTuple>
+using flattened_shape_type_t = typename flattened_shape_type<tuple_elements<ShapeTuple>>::type;
+
+
+template<class TypeList>
+struct flattened_index_type;
+
+template<class Index1, class Index2, class... Indices>
+struct flattened_index_type<type_list<Index1,Index2,Indices...>>
+{
+  // XXX we probably want to think carefully about what it means two "merge" two arithmetic tuples together
+  template<class T1, class T2>
+  using merge_indices_t = typename std::common_type<T1,T2>::type;
+
+  using tuple_type = index_tuple<
+    merge_indices_t<Index1,Index2>,
+    Indices...
+  >;
+
+  // unwrap single-element tuples
+  using type = typename std::conditional<
+    (std::tuple_size<tuple_type>::value == 1),
+    typename std::tuple_element<0,tuple_type>::type,
+    tuple_type
+  >::type;
+};
+
+template<class IndexTuple>
+using flattened_index_type_t = flattened_shape_type_t<IndexTuple>;
+
+
 } // end detail
 
 
@@ -89,22 +176,21 @@ class flattened_executor
     "Execution category of Executor must be nested."
   );
 
+  private:
+    using base_traits = executor_traits<Executor>;
+    using base_execution_category = typename base_traits::execution_category;
+
   public:
-    // XXX what is the execution category of a flattened executor?
-    using execution_category = parallel_execution_tag;
-
     using base_executor_type = Executor;
-
-    // XXX maybe use whichever of the first two elements of base_executor_type::shape_type has larger dimensionality?
-    using shape_type = size_t;
-
-    using index_type = size_t;
+    using execution_category = detail::flattened_execution_tag<base_execution_category>;
+    using shape_type = detail::flattened_shape_type_t<typename base_traits::shape_type>;
+    using index_type = detail::flattened_shape_type_t<typename base_traits::index_type>;
 
     template<class T>
-    using future = typename executor_traits<base_executor_type>::template future<T>;
+    using future = typename base_traits::template future<T>;
 
     template<class T>
-    using container = typename executor_traits<base_executor_type>::template container<T>;
+    using container = detail::array<T, shape_type, typename base_traits::template allocator<T>>;
 
     future<void> make_ready_future()
     {

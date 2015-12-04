@@ -28,7 +28,7 @@ struct project_index_and_invoke
     project_shape(std::declval<shape_type>())
   );
 
-  Function             f_;
+  mutable Function     f_;
   shape_type           shape_;
   projected_shape_type projected_shape_;
 
@@ -49,7 +49,7 @@ struct project_index_and_invoke
 
   template<class T>
   __AGENCY_ANNOTATION
-  value_and_index<typename std::decay<T>::type> make_value_and_index(T&& value, projected_index_type idx)
+  value_and_index<typename std::decay<T>::type> make_value_and_index(T&& value, projected_index_type idx) const
   {
     return value_and_index<typename std::decay<T>::type>{std::forward<T>(value), idx};
   }
@@ -78,7 +78,7 @@ struct project_index_and_invoke
            >::type
           >
   __AGENCY_ANNOTATION
-  void impl(const Index& idx, Args&&... args)
+  void impl(const Index& idx, Args&&... args) const
   {
     auto projected_idx = detail::project_index(idx, shape_);
 
@@ -99,7 +99,7 @@ struct project_index_and_invoke
           >
   __AGENCY_ANNOTATION
   result_t<Args&&...>
-    impl(const Index& idx, Args&&... args)
+    impl(const Index& idx, Args&&... args) const
   {
     auto projected_idx = detail::project_index(idx, shape_);
 
@@ -115,7 +115,7 @@ struct project_index_and_invoke
   template<class T>
   __AGENCY_ANNOTATION
   result_t<T&>
-    operator()(const Index& idx, T& outer_shared_parameter, unit)
+    operator()(const Index& idx, T& outer_shared_parameter, unit) const
   {
     return impl(idx, outer_shared_parameter);
   }
@@ -124,7 +124,7 @@ struct project_index_and_invoke
   template<class T1, class T2>
   __AGENCY_ANNOTATION
   result_t<T1&,T2&>
-    operator()(const Index& idx, T1& past_parameter, T2& outer_shared_parameter, unit)
+    operator()(const Index& idx, T1& past_parameter, T2& outer_shared_parameter, unit) const
   {
     return impl(idx, past_parameter, outer_shared_parameter);
   }
