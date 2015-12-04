@@ -12,6 +12,8 @@ namespace detail
 {
 
 
+// index_tuple can't just be an alias for a particular kind of tuple
+// because it also requires arithmetic operators
 template<class... Indices>
 class index_tuple :
   public agency::detail::tuple<Indices...>,
