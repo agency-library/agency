@@ -273,6 +273,11 @@ struct new_executor_traits
     template<class T>
     using container = detail::new_executor_traits_detail::member_container_or_t<std::vector<T>, executor_type, T>;
 
+    // XXX this should be the other way around - container<T> should depend on allocator<T>
+    // XXX should check the executor for the allocator
+    template<class T>
+    using allocator = typename container<T>::allocator_type;
+
     template<class T, class... Args>
     __AGENCY_ANNOTATION
     static future<T> make_ready_future(executor_type& ex, Args&&... args);
