@@ -1,7 +1,6 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/uninitialized.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -24,17 +23,38 @@ template<class T1, class T2>
 __AGENCY_ANNOTATION
 static void swap(T1& a, T2& b)
 {
-  T1 temp = a;
-  a = b;
-  b = temp;
+  T1 tmp = std::move(a);
+  a = std::move(b);
+  b = std::move(tmp);
 }
+
+
+template<
+  class T,
+  bool use_empty_base_class_optimization =
+    std::is_empty<T>::value
+#if __cplusplus >= 201402L
+    && !std::is_final<T>::value
+#endif
+>
+struct optional_base
+{
+  typedef typename std::aligned_storage<
+    sizeof(T)
+  >::type storage_type;
+  
+  storage_type storage_;
+};
+
+template<class T>
+struct optional_base<T,true> : T {};
 
 
 } // end optional_detail
 
 
 template<class T>
-class optional
+class optional : public optional_detail::optional_base<T>
 {
   public:
     __AGENCY_ANNOTATION
@@ -47,7 +67,7 @@ class optional
     optional(const optional& other)
       : contains_value_(other.contains_value_)
     {
-      emplace(other.value_);
+      emplace(*other);
     }
 
     __AGENCY_ANNOTATION
@@ -56,7 +76,7 @@ class optional
     {
       if(other)
       {
-        emplace(std::move(other.value_));
+        emplace(std::move(*other));
       }
     }
 
@@ -96,7 +116,7 @@ class optional
     {
       if(*this)
       {
-        value_.get() = std::forward<U>(value);
+        **this = std::forward<U>(value);
       }
       else
       {
@@ -111,7 +131,7 @@ class optional
     {
       if(other)
       {
-        *this = other.value_;
+        *this = *other;
       }
       else
       {
@@ -126,7 +146,7 @@ class optional
     {
       if(other)
       {
-        *this = std::move(other.value_.get());
+        *this = std::move(*other);
       }
       else
       {
@@ -142,7 +162,7 @@ class optional
     {
       clear();
 
-      value_.construct(std::forward<Args>(args)...);
+      new (operator->()) T(std::forward<Args>(args)...) ;
       contains_value_ = true;
     }
 
@@ -156,21 +176,21 @@ class optional
     T& value() &
     {
       // XXX should check contains_value_ and throw otherwise
-      return value_.get();
+      return operator*();
     }
 
     __AGENCY_ANNOTATION
     const T& value() const &
     {
       // XXX should check contains_value_ and throw otherwise
-      return value_.get();
+      return operator*();
     }
 
     __AGENCY_ANNOTATION
     T&& value() &&
     {
       // XXX should check contains_value_ and throw otherwise
-      return std::move(value_.get());
+      return std::move(operator*());
     }
 
     __AGENCY_ANNOTATION
@@ -182,11 +202,11 @@ class optional
         {
           using optional_detail::swap;
 
-          swap(value_, other.value_);
+          swap(**this, *other);
         }
         else
         {
-          emplace(other.value_);
+          emplace(*other);
           other = nullopt;
         }
       }
@@ -194,7 +214,7 @@ class optional
       {
         if(*this)
         {
-          other.emplace(value_);
+          other.emplace(**this);
           *this = nullopt;
         }
         else
@@ -204,19 +224,54 @@ class optional
       }
     }
 
+    __AGENCY_ANNOTATION
+    const T* operator->() const
+    {
+      return reinterpret_cast<const T*>(this);
+    }
+
+    __AGENCY_ANNOTATION
+    T* operator->()
+    {
+      return reinterpret_cast<T*>(this);
+    }
+
+    __AGENCY_ANNOTATION
+    const T& operator*() const &
+    {
+      return *operator->();
+    }
+
+    __AGENCY_ANNOTATION
+    T& operator*() &
+    {
+      return *operator->();
+    }
+
+    __AGENCY_ANNOTATION
+    const T&& operator*() const &&
+    {
+      return *operator->();
+    }
+
+    __AGENCY_ANNOTATION
+    T&& operator*() &&
+    {
+      return *operator->();
+    }
+
   private:
     __AGENCY_ANNOTATION
     void clear()
     {
       if(*this)
       {
-        value_.destroy();
+        operator*().~T();
         contains_value_ = false;
       }
     }
 
     bool contains_value_;
-    uninitialized<T> value_;
 };
 
 
