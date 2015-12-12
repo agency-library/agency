@@ -54,7 +54,10 @@ class optional
     optional(optional&& other)
       : contains_value_(false)
     {
-      emplace(std::move(other.value_));
+      if(other)
+      {
+        emplace(std::move(other.value_));
+      }
     }
 
     __AGENCY_ANNOTATION
@@ -123,7 +126,7 @@ class optional
     {
       if(other)
       {
-        *this = std::move(other.value_);
+        *this = std::move(other.value_.get());
       }
       else
       {
