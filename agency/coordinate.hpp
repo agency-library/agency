@@ -785,6 +785,13 @@ struct tuple_traits<agency::point<T,Rank>>
   {
     return x[I];
   } // end get()
+
+  template<size_t I>
+  __AGENCY_ANNOTATION
+  static T&& get(agency::point<T,Rank>&& x)
+  {
+    return std::move(x[I]);
+  } // end get()
 }; // end tuple_traits
 
 

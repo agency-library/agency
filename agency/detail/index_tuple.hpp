@@ -85,6 +85,7 @@ template<class ExecutionCategory1,
          class ExecutionCategory2,
          class Index1,
          class Index2>
+__AGENCY_ANNOTATION
 nested_index_t<ExecutionCategory1,ExecutionCategory2,Index1,Index2> make_nested_index(const Index1& outer_idx, const Index2& inner_idx)
 {
   return __tu::tuple_cat_apply(
