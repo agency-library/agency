@@ -2,7 +2,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
-#include <agency/cuda/detail/stream.hpp>
 #include <agency/cuda/detail/event.hpp>
 #include <agency/cuda/detail/asynchronous_state.hpp>
 #include <agency/cuda/future.hpp>
@@ -26,8 +25,6 @@ __host__ __device__
 future<typename std::result_of<Factory(Shape)>::type>
   new_then_execute(Function f, Factory result_factory, Shape shape, IndexFunction index_function, future<T>& fut, OuterFactory outer_factory, InnerFactory inner_factory, gpu_id gpu)
 {
-  detail::stream stream = std::move(fut.stream());
-  
   using result_type = typename std::result_of<Factory(Shape)>::type;
   detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory(shape));
   
@@ -42,9 +39,9 @@ future<typename std::result_of<Factory(Shape)>::type>
   ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
   ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
   
-  auto next_event = fut.event().then_on(g, grid_dim, block_dim, 0, stream.native_handle(), gpu.native_handle());
+  auto next_event = fut.event().then_on(g, grid_dim, block_dim, 0, gpu.native_handle());
   
-  return future<result_type>(std::move(stream), std::move(next_event), std::move(result_state));
+  return future<result_type>(std::move(next_event), std::move(result_state));
 }
 
 
