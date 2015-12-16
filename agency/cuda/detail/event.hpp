@@ -18,14 +18,12 @@ namespace detail
 
 class event
 {
+  private:
+    static constexpr int event_create_flags = cudaEventDisableTiming;
+
   public:
     struct construct_ready_t {};
-    struct construct_not_ready_t {};
-
     static constexpr construct_ready_t construct_ready{};
-    static constexpr construct_not_ready_t construct_not_ready{};
-
-    static constexpr int event_create_flags = cudaEventDisableTiming;
 
     // constructs a new event recorded on the given stream
     __host__ __device__
@@ -42,11 +40,8 @@ class event
     event() : event(cudaEvent_t{0}) {}
 
     __host__ __device__
-    event(construct_not_ready_t) : event() {}
-
-    __host__ __device__
     event(construct_ready_t)
-      : event(construct_not_ready)
+      : event()
     {
 #if __cuda_lib_has_cudart
       detail::throw_on_error(cudaEventCreateWithFlags(&e_, event_create_flags), "cudaEventCreateWithFlags in cuda::detail::event ctor");
