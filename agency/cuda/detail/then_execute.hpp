@@ -6,7 +6,6 @@
 #include <agency/cuda/detail/event.hpp>
 #include <agency/cuda/detail/asynchronous_state.hpp>
 #include <agency/cuda/future.hpp>
-#include <agency/cuda/gpu.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/functional.hpp>
 #include <agency/detail/shape_cast.hpp>
@@ -84,7 +83,7 @@ then_execute_functor<ContainerPointer,Function,IndexFunction,PastParameterPointe
 
 template<class Container, class Function, class Shape, class IndexFunction, class T, class OuterFactory, class InnerFactory>
 __host__ __device__
-future<Container> then_execute(Function f, Shape shape, IndexFunction index_function, future<T>& fut, OuterFactory outer_factory, InnerFactory inner_factory, gpu_id gpu)
+future<Container> then_execute(Function f, Shape shape, IndexFunction index_function, future<T>& fut, OuterFactory outer_factory, InnerFactory inner_factory)
 {
   detail::stream stream = std::move(fut.stream());
   
@@ -101,7 +100,7 @@ future<Container> then_execute(Function f, Shape shape, IndexFunction index_func
   ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
   ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
   
-  auto next_event = fut.event().then_on(g, grid_dim, block_dim, 0, stream.native_handle(), gpu.native_handle());
+  auto next_event = fut.event().then_on(g, grid_dim, block_dim, 0, stream.native_handle());
   
   return future<Container>(std::move(stream), std::move(next_event), std::move(result_state));
 }
@@ -110,39 +109,39 @@ future<Container> then_execute(Function f, Shape shape, IndexFunction index_func
 // this function returns a pointer to the kernel used to implement then_execute()
 template<class Container, class Function, class Shape, class IndexFunction, class T, class OuterFactory, class InnerFactory>
 __host__ __device__
-void* then_execute_kernel(const Function& f, const Shape& s, const IndexFunction& index_function, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory, const gpu_id&)
+void* then_execute_kernel(const Function& f, const Shape& s, const IndexFunction& index_function, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory)
 {
   using result_state_type = detail::asynchronous_state<Container>;
   using outer_future_type = future<agency::detail::result_of_factory_t<OuterFactory>>;
 
   using then_execute_functor_type = decltype(detail::make_then_execute_functor(std::declval<result_state_type>().data(), f, index_function, fut.data(), std::declval<outer_future_type>().data(), inner_factory));
 
-  return detail::event::then_on_kernel<then_execute_functor_type>();
+  return detail::event::then_kernel<then_execute_functor_type>();
 }
 
 
 
 template<class Container, class Function, class Shape, class IndexFunction, class T>
 __host__ __device__
-future<Container> then_execute(Function f, Shape shape, IndexFunction index_function, future<T>& fut, gpu_id gpu)
+future<Container> then_execute(Function f, Shape shape, IndexFunction index_function, future<T>& fut)
 {
   auto outer_factory = agency::detail::unit_factory{};
   auto inner_factory = agency::detail::unit_factory{};
   auto g = agency::detail::take_first_two_parameters_and_invoke<Function>{f};
 
-  return detail::then_execute<Container>(g, shape, index_function, fut, outer_factory, inner_factory, gpu);
+  return detail::then_execute<Container>(g, shape, index_function, fut, outer_factory, inner_factory);
 }
 
 
 template<class Container, class Function, class Shape, class IndexFunction, class T>
 __host__ __device__
-void* then_execute_kernel(const Function& f, const Shape& shape, const IndexFunction& index_function, const future<T>& fut, const gpu_id& gpu)
+void* then_execute_kernel(const Function& f, const Shape& shape, const IndexFunction& index_function, const future<T>& fut)
 {
   auto outer_factory = agency::detail::unit_factory{};
   auto inner_factory = agency::detail::unit_factory{};
   auto g = agency::detail::take_first_two_parameters_and_invoke<Function>{f};
 
-  return detail::then_execute_kernel<Container>(g, shape, index_function, fut, outer_factory, inner_factory, gpu);
+  return detail::then_execute_kernel<Container>(g, shape, index_function, fut, outer_factory, inner_factory);
 }
 
 
