@@ -21,10 +21,6 @@ class event
   private:
     static constexpr int event_create_flags = cudaEventDisableTiming;
 
-  public:
-    struct construct_ready_t {};
-    static constexpr construct_ready_t construct_ready{};
-
     // constructs a new event recorded on the given stream
     __host__ __device__
     event(cudaStream_t s) : event(construct_ready)
@@ -35,6 +31,10 @@ class event
       detail::terminate_with_message("cuda::detail::event ctor requires CUDART");
 #endif
     }
+
+  public:
+    struct construct_ready_t {};
+    static constexpr construct_ready_t construct_ready{};
 
     __host__ __device__
     event() : event(cudaEvent_t{0}) {}
