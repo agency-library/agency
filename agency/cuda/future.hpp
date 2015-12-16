@@ -18,7 +18,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/event.hpp>
-#include <agency/cuda/detail/stream.hpp>
 #include <agency/cuda/detail/asynchronous_state.hpp>
 #include <agency/cuda/detail/continuation.hpp>
 #include <agency/detail/unit.hpp>
@@ -65,7 +64,6 @@ template<typename T>
 class future
 {
   private:
-    detail::stream stream_;
     detail::event event_;
     detail::asynchronous_state<T> state_;
 
@@ -77,7 +75,6 @@ class future
     future(future&& other)
       : future()
     {
-      stream_.swap(other.stream_);
       event_.swap(other.event_);
       state_.swap(other.state_);
     } // end future()
@@ -85,7 +82,6 @@ class future
     __host__ __device__
     future &operator=(future&& other)
     {
-      stream_.swap(other.stream_);
       event_.swap(other.event_);
       state_.swap(other.state_);
       return *this;
@@ -100,11 +96,9 @@ class future
              >::type>
     __host__ __device__
     future(future<U>&& other)
-      : stream_(),
-        event_(),
+      : event_(),
         state_(std::move(other.state_))
     {
-      stream_.swap(other.stream_);
       event_.swap(other.event_);
     } // end future()
 
@@ -133,18 +127,6 @@ class future
     {
       return event_;
     } // end event()
-
-    __host__ __device__
-    const detail::stream& stream() const
-    {
-      return stream_;
-    } // end stream()
-
-    __host__ __device__
-    detail::stream& stream()
-    {
-      return stream_;
-    } // end stream()
 
     template<class... Args,
              class = typename std::enable_if<
@@ -183,10 +165,10 @@ class future
       auto continuation = detail::make_continuation(f, result_state.data(), pointer_tuple);
 
       // launch the continuation
-      detail::event next_event = event().then(continuation, dim3{1}, dim3{1}, 0, stream().native_handle());
+      detail::event next_event = event().then(continuation, dim3{1}, dim3{1}, 0);
 
       // return the continuation's future
-      return future<result_type>(std::move(stream()), std::move(next_event), std::move(result_state));
+      return future<result_type>(std::move(next_event), std::move(result_state));
     }
 
 //  private:
@@ -194,22 +176,8 @@ class future
     template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
 
     __host__ __device__
-    future(detail::stream&& s, detail::event&& e, detail::asynchronous_state<T>&& state)
-      : stream_(std::move(s)), event_(std::move(e)), state_(std::move(state))
-    {}
-
-    template<class... Args,
-             class = typename std::enable_if<
-               detail::is_constructible_or_void<T,Args...>::value
-             >::type>
-    __host__ __device__
-    future(detail::stream&& s, detail::event&& e, Args&&... ready_args)
-      : future(std::move(s), std::move(e), detail::asynchronous_state<T>(agency::detail::construct_ready, std::forward<Args>(ready_args)...))
-    {}
-
-    __host__ __device__
     future(detail::event&& e, detail::asynchronous_state<T>&& state)
-      : future(detail::stream{}, std::move(e), std::move(state))
+      : event_(std::move(e)), state_(std::move(state))
     {}
 
     template<class... Args,
@@ -284,10 +252,8 @@ future<
 >
 when_all(future<Types>&... futures)
 {
-  detail::stream stream;
-
   // join the events
-  detail::event when_all_ready = detail::when_all_events_are_ready(stream.native_handle(), futures.event()...);
+  detail::event when_all_ready = detail::when_all_events_are_ready(futures.event()...);
 
   using result_type = agency::detail::when_all_result_t<
     future<Types>...
@@ -305,10 +271,10 @@ when_all(future<Types>&... futures)
   auto continuation = detail::make_continuation(detail::when_all_functor<result_type>{}, result_state.data(), pointer_tuple);
 
   // launch the continuation
-  detail::event next_event = when_all_ready.then(continuation, dim3{1}, dim3{1}, 0, stream.native_handle());
+  detail::event next_event = when_all_ready.then(continuation, dim3{1}, dim3{1}, 0);
 
   // return the continuation's future
-  return future<result_type>(std::move(stream), std::move(next_event), std::move(result_state));
+  return future<result_type>(std::move(next_event), std::move(result_state));
 }
 
 
