@@ -128,9 +128,6 @@ class event
       // launch the kernel
       detail::checked_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream, f, args...);
 
-      // invalidate ourself
-      destroy_event();
-
       return event(stream);
     }
 
@@ -159,9 +156,6 @@ class event
       auto kernel = then_on_kernel(f,args...);
 
       detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, stream, gpu.native_handle(), f, args...);
-
-      // invalidate ourself
-      destroy_event();
 
       return event(stream);
     }
@@ -192,10 +186,10 @@ class event
       return 0;
     }
 
+    // makes the given stream wait on this event and invalidates this event
     // this function returns 0 so that we can pass it as an argument to swallow(...)
-    // XXX this function should really be a member of a stream class
     __host__ __device__
-    int stream_wait(cudaStream_t s) const
+    int stream_wait(cudaStream_t s)
     {
 #if __cuda_lib_has_cudart
       // make the next launch wait on the event
@@ -203,6 +197,9 @@ class event
 #else
       throw_on_error(cudaErrorNotSupported, "cuda::detail::event::stream_wait(): cudaStreamWaitEvent() requires CUDART");
 #endif // __cuda_lib_has_cudart
+
+      // this operation invalidates this event
+      destroy_event();
 
       return 0;
     }
@@ -217,9 +214,6 @@ class event
     {
       // tell the stream to wait on all the events
       swallow(events.stream_wait(s)...);
-
-      // invalidate the inputs
-      swallow(events.destroy_event()...);
 
       // return a new event recorded on the stream
       return event(s);
