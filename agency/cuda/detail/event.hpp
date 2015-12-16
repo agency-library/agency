@@ -210,7 +210,7 @@ class event
 
     template<class... Events>
     __host__ __device__
-    friend event when_all(cudaStream_t s, Events&... events)
+    friend event when_all_events_are_ready(cudaStream_t s, Events&... events)
     {
       // tell the stream to wait on all the events
       swallow(events.stream_wait(s)...);

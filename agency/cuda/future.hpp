@@ -287,7 +287,7 @@ when_all(future<Types>&... futures)
   detail::stream stream;
 
   // join the events
-  detail::event when_all_ready = detail::when_all(stream.native_handle(), futures.event()...);
+  detail::event when_all_ready = detail::when_all_events_are_ready(stream.native_handle(), futures.event()...);
 
   using result_type = agency::detail::when_all_result_t<
     future<Types>...

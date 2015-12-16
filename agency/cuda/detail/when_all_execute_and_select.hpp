@@ -283,7 +283,7 @@ future<when_all_execute_and_select_result_t<agency::detail::index_sequence<Selec
 
   // join the events
   stream stream;
-  event when_all_ready = cuda::detail::when_all(stream.native_handle(), outer_arg_future.event(), agency::detail::get<TupleIndices>(tuple_of_futures).event()...);
+  event when_all_ready = cuda::detail::when_all_events_are_ready(stream.native_handle(), outer_arg_future.event(), agency::detail::get<TupleIndices>(tuple_of_futures).event()...);
 
   // get a view of the non-void futures
   auto view_of_non_void_futures = agency::detail::tuple_filter_view<value_type_is_not_void>(tuple_of_futures);
