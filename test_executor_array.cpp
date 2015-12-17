@@ -12,46 +12,113 @@ int main()
   using outer_executor_type = this_thread::parallel_executor;
   using inner_executor_type = concurrent_executor;
 
-  using executor_type = executor_array<inner_executor_type, outer_executor_type>;
-  using traits = agency::executor_traits<executor_type>;
-  using shape_type = typename traits::shape_type;
-  using index_type = typename traits::index_type;
-
-  executor_type exec(2);
-
-  auto shape = exec.make_shape(3,5);
-
-  std::mutex mut;
-  auto f = exec.async_execute([=,&mut](const index_type& idx, int& outer_shared)
   {
+    // test executor_array async_execute()
+    using executor_type = executor_array<inner_executor_type, outer_executor_type>;
+    using traits = agency::executor_traits<executor_type>;
+    using shape_type = typename traits::shape_type;
+    using index_type = typename traits::index_type;
+
+    executor_type exec(2);
+
+    auto shape = exec.make_shape(3,5);
+
+    std::mutex mut;
+    auto f = exec.async_execute([=,&mut](const index_type& idx, int& outer_shared, int& inner_shared)
+    {
+      mut.lock();
+      std::cout << "Hello from agent " << idx << std::endl;
+      mut.unlock();
+
+      return 13 + outer_shared + inner_shared;
+    },
+    [](shape_type shape)
+    {
+      return traits::container<int>(shape);
+    },
+    shape,
+    []{ return 7; },
+    []{ return 42; });
+
+    // sleep for a bit
     mut.lock();
-    std::cout << "Hello from agent " << idx << std::endl;
+    std::cout << "main thread sleeping for a bit..." << std::endl;
     mut.unlock();
 
-    return 13 + outer_shared;
-  },
-  [](shape_type shape)
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    mut.lock();
+    std::cout << "main thread woke up" << std::endl;
+    mut.unlock();
+
+    auto results = f.get();
+
+    assert(results.size() == agency::detail::shape_size(shape));
+    assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 7 + 42; }));
+  }
+
   {
-    return traits::container<int>(shape);
-  },
-  shape,
-  []{ return 7; });
+    // test executor_array async_execute()
+    using executor_type = executor_array<inner_executor_type, outer_executor_type>;
+    using traits = agency::executor_traits<executor_type>;
+    using shape_type = typename traits::shape_type;
+    using index_type = typename traits::index_type;
 
-  // sleep for a bit
-  mut.lock();
-  std::cout << "main thread sleeping for a bit..." << std::endl;
-  mut.unlock();
+    executor_type exec(2);
 
-  std::this_thread::sleep_for(std::chrono::seconds(3));
+    auto past = traits::make_ready_future<int>(exec,1);
 
-  mut.lock();
-  std::cout << "main thread woke up" << std::endl;
-  mut.unlock();
+    auto shape = exec.make_shape(3,5);
 
-  auto results = f.get();
+    auto f = exec.then_execute([](const index_type& idx, int& past, int& outer_shared, int& inner_shared)
+    {
+      return 13 + past + outer_shared + inner_shared;
+    },
+    [](shape_type shape)
+    {
+      return traits::container<int>(shape);
+    },
+    shape,
+    past,
+    []{ return 7; },
+    []{ return 42; });
 
-  assert(results.size() == agency::detail::shape_size(shape));
-  assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 7; }));
+    auto results = f.get();
+
+    assert(results.size() == agency::detail::shape_size(shape));
+    assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 1 + 7 + 42; }));
+  }
+
+  {
+    // test flattened executor_array
+    using executor_array_type = executor_array<inner_executor_type, outer_executor_type>;
+    using executor_type = flattened_executor<executor_array_type>;
+
+    using traits = agency::executor_traits<executor_type>;
+    using shape_type = typename traits::shape_type;
+    using index_type = typename traits::index_type;
+
+    executor_array_type exec_array(2);
+    executor_type exec{exec_array};
+
+    shape_type shape = 10;
+
+    auto f = traits::async_execute(exec, [](const index_type& idx, int& shared)
+    {
+      return 13 + shared;
+    },
+    [](shape_type shape)
+    {
+      return traits::container<int>(shape);
+    },
+    shape,
+    []{ return 7; });
+
+    auto results = f.get();
+
+    assert(results.size() == agency::detail::shape_size(shape));
+    assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 7; }));
+  }
 
   std::cout << "OK" << std::endl;
 

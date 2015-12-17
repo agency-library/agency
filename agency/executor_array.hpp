@@ -27,6 +27,8 @@ class executor_array
     constexpr static size_t inner_depth = inner_traits::execution_depth;
 
   public:
+    using execution_category = nested_execution_tag<outer_execution_category,inner_execution_category>;
+
     using outer_shape_type = typename outer_traits::shape_type;
     using inner_shape_type = typename inner_traits::shape_type;
 
@@ -122,47 +124,112 @@ class executor_array
     }
 
   public:
-    //template<class Function, class Factory1, class Factory2, class... Factories,
-    //         class = typename std::enable_if<
-    //           sizeof...(Factories) == inner_depth
-    //         >::type>
-    //future<typename std::result_of<Factory1(shape_type)>::type>
-    //  async_execute(Function f, Factory1 result_factory, shape_type shape, Factory2 outer_factory, Factories... inner_factories)
-    //{
-    //  auto outer_shape = outer_shape(shape);
-    //  auto inner_shape = inner_shape(shape);
+    // XXX this functor is public to allow nvcc to instantiate kernels with it
+    template<class Function, class... Factories>
+    struct then_execute_functor
+    {
+      executor_array& exec;
+      mutable Function f;
+      detail::tuple<Factories...> inner_factories;
+      outer_shape_type outer_shape;
+      inner_shape_type inner_shape;
 
-    //  using result_type = decltype(result_factory(shape));
-    //  auto results_ptr = detail::allocate_unique<result_type>(allocator<result_type>(), result_factory(shape));
-    //  result_type *results_raw_ptr = results_ptr.get();
+      template<class T1, class... Types>
+      struct inner_functor
+      {
+        executor_array& exec;
+        mutable Function f;
+        outer_index_type outer_idx;
+        T1& results;
+        detail::tuple<Types&...> outer_args;
 
-    //  auto futures = outer_traits::execute(outer_executor(), [=](const outer_index_type& outer_idx, auto& outer_shared_arg)
-    //  {
-    //    auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
+        template<size_t... Indices, class... InnerArgs>
+        __AGENCY_ANNOTATION
+        void impl(detail::index_sequence<Indices...>, const inner_index_type& inner_idx, InnerArgs&... inner_args) const
+        {
+          auto idx = exec.make_index(outer_idx, inner_idx);
 
-    //    // XXX won't outer_shared_arg go out of scope by the time this executes?
-    //    //     we ought to create the outer_shared_arg with the results
-    //    return inner_traits::async_execute(inner_executor(inner_executor_idx), [=outer_idx,&results,&outer_shared_arg](const inner_index_type& inner_idx, auto&... inner_shared_args)
-    //    {
-    //      auto idx = make_index(outer_idx, inner_idx);
-    //      (*results_raw_ptr)[idx] = agency::invoke(f, idx, outer_shared_arg, inner_shared_args...);
-    //    },
-    //    inner_shape,
-    //    inner_factories...);
-    //  },
-    //  outer_shape,
-    //  outer_factory);
+          results[idx] = agency::invoke(f, idx, detail::get<Indices>(outer_args)..., inner_args...);
+        }
 
-    //  auto continuation = make_wait_for_futures_and_move_result(std::move(futures), std::move(results_ptr));
-    //  return outer_traits::then_execute(outer_executor(), std::move(continuation));
-    //}
+        template<class... Args>
+        __AGENCY_ANNOTATION
+        void operator()(const inner_index_type& inner_idx, Args&... inner_shared_args) const
+        {
+          impl(detail::index_sequence_for<Types...>(), inner_idx, inner_shared_args...);
+        }
+      };
+
+      template<size_t... Indices, class Arg1, class... Args>
+      __AGENCY_ANNOTATION
+      void impl(detail::index_sequence<Indices...>, const outer_index_type& outer_idx, Arg1& results, Args&... outer_args) const
+      {
+        auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
+
+        inner_traits::execute(
+          exec.inner_executor(inner_executor_idx),
+          inner_functor<Arg1,Args...>{exec,f,outer_idx,results,detail::tie(outer_args...)},
+          inner_shape,
+          detail::get<Indices>(inner_factories)...
+        );
+      }
+
+      template<class Arg1, class... Args>
+      __AGENCY_ANNOTATION
+      void operator()(const outer_index_type& outer_idx, Arg1& results, Args&... outer_args) const
+      {
+        impl(detail::index_sequence_for<Factories...>(), outer_idx, results, outer_args...);
+      }
+    };
+
+    template<class Function, class Factory1, class Future, class Factory2, class... Factories,
+             class = typename std::enable_if<
+               sizeof...(Factories) == inner_depth
+             >::type>
+    future<typename std::result_of<Factory1(shape_type)>::type>
+      then_execute(Function f, Factory1 result_factory, shape_type shape, Future& past, Factory2 outer_factory, Factories... inner_factories)
+    {
+      // separate the shape into inner and outer portions
+      auto outer_shape = this->outer_shape(shape);
+      auto inner_shape = this->inner_shape(shape);
+
+      using result_type = decltype(result_factory(shape));
+      auto results_fut = outer_traits::template make_ready_future<result_type>(outer_executor(), result_factory(shape));
+      auto futures = agency::detail::make_tuple(std::move(results_fut), std::move(past));
+
+      // XXX avoid lambdas to workaround nvcc limitation
+      using past_arg_type = typename future_traits<Future>::value_type;
+      using outer_shared_arg_type = decltype(outer_factory());
+
+      //return outer_traits::template when_all_execute_and_select<0>(outer_executor(), [=](const outer_index_type& outer_idx, result_type& results, past_arg_type& past_arg, outer_shared_arg_type& outer_shared_arg) mutable
+      //{
+      //  auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
+
+      //  inner_traits::execute(inner_executor(inner_executor_idx), [=,&outer_shared_arg,&results](const inner_index_type& inner_idx, decltype(inner_factories())&... inner_shared_args) mutable
+      //  {
+      //    auto idx = make_index(outer_idx, inner_idx);
+      //    results[idx] = agency::invoke(f, idx, past_arg, outer_shared_arg, inner_shared_args...);
+      //  },
+      //  inner_shape,
+      //  inner_factories...);
+      //},
+      //outer_shape,
+      //futures,
+      //outer_factory);
+
+      auto functor = then_execute_functor<Function,Factories...>{*this, f, detail::make_tuple(inner_factories...), outer_shape, inner_shape};
+      return outer_traits::template when_all_execute_and_select<0>(outer_executor(), functor, outer_shape, futures, outer_factory);
+    }
 
     // XXX this implementation is only valid for outer_execution_category != sequential_execution_tag
-    // XXX generalize this to support shared parameters
-    template<class Function, class Factory1, class Factory2>
+    template<class Function, class Factory1, class Factory2, class... Factories,
+             class = typename std::enable_if<
+               sizeof...(Factories) == inner_depth
+             >::type>
     future<typename std::result_of<Factory1(shape_type)>::type>
-      async_execute(Function f, Factory1 result_factory, shape_type shape, Factory2 outer_factory)
+      async_execute(Function f, Factory1 result_factory, shape_type shape, Factory2 outer_factory, Factories... inner_factories)
     {
+      // separate the shape into inner and outer portions
       auto outer_shape = this->outer_shape(shape);
       auto inner_shape = this->inner_shape(shape);
 
@@ -177,18 +244,17 @@ class executor_array
       outer_shared_arg_type* outer_shared_arg_raw_ptr = outer_shared_arg_ptr.get();
 
       // eagerly execute() with the outer executor so we can issue these async_execute() calls immediately
-      auto futures = outer_traits::execute(outer_executor(), [=](const outer_index_type& outer_idx)
+      auto futures = outer_traits::execute(outer_executor(), [=](const outer_index_type& outer_idx) mutable
       {
         auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
 
-        // XXX won't outer_shared_arg go out of scope by the time this executes?
-        //     we ought to create the outer_shared_arg with the results
-        return inner_traits::async_execute(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx)
+        return inner_traits::async_execute(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx, decltype(inner_factories())&... inner_shared_args) mutable
         {
           auto idx = make_index(outer_idx, inner_idx);
-          (*results_raw_ptr)[idx] = agency::invoke(f, idx, *outer_shared_arg_raw_ptr);
+          (*results_raw_ptr)[idx] = agency::invoke(f, idx, *outer_shared_arg_raw_ptr, inner_shared_args...);
         },
-        inner_shape);
+        inner_shape,
+        inner_factories...);
       },
       outer_shape);
 
