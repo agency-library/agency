@@ -63,14 +63,16 @@ class executor_array
     using container = agency::detail::array<T, shape_type, allocator<T>>;
 
   private:
-    template<class Futures, class Result, class Alloc>
+    template<class Futures, class UniquePtr1, class UniquePtr2>
     struct wait_for_futures_and_move_result
     {
-      mutable Futures futures_;
-      mutable agency::detail::unique_ptr<Result,Alloc> result_ptr_;
+      mutable Futures    futures_;
+      mutable UniquePtr1 result_ptr_;
+      mutable UniquePtr2 shared_arg_ptr_;
 
       __AGENCY_ANNOTATION
-      Result operator()() const
+      typename std::pointer_traits<UniquePtr1>::element_type
+        operator()() const
       {
         for(auto& f : futures_)
         {
@@ -81,12 +83,12 @@ class executor_array
       }
     };
 
-    template<class Futures, class Result, class Deleter>
+    template<class Futures, class UniquePtr1, class UniquePtr2>
     __AGENCY_ANNOTATION
-    wait_for_futures_and_move_result<typename std::decay<Futures>::type,Result,Deleter>
-      make_wait_for_futures_and_move_result(Futures&& futures, agency::detail::unique_ptr<Result,Deleter>&& result_ptr)
+    wait_for_futures_and_move_result<typename std::decay<Futures>::type,UniquePtr1,UniquePtr2>
+      make_wait_for_futures_and_move_result(Futures&& futures, UniquePtr1&& result_ptr, UniquePtr2&& shared_arg_ptr)
     {
-      return wait_for_futures_and_move_result<typename std::decay<Futures>::type,Result,Deleter>{std::move(futures),std::move(result_ptr)};
+      return wait_for_futures_and_move_result<typename std::decay<Futures>::type,UniquePtr1,UniquePtr2>{std::move(futures),std::move(result_ptr),std::move(shared_arg_ptr)};
     }
 
     __AGENCY_ANNOTATION
@@ -157,17 +159,24 @@ class executor_array
 
     // XXX this implementation is only valid for outer_execution_category != sequential_execution_tag
     // XXX generalize this to support shared parameters
-    template<class Function, class Factory1>
+    template<class Function, class Factory1, class Factory2>
     future<typename std::result_of<Factory1(shape_type)>::type>
-      async_execute(Function f, Factory1 result_factory, shape_type shape)
+      async_execute(Function f, Factory1 result_factory, shape_type shape, Factory2 outer_factory)
     {
       auto outer_shape = this->outer_shape(shape);
       auto inner_shape = this->inner_shape(shape);
 
+      // create the results via the result_factory
       using result_type = decltype(result_factory(shape));
-      auto results_ptr = detail::allocate_unique<result_type>(allocator<result_type>(), result_factory(shape));
-      result_type *results_raw_ptr = results_ptr.get();
+      auto results_ptr = detail::allocate_unique(allocator<result_type>(), result_factory(shape));
+      result_type* results_raw_ptr = results_ptr.get();
 
+      // create the outer shared argument via the outer_factory
+      using outer_shared_arg_type = decltype(outer_factory());
+      auto outer_shared_arg_ptr = detail::allocate_unique(allocator<outer_shared_arg_type>(), outer_factory());
+      outer_shared_arg_type* outer_shared_arg_raw_ptr = outer_shared_arg_ptr.get();
+
+      // eagerly execute() with the outer executor so we can issue these async_execute() calls immediately
       auto futures = outer_traits::execute(outer_executor(), [=](const outer_index_type& outer_idx)
       {
         auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
@@ -177,13 +186,16 @@ class executor_array
         return inner_traits::async_execute(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx)
         {
           auto idx = make_index(outer_idx, inner_idx);
-          (*results_raw_ptr)[idx] = agency::invoke(f, idx);
+          (*results_raw_ptr)[idx] = agency::invoke(f, idx, *outer_shared_arg_raw_ptr);
         },
         inner_shape);
       },
       outer_shape);
 
-      auto continuation = make_wait_for_futures_and_move_result(std::move(futures), std::move(results_ptr));
+      // create a continuation to synchronize the futures and return the result
+      auto continuation = make_wait_for_futures_and_move_result(std::move(futures), std::move(results_ptr), std::move(outer_shared_arg_ptr));
+
+      // async_execute() with the outer executor to launch the continuation
       return outer_traits::async_execute(outer_executor(), std::move(continuation));
     }
 

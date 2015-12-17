@@ -22,19 +22,20 @@ int main()
   auto shape = exec.make_shape(3,5);
 
   std::mutex mut;
-  auto f = exec.async_execute([=,&mut](const index_type& idx)
+  auto f = exec.async_execute([=,&mut](const index_type& idx, int& outer_shared)
   {
     mut.lock();
     std::cout << "Hello from agent " << idx << std::endl;
     mut.unlock();
 
-    return 13;
+    return 13 + outer_shared;
   },
   [](shape_type shape)
   {
     return traits::container<int>(shape);
   },
-  shape);
+  shape,
+  []{ return 7; });
 
   // sleep for a bit
   mut.lock();
@@ -50,7 +51,7 @@ int main()
   auto results = f.get();
 
   assert(results.size() == agency::detail::shape_size(shape));
-  assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13; }));
+  assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 7; }));
 
   std::cout << "OK" << std::endl;
 
