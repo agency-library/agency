@@ -197,6 +197,32 @@ unique_ptr<T,deleter<Alloc>> allocate_unique(const Alloc& alloc, Args&&... args)
   return std::move(result);
 }
 
+// this form of allocate_unique() enables type deduction of the type of value it allocates
+template<class Alloc, class T,
+         class = typename std::enable_if<
+           std::is_same<
+             typename std::allocator_traits<Alloc>::value_type,
+             typename std::decay<T>::type
+           >::value
+         >::type>
+__AGENCY_ANNOTATION
+unique_ptr<
+  typename std::allocator_traits<Alloc>::value_type,
+  deleter<Alloc>
+>
+  allocate_unique(const Alloc& alloc, T&& arg)
+{
+  Alloc alloc_copy = alloc;
+
+  using value_type = typename std::allocator_traits<Alloc>::value_type;
+  unique_ptr<value_type,deleter<Alloc>> result(alloc_copy.allocate(1), deleter<Alloc>());
+
+  // XXX should use allocator_traits::construct()
+  alloc_copy.template construct<value_type>(result.get(), std::forward<T>(arg));
+
+  return std::move(result);
+}
+
 
 } // end detail
 } // end agency
