@@ -54,6 +54,7 @@ template<class ExecutionCategory1,
          class ExecutionCategory2,
          class Shape1,
          class Shape2>
+__AGENCY_ANNOTATION
 nested_shape_t<ExecutionCategory1,ExecutionCategory2,Shape1,Shape2> make_nested_shape(const Shape1& outer_shape, const Shape2& inner_shape)
 {
   return detail::tuple_cat(
