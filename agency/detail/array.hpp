@@ -68,9 +68,8 @@ class array
     array(array&& other)
       : shape_{}, data_{}
     {
-      using agency::detail::swap;
-      swap(shape_, other.shape_);
-      swap(data_,  other.data_);
+      agency::detail::swap(shape_, other.shape_);
+      agency::detail::swap(data_,  other.data_);
     }
 
     __agency_hd_warning_disable__
