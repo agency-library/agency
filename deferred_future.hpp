@@ -221,6 +221,12 @@ class deferred_state
     }
 
   public:
+    __AGENCY_ANNOTATION
+    deferred_state() = default;
+
+    __AGENCY_ANNOTATION
+    deferred_state(deferred_state&&) = default;
+
     template<class Function>
     __AGENCY_ANNOTATION
     deferred_state(Function&& f)
@@ -303,6 +309,12 @@ template<class T>
 class deferred_future
 {
   public:
+    __AGENCY_ANNOTATION
+    deferred_future() = default;
+
+    __AGENCY_ANNOTATION
+    deferred_future(deferred_future&&) = default;
+
     __AGENCY_ANNOTATION
     bool valid() const
     {
