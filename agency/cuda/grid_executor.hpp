@@ -96,7 +96,7 @@ class basic_grid_executor
                                   Factory1 outer_factory,
                                   Factory2 inner_factory)
     {
-      return detail::when_all_execute_and_select<Indices...>(f, shape, ThisIndexFunction(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory);
+      return detail::when_all_execute_and_select<Indices...>(f, shape, ThisIndexFunction(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory, gpu());
     }
 
     template<class Function, class Factory1, class T, class Factory2, class Factory3,
@@ -124,7 +124,7 @@ class basic_grid_executor
     __host__ __device__
     void* then_execute_kernel(const Function& f, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
-      return detail::then_execute_kernel<Container>(f, shape_type{}, ThisIndexFunction(), fut, outer_factory, inner_factory, gpu());
+      return detail::then_execute_kernel<Container>(f, shape_type{}, ThisIndexFunction(), fut, outer_factory, inner_factory);
     }
 
 
@@ -134,7 +134,7 @@ class basic_grid_executor
     {
       using container_type = agency::detail::new_executor_traits_detail::discarding_container;
       auto g = agency::detail::invoke_and_return_unit<Function>{f};
-      return detail::then_execute_kernel<container_type>(g, shape_type{}, ThisIndexFunction(), fut, outer_factory, inner_factory, gpu());
+      return detail::then_execute_kernel<container_type>(g, shape_type{}, ThisIndexFunction(), fut, outer_factory, inner_factory);
     }
 
     template<class Function, class T>
