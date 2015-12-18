@@ -233,7 +233,6 @@ class executor_array
 
       struct inner_functor
       {
-        executor_array& exec;
         mutable Function f;
         outer_index_type outer_idx;
         T1& results;
@@ -243,7 +242,7 @@ class executor_array
         __AGENCY_ANNOTATION
         void operator()(const inner_index_type& inner_idx, Args&... inner_shared_args) const
         {
-          auto idx = exec.make_index(outer_idx, inner_idx);
+          auto idx = make_index(outer_idx, inner_idx);
 
           results[idx] = agency::invoke(f, idx, outer_arg, inner_shared_args...);
         }
@@ -258,7 +257,7 @@ class executor_array
 
         return inner_traits::async_execute(
           exec.inner_executor(inner_executor_idx),
-          inner_functor{exec,f,outer_idx,*results_ptr,*outer_shared_arg_ptr},
+          inner_functor{f,outer_idx,*results_ptr,*outer_shared_arg_ptr},
           inner_shape,
           detail::get<Indices>(inner_factories)...
         );
