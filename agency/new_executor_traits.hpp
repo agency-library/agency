@@ -511,6 +511,7 @@ struct new_executor_traits
                  typename std::result_of<Function(index_type, typename std::result_of<Factories()>::type&...)>::type
                >::value
              >::type>
+    __AGENCY_ANNOTATION
     static future<void> async_execute(executor_type& ex, Function f, shape_type shape, Factories... shared_factories);
 
     // single-agent execute()
