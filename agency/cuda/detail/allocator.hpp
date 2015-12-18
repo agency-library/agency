@@ -13,9 +13,12 @@ namespace detail
 {
 
 
-template<class T>
+template<class T, class Alloc = managed_allocator<T>>
 class allocator
 {
+  private:
+    using host_allocator = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
+
   public:
     using value_type = T;
 
@@ -25,7 +28,7 @@ class allocator
       value_type* result = nullptr;
 
 #ifndef __CUDA_ARCH__
-      managed_allocator<T> alloc;
+      host_allocator alloc;
       result = alloc.allocate(n);
 #else
       result = reinterpret_cast<T*>(malloc(sizeof(T)));
@@ -43,7 +46,7 @@ class allocator
     void deallocate(value_type* ptr, size_t n)
     {
 #ifndef __CUDA_ARCH__
-      managed_allocator<T> alloc;
+      host_allocator alloc;
       alloc.deallocate(ptr, n);
 #else
       agency::cuda::detail::workaround_unused_variable_warning(n);
@@ -57,7 +60,7 @@ class allocator
     void construct(U* ptr, Args&&... args)
     {
 #ifndef __CUDA_ARCH__
-      managed_allocator<U> alloc;
+      host_allocator alloc;
       alloc.template construct<U>(ptr, std::forward<Args>(args)...);
 #else
       new(ptr) U(std::forward<Args>(args)...);
