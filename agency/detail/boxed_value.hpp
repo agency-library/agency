@@ -42,6 +42,20 @@ class boxed_value
     {}
 
     __AGENCY_ANNOTATION
+    boxed_value& operator=(const boxed_value& other)
+    {
+      value() = other.value();
+      return *this;
+    }
+
+    __AGENCY_ANNOTATION
+    boxed_value& operator=(boxed_value&& other)
+    {
+      value() = std::move(other.value());
+      return *this;
+    }
+
+    __AGENCY_ANNOTATION
     value_type& value() &
     {
       return *data_;
