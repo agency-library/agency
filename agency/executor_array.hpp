@@ -300,12 +300,12 @@ class executor_array
 
       // create the results via the result_factory
       using result_type = decltype(result_factory(shape));
-      auto results_ptr = detail::allocate_unique(allocator<result_type>(), result_factory(shape));
+      auto results_ptr = detail::allocate_unique<result_type>(allocator<result_type>(), result_factory(shape));
       result_type* results_raw_ptr = results_ptr.get();
 
       // create the outer shared argument via the outer_factory
       using outer_shared_arg_type = decltype(outer_factory());
-      auto outer_shared_arg_ptr = detail::allocate_unique(allocator<outer_shared_arg_type>(), outer_factory());
+      auto outer_shared_arg_ptr = detail::allocate_unique<outer_shared_arg_type>(allocator<outer_shared_arg_type>(), outer_factory());
       outer_shared_arg_type* outer_shared_arg_raw_ptr = outer_shared_arg_ptr.get();
 
       // eagerly execute() with the outer executor so that these async_execute() calls issue immediately
