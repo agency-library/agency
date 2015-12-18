@@ -4,6 +4,8 @@
 
 int main()
 {
+  static_assert(agency::detail::is_future<deferred_future<int>>::value, "deferred_future<int> is not a future");
+
   deferred_future<int> f0;
   assert(!f0.valid());
 
