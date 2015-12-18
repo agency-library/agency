@@ -77,14 +77,14 @@ template<class... Tuples>
 using tuple_cat_result = typename tuple_cat_result_impl<typename std::decay<Tuples>::type...>::type;
 
 
-template<class Tuple>
-struct tuple_maker
+template<class T>
+struct maker
 {
   template<class... Args>
   __AGENCY_ANNOTATION
-  Tuple operator()(Args&&... args)
+  T operator()(Args&&... args)
   {
-    return Tuple{std::forward<Args>(args)...};
+    return T{std::forward<Args>(args)...};
   }
 };
 
@@ -95,7 +95,7 @@ template<class... Tuples>
 __AGENCY_ANNOTATION
 tuple_cat_result<Tuples...> tuple_cat(Tuples&&... tuples)
 {
-  return __tu::tuple_cat_apply(tuple_maker<tuple_cat_result<Tuples...>>{}, std::forward<Tuples>(tuples)...);
+  return __tu::tuple_cat_apply(maker<tuple_cat_result<Tuples...>>{}, std::forward<Tuples>(tuples)...);
 }
 
 
@@ -145,6 +145,14 @@ auto forward_tail(Tuple&& t)
      )
 {
   return __tu::tuple_tail_invoke(std::forward<Tuple>(t), forwarder{});
+}
+
+
+template<class T, class Tuple>
+__AGENCY_ANNOTATION
+T make_from_tail(Tuple&& t)
+{
+  return __tu::tuple_tail_invoke(std::forward<Tuple>(t), maker<T>());
 }
 
 
