@@ -62,7 +62,7 @@ class executor_array
     using allocator = typename outer_traits::template allocator<T>;
 
     template<class T>
-    using container = agency::detail::array<T, shape_type, allocator<T>>;
+    using container = agency::detail::array<T, shape_type, allocator<T>, index_type>;
 
   private:
     template<class Futures, class UniquePtr1, class UniquePtr2>
@@ -103,9 +103,8 @@ class executor_array
     __AGENCY_ANNOTATION
     static inner_shape_type inner_shape(const shape_type& shape)
     {
-      // the inner portion is the tail of the tuple, but if the 
-      // inner executor is not nested, then the tuple needs to be unwrapped
-      return detail::unwrap_tuple_if_not_nested<inner_execution_category>(detail::forward_tail(shape));
+      // the inner portion of the shape is the tail of the tuple
+      return detail::make_from_tail<inner_shape_type>(shape);
     }
 
     __AGENCY_ANNOTATION
