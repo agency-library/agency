@@ -41,6 +41,19 @@ int main()
   }
 
   {
+    // move assignment
+    uber_future<int> f1 = uber_future<int>::make_ready(13);
+    assert(f1.valid());
+
+    uber_future<int> f2;
+    assert(!f2.valid());
+
+    f2 = std::move(f1);
+    assert(!f1.valid());
+    assert(f2.valid());
+  }
+
+  {
     // make_ready/then
     auto f1 = uber_future<int>::make_ready(13);
 
