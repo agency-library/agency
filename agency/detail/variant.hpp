@@ -402,14 +402,18 @@ class variant : private variant_detail::variant_storage<Types...>
     }
 
   private:
-    struct forward_assign_visitor
+    struct copy_assign_visitor
     {
-      template<class A, class B>
+      template<class T>
       __AGENCY_ANNOTATION
-      void operator()(A& a, B&& b) const
+      void operator()(T& self, const T& other) const
       {
-        a = std::forward<B>(b);
+        self = other;
       }
+
+      template<class... Args>
+      __AGENCY_ANNOTATION
+      void operator()(Args&&...) const {}
     };
 
     struct destroy_and_copy_construct_visitor
@@ -451,7 +455,7 @@ class variant : private variant_detail::variant_storage<Types...>
     {
       if(index() == other.index())
       {
-        agency::detail::visit(forward_assign_visitor(), *this, other);
+        agency::detail::visit(copy_assign_visitor(), *this, other);
       }
       else
       {
@@ -462,12 +466,29 @@ class variant : private variant_detail::variant_storage<Types...>
       return *this;
     }
 
+  private:
+    struct move_assign_visitor
+    {
+      template<class T>
+      __AGENCY_ANNOTATION
+      void operator()(T& self, T& other)
+      {
+        self = std::move(other);
+      }
+
+      template<class... Args>
+      __AGENCY_ANNOTATION
+      void operator()(Args&&...){}
+    };
+
+
+  public:
     __AGENCY_ANNOTATION
     variant& operator=(variant&& other)
     {
       if(index() == other.index())
       {
-        agency::detail::visit(forward_assign_visitor(), *this, std::move(other));
+        agency::detail::visit(move_assign_visitor(), *this, other);
       }
       else
       {
