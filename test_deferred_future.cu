@@ -13,10 +13,10 @@ int main()
   }
 
   {
+    // move construction
     deferred_future<int> f0 = deferred_future<int>::make_ready(13);
     assert(f0.valid());
 
-    // move construction
     deferred_future<int> f1 = std::move(f0);
     assert(!f0.valid());
     assert(f1.valid());
