@@ -12,8 +12,8 @@ namespace detail
 {
 
 
-template<class T, class Shape = size_t, class Index = Shape>
-using array = agency::detail::array<T,Shape,allocator<T>,Index>;
+template<class T, class Shape = size_t, class Alloc = allocator<T>, class Index = Shape>
+using array = agency::detail::array<T,Shape,Alloc,Index>;
 
 
 } // end detail
