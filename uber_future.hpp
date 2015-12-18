@@ -27,6 +27,9 @@ class uber_future
       : variant_(std::forward<Future>(other))
     {}
 
+    __AGENCY_ANNOTATION
+    uber_future& operator=(uber_future&& other) = default;
+
   private:
     struct valid_visitor
     {

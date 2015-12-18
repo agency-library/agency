@@ -24,29 +24,45 @@ int main()
 {
   static_assert(agency::detail::is_future<uber_future<int>>::value, "uber_future<int> is not a future");
 
-  uber_future<int> f0;
-  assert(!f0.valid());
+  {
+    // default construction
+    uber_future<int> f0;
+    assert(!f0.valid());
+  }
 
-  auto f1 = uber_future<int>::make_ready(13);
+  {
+    // move construction
+    uber_future<int> f0 = uber_future<int>::make_ready(13);
+    assert(f0.valid());
 
-  assert(f1.valid());
+    uber_future<int> f1 = std::move(f0);
+    assert(!f0.valid());
+    assert(f1.valid());
+  }
 
-  auto f2 = f1.then(continuation_1());
+  {
+    // make_ready/then
+    auto f1 = uber_future<int>::make_ready(13);
 
-  assert(!f1.valid());
-  assert(f2.valid());
+    assert(f1.valid());
 
-  auto f3 = f2.then(continuation_2());
+    auto f2 = f1.then(continuation_1());
 
-  assert(!f2.valid());
-  assert(f3.valid());
+    assert(!f1.valid());
+    assert(f2.valid());
 
-  f3.wait();
-  assert(f3.valid());
+    auto f3 = f2.then(continuation_2());
 
-  assert(f3.get() == 13 + 7 + 42);
+    assert(!f2.valid());
+    assert(f3.valid());
 
-  assert(!f3.valid());
+    f3.wait();
+    assert(f3.valid());
+
+    assert(f3.get() == 13 + 7 + 42);
+
+    assert(!f3.valid());
+  }
 
   std::cout << "OK" << std::endl;
 
