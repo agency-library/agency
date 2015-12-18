@@ -287,6 +287,7 @@ struct new_executor_traits
     static future<T> future_cast(executor_type& ex, Future& fut);
 
     template<class... Futures>
+    __AGENCY_ANNOTATION
     static future<
       detail::when_all_result_t<typename std::decay<Futures>::type...>
     > when_all(executor_type& ex, Futures&&... futures);
@@ -514,6 +515,7 @@ struct new_executor_traits
 
     // single-agent execute()
     template<class Function>
+    __AGENCY_ANNOTATION
     static typename std::result_of<Function()>::type
       execute(executor_type& ex, Function&& f);
 
