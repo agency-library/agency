@@ -106,7 +106,15 @@ class deferred_result : agency::cuda::detail::boxed_value<agency::detail::option
     }
 
     __AGENCY_ANNOTATION
-    deferred_result& operator=(deferred_result&&) = default;
+    deferred_result& operator=(deferred_result&& other)
+    {
+      super_t::operator=(std::move(other));
+
+      // empty other
+      other.value() = agency::detail::nullopt;
+
+      return *this;
+    }
 
     __AGENCY_ANNOTATION
     bool ready() const
@@ -160,7 +168,15 @@ class deferred_result<void> : agency::cuda::detail::boxed_value<agency::detail::
     }
 
     __AGENCY_ANNOTATION
-    deferred_result& operator=(deferred_result&&) = default;
+    deferred_result& operator=(deferred_result&& other)
+    {
+      super_t::operator=(std::move(other));
+
+      // empty other
+      other.value() = agency::detail::nullopt;
+
+      return *this;
+    }
 
     __AGENCY_ANNOTATION
     bool ready() const
@@ -232,6 +248,9 @@ class deferred_state
     deferred_state(Function&& f)
       : function_(std::forward<Function>(f))
     {}
+
+    __AGENCY_ANNOTATION
+    deferred_state& operator=(deferred_state&& other) = default;
 
     __AGENCY_ANNOTATION
     bool valid() const
@@ -316,6 +335,9 @@ class deferred_future
     deferred_future(deferred_future&&) = default;
 
     __AGENCY_ANNOTATION
+    deferred_future& operator=(deferred_future&& other) = default;
+
+    __AGENCY_ANNOTATION
     bool valid() const
     {
       return state_.valid();
@@ -368,6 +390,9 @@ class deferred_future
 
   private:
     deferred_state<T> state_;
+
+    template<class>
+    friend class deferred_future;
 
     template<class,class>
     friend struct deferred_continuation;

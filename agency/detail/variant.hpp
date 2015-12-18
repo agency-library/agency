@@ -271,7 +271,7 @@ class variant : private variant_detail::variant_storage<Types...>
     {
       template<class T>
       __AGENCY_ANNOTATION
-      void operator()(T& self, T&& other)
+      void operator()(T& self, T& other)
       {
         new (&self) T(std::move(other));
       }
@@ -286,7 +286,7 @@ class variant : private variant_detail::variant_storage<Types...>
     variant(variant&& other)
       : index_(other.index())
     {
-      agency::detail::visit(binary_move_construct_visitor(), *this, std::move(other));
+      agency::detail::visit(binary_move_construct_visitor(), *this, other);
     }
 
   private:
