@@ -273,13 +273,26 @@ class executor_array
       }
     };
 
-    // XXX this implementation is only valid for outer_execution_category != sequential_execution_tag
+    // when the outer executor is sequential, we can't eagerly issue the inner async_execute()s like we do in the other implementation
     template<class Function, class Factory1, class Factory2, class... Factories,
              class = typename std::enable_if<
                sizeof...(Factories) == inner_depth
              >::type>
     future<typename std::result_of<Factory1(shape_type)>::type>
-      async_execute(Function f, Factory1 result_factory, shape_type shape, Factory2 outer_factory, Factories... inner_factories)
+      async_execute_impl(sequential_execution_tag, Function f, Factory1 result_factory, shape_type shape, Factory2 outer_factory, Factories... inner_factories)
+    {
+      auto ready = outer_traits::template make_ready_future<void>(outer_executor()); 
+
+      return then_execute(f, result_factory, shape, ready, outer_factory, inner_factories...);
+    }
+
+    // this implementation is only valid for outer_execution_category != sequential_execution_tag
+    template<class ExecutionCategory, class Function, class Factory1, class Factory2, class... Factories,
+             class = typename std::enable_if<
+               sizeof...(Factories) == inner_depth
+             >::type>
+    future<typename std::result_of<Factory1(shape_type)>::type>
+      async_execute_impl(ExecutionCategory, Function f, Factory1 result_factory, shape_type shape, Factory2 outer_factory, Factories... inner_factories)
     {
       // separate the shape into inner and outer portions
       auto outer_shape = this->outer_shape(shape);
@@ -320,6 +333,17 @@ class executor_array
 
       // async_execute() with the outer executor to launch the continuation
       return outer_traits::async_execute(outer_executor(), std::move(continuation));
+    }
+
+  public:
+    template<class Function, class Factory1, class Factory2, class... Factories,
+             class = typename std::enable_if<
+               sizeof...(Factories) == inner_depth
+             >::type>
+    future<typename std::result_of<Factory1(shape_type)>::type>
+      async_execute(Function f, Factory1 result_factory, shape_type shape, Factory2 outer_factory, Factories... inner_factories)
+    {
+      return async_execute_impl(outer_execution_category(), f, result_factory, shape, outer_factory, inner_factories...);
     }
 
   private:
