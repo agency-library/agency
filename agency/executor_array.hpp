@@ -64,7 +64,7 @@ class executor_array
     template<class T>
     using container = agency::detail::array<T, shape_type, allocator<T>, index_type>;
 
-  private:
+    // XXX this functor is public to allow nvcc to instantiate kernels with it
     template<class Futures, class UniquePtr1, class UniquePtr2>
     struct wait_for_futures_and_move_result
     {
@@ -85,6 +85,7 @@ class executor_array
       }
     };
 
+  private:
     template<class Futures, class UniquePtr1, class UniquePtr2>
     __AGENCY_ANNOTATION
     wait_for_futures_and_move_result<typename std::decay<Futures>::type,UniquePtr1,UniquePtr2>
