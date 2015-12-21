@@ -26,10 +26,8 @@ class parallel_executor
     template<class T>
     using container = cuda::detail::array<T, size_t, allocator<T>>;
 
-    //template<class T>
-    //using future = uber_future<T>;
     template<class T>
-    using future = deferred_future<T>;
+    using future = uber_future<T>;
 };
 
 
