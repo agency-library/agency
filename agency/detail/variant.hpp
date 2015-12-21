@@ -34,6 +34,7 @@
 #include <string>
 #include <cstdio>
 
+
 namespace agency
 {
 namespace detail
@@ -142,19 +143,36 @@ using variant_element_reference_t = typename variant_element_reference<i,Variant
 
 template<typename Visitor, typename Variant>
 __AGENCY_ANNOTATION
-auto visit(Visitor visitor, Variant&& var) ->
-  typename std::result_of<
-    Visitor(variant_detail::variant_element_reference_t<0,decltype(var)>)
-  >::type;
+typename std::result_of<
+  Visitor&(variant_detail::variant_element_reference_t<0,Variant&&>)
+>::type
+  visit(Visitor& visitor, Variant&& var);
+
+
+template<typename Visitor, typename Variant>
+__AGENCY_ANNOTATION
+typename std::result_of<
+  const Visitor&(variant_detail::variant_element_reference_t<0,Variant&&>)
+>::type
+  visit(const Visitor& visitor, Variant&& var);
 
 
 template<typename Visitor, typename Variant1, typename Variant2>
 __AGENCY_ANNOTATION
-auto visit(Visitor visitor, Variant1&& var1, Variant2&& var2) ->
-  typename std::result_of<
-    Visitor(variant_detail::variant_element_reference_t<0,decltype(var1)>,
-            variant_detail::variant_element_reference_t<0,decltype(var2)>)
-  >::type;
+typename std::result_of<
+  Visitor&(variant_detail::variant_element_reference_t<0,Variant1&&>,
+           variant_detail::variant_element_reference_t<0,Variant2&&>)
+>::type
+  visit(Visitor& visitor, Variant1&& var1, Variant2&& var2);
+
+
+template<typename Visitor, typename Variant1, typename Variant2>
+__AGENCY_ANNOTATION
+typename std::result_of<
+  const Visitor&(variant_detail::variant_element_reference_t<0,Variant1&&>,
+                 variant_detail::variant_element_reference_t<0,Variant2&&>)
+>::type
+  visit(const Visitor& visitor, Variant1&& var1, Variant2&& var2);
 
 
 namespace variant_detail
@@ -286,7 +304,8 @@ class variant : private variant_detail::variant_storage<Types...>
     variant(variant&& other)
       : index_(other.index())
     {
-      agency::detail::visit(binary_move_construct_visitor(), *this, other);
+      auto visitor = binary_move_construct_visitor();
+      agency::detail::visit(visitor, *this, other);
     }
 
   private:
@@ -309,7 +328,8 @@ class variant : private variant_detail::variant_storage<Types...>
     variant(const variant& other)
       : index_(other.index())
     {
-      agency::detail::visit(binary_copy_construct_visitor(), *this, other);
+      auto visitor = binary_copy_construct_visitor();
+      agency::detail::visit(visitor, *this, other);
     }
 
   private:
@@ -367,7 +387,8 @@ class variant : private variant_detail::variant_storage<Types...>
     variant(T&& other)
       : index_(variant_detail::find_type<T,Types...>::value)
     {
-      agency::detail::visit(unary_move_construct_visitor<T>{other}, *this);
+      auto visitor = unary_move_construct_visitor<T>{other};
+      agency::detail::visit(visitor, *this);
     }
 
   private:
@@ -398,7 +419,8 @@ class variant : private variant_detail::variant_storage<Types...>
     __AGENCY_ANNOTATION
     ~variant()
     {
-      agency::detail::visit(destruct_visitor(), *this);
+      auto visitor = destruct_visitor();
+      agency::detail::visit(visitor, *this);
     }
 
   private:
@@ -488,11 +510,13 @@ class variant : private variant_detail::variant_storage<Types...>
     {
       if(index() == other.index())
       {
-        agency::detail::visit(move_assign_visitor(), *this, other);
+        auto visitor = move_assign_visitor();
+        agency::detail::visit(visitor, *this, other);
       }
       else
       {
-        agency::detail::visit(destroy_and_move_construct_visitor(), *this, std::move(other));
+        auto visitor = destroy_and_move_construct_visitor();
+        agency::detail::visit(visitor, *this, std::move(other));
         index_ = other.index();
       }
 
@@ -525,7 +549,8 @@ class variant : private variant_detail::variant_storage<Types...>
     {
       if(index() == other.index())
       {
-        agency::detail::visit(swap_visitor(), *this, other);
+        auto visitor = swap_visitor();
+        agency::detail::visit(visitor, *this, other);
       }
       else
       {
@@ -558,7 +583,8 @@ class variant : private variant_detail::variant_storage<Types...>
     __AGENCY_ANNOTATION
     bool operator==(const variant& rhs) const
     {
-      return index() == rhs.index() && agency::detail::visit(equals(), *this, rhs);
+      auto visitor = equals();
+      return index() == rhs.index() && agency::detail::visit(visitor, *this, rhs);
     }
 
     __AGENCY_ANNOTATION
@@ -641,7 +667,8 @@ struct ostream_output_visitor
 template<typename... Types>
 std::ostream &operator<<(std::ostream& os, const variant<Types...>& v)
 {
-  return agency::detail::visit(variant_detail::ostream_output_visitor(os), v);
+  auto visitor = variant_detail::ostream_output_visitor(os);
+  return agency::detail::visit(visitor, v);
 }
 
 
@@ -649,13 +676,13 @@ namespace variant_detail
 {
 
 
-template<typename Visitor, typename Result, typename T, typename... Types>
-struct apply_visitor_impl : apply_visitor_impl<Visitor,Result,Types...>
+template<typename VisitorReference, typename Result, typename T, typename... Types>
+struct apply_visitor_impl : apply_visitor_impl<VisitorReference,Result,Types...>
 {
-  typedef apply_visitor_impl<Visitor,Result,Types...> super_t;
+  typedef apply_visitor_impl<VisitorReference,Result,Types...> super_t;
 
   __AGENCY_ANNOTATION
-  static Result do_it(Visitor visitor, void* ptr, size_t index)
+  static Result do_it(VisitorReference visitor, void* ptr, size_t index)
   {
     if(index == 0)
     {
@@ -667,7 +694,7 @@ struct apply_visitor_impl : apply_visitor_impl<Visitor,Result,Types...>
 
 
   __AGENCY_ANNOTATION
-  static Result do_it(Visitor visitor, const void* ptr, size_t index)
+  static Result do_it(VisitorReference visitor, const void* ptr, size_t index)
   {
     if(index == 0)
     {
@@ -679,30 +706,30 @@ struct apply_visitor_impl : apply_visitor_impl<Visitor,Result,Types...>
 };
 
 
-template<typename Visitor, typename Result, typename T>
-struct apply_visitor_impl<Visitor,Result,T>
+template<typename VisitorReference, typename Result, typename T>
+struct apply_visitor_impl<VisitorReference,Result,T>
 {
   __AGENCY_ANNOTATION
-  static Result do_it(Visitor visitor, void* ptr, size_t)
+  static Result do_it(VisitorReference visitor, void* ptr, size_t)
   {
     return visitor(*reinterpret_cast<T*>(ptr));
   }
 
   __AGENCY_ANNOTATION
-  static Result do_it(Visitor visitor, const void* ptr, size_t)
+  static Result do_it(VisitorReference visitor, const void* ptr, size_t)
   {
     return visitor(*reinterpret_cast<const T*>(ptr));
   }
 };
 
 
-template<typename Visitor, typename Result, typename Variant>
+template<typename VisitorReference, typename Result, typename Variant>
 struct apply_visitor;
 
 
-template<typename Visitor, typename Result, typename... Types>
-struct apply_visitor<Visitor,Result,variant<Types...>>
-  : apply_visitor_impl<Visitor,Result,Types...>
+template<typename VisitorReference, typename Result, typename... Types>
+struct apply_visitor<VisitorReference,Result,variant<Types...>>
+  : apply_visitor_impl<VisitorReference,Result,Types...>
 {};
 
 
@@ -711,16 +738,33 @@ struct apply_visitor<Visitor,Result,variant<Types...>>
 
 template<typename Visitor, typename Variant>
 __AGENCY_ANNOTATION
-auto visit(Visitor visitor, Variant&& var) ->
-  typename std::result_of<
-    Visitor(variant_detail::variant_element_reference_t<0,decltype(var)>)
-  >::type
+typename std::result_of<
+  Visitor&(variant_detail::variant_element_reference_t<0,Variant&&>)
+>::type
+  visit(Visitor& visitor, Variant&& var)
 {
   using result_type = typename std::result_of<
-    Visitor(variant_detail::variant_element_reference_t<0,decltype(var)>)
+    Visitor&(variant_detail::variant_element_reference_t<0,Variant&&>)
+  >::type;
+
+  using impl = variant_detail::apply_visitor<Visitor&,result_type,typename std::decay<Variant>::type>;
+
+  return impl::do_it(visitor, &var, var.index());
+}
+
+
+template<typename Visitor, typename Variant>
+__AGENCY_ANNOTATION
+typename std::result_of<
+  const Visitor&(variant_detail::variant_element_reference_t<0,Variant&&>)
+>::type
+  visit(const Visitor& visitor, Variant&& var)
+{
+  using result_type = typename std::result_of<
+    const Visitor&(variant_detail::variant_element_reference_t<0,Variant&&>)
   >::type;
  
-  using impl = variant_detail::apply_visitor<Visitor,result_type,typename std::decay<Variant>::type>;
+  using impl = variant_detail::apply_visitor<const Visitor&,result_type,typename std::decay<Variant>::type>;
 
   return impl::do_it(visitor, &var, var.index());
 }
@@ -730,14 +774,14 @@ namespace variant_detail
 {
 
 
-template<typename Visitor, typename Result, typename ElementReference>
+template<typename VisitorReference, typename Result, typename ElementReference>
 struct unary_visitor_binder
 {
-  Visitor visitor;
+  VisitorReference visitor;
   ElementReference x;
 
   __AGENCY_ANNOTATION
-  unary_visitor_binder(Visitor visitor, ElementReference x) : visitor(visitor), x(x) {}
+  unary_visitor_binder(VisitorReference visitor, ElementReference x) : visitor(visitor), x(x) {}
 
   template<typename T>
   __AGENCY_ANNOTATION
@@ -761,23 +805,24 @@ struct rvalue_reference_to_lvalue_reference<T&&>
 };
 
 
-template<typename Visitor, typename Result, typename VariantReference>
+template<typename VisitorReference, typename Result, typename VariantReference>
 struct binary_visitor_binder
 {
-  Visitor visitor;
+  VisitorReference visitor;
   // since rvalue references can't be members of classes, we transform any
   // VariantReference which is an rvalue reference to an lvalue reference
   // when we use y in operator(), we cast it back to the original reference type
   typename rvalue_reference_to_lvalue_reference<VariantReference>::type y;
 
   __AGENCY_ANNOTATION
-  binary_visitor_binder(Visitor visitor, VariantReference ref) : visitor(visitor), y(ref) {}
+  binary_visitor_binder(VisitorReference visitor, VariantReference ref) : visitor(visitor), y(ref) {}
 
   template<typename T>
   __AGENCY_ANNOTATION
   Result operator()(T&& x)
   {
-    return agency::detail::visit(unary_visitor_binder<Visitor, Result, decltype(x)>(visitor, std::forward<T>(x)), std::forward<VariantReference>(y));
+    auto unary_visitor = unary_visitor_binder<VisitorReference, Result, decltype(x)>(visitor, std::forward<T>(x));
+    return agency::detail::visit(unary_visitor, std::forward<VariantReference>(y));
   }
 };
 
@@ -787,18 +832,37 @@ struct binary_visitor_binder
 
 template<typename Visitor, typename Variant1, typename Variant2>
 __AGENCY_ANNOTATION
-auto visit(Visitor visitor, Variant1&& var1, Variant2&& var2) ->
-  typename std::result_of<
-    Visitor(variant_detail::variant_element_reference_t<0,decltype(var1)>,
-            variant_detail::variant_element_reference_t<0,decltype(var2)>)
-  >::type
+typename std::result_of<
+  Visitor&(variant_detail::variant_element_reference_t<0,Variant1&&>,
+           variant_detail::variant_element_reference_t<0,Variant2&&>)
+>::type
+  visit(Visitor& visitor, Variant1&& var1, Variant2&& var2)
 {
   using result_type = typename std::result_of<
-    Visitor(variant_detail::variant_element_reference_t<0,decltype(var1)>,
-            variant_detail::variant_element_reference_t<0,decltype(var2)>)
+    Visitor&(variant_detail::variant_element_reference_t<0,Variant1&&>,
+             variant_detail::variant_element_reference_t<0,Variant2&&>)
   >::type;
 
-  auto visitor_wrapper = variant_detail::binary_visitor_binder<Visitor,result_type,decltype(var2)>(visitor, std::forward<Variant2>(var2));
+  auto visitor_wrapper = variant_detail::binary_visitor_binder<Visitor&,result_type,decltype(var2)>(visitor, std::forward<Variant2>(var2));
+
+  return agency::detail::visit(visitor_wrapper, std::forward<Variant1>(var1));
+}
+
+
+template<typename Visitor, typename Variant1, typename Variant2>
+__AGENCY_ANNOTATION
+typename std::result_of<
+  const Visitor&(variant_detail::variant_element_reference_t<0,Variant1&&>,
+                 variant_detail::variant_element_reference_t<0,Variant2&&>)
+>::type
+  visit(const Visitor& visitor, Variant1&& var1, Variant2&& var2)
+{
+  using result_type = typename std::result_of<
+    const Visitor&(variant_detail::variant_element_reference_t<0,Variant1&&>,
+                   variant_detail::variant_element_reference_t<0,Variant2&&>)
+  >::type;
+
+  auto visitor_wrapper = variant_detail::binary_visitor_binder<const Visitor&,result_type,decltype(var2)>(visitor, std::forward<Variant2>(var2));
 
   return agency::detail::visit(visitor_wrapper, std::forward<Variant1>(var1));
 }
@@ -848,7 +912,8 @@ variant_detail::variant_element_reference_t<i, variant<Types...>&>
     variant_detail::variant_element_t<i,variant<Types...>>
   >::type;
 
-  return *agency::detail::visit(variant_detail::get_visitor<type>(), v);
+  auto visitor = variant_detail::get_visitor<type>();
+  return *agency::detail::visit(visitor, v);
 }
 
 
@@ -866,7 +931,8 @@ variant_detail::variant_element_reference_t<i, variant<Types...>&&>
     variant_detail::variant_element_t<i,variant<Types...>>
   >::type;
 
-  return std::move(*agency::detail::visit(variant_detail::get_visitor<type>(), v));
+  auto visitor = variant_detail::get_visitor<type>();
+  return std::move(*agency::detail::visit(visitor, v));
 }
 
 
@@ -884,7 +950,8 @@ variant_detail::variant_element_reference_t<i, const variant<Types...>&>
     variant_detail::variant_element_t<i,variant<Types...>>
   >::type;
 
-  return *agency::detail::visit(variant_detail::get_visitor<type>(), v);
+  auto visitor = variant_detail::get_visitor<type>();
+  return *agency::detail::visit(visitor, v);
 }
 
 
