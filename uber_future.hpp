@@ -103,26 +103,47 @@ class uber_future
     {
       mutable Function f;
 
+      template<class Future>
       __AGENCY_ANNOTATION
       uber_future<
         agency::detail::result_of_continuation_t<
           Function, 
-          agency::cuda::deferred_future<T>
+          Future
         >
       >
-        operator()(agency::cuda::deferred_future<T>& fut) const
+        operator()(Future& fut) const
       {
         return fut.then(std::move(f));
       }
 
-      __AGENCY_ANNOTATION
+      template<class Function1>
+      static __AGENCY_ANNOTATION
       uber_future<
         agency::detail::result_of_continuation_t<
-          Function, 
+          Function,
           agency::cuda::future<T>
         >
       >
-        operator()(agency::cuda::future<T>& fut) const
+        async_future_impl(agency::cuda::future<T>& fut, Function1& f,
+                          typename std::enable_if<
+                            !std::is_move_constructible<Function1>::value
+                          >::type* = 0)
+      {
+        return fut.then(f);
+      }
+
+      template<class Function1>
+      static __AGENCY_ANNOTATION
+      uber_future<
+        agency::detail::result_of_continuation_t<
+          Function,
+          agency::cuda::future<T>
+        >
+      >
+        async_future_impl(agency::cuda::future<T>& fut, Function1& f,
+                          typename std::enable_if<
+                            std::is_move_constructible<Function1>::value
+                          >::type* = 0)
       {
         //return fut.then(std::move(f));
 
@@ -142,6 +163,18 @@ class uber_future
         >;
 
         return uber_future<result_type>();
+      }
+
+      __AGENCY_ANNOTATION
+      uber_future<
+        agency::detail::result_of_continuation_t<
+          Function, 
+          agency::cuda::future<T>
+        >
+      >
+        operator()(agency::cuda::future<T>& fut) const
+      {
+        return async_future_impl(fut, f);
       }
     };
 
