@@ -132,6 +132,7 @@ class uber_future
         //     we should either implement movable CUDA kernel parameters
         //     or find a way to attach a deferred continuation onto an asynchronous CUDA future
         //     there ought to be a way to do it by implementing a deferred_continuation which waits on fut
+        // XXX when Function is copyable, we ought to just use fut.then()
         printf("uber_future::then_visitor::operator()(cuda::future): unimplemented\n");
         assert(0);
 
