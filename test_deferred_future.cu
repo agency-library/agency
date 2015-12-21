@@ -1,9 +1,11 @@
 #include <cassert>
-#include "deferred_future.hpp"
+#include <agency/cuda/deferred_future.hpp>
 #include <iostream>
 
 int main()
 {
+  using namespace agency::cuda;
+
   static_assert(agency::detail::is_future<deferred_future<int>>::value, "deferred_future<int> is not a future");
 
   {

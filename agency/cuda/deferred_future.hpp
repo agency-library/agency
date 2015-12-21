@@ -1,5 +1,6 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
 #include <agency/detail/optional.hpp>
 #include <agency/cuda/detail/boxed_value.hpp>
 #include <agency/cuda/detail/unique_ptr.hpp>
@@ -8,6 +9,14 @@
 #include <agency/future.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/functional.hpp>
+
+
+namespace agency
+{
+namespace cuda
+{
+namespace detail
+{
 
 
 template<class>
@@ -75,14 +84,14 @@ class unique_function<Result(Args...)>
       }
     };
 
-    using function_pointer = agency::cuda::detail::unique_ptr<callable_base>;
+    using function_pointer = detail::unique_ptr<callable_base>;
 
     template<class Function>
     __AGENCY_ANNOTATION
     static function_pointer make_function_pointer(Function&& f)
     {
       using concrete_function_type = callable<typename std::decay<Function>::type>;
-      return agency::cuda::detail::make_unique<concrete_function_type>(std::forward<Function>(f));
+      return detail::make_unique<concrete_function_type>(std::forward<Function>(f));
     }
 
     function_pointer f_ptr_; 
@@ -90,10 +99,10 @@ class unique_function<Result(Args...)>
 
 
 template<class T>
-class deferred_result : agency::cuda::detail::boxed_value<agency::detail::optional<T>>
+class deferred_result : detail::boxed_value<agency::detail::optional<T>>
 {
   public:
-    using super_t = agency::cuda::detail::boxed_value<agency::detail::optional<T>>;
+    using super_t = detail::boxed_value<agency::detail::optional<T>>;
     using super_t::super_t;
     using super_t::operator=;
 
@@ -152,10 +161,10 @@ class deferred_result : agency::cuda::detail::boxed_value<agency::detail::option
 };
 
 template<>
-class deferred_result<void> : agency::cuda::detail::boxed_value<agency::detail::optional<agency::detail::unit>>
+class deferred_result<void> : detail::boxed_value<agency::detail::optional<agency::detail::unit>>
 {
   public:
-    using super_t = agency::cuda::detail::boxed_value<agency::detail::optional<agency::detail::unit>>;
+    using super_t = detail::boxed_value<agency::detail::optional<agency::detail::unit>>;
     using super_t::super_t;
     using super_t::operator=;
 
@@ -323,6 +332,8 @@ struct deferred_continuation
 };
 
 
+} // end detail
+
 
 template<class T>
 class deferred_future
@@ -363,7 +374,7 @@ class deferred_future
 
     template<class... Args,
              class = typename std::enable_if<
-               agency::cuda::detail::is_constructible_or_void<T,Args...>::value
+               detail::is_constructible_or_void<T,Args...>::value
              >::type>
     __AGENCY_ANNOTATION
     static deferred_future make_ready(Args&&... args)
@@ -383,24 +394,24 @@ class deferred_future
     >
       then(Function&& f)
     {
-      auto continuation = deferred_continuation<typename std::decay<Function>::type, deferred_future>{std::forward<Function>(f), std::move(*this)};
+      auto continuation = detail::deferred_continuation<typename std::decay<Function>::type, deferred_future>{std::forward<Function>(f), std::move(*this)};
       using result_type = agency::detail::result_of_continuation_t<typename std::decay<Function>::type, deferred_future>;
       return deferred_future<result_type>(std::move(continuation));
     }
 
   private:
-    deferred_state<T> state_;
+    detail::deferred_state<T> state_;
 
     template<class>
     friend class deferred_future;
 
     template<class,class>
-    friend struct deferred_continuation;
+    friend struct agency::cuda::detail::deferred_continuation;
 
     template<class Function,
              class = typename std::enable_if<
                std::is_constructible<
-                 deferred_state<T>,
+                 detail::deferred_state<T>,
                  Function&&
                >::value
              >::type>
@@ -417,4 +428,7 @@ class deferred_future
       return state_.fmap(std::forward<Function>(f));
     }
 };
+
+} // end cuda
+} // end agency
 

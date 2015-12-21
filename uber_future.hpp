@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include "deferred_future.hpp"
+#include <agency/cuda/deferred_future.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/detail/variant.hpp>
 
@@ -9,7 +9,7 @@ template<class T>
 class uber_future
 {
   private:
-    using variant_type = agency::detail::variant<deferred_future<T>, agency::cuda::future<T>>;
+    using variant_type = agency::detail::variant<agency::cuda::deferred_future<T>, agency::cuda::future<T>>;
 
   public:
     __AGENCY_ANNOTATION
@@ -94,7 +94,7 @@ class uber_future
     __AGENCY_ANNOTATION
     static uber_future make_ready(Args&&... args)
     {
-      return deferred_future<T>::make_ready(std::forward<Args>(args)...);
+      return agency::cuda::deferred_future<T>::make_ready(std::forward<Args>(args)...);
     }
 
   private:
@@ -107,10 +107,10 @@ class uber_future
       uber_future<
         agency::detail::result_of_continuation_t<
           Function, 
-          deferred_future<T>
+          agency::cuda::deferred_future<T>
         >
       >
-        operator()(deferred_future<T>& fut) const
+        operator()(agency::cuda::deferred_future<T>& fut) const
       {
         return fut.then(std::move(f));
       }
