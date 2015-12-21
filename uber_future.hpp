@@ -45,7 +45,8 @@ class uber_future
     __AGENCY_ANNOTATION
     bool valid() const
     {
-      return agency::detail::visit(valid_visitor(), variant_);
+      auto visitor = valid_visitor();
+      return agency::detail::visit(visitor, variant_);
     }
 
   private:
@@ -63,7 +64,8 @@ class uber_future
     __AGENCY_ANNOTATION
     void wait()
     {
-      return agency::detail::visit(wait_visitor(), variant_);
+      auto visitor = wait_visitor();
+      return agency::detail::visit(visitor, variant_);
     }
 
   private:
@@ -81,7 +83,8 @@ class uber_future
     __AGENCY_ANNOTATION
     T get()
     {
-      return agency::detail::visit(get_visitor(), variant_);
+      auto visitor = get_visitor();
+      return agency::detail::visit(visitor, variant_);
     }
 
     template<class... Args,
@@ -100,17 +103,44 @@ class uber_future
     {
       mutable Function f;
 
-      template<class Future>
       __AGENCY_ANNOTATION
       uber_future<
         agency::detail::result_of_continuation_t<
           Function, 
-          Future
+          deferred_future<T>
         >
       >
-        operator()(Future& fut) const
+        operator()(deferred_future<T>& fut) const
       {
         return fut.then(std::move(f));
+      }
+
+      __AGENCY_ANNOTATION
+      uber_future<
+        agency::detail::result_of_continuation_t<
+          Function, 
+          agency::cuda::future<T>
+        >
+      >
+        operator()(agency::cuda::future<T>& fut) const
+      {
+        //return fut.then(std::move(f));
+
+        // XXX Function is often move-only
+        //     the problem is that the above fut.then() will result in a CUDA kernel launch
+        //     and kernel parameters must be copyable
+        //     we should either implement movable CUDA kernel parameters
+        //     or find a way to attach a deferred continuation onto an asynchronous CUDA future
+        //     there ought to be a way to do it by implementing a deferred_continuation which waits on fut
+        printf("uber_future::then_visitor::operator()(cuda::future): unimplemented\n");
+        assert(0);
+
+        using result_type = agency::detail::result_of_continuation_t<
+          Function,
+          agency::cuda::future<T>
+        >;
+
+        return uber_future<result_type>();
       }
     };
 
