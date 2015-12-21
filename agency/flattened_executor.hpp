@@ -203,6 +203,7 @@ class flattened_executor
         base_executor_(base_executor)
     {}
 
+    // XXX need to generalize to multiple shared factories
     template<class Function, class Factory1, class Future, class Factory2>
     future<typename std::result_of<Factory1(shape_type)>::type>
       then_execute(Function f, Factory1 result_factory, shape_type shape, Future& dependency, Factory2 shared_factory)
