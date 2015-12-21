@@ -157,22 +157,6 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
   Executor& exec;
   mutable tuple<TailFutures...> tail_futures;
 
-  // XXX eliminate this constructor when we are able to
-  //     pass functions to then_execute() via universal reference
-  //     Agency issue #73
-  __AGENCY_ANNOTATION
-  when_all_functor(Executor& ex, tuple<TailFutures...>&& tail) : exec(ex), tail_futures(std::move(tail)) {}
-
-  // move the tail_futures when we copy this object
-  // XXX eliminate this copy constructor when we are able to
-  //     pass functions to then_execute() via universal reference
-  //     Agency issue #73
-  __AGENCY_ANNOTATION
-  when_all_functor(const when_all_functor& other)
-    : exec(other.exec),
-      tail_futures(std::move(other.tail_futures))
-  {}
-
   // this functor is so complicated because it needs to return:
   // void, when HeadFuture & TailFutures all have void value_type
   // a single T when there is only a single non-void futures in HeadFuture & TailFutures
