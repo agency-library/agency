@@ -104,36 +104,40 @@ int main()
     assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 7 + 42 + 1; }));
   }
 
-//  {
-//    // test flattened executor_array
-//    using executor_array_type = executor_array<inner_executor_type, outer_executor_type>;
-//    using executor_type = flattened_executor<executor_array_type>;
-//
-//    using traits = agency::executor_traits<executor_type>;
-//    using shape_type = typename traits::shape_type;
-//    using index_type = typename traits::index_type;
-//
-//    executor_array_type exec_array(2);
-//    executor_type exec{exec_array};
-//
-//    shape_type shape = 10;
-//
-//    auto f = traits::async_execute(exec, [](const index_type& idx, int& shared)
-//    {
-//      return 13 + shared;
-//    },
-//    [](shape_type shape)
-//    {
-//      return traits::container<int>(shape);
-//    },
-//    shape,
-//    []{ return 7; });
-//
-//    auto results = f.get();
-//
-//    assert(results.size() == agency::detail::shape_size(shape));
-//    assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 7; }));
-//  }
+  //{
+  //  // test flattened executor_array
+  //  using executor_array_type = executor_array<inner_executor_type, outer_executor_type>;
+  //  using executor_type = flattened_executor<executor_array_type>;
+
+  //  using traits = agency::executor_traits<executor_type>;
+  //  using shape_type = typename traits::shape_type;
+  //  using index_type = typename traits::index_type;
+
+  //  executor_array_type exec_array(2);
+  //  executor_type exec{exec_array};
+
+  //  shape_type shape{2, 2};
+
+  //  auto ready = traits::make_ready_future<void>(exec);
+
+  //  auto f = exec.then_execute([] __device__ (const index_type& idx, int& outer_shared, int& inner_shared)
+  //  {
+  //    return 13 + outer_shared + inner_shared;
+  //  },
+  //  [](shape_type shape)
+  //  {
+  //    return traits::container<int>(shape);
+  //  },
+  //  shape,
+  //  ready,
+  //  make_7(),
+  //  make_42());
+
+  //  auto results = f.get();
+
+  //  assert(results.size() == agency::detail::shape_size(shape));
+  //  assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 7; }));
+  //}
 
   std::cout << "OK" << std::endl;
 
