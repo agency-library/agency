@@ -409,6 +409,18 @@ class executor_array
     {
       return begin()[i];
     }
+
+    __AGENCY_ANNOTATION
+    inner_executor_type& operator[](size_t i)
+    {
+      return inner_executors_[i];
+    }
+
+    __AGENCY_ANNOTATION
+    const inner_executor_type& operator[](size_t i) const
+    {
+      return inner_executors_[i];
+    }
 };
 
 
