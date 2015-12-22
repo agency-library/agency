@@ -21,11 +21,11 @@ class pinned_allocator
     {
       value_type* result = nullptr;
 
-      cudaError_t error = cudaMallocHost(reinterpret_cast<void**>(&result), n * sizeof(value_type));
+      cudaError_t error = cudaHostAlloc(reinterpret_cast<void**>(&result), n * sizeof(value_type), cudaHostAllocPortable);
 
       if(error != cudaSuccess)
       {
-        throw thrust::system_error(error, thrust::cuda_category(), "pinned_allocator::allocate(): cudaMallocHost");
+        throw thrust::system_error(error, thrust::cuda_category(), "pinned_allocator::allocate(): cudaHostAlloc");
       }
 
       return result;
