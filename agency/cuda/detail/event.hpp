@@ -166,9 +166,13 @@ class event
       // get the address of the kernel
       auto kernel = then_on_kernel(f,args...);
 
-      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, stream().native_handle(), gpu.native_handle(), f, args...);
+      // if gpu differs from this event's stream's gpu, we need to create a new one for the launch
+      // otherwise, just reuse this event's stream
+      detail::stream new_stream = (gpu == stream().gpu()) ? std::move(stream()) : detail::stream(gpu);
 
-      return event(std::move(stream()));
+      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), gpu.native_handle(), f, args...);
+
+      return event(std::move(new_stream));
     }
 
   private:
