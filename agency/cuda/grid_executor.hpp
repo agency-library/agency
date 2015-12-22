@@ -82,6 +82,13 @@ class basic_grid_executor
 
     
     __host__ __device__
+    void gpu(gpu_id gpu)
+    {
+      gpu_ = gpu;
+    }
+
+    
+    __host__ __device__
     future<void> make_ready_future()
     {
       return cuda::make_ready_future();
