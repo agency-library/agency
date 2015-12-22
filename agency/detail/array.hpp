@@ -32,6 +32,7 @@ class array
     __AGENCY_ANNOTATION
     array() : shape_{}, data_(nullptr) {}
 
+    __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     array(const shape_type& shape)
       : shape_(shape)
@@ -72,6 +73,7 @@ class array
       swap(data_,  other.data_);
     }
 
+    __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     ~array()
     {

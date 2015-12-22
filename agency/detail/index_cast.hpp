@@ -55,7 +55,7 @@ __AGENCY_ANNOTATION
 auto project_index_helper(const IndexTuple& idx, Size size_of_second_to_last_dimension)
   -> typename std::decay<
        decltype(
-         unwrap_single_element_tuple(__tu::tuple_drop_last(idx))
+         unwrap_single_element_tuple(detail::tuple_drop_last(idx))
        )
      >::type
 {

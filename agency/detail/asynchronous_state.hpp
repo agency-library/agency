@@ -62,6 +62,7 @@ class asynchronous_state_impl
     asynchronous_state_impl() = default;
 
     // constructs an immediately ready state
+    __agency_hd_warning_disable__
     template<class... Args,
              class = typename std::enable_if<
                std::is_constructible<T,Args...>::value

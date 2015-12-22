@@ -4,6 +4,7 @@
 #include <agency/new_executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/functional.hpp>
+#include <agency/detail/boxed_value.hpp>
 
 namespace agency
 {
@@ -432,6 +433,22 @@ using select_multi_agent_execute_with_shared_inits_returning_user_specified_cont
   >::type; // 1
 
 
+// creates a boxed_value given an executor and a value
+// uses the executor's associated allocator as the box's allocator
+template<class Executor, class T>
+__AGENCY_ANNOTATION
+agency::detail::boxed_value<
+  typename std::decay<T>::type,
+  typename new_executor_traits<Executor>::template allocator<typename std::decay<T>::type>
+>
+  make_boxed(Executor& exec, T&& value)
+{
+  using value_type = typename std::decay<T>::type;
+  using allocator_type = typename new_executor_traits<Executor>::template allocator<value_type>;
+  return agency::detail::allocate_boxed<value_type,allocator_type>(allocator_type(), std::forward<T>(value));
+}
+
+
 __agency_hd_warning_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
@@ -554,11 +571,12 @@ struct invoke_and_store_result_to_container
 
 
 __agency_hd_warning_disable__
-template<class Result, class Container, class Function>
+template<class Result, class Container, class Alloc, class Function>
 __AGENCY_ANNOTATION
-invoke_and_store_result_to_container<Result,Container,Function> make_invoke_and_store_result_to_container(Container& c, Function f)
+invoke_and_store_result_to_container<Result,Container,Function>
+  make_invoke_and_store_result_to_container(agency::detail::boxed_value<Container,Alloc>& c, Function f)
 {
-  return invoke_and_store_result_to_container<Result,Container,Function>{c,f};
+  return invoke_and_store_result_to_container<Result,Container,Function>{c.value(),f};
 } // end make_invoke_and_store_result_to_container()
 
 
@@ -573,11 +591,11 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
                                                                            typename new_executor_traits<Executor>::shape_type shape,
                                                                            Factories... shared_factories)
 {
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
 
   ex.execute(make_invoke_and_store_result_to_container<void>(results,f), shape, shared_factories...);
 
-  return results;
+  return std::move(results.value());
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -607,12 +625,12 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   auto g = make_multi_agent_execute_with_shared_inits_functor<result_type>(f, shape, shared_param_containers_tuple);
 
   // wrap g with a functor to store the result to a container
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
   auto h = make_invoke_and_store_result_to_container<void>(results, g);
 
   ex.execute(h, shape);
 
-  return results;
+  return std::move(results.value());
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -819,12 +837,12 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
                                                                            typename new_executor_traits<Executor>::shape_type shape,
                                                                            Factories... shared_factories)
 {
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
 
   // XXX should call wait() through executor_traits
   ex.async_execute(make_invoke_and_store_result_to_container<void>(results, f), shape, shared_factories...).wait();
 
-  return results;
+  return std::move(results.value());
 }
 
 
@@ -839,14 +857,14 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
                                                                            typename new_executor_traits<Executor>::shape_type shape,
                                                                            Factories... shared_factories)
 {
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
 
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
 
   // XXX should call wait() through executor_traits
   ex.then_execute(make_invoke_and_store_result_to_container<void>(results, f), shape, ready, shared_factories...).wait();
 
-  return results;
+  return std::move(results.value());
 }
 
 
@@ -862,12 +880,12 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
                                                                            Factories... shared_factories)
 
 {
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
 
   // discard the container of results returned by this call
   ex.execute(make_invoke_and_store_result_to_container<empty_type>(results,f), shape, shared_factories...);
 
-  return results;
+  return std::move(results.value());
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -882,13 +900,13 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
                                                                            typename new_executor_traits<Executor>::shape_type shape,
                                                                            Factories... shared_factories)
 {
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
 
   // discard the container of results returned by this call
   // XXX should call wait() through executor_traits
   ex.async_execute(make_invoke_and_store_result_to_container<empty_type>(results,f), shape, shared_factories...).wait();
 
-  return results;
+  return std::move(results.value());
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -917,7 +935,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   // wrap f with a functor to map container elements to shared parameters
   auto g = make_multi_agent_execute_with_shared_inits_functor<result_type>(f, shape, shared_param_containers_tuple);
 
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
 
   // wrap g with a functor to store g's results to a container
   auto h = make_invoke_and_store_result_to_container<void>(results, g);
@@ -926,7 +944,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   // XXX wait() should be called through executor_traits
   ex.async_execute(h, shape).wait();
 
-  return results;
+  return std::move(results.value());
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -955,7 +973,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   // wrap f with a functor to map container elements to shared parameters
   auto g = make_multi_agent_execute_with_shared_inits_functor<result_type>(f, shape, shared_param_containers_tuple);
 
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
 
   // wrap g with a functor to store g's results to a container
   auto h = make_invoke_and_store_result_to_container<void>(results, g);
@@ -966,7 +984,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   // XXX wait() should be called through executor_traits
   ex.then_execute(h, shape, ready).wait();
 
-  return results;
+  return std::move(results.value());
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -981,7 +999,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
                                                                            typename new_executor_traits<Executor>::shape_type shape,
                                                                            Factories... shared_factories)
 {
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
 
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
 
@@ -989,7 +1007,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   // XXX should call wait() through executor_traits
   ex.then_execute(make_invoke_and_store_result_to_container<empty_type>(results,f), shape, ready, shared_factories...).wait();
 
-  return results;
+  return std::move(results.value());
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -1018,7 +1036,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   // wrap f with a functor to map container elements to shared parameters
   auto g = make_multi_agent_execute_with_shared_inits_functor<result_type>(f, shape, shared_param_containers_tuple);
 
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
 
   // wrap g with a functor to store g's results to a container
   auto h = make_invoke_and_store_result_to_container<empty_type>(results, g);
@@ -1026,7 +1044,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   // discard the container returned by this call
   ex.execute(h, shape);
 
-  return results;
+  return std::move(results.value());
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -1055,7 +1073,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   // wrap f with a functor to map container elements to shared parameters
   auto g = make_multi_agent_execute_with_shared_inits_functor<result_type>(f, shape, shared_param_containers_tuple);
 
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
 
   // wrap g with a functor to store g's results to a container
   auto h = make_invoke_and_store_result_to_container<empty_type>(results, g);
@@ -1064,7 +1082,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   // XXX should call wait() through executor_traits
   ex.async_execute(h, shape).wait();
 
-  return results;
+  return std::move(results.value());
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -1093,7 +1111,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   // wrap f with a functor to map container elements to shared parameters
   auto g = make_multi_agent_execute_with_shared_inits_functor<result_type>(f, shape, shared_param_containers_tuple);
 
-  auto results = result_factory(shape);
+  auto results = make_boxed(ex, result_factory(shape));
 
   // wrap g with a functor to store g's results to a container
   auto h = make_invoke_and_store_result_to_container<empty_type>(results, g);
@@ -1104,13 +1122,16 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   // XXX should call wait() through executor_traits
   ex.then_execute(h, shape, ready).wait();
 
-  return results;
+  return std::move(results.value());
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-template<class Function, class Factory1, class Shape, class Factory2>
+template<class Executor, class Function, class Factory1, class Shape, class Factory2>
 struct execute_in_for_loop
 {
+  template<class T>
+  using allocator = typename new_executor_traits<Executor>::template allocator<T>;
+
   mutable Function f;
   mutable Factory1 result_factory;
   Shape shape;
@@ -1131,24 +1152,28 @@ struct execute_in_for_loop
   typename std::result_of<Factory1(Shape)>::type
     operator()() const
   {
-    auto results = result_factory(shape);
-    auto shared_arg = shared_factory();
+    using result_type = decltype(result_factory(shape));
+    auto results = agency::detail::allocate_boxed<result_type>(allocator<result_type>(), result_factory(shape));
+
+    using shared_arg_type = decltype(shared_factory());
+    auto shared_arg = agency::detail::allocate_boxed<shared_arg_type>(allocator<shared_arg_type>(), shared_factory());
 
     // XXX generalize to multidimensions
     for(size_t idx = 0; idx < shape; ++idx)
     {
-      results[idx] = agency::invoke(f, idx, shared_arg);
+      results.value()[idx] = agency::invoke(f, idx, shared_arg.value());
     }
 
-    return results;
+    return std::move(results.value());
   }
 };
 
-template<class Function, class Factory1, class Shape, class Factory2>
+template<class Executor, class Function, class Factory1, class Shape, class Factory2>
 __AGENCY_ANNOTATION
-execute_in_for_loop<Function,Factory1,Shape,Factory2> make_execute_in_for_loop(Function f, Factory1 result_factory, Shape shape, Factory2 shared_factory)
+execute_in_for_loop<Executor, Function,Factory1,Shape,Factory2>
+  make_execute_in_for_loop(Function f, Factory1 result_factory, Shape shape, Factory2 shared_factory)
 {
-  return execute_in_for_loop<Function,Factory1,Shape,Factory2>(f, result_factory, shape, shared_factory);
+  return execute_in_for_loop<Executor, Function,Factory1,Shape,Factory2>(f, result_factory, shape, shared_factory);
 }
 
 
@@ -1165,7 +1190,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
 {
   static_assert(sizeof...(Factories) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
 
-  return ex.execute(make_execute_in_for_loop(f, result_factory, shape, shared_factories...));
+  return ex.execute(make_execute_in_for_loop<Executor>(f, result_factory, shape, shared_factories...));
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -1183,7 +1208,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   static_assert(sizeof...(Factories) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
 
   // XXX should call get() through executor_traits
-  return ex.async_execute(make_execute_in_for_loop(f, result_factory, shape, shared_factories...)).get();
+  return ex.async_execute(make_execute_in_for_loop<Executor>(f, result_factory, shape, shared_factories...)).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -1203,7 +1228,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
   auto ready = new_executor_traits<Executor>::template make_ready_future<void>(ex);
 
   // XXX should call get() through executor_traits
-  return ex.then_execute(make_execute_in_for_loop(f, result_factory, shape, shared_factories...), ready).get();
+  return ex.then_execute(make_execute_in_for_loop<Executor>(f, result_factory, shape, shared_factories...), ready).get();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
@@ -1219,6 +1244,8 @@ struct single_agent_when_all_execute_and_select_functor
   __AGENCY_ANNOTATION
   void operator()(Container& results) const
   {
+    // XXX we should use the executor's allocator to create the shared_arg
+    //     rather than pass a reference to a stack variable to f()
     auto shared_arg = shared_factory();
 
     // XXX generalize to multidimensions
@@ -1273,7 +1300,7 @@ typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_ty
 {
   static_assert(sizeof...(Factories) == 1, "This implementation only makes sense for flat (i.e., single-agent) executors");
 
-  auto implementation = make_execute_in_for_loop(f, result_factory, shape, shared_factories...);
+  auto implementation = make_execute_in_for_loop<Executor>(f, result_factory, shape, shared_factories...);
   return implementation();
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
