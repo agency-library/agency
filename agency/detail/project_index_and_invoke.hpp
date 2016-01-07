@@ -112,21 +112,25 @@ struct project_index_and_invoke
   }
 
   // this overload implements the functor for then_execute() when the dependency future is void
-  template<class T>
+  // we assume if the client sends a unit, it always comes in immediately after the outer_shared_parameter
+  // the following arguments just get forwarded along
+  template<class T, class... Args>
   __AGENCY_ANNOTATION
   result_t<T&>
-    operator()(const Index& idx, T& outer_shared_parameter, unit) const
+    operator()(const Index& idx, T& outer_shared_parameter, unit, Args&&... args) const
   {
-    return impl(idx, outer_shared_parameter);
+    return impl(idx, outer_shared_parameter, std::forward<Args>(args)...);
   }
 
   // this overload implements the functor for then_execute() when the dependency future is not void
-  template<class T1, class T2>
+  // we assume if the client sends a unit, it always comes in immediately after the outer_shared_parameter
+  // the following arguments just get forwarded along
+  template<class T1, class T2, class... Args>
   __AGENCY_ANNOTATION
   result_t<T1&,T2&>
-    operator()(const Index& idx, T1& past_parameter, T2& outer_shared_parameter, unit) const
+    operator()(const Index& idx, T1& past_parameter, T2& outer_shared_parameter, unit, Args&&... args) const
   {
-    return impl(idx, past_parameter, outer_shared_parameter);
+    return impl(idx, past_parameter, outer_shared_parameter, std::forward<Args>(args)...);
   }
 };
 

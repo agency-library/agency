@@ -179,6 +179,7 @@ class flattened_executor
   private:
     using base_traits = executor_traits<Executor>;
     using base_execution_category = typename base_traits::execution_category;
+    constexpr static auto execution_depth = base_traits::execution_depth - 1;
 
   public:
     using base_executor_type = Executor;
@@ -203,10 +204,12 @@ class flattened_executor
         base_executor_(base_executor)
     {}
 
-    // XXX need to generalize to multiple shared factories
-    template<class Function, class Factory1, class Future, class Factory2>
+    template<class Function, class Factory1, class Future, class Factory2, class... Factories,
+             class = typename std::enable_if<
+               sizeof...(Factories) == execution_depth - 1
+             >::type>
     future<typename std::result_of<Factory1(shape_type)>::type>
-      then_execute(Function f, Factory1 result_factory, shape_type shape, Future& dependency, Factory2 shared_factory)
+      then_execute(Function f, Factory1 result_factory, shape_type shape, Future& dependency, Factory2 outer_factory, Factories... inner_factories)
     {
       auto partitioning = partition(shape);
 
@@ -218,7 +221,14 @@ class flattened_executor
       auto execute_me = detail::make_project_index_and_invoke<base_index_type>(f, partitioning, shape);
 
       // execute
-      auto intermediate_fut = executor_traits<base_executor_type>::then_execute(base_executor(), execute_me, intermediate_result_factory, partitioning, dependency, shared_factory, agency::detail::unit_factory());
+      auto intermediate_fut = executor_traits<base_executor_type>::then_execute(
+        base_executor(),
+        execute_me,
+        intermediate_result_factory,
+        partitioning,
+        dependency,
+        outer_factory, agency::detail::unit_factory(), inner_factories...
+      );
 
       // cast the intermediate result to the type of result expected by the caller
       using result_type = typename std::result_of<Factory1(shape_type)>::type;
