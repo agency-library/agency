@@ -218,7 +218,19 @@ class flattened_executor
 
       // create a function to execute
       using base_index_type = typename executor_traits<base_executor_type>::index_type;
-      auto execute_me = detail::make_project_index_and_invoke<base_index_type>(f, partitioning, shape);
+      using future_value_type = typename future_traits<Future>::value_type;
+      auto execute_me = detail::make_project_index_and_invoke<base_index_type,future_value_type>(f, partitioning, shape);
+
+      static_assert(
+        detail::is_callable_continuation<
+          decltype(execute_me),
+          base_index_type,
+          Future,
+          typename std::result_of<Factory2()>::type&,
+          detail::unit&,
+          typename std::result_of<Factories()>::type&...>::value,
+        "execute_me is not callable with the arguments provided"
+      );
 
       // execute
       auto intermediate_fut = executor_traits<base_executor_type>::then_execute(

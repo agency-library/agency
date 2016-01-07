@@ -14,8 +14,22 @@ namespace detail
 {
 
 
+// project_index_and_invoke is a helper functor for flattened_executor The idea
+// is it takes an index received from flattened_executor's base_executor and
+// projects the index into flattened_executor's index space.  This projection
+// operation can produce indices outside of flattened_executor's index space.
+// When the projected index is outside of the index space, we say that the
+// function is not defined.
+//
+// When the result of the invoked function is void, the result of
+// project_index_and_invoke is void. Otherwise, the result is optionally a
+// struct containing the result of the function and the projected index where
+// it was invoked. If the function is not defined at the projected index, the result
+// of project_index_and_invoke is an empty optional.
+
+
 template<class Index, class Function, class Shape>
-struct project_index_and_invoke
+struct project_index_and_invoke_base
 {
   using index_type = Index;
   using shape_type = Shape;
@@ -33,7 +47,7 @@ struct project_index_and_invoke
   projected_shape_type projected_shape_;
 
   __AGENCY_ANNOTATION
-  project_index_and_invoke(const Function& f, shape_type shape, projected_shape_type projected_shape)
+  project_index_and_invoke_base(const Function& f, shape_type shape, projected_shape_type projected_shape)
     : f_(f),
       shape_(shape),
       projected_shape_(projected_shape)
@@ -110,39 +124,51 @@ struct project_index_and_invoke
 
     return nullopt;
   }
+};
 
-  // this overload implements the functor for then_execute() when the dependency future is void
-  // we assume if the client sends a unit, it always comes in immediately after the outer_shared_parameter
-  // the following arguments just get forwarded along
+
+// this handles the case when the dependency future's type is not void
+template<class Index, class PastParameterT, class Function, class Shape>
+struct project_index_and_invoke : project_index_and_invoke_base<Index,Function,Shape>
+{
+  using project_index_and_invoke_base<Index,Function,Shape>::project_index_and_invoke_base;
+
   template<class T, class... Args>
   __AGENCY_ANNOTATION
-  result_t<T&>
-    operator()(const Index& idx, T& outer_shared_parameter, unit, Args&&... args) const
+  auto operator()(const Index& idx, PastParameterT& past_parameter, T& outer_shared_parameter, unit, Args&... inner_shared_parameters) const ->
+    decltype(this->impl(idx, past_parameter, outer_shared_parameter, inner_shared_parameters...))
   {
-    return impl(idx, outer_shared_parameter, std::forward<Args>(args)...);
-  }
-
-  // this overload implements the functor for then_execute() when the dependency future is not void
-  // we assume if the client sends a unit, it always comes in immediately after the outer_shared_parameter
-  // the following arguments just get forwarded along
-  template<class T1, class T2, class... Args>
-  __AGENCY_ANNOTATION
-  result_t<T1&,T2&>
-    operator()(const Index& idx, T1& past_parameter, T2& outer_shared_parameter, unit, Args&&... args) const
-  {
-    return impl(idx, past_parameter, outer_shared_parameter, std::forward<Args>(args)...);
+    // ignore the unit parameter and forward the rest
+    return this->impl(idx, past_parameter, outer_shared_parameter, inner_shared_parameters...);
   }
 };
 
 
+// this handles the case when the dependency future's type is void
 template<class Index, class Function, class Shape>
+struct project_index_and_invoke<Index,void,Function,Shape> : project_index_and_invoke_base<Index,Function,Shape>
+{
+  using project_index_and_invoke_base<Index,Function,Shape>::project_index_and_invoke_base;
+
+  template<class T, class... Args>
+  __AGENCY_ANNOTATION
+  auto operator()(const Index& idx, T& outer_shared_parameter, unit, Args&... inner_shared_parameters) const ->
+    decltype(this->impl(idx, outer_shared_parameter, inner_shared_parameters...))
+  {
+    // ignore the unit parameter and forward the rest
+    return this->impl(idx, outer_shared_parameter, inner_shared_parameters...);
+  }
+};
+
+
+template<class Index, class PastParameterT, class Function, class Shape>
 __AGENCY_ANNOTATION
-project_index_and_invoke<Index,Function,Shape>
+project_index_and_invoke<Index,PastParameterT,Function,Shape>
   make_project_index_and_invoke(Function f,
                                 Shape higher_dimensional_shape,
-                                typename project_index_and_invoke<Index,Function,Shape>::projected_shape_type lower_dimensional_shape)
+                                typename project_index_and_invoke<Index,PastParameterT,Function,Shape>::projected_shape_type lower_dimensional_shape)
 {
-  return project_index_and_invoke<Index,Function,Shape>{f,higher_dimensional_shape,lower_dimensional_shape};
+  return project_index_and_invoke<Index,PastParameterT,Function,Shape>{f,higher_dimensional_shape,lower_dimensional_shape};
 }
 
 

@@ -433,7 +433,7 @@ class flattened_executor<cuda::grid_executor>
       then_execute(Function f, Factory1 result_factory, shape_type shape, future<T>& dependency, Factory2 shared_parameter_factory)
     {
       // create a dummy function for partitioning purposes
-      auto dummy_function = agency::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partition_type{}, shape);
+      auto dummy_function = agency::detail::make_project_index_and_invoke<cuda::grid_executor::index_type,T>(f, partition_type{}, shape);
 
       cuda::detail::guarded_container_factory<Factory1> intermediate_result_factory{result_factory,shape};
 
@@ -441,7 +441,7 @@ class flattened_executor<cuda::grid_executor>
       auto partitioning = partition(dummy_function, intermediate_result_factory, shape, dependency, shared_parameter_factory, agency::detail::unit_factory());
 
       // create a function to execute
-      auto execute_me = agency::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partitioning, shape);
+      auto execute_me = agency::detail::make_project_index_and_invoke<cuda::grid_executor::index_type,T>(f, partitioning, shape);
 
       return base_executor().then_execute(execute_me, intermediate_result_factory, partitioning, dependency, shared_parameter_factory, agency::detail::unit_factory());
     }
