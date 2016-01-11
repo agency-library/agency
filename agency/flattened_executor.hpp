@@ -7,7 +7,7 @@
 #include <agency/nested_executor.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/optional.hpp>
-#include <agency/detail/project_index_and_invoke.hpp>
+#include <agency/detail/flatten_index_and_invoke.hpp>
 #include <agency/detail/array.hpp>
 
 namespace agency
@@ -78,7 +78,7 @@ struct guarded_container_factory
   __AGENCY_ANNOTATION
   guarded_container<container_type> operator()(const Arg&)
   {
-    return make_guarded_container(factory_(shape_));
+    return agency::detail::make_guarded_container(factory_(shape_));
   }
 };
 
@@ -105,63 +105,6 @@ struct flattened_execution_tag_impl<nested_execution_tag<OuterCategory, nested_e
 
 template<class ExecutionCategory>
 using flattened_execution_tag = typename flattened_execution_tag_impl<ExecutionCategory>::type;
-
-
-template<class TypeList>
-struct flattened_shape_type;
-
-template<class Shape1, class Shape2, class... Shapes>
-struct flattened_shape_type<type_list<Shape1,Shape2,Shapes...>>
-{
-  // XXX we probably want to think carefully about what it means two "merge" two arithmetic tuples together
-  template<class T1, class T2>
-  using merge_shapes_t = typename std::common_type<T1,T2>::type;
-
-  using tuple_type = shape_tuple<
-    merge_shapes_t<Shape1,Shape2>,
-    Shapes...
-  >;
-
-  // unwrap single-element tuples
-  using type = typename std::conditional<
-    (std::tuple_size<tuple_type>::value == 1),
-    typename std::tuple_element<0,tuple_type>::type,
-    tuple_type
-  >::type;
-};
-
-
-// XXX need to do something similar as execution_category
-//     the two leftmost indices merge into one while the rest of the indices shift one space left
-template<class ShapeTuple>
-using flattened_shape_type_t = typename flattened_shape_type<tuple_elements<ShapeTuple>>::type;
-
-
-template<class TypeList>
-struct flattened_index_type;
-
-template<class Index1, class Index2, class... Indices>
-struct flattened_index_type<type_list<Index1,Index2,Indices...>>
-{
-  // XXX we probably want to think carefully about what it means two "merge" two arithmetic tuples together
-  template<class T1, class T2>
-  using merge_indices_t = typename std::common_type<T1,T2>::type;
-
-  using tuple_type = index_tuple<
-    merge_indices_t<Index1,Index2>,
-    Indices...
-  >;
-
-  // unwrap single-element tuples
-  using type = typename std::conditional<
-    (std::tuple_size<tuple_type>::value == 1),
-    typename std::tuple_element<0,tuple_type>::type,
-    tuple_type
-  >::type;
-};
-
-template<class IndexTuple>
-using flattened_index_type_t = flattened_shape_type_t<IndexTuple>;
 
 
 } // end detail
@@ -211,7 +154,7 @@ class flattened_executor
     future<typename std::result_of<Factory1(shape_type)>::type>
       then_execute(Function f, Factory1 result_factory, shape_type shape, Future& dependency, Factory2 outer_factory, Factories... inner_factories)
     {
-      auto partitioning = partition(shape);
+      base_shape_type base_shape = partition_into_base_shape(shape);
 
       // store results into an intermediate result
       detail::guarded_container_factory<Factory1,shape_type> intermediate_result_factory{result_factory,shape};
@@ -219,25 +162,14 @@ class flattened_executor
       // create a function to execute
       using base_index_type = typename executor_traits<base_executor_type>::index_type;
       using future_value_type = typename future_traits<Future>::value_type;
-      auto execute_me = detail::make_project_index_and_invoke<base_index_type,future_value_type>(f, partitioning, shape);
+      auto execute_me = detail::make_flatten_index_and_invoke<base_index_type,future_value_type>(f, base_shape, shape);
 
-      static_assert(
-        detail::is_callable_continuation<
-          decltype(execute_me),
-          base_index_type,
-          Future,
-          typename std::result_of<Factory2()>::type&,
-          detail::unit&,
-          typename std::result_of<Factories()>::type&...>::value,
-        "execute_me is not callable with the arguments provided"
-      );
-
-      // execute
+      // then_execute with the base_executor
       auto intermediate_fut = executor_traits<base_executor_type>::then_execute(
         base_executor(),
         execute_me,
         intermediate_result_factory,
-        partitioning,
+        base_shape,
         dependency,
         outer_factory, agency::detail::unit_factory(), inner_factories...
       );
@@ -258,18 +190,50 @@ class flattened_executor
     }
 
   private:
-    using partition_type = typename executor_traits<base_executor_type>::shape_type;
+    using base_shape_type = typename base_traits::shape_type;
+
+    static_assert(detail::is_tuple<base_shape_type>::value, "The shape_type of flattened_executor's base_executor must be a tuple.");
+
+    // the type of shape_type's head is simply its first element when the shape_type is a tuple
+    // otherwise, it's just the shape_type
+    using shape_head_type = typename std::decay<
+      decltype(detail::tuple_head_if(std::declval<shape_type>()))
+    >::type;
+
+    // the type of shape_type's tail is its tail when the shape_type is a tuple
+    // otherwise, it's just an empty tuple
+    using shape_tail_type = decltype(detail::tuple_tail_if(std::declval<shape_type>()));
+
+    // when shape_type is a tuple, returns a reference to its first element
+    // otherwise, returns shape
+    static const shape_head_type& shape_head(const shape_type& shape)
+    {
+      return detail::tuple_head_if(shape);
+    }
+
+    // when shape_type is a tuple, returns its tail
+    // otherwise, returns an empty tuple
+    static shape_tail_type shape_tail(const shape_type& shape)
+    {
+      return detail::tuple_tail_if(shape);
+    }
+
+    using partition_type = detail::tuple<
+      typename std::tuple_element<0,base_shape_type>::type,
+      typename std::tuple_element<1,base_shape_type>::type
+    >;
 
     // returns (outer size, inner size)
-    partition_type partition(shape_type shape) const
+    partition_type partition_head(const shape_head_type& shape) const
     {
       // avoid division by zero below
       // XXX implement me!
 //      if(is_empty(shape)) return partition_type{};
 
-      using outer_shape_type = typename std::tuple_element<0,partition_type>::type;
-      using inner_shape_type = typename std::tuple_element<1,partition_type>::type;
+      using outer_shape_type = typename std::tuple_element<0,base_shape_type>::type;
+      using inner_shape_type = typename std::tuple_element<1,base_shape_type>::type;
 
+      // XXX this aritmetic assumes that outer_shape_type and inner_shape_type are scalar instead of tuples
       outer_shape_type outer_size = (shape + min_inner_size_ - 1) / min_inner_size_;
 
       outer_size = std::min<size_t>(outer_subscription_ * std::thread::hardware_concurrency(), outer_size);
@@ -277,6 +241,30 @@ class flattened_executor
       inner_shape_type inner_size = (shape + outer_size - 1) / outer_size;
 
       return partition_type{outer_size, inner_size};
+    }
+
+    template<size_t... Indices>
+    static base_shape_type make_base_shape_impl(detail::index_sequence<Indices...>, const partition_type& partition_of_head, const shape_tail_type& tail)
+    {
+      return base_shape_type{detail::get<0>(partition_of_head), detail::get<1>(partition_of_head), detail::get<Indices>(tail)...};
+    }
+
+    static base_shape_type make_base_shape(const partition_type& partition_of_head, const shape_tail_type& tail)
+    {
+      auto indices = detail::make_index_sequence<std::tuple_size<shape_tail_type>::value>();
+
+      return make_base_shape_impl(indices, partition_of_head, tail);
+    }
+
+    base_shape_type partition_into_base_shape(const shape_type& shape) const
+    {
+      // split the shape into its head and tail
+      shape_head_type head = shape_head(shape);
+      shape_tail_type tail = shape_tail(shape);
+
+      // to partition the head and tail into the base_shape_type,
+      // we partition the head and then concatenate the resulting tuple with the tail
+      return make_base_shape(partition_head(head), tail);
     }
 
     inline static unsigned int log2(unsigned int x)
