@@ -69,6 +69,29 @@ struct project_index_and_invoke
   template<class... Args>
   using result_t = void_or_optionally_value_and_index_t<result_of_function_t<Args...>>;
 
+  template<size_t... Indices>
+  __AGENCY_ANNOTATION
+  projected_index_type project_index_impl(detail::index_sequence<Indices...>, const Index& idx) const
+  {
+    // to project a multidimensional index, we take the first two elements of idx and merge them together
+    // this merger becomes the first element of the result
+    // the remaining elements of idx shift one position left
+    return projected_index_type(detail::get<1>(idx) + detail::get<0>(idx) * detail::get<1>(shape_), detail::get<2 + Indices>(idx)...);
+  }
+
+  // XXX WAR nvcc issue with handling empty index_sequence<> given to the function above
+  __AGENCY_ANNOTATION
+  projected_index_type project_index_impl(detail::index_sequence<>, const Index& idx) const
+  {
+    return projected_index_type(detail::get<1>(idx) + detail::get<0>(idx) * detail::get<1>(shape_));
+  }
+
+  __AGENCY_ANNOTATION
+  projected_index_type project_index(const Index& idx) const
+  {
+    return project_index_impl(detail::make_index_sequence<std::tuple_size<Index>::value - 2>(), idx);
+  }
+
   // when f_(idx) has no result, we just return void
   template<class... Args,
            class = typename std::enable_if<
@@ -80,7 +103,7 @@ struct project_index_and_invoke
   __AGENCY_ANNOTATION
   void impl(const Index& idx, Args&&... args) const
   {
-    auto projected_idx = detail::project_index(idx, shape_);
+    auto projected_idx = this->project_index(idx);
 
     if(projected_idx < projected_shape_)
     {
@@ -101,7 +124,7 @@ struct project_index_and_invoke
   result_t<Args&&...>
     impl(const Index& idx, Args&&... args) const
   {
-    auto projected_idx = detail::project_index(idx, shape_);
+    auto projected_idx = this->project_index(idx);
 
     if(projected_idx < projected_shape_)
     {
