@@ -705,78 +705,94 @@ void tuple_print(const Tuple& t, std::ostream& os = std::cout)
 }
 
 
-template<class Tuple1, class Tuple2>
+template<size_t i, class Tuple1, class Tuple2>
 TUPLE_UTILITY_ANNOTATION
 typename std::enable_if<
-  std::tuple_size<Tuple1>::value != std::tuple_size<Tuple1>::value,
+  std::tuple_size<Tuple2>::value <= i,
   bool
 >::type
-  tuple_equal(const Tuple1&, const Tuple2&)
+  __tuple_equal_impl(const Tuple1&, const Tuple2&)
 {
   return false;
 }
 
 
-template<class Tuple1, class Tuple2>
+template<size_t i, class Tuple1, class Tuple2>
 TUPLE_UTILITY_ANNOTATION
 typename std::enable_if<
-  std::tuple_size<Tuple1>::value == 0,
+  (std::tuple_size<Tuple1>::value <= i && std::tuple_size<Tuple2>::value > i),
   bool
 >::type
-  tuple_equal(const Tuple1&, const Tuple2&)
+  __tuple_equal_impl(const Tuple1&, const Tuple2&)
 {
   return true;
 }
 
 
-template<class Tuple1, class Tuple2>
+template<size_t i, class Tuple1, class Tuple2>
 TUPLE_UTILITY_ANNOTATION
 typename std::enable_if<
-  (std::tuple_size<Tuple1>::value > 0),
+  (std::tuple_size<Tuple1>::value > i && std::tuple_size<Tuple2>::value > i),
   bool
 >::type
-  tuple_equal(const Tuple1& t1, const Tuple2& t2)
+  __tuple_equal_impl(const Tuple1& t1, const Tuple2& t2)
 {
-  return (tuple_head(t1) != tuple_head(t2)) ? false :
-         tuple_equal(forward_tuple_tail<const Tuple1>(t1), forward_tuple_tail<const Tuple2>(t2));
+  return (__get<i>(t1) != __get<i>(t2)) ? false :
+         __tuple_equal_impl<i+1>(t1, t2);
 }
 
 
 template<class Tuple1, class Tuple2>
 TUPLE_UTILITY_ANNOTATION
+bool tuple_equal(const Tuple1& t1, const Tuple2& t2)
+{
+  return __tuple_equal_impl<0>(t1,t2);
+}
+
+
+template<size_t i, class Tuple1, class Tuple2>
+TUPLE_UTILITY_ANNOTATION
 typename std::enable_if<
-  std::tuple_size<Tuple2>::value == 0,
+  std::tuple_size<Tuple2>::value <= i,
   bool
 >::type
-  tuple_lexicographical_compare(const Tuple1&, const Tuple2&)
+  __tuple_lexicographical_compare_impl(const Tuple1&, const Tuple2&)
 {
   return false;
 }
 
 
-template<class Tuple1, class Tuple2>
+template<size_t i, class Tuple1, class Tuple2>
 TUPLE_UTILITY_ANNOTATION
 typename std::enable_if<
-  (std::tuple_size<Tuple1>::value == 0 && std::tuple_size<Tuple2>::value > 0),
+  (std::tuple_size<Tuple1>::value <= i && std::tuple_size<Tuple2>::value > i),
   bool
 >::type
-  tuple_lexicographical_compare(const Tuple1& t1, const Tuple2& t2)
+  __tuple_lexicographical_compare_impl(const Tuple1& t1, const Tuple2& t2)
 {
   return true;
 }
 
 
-template<class Tuple1, class Tuple2>
+template<size_t i, class Tuple1, class Tuple2>
 TUPLE_UTILITY_ANNOTATION
 typename std::enable_if<
-  (std::tuple_size<Tuple1>::value > 0 && std::tuple_size<Tuple2>::value > 0),
+  (std::tuple_size<Tuple1>::value > i && std::tuple_size<Tuple2>::value > i),
   bool
 >::type
-  tuple_lexicographical_compare(const Tuple1& t1, const Tuple2& t2)
+  __tuple_lexicographical_compare_impl(const Tuple1& t1, const Tuple2& t2)
 {
-  return (tuple_head(t1) < tuple_head(t2)) ? true :
-         (tuple_head(t2) < tuple_head(t1)) ? false :
-         tuple_lexicographical_compare(forward_tuple_tail<const Tuple1>(t1), forward_tuple_tail<const Tuple2>(t2));
+  return (__get<i>(t1) < __get<i>(t2)) ? true :
+         (__get<i>(t2) < __get<i>(t1)) ? false :
+         __tuple_lexicographical_compare_impl<i+1>(t1,t2);
+}
+
+
+template<class Tuple1, class Tuple2>
+TUPLE_UTILITY_ANNOTATION
+bool tuple_lexicographical_compare(const Tuple1& t1, const Tuple2& t2)
+{
+  return __tuple_lexicographical_compare_impl<0>(t1,t2);
 }
 
 
