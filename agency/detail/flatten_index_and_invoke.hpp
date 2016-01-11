@@ -143,14 +143,14 @@ struct flatten_index_and_invoke_base
     // to flatten a multidimensional index, we take the first two elements of idx and merge them together
     // this merger becomes the first element of the result
     // the remaining elements of idx shift one position left
-    return flattened_index_type(detail::get<0>(idx) + detail::get<1>(idx) * detail::get<0>(shape_), detail::get<2 + Indices>(idx)...);
+    return flattened_index_type(detail::get<1>(idx) + detail::get<0>(idx) * detail::get<1>(shape_), detail::get<2 + Indices>(idx)...);
   }
 
   // XXX WAR nvcc issue with handling empty index_sequence<> given to the function above
   __AGENCY_ANNOTATION
   flattened_index_type flatten_index_impl(detail::index_sequence<>, const Index& idx) const
   {
-    return flattened_index_type(detail::get<0>(idx) + detail::get<1>(idx) * detail::get<0>(shape_));
+    return flattened_index_type(detail::get<1>(idx) + detail::get<0>(idx) * detail::get<1>(shape_));
   }
 
   __AGENCY_ANNOTATION
