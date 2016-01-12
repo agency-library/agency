@@ -231,26 +231,36 @@ class event
 
     template<class... Events>
     __host__ __device__
-    friend event when_all_events_are_ready(const gpu_id& gpu, Events&... events)
-    {
-      detail::stream s{gpu};
-
-      // tell the stream to wait on all the events
-      swallow(events.stream_wait(s)...);
-
-      // return a new event recorded on the stream
-      return event(std::move(s));
-    }
+    friend event when_all_events_are_ready(const gpu_id& gpu, Events&... events);
 
     template<class... Events>
     __host__ __device__
-    friend event when_all_events_are_ready(Events&... events)
-    {
-      // just use the current gpu
-      // XXX we might prefer the gpu associated with the first event
-      return when_all_events_are_ready(current_gpu(), events...);
-    }
+    friend event when_all_events_are_ready(Events&... events);
 };
+
+
+template<class... Events>
+__host__ __device__
+event when_all_events_are_ready(const gpu_id& gpu, Events&... events)
+{
+  detail::stream s{gpu};
+
+  // tell the stream to wait on all the events
+  event::swallow(events.stream_wait(s)...);
+
+  // return a new event recorded on the stream
+  return event(std::move(s));
+}
+
+
+template<class... Events>
+__host__ __device__
+event when_all_events_are_ready(Events&... events)
+{
+  // just use the current gpu
+  // XXX we might prefer the gpu associated with the first event
+  return agency::cuda::detail::when_all_events_are_ready(current_gpu(), events...);
+}
 
 
 } // end detail
