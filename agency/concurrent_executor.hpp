@@ -23,9 +23,31 @@ class concurrent_executor
     std::future<typename std::result_of<Factory1(size_t)>::type>
       then_execute(Function f, Factory1 result_factory, size_t n, std::future<T>& fut, Factory2 shared_factory)
     {
+      return this->then_execute_impl(f, result_factory, n, fut, shared_factory);
+    }
+
+    template<class Function, class Factory1, class T, class Factory2>
+    std::future<typename std::result_of<Factory1(size_t)>::type>
+      then_execute(Function f, Factory1 result_factory, size_t n, std::shared_future<T>& fut, Factory2 shared_factory)
+    {
+      return this->then_execute_impl(f, result_factory, n, fut, shared_factory);
+    }
+
+  private:
+    template<class Function, class Factory1, class Future, class Factory2>
+    std::future<typename std::result_of<Factory1(size_t)>::type>
+      then_execute_impl(Function f, Factory1 result_factory, size_t n, Future& fut, Factory2 shared_factory,
+                        typename std::enable_if<
+                          !std::is_void<
+                            typename future_traits<Future>::value_type
+                          >::value
+                        >::type* = 0)
+    {
       if(n > 0)
       {
-        return detail::monadic_then(fut, std::launch::async, [=](T& past_parameter) mutable
+        using past_parameter_type = typename future_traits<Future>::value_type;
+
+        return detail::monadic_then(fut, std::launch::async, [=](past_parameter_type& past_parameter) mutable
         {
           // put all the shared parameters on the first thread's stack
           auto result = result_factory(n);
@@ -63,9 +85,14 @@ class concurrent_executor
       return detail::make_ready_future(result_factory(n));
     }
 
-    template<class Function, class Factory1, class Factory2>
+    template<class Function, class Factory1, class Future, class Factory2>
     std::future<typename std::result_of<Factory1(size_t)>::type>
-      then_execute(Function f, Factory1 result_factory, size_t n, std::future<void>& fut, Factory2 shared_factory)
+      then_execute_impl(Function f, Factory1 result_factory, size_t n, Future& fut, Factory2 shared_factory,
+                        typename std::enable_if<
+                          std::is_void<
+                            typename future_traits<Future>::value_type
+                          >::value
+                        >::type* = 0)
     {
       if(n > 0)
       {
