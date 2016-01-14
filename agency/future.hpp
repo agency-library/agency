@@ -484,234 +484,351 @@ struct cast_functor
 };
 
 
+template<class Future>
+struct has_share_impl
+{
+  template<
+    class Future1,
+    class Result = decltype(
+      *std::declval<Future1*>.share()
+    ),
+    class = typename std::enable_if<
+      is_future<Result>::value
+    >::type
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Future>(0));
+};
+
+
+template<class Future>
+using has_share = typename has_share_impl<Future>::type;
+
+
 } // end detail
 
 
 template<class Future>
 struct future_traits
 {
-  using future_type = Future;
+  public:
+    using future_type = Future;
 
-  using value_type = typename detail::future_value<future_type>::type;
+    using value_type = typename detail::future_value<future_type>::type;
 
-  template<class U>
-  using rebind = typename detail::rebind_future_value<future_type,U>::type;
-
-  __AGENCY_ANNOTATION
-  static rebind<void> make_ready()
-  {
-    return rebind<void>::make_ready();
-  }
-
-  template<class T, class... Args>
-  __AGENCY_ANNOTATION
-  static rebind<T> make_ready(Args&&... args)
-  {
-    return rebind<T>::make_ready(std::forward<Args>(args)...);
-  }
-
-  template<class T>
-  __AGENCY_ANNOTATION
-  static rebind<typename std::decay<T>::type> make_ready(T&& value)
-  {
-    return rebind<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
-  }
-
-  template<class Function,
-           class = typename std::enable_if<
-             detail::has_then<future_type,Function&&>::value
-           >::type>
-  __AGENCY_ANNOTATION
-  static rebind<
-    agency::detail::result_of_continuation_t<Function&&, future_type>
-  >
-    then(future_type& fut, Function&& f)
-  {
-    return fut.then(std::forward<Function>(f));
-  }
+    template<class U>
+    using rebind = typename detail::rebind_future_value<future_type,U>::type;
 
   private:
-  __agency_hd_warning_disable__
-  template<class U>
-  __AGENCY_ANNOTATION
-  static rebind<U> cast_impl2(future_type& fut,
-                              typename std::enable_if<
-                                std::is_constructible<rebind<U>,future_type&&>::value
-                              >::type* = 0)
-  {
-    return rebind<U>(std::move(fut));
-  }
+    // share() is implemented with the following priorities:
+    // 1. return fut.share(), if this function exists
+    // 2. return fut, if future_type is copiable
+    // 3. convert fut into a std::future via std::async() and call .share()
+    
+    __agency_hd_warning_disable__
+    template<class Future1,
+             class = typename std::enable_if<
+               std::is_copy_constructible<Future1>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    static future_type share_impl2(Future1& fut)
+    {
+      return fut;
+    }
 
-  template<class U>
-  __AGENCY_ANNOTATION
-  static rebind<U> cast_impl2(future_type& fut,
-                              typename std::enable_if<
-                                !std::is_constructible<rebind<U>,future_type&&>::value
-                              >::type* = 0)
-  {
-    return future_traits<future_type>::then(fut, detail::cast_functor<U>());
-  }
+    template<class Future1,
+             class = typename std::enable_if<
+               !std::is_copy_constructible<Future1>::value
+             >::type>
+    static std::shared_future<value_type> share_impl2(Future1& fut)
+    {
+      // turn fut into a std::future
+      std::future<value_type> std_fut = std::async(std::launch::deferred, [](Future1&& fut)
+      {
+        return fut.get();
+      },
+      std::move(fut));
 
-  __agency_hd_warning_disable__
-  template<class U>
-  __AGENCY_ANNOTATION
-  static rebind<U> cast_impl1(future_type& fut,
-                              typename std::enable_if<
-                                detail::has_cast<future_type,U,rebind<U>>::value
-                              >::type* = 0)
-  {
-    return future_type::template cast<U>(fut);
-  }
+      // share the std::future
+      return std_fut.share();
+    }
 
-  template<class U>
-  __AGENCY_ANNOTATION
-  static rebind<U> cast_impl1(future_type& fut,
-                              typename std::enable_if<
-                                !detail::has_cast<future_type,U,rebind<U>>::value
-                              >::type* = 0)
-  {
-    return cast_impl2<U>(fut);
-  }
+    __agency_hd_warning_disable__
+    template<class Future1,
+             class = typename std::enable_if<
+               detail::has_share<Future1>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    static auto share_impl1(Future1& fut) ->
+      decltype(fut.share())
+    {
+      return fut.share();
+    }
+
+    __agency_hd_warning_disable__
+    template<class Future1,
+             class = typename std::enable_if<
+               !detail::has_share<Future1>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    static auto share_impl1(Future1& fut) ->
+      decltype(share_impl2(fut))
+    {
+      return share_impl2(fut);
+    }
+
+    __AGENCY_ANNOTATION
+    static auto share_impl(future_type& fut) ->
+      decltype(share_impl1(fut))
+    {
+      return share_impl1(fut);
+    }
 
   public:
+    using shared_future_type = decltype(share_impl(*std::declval<future_type*>()));
 
-  template<class U>
-  __AGENCY_ANNOTATION
-  static rebind<U> cast(future_type& fut)
-  {
-    return cast_impl1<U>(fut);
-  }
+    __AGENCY_ANNOTATION
+    shared_future_type share(future_type& fut)
+    {
+      return share_impl(fut);
+    }
+
+    __AGENCY_ANNOTATION
+    static rebind<void> make_ready()
+    {
+      return rebind<void>::make_ready();
+    }
+
+    template<class T, class... Args>
+    __AGENCY_ANNOTATION
+    static rebind<T> make_ready(Args&&... args)
+    {
+      return rebind<T>::make_ready(std::forward<Args>(args)...);
+    }
+
+    template<class T>
+    __AGENCY_ANNOTATION
+    static rebind<typename std::decay<T>::type> make_ready(T&& value)
+    {
+      return rebind<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
+    }
+
+    template<class Function,
+             class = typename std::enable_if<
+               detail::has_then<future_type,Function&&>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    static rebind<
+      agency::detail::result_of_continuation_t<Function&&, future_type>
+    >
+      then(future_type& fut, Function&& f)
+    {
+      return fut.then(std::forward<Function>(f));
+    }
+
+  private:
+    __agency_hd_warning_disable__
+    template<class U>
+    __AGENCY_ANNOTATION
+    static rebind<U> cast_impl2(future_type& fut,
+                                typename std::enable_if<
+                                  std::is_constructible<rebind<U>,future_type&&>::value
+                                >::type* = 0)
+    {
+      return rebind<U>(std::move(fut));
+    }
+
+    template<class U>
+    __AGENCY_ANNOTATION
+    static rebind<U> cast_impl2(future_type& fut,
+                                typename std::enable_if<
+                                  !std::is_constructible<rebind<U>,future_type&&>::value
+                                >::type* = 0)
+    {
+      return future_traits<future_type>::then(fut, detail::cast_functor<U>());
+    }
+
+    __agency_hd_warning_disable__
+    template<class U>
+    __AGENCY_ANNOTATION
+    static rebind<U> cast_impl1(future_type& fut,
+                                typename std::enable_if<
+                                  detail::has_cast<future_type,U,rebind<U>>::value
+                                >::type* = 0)
+    {
+      return future_type::template cast<U>(fut);
+    }
+
+    template<class U>
+    __AGENCY_ANNOTATION
+    static rebind<U> cast_impl1(future_type& fut,
+                                typename std::enable_if<
+                                  !detail::has_cast<future_type,U,rebind<U>>::value
+                                >::type* = 0)
+    {
+      return cast_impl2<U>(fut);
+    }
+
+  public:
+    template<class U>
+    __AGENCY_ANNOTATION
+    static rebind<U> cast(future_type& fut)
+    {
+      return cast_impl1<U>(fut);
+    }
 };
 
 
 template<class T>
 struct future_traits<std::future<T>>
 {
-  using future_type = std::future<T>;
+  public:
+    using future_type = std::future<T>;
 
-  using value_type = typename detail::future_value<future_type>::type;
+    using value_type = typename detail::future_value<future_type>::type;
 
-  template<class U>
-  using rebind = typename detail::rebind_future_value<future_type,U>::type;
+    template<class U>
+    using rebind = typename detail::rebind_future_value<future_type,U>::type;
 
-  __agency_hd_warning_disable__
-  __AGENCY_ANNOTATION
-  static rebind<void> make_ready()
-  {
-    return detail::make_ready_future();
-  }
+    using shared_future_type = std::shared_future<T>;
 
-  __agency_hd_warning_disable__
-  template<class U, class... Args>
-  __AGENCY_ANNOTATION
-  static rebind<U> make_ready(Args&&... args)
-  {
-    return detail::make_ready_future<U>(std::forward<Args>(args)...);
-  }
+    __agency_hd_warning_disable__
+    static shared_future_type share(future_type& fut)
+    {
+      return fut.share();
+    }
 
-  __agency_hd_warning_disable__
-  template<class Function>
-  __AGENCY_ANNOTATION
-  static auto then(future_type& fut, Function&& f) ->
-    decltype(detail::monadic_then(fut, std::forward<Function>(f)))
-  {
-    return detail::monadic_then(fut, std::forward<Function>(f));
-  }
+    __agency_hd_warning_disable__
+    __AGENCY_ANNOTATION
+    static rebind<void> make_ready()
+    {
+      return detail::make_ready_future();
+    }
 
-private:
-  template<class U>
-  static rebind<U> cast_impl(future_type& fut,
-                             typename std::enable_if<
-                               !std::is_constructible<rebind<U>,future_type&&>::value
-                             >::type* = 0)
-  {
-    return future_traits<future_type>::then(fut, detail::cast_functor<U>());
-  }
+    __agency_hd_warning_disable__
+    template<class U, class... Args>
+    __AGENCY_ANNOTATION
+    static rebind<U> make_ready(Args&&... args)
+    {
+      return detail::make_ready_future<U>(std::forward<Args>(args)...);
+    }
 
+    __agency_hd_warning_disable__
+    template<class Function>
+    __AGENCY_ANNOTATION
+    static auto then(future_type& fut, Function&& f) ->
+      decltype(detail::monadic_then(fut, std::forward<Function>(f)))
+    {
+      return detail::monadic_then(fut, std::forward<Function>(f));
+    }
 
-  template<class U>
-  static rebind<U> cast_impl(future_type& fut,
-                             typename std::enable_if<
-                               std::is_constructible<rebind<U>,future_type&&>::value
-                             >::type* = 0)
-  {
-    return rebind<U>(std::move(fut));
-  }
+  private:
+    template<class U>
+    static rebind<U> cast_impl(future_type& fut,
+                               typename std::enable_if<
+                                 !std::is_constructible<rebind<U>,future_type&&>::value
+                               >::type* = 0)
+    {
+      return future_traits<future_type>::then(fut, detail::cast_functor<U>());
+    }
 
 
-public:
-  __agency_hd_warning_disable__
-  template<class U>
-  __AGENCY_ANNOTATION
-  static rebind<U> cast(future_type& fut)
-  {
-    return cast_impl<U>(fut);
-  }
+    template<class U>
+    static rebind<U> cast_impl(future_type& fut,
+                               typename std::enable_if<
+                                 std::is_constructible<rebind<U>,future_type&&>::value
+                               >::type* = 0)
+    {
+      return rebind<U>(std::move(fut));
+    }
+
+
+  public:
+    __agency_hd_warning_disable__
+    template<class U>
+    __AGENCY_ANNOTATION
+    static rebind<U> cast(future_type& fut)
+    {
+      return cast_impl<U>(fut);
+    }
 };
 
 
 template<class T>
 struct future_traits<std::shared_future<T>>
 {
-  using future_type = std::shared_future<T>;
+  public:
+    using future_type = std::shared_future<T>;
 
-  using value_type = typename detail::future_value<future_type>::type;
+    using value_type = typename detail::future_value<future_type>::type;
 
-  template<class U>
-  using rebind = typename detail::rebind_future_value<future_type,U>::type;
+    template<class U>
+    using rebind = typename detail::rebind_future_value<future_type,U>::type;
 
-  __agency_hd_warning_disable__
-  __AGENCY_ANNOTATION
-  static rebind<void> make_ready()
-  {
-    return detail::make_ready_shared_future();
-  }
+    using shared_future_type = std::shared_future<T>;
 
-  __agency_hd_warning_disable__
-  template<class U, class... Args>
-  __AGENCY_ANNOTATION
-  static rebind<U> make_ready(Args&&... args)
-  {
-    return detail::make_ready_shared_future<U>(std::forward<Args>(args)...);
-  }
+    __agency_hd_warning_disable__
+    static shared_future_type share(future_type& fut)
+    {
+      return fut;
+    }
 
-  __agency_hd_warning_disable__
-  template<class Function>
-  __AGENCY_ANNOTATION
-  static auto then(future_type& fut, Function&& f) ->
-    decltype(detail::monadic_then(fut, std::forward<Function>(f)))
-  {
-    return detail::monadic_then(fut, std::forward<Function>(f));
-  }
+    __agency_hd_warning_disable__
+    __AGENCY_ANNOTATION
+    static rebind<void> make_ready()
+    {
+      return detail::make_ready_shared_future();
+    }
 
-private:
-  template<class U>
-  static rebind<U> cast_impl(future_type& fut,
-                             typename std::enable_if<
-                               !std::is_constructible<rebind<U>,future_type&&>::value
-                             >::type* = 0)
-  {
-    return future_traits<future_type>::then(fut, detail::cast_functor<U>());
-  }
+    __agency_hd_warning_disable__
+    template<class U, class... Args>
+    __AGENCY_ANNOTATION
+    static rebind<U> make_ready(Args&&... args)
+    {
+      return detail::make_ready_shared_future<U>(std::forward<Args>(args)...);
+    }
 
+    __agency_hd_warning_disable__
+    template<class Function>
+    __AGENCY_ANNOTATION
+    static auto then(future_type& fut, Function&& f) ->
+      decltype(detail::monadic_then(fut, std::forward<Function>(f)))
+    {
+      return detail::monadic_then(fut, std::forward<Function>(f));
+    }
 
-  template<class U>
-  static rebind<U> cast_impl(future_type& fut,
-                             typename std::enable_if<
-                               std::is_constructible<rebind<U>,future_type&&>::value
-                             >::type* = 0)
-  {
-    return rebind<U>(std::move(fut));
-  }
-
-public:
-  __agency_hd_warning_disable__
-  template<class U>
-  __AGENCY_ANNOTATION
-  static rebind<U> cast(future_type& fut)
-  {
-    return cast_impl<U>(fut);
-  }
+  private:
+    template<class U>
+    static rebind<U> cast_impl(future_type& fut,
+                               typename std::enable_if<
+                                 !std::is_constructible<rebind<U>,future_type&&>::value
+                               >::type* = 0)
+    {
+      return future_traits<future_type>::then(fut, detail::cast_functor<U>());
+    }
+  
+  
+    template<class U>
+    static rebind<U> cast_impl(future_type& fut,
+                               typename std::enable_if<
+                                 std::is_constructible<rebind<U>,future_type&&>::value
+                               >::type* = 0)
+    {
+      return rebind<U>(std::move(fut));
+    }
+  
+  public:
+    __agency_hd_warning_disable__
+    template<class U>
+    __AGENCY_ANNOTATION
+    static rebind<U> cast(future_type& fut)
+    {
+      return cast_impl<U>(fut);
+    }
 };
 
 
