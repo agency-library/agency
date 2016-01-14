@@ -57,6 +57,39 @@ inline std::future<void> make_ready_future()
 }
 
 
+template<class T, class... Args,
+         class = typename std::enable_if<
+           !std::is_void<T>::value
+         >::type>
+std::shared_future<T> make_ready_shared_future(Args&&... args)
+{
+  return detail::make_ready_future<T>(std::forward<Args>(args)...).share();
+}
+
+
+template<class T, class... Args,
+         class = typename std::enable_if<
+           std::is_void<T>::value
+         >::type>
+std::shared_future<T> make_ready_shared_future()
+{
+  return detail::make_ready_future<T>().share();
+}
+
+
+template<class T>
+std::shared_future<decay_t<T>> make_ready_shared_future(T&& value)
+{
+  return detail::make_ready_future(std::forward<T>(value)).share();
+}
+
+
+inline std::shared_future<void> make_ready_shared_future()
+{
+  return detail::make_ready_future().share();
+}
+
+
 // XXX when_all is supposed to return a future<vector>
 template<typename ForwardIterator>
 std::future<void> when_all(ForwardIterator first, ForwardIterator last)
@@ -78,6 +111,7 @@ std::future<void> when_all(ForwardIterator first, ForwardIterator last)
 }
 
 
+// then() with launch policy for std::future
 template<class T, class Function>
 std::future<typename std::result_of<Function(std::future<T>&)>::type>
   then(std::future<T>& fut, std::launch policy, Function&& f)
@@ -94,10 +128,113 @@ std::future<typename std::result_of<Function(std::future<T>&)>::type>
 
 
 template<class T, class Function>
+std::future<typename std::result_of<Function(T&)>::type>
+  monadic_then(std::future<T>& fut, std::launch policy, Function&& f)
+{
+  return std::async(policy, [](std::future<T>&& fut, Function&& f)
+  {
+    T arg = fut.get();
+    return std::forward<Function>(f)(arg);
+  },
+  std::move(fut),
+  std::forward<Function>(f)
+  );
+}
+
+
+template<class Function>
+std::future<typename std::result_of<Function()>::type>
+  monadic_then(std::future<void>& fut, std::launch policy, Function&& f)
+{
+  return std::async(policy, [](std::future<void>&& fut, Function&& f)
+  {
+    fut.get();
+    return std::forward<Function>(f)();
+  },
+  std::move(fut),
+  std::forward<Function>(f)
+  );
+}
+
+
+// then() for std::future
+template<class T, class Function>
 std::future<typename std::result_of<Function(std::future<T>&)>::type>
   then(std::future<T>& fut, Function&& f)
 {
   return detail::then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
+}
+
+
+template<class T, class Function>
+auto monadic_then(std::future<T>& fut, Function&& f) ->
+  decltype(detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f)))
+{
+  return detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
+}
+
+
+// then() with launch policy for std::shared_future
+template<class T, class Function>
+std::future<typename std::result_of<Function(std::shared_future<T>&)>::type>
+  then(std::shared_future<T>& fut, std::launch policy, Function&& f)
+{
+  return std::async(policy, [](std::shared_future<T>&& fut, Function&& f)
+  {
+    fut.wait();
+    return std::forward<Function>(f)(fut);
+  },
+  std::move(fut),
+  std::forward<Function>(f)
+  );
+}
+
+
+// then() for std::shared_future
+template<class T, class Function>
+std::future<typename std::result_of<Function(std::shared_future<T>&)>::type>
+  then(std::shared_future<T>& fut, Function&& f)
+{
+  return detail::then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
+}
+
+
+// monadic_then() for std::shared_future
+template<class T, class Function>
+std::future<typename std::result_of<Function(T&)>::type>
+  monadic_then(std::shared_future<T>& fut, std::launch policy, Function&& f)
+{
+  return std::async(policy, [](std::shared_future<T>&& fut, Function&& f)
+  {
+    T& arg = const_cast<T&>(fut.get());
+    return std::forward<Function>(f)(arg);
+  },
+  std::move(fut),
+  std::forward<Function>(f)
+  );
+}
+
+
+template<class Function>
+std::future<typename std::result_of<Function()>::type>
+  monadic_then(std::shared_future<void>& fut, std::launch policy, Function&& f)
+{
+  return std::async(policy, [](std::shared_future<void>&& fut, Function&& f)
+  {
+    fut.get();
+    return std::forward<Function>(f)();
+  },
+  std::move(fut),
+  std::forward<Function>(f)
+  );
+}
+
+
+template<class T, class Function>
+auto monadic_then(std::shared_future<T>& fut, Function&& f) ->
+  decltype(detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f)))
+{
+  return detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
 }
 
 
@@ -119,7 +256,13 @@ __DEFINE_HAS_NESTED_TYPE(has_value_type, value_type);
 template<class Future>
 struct future_value
 {
-  using type = decltype(std::declval<Future>().get());
+  // the decay removes the reference returned
+  // from futures like shared_future
+  // the idea is given Future<T>,
+  // future_value<Future<T>> returns T
+  using type = typename std::decay<
+    decltype(std::declval<Future>().get())
+  >::type;
 };
 
 
@@ -466,68 +609,13 @@ struct future_traits<std::future<T>>
     return detail::make_ready_future<U>(std::forward<Args>(args)...);
   }
 
-private:
-  template<class Function>
-  struct then_functor
-  {
-    mutable Function f_;
-
-    template<class Function1>
-    __AGENCY_ANNOTATION
-    then_functor(Function1&& f) : f_(std::forward<Function1>(f)) {}
-
-    template<class Function1,
-             class U,
-             class = typename std::enable_if<
-               !std::is_void<U>::value
-             >::type>
-    static auto invoke_continuation(Function1& f, std::future<U>& fut)
-      -> decltype(f(*std::declval<U*>()))
-    {
-      auto val = fut.get();
-      return f(val);
-    }
-
-    template<class Function1,
-             class U,
-             class = typename std::enable_if<
-               std::is_void<U>::value
-             >::type>
-    static auto invoke_continuation(Function1& f, std::future<U>& fut)
-      -> decltype(f())
-    {
-      fut.get();
-      return f();
-    }
-
-    auto operator()(future_type& fut) const
-      -> decltype(invoke_continuation(f_, fut))
-    {
-      return invoke_continuation(f_, fut);
-    }
-  };
-
-  template<class Function>
-  static then_functor<typename std::decay<Function>::type>
-    make_then_functor(Function&& f)
-  {
-    return then_functor<typename std::decay<Function>::type>(std::forward<Function>(f));
-  }
-
-public:
-
   __agency_hd_warning_disable__
   template<class Function>
   __AGENCY_ANNOTATION
-  static auto then(future_type& fut, Function&& f)
-    -> decltype(
-         detail::then(fut, make_then_functor(std::forward<Function>(f)))
-       )
+  static auto then(future_type& fut, Function&& f) ->
+    decltype(detail::monadic_then(fut, std::forward<Function>(f)))
   {
-    // detail::then() expects the continuation to receive a future, not a value
-    // so the continuation we pass to detail::then needs to unwrap fut
-
-    return detail::then(fut, make_then_functor(std::forward<Function>(f)));
+    return detail::monadic_then(fut, std::forward<Function>(f));
   }
 
 private:
@@ -551,8 +639,72 @@ private:
   }
 
 
-  public:
+public:
+  __agency_hd_warning_disable__
+  template<class U>
+  __AGENCY_ANNOTATION
+  static rebind<U> cast(future_type& fut)
+  {
+    return cast_impl<U>(fut);
+  }
+};
 
+
+template<class T>
+struct future_traits<std::shared_future<T>>
+{
+  using future_type = std::shared_future<T>;
+
+  using value_type = typename detail::future_value<future_type>::type;
+
+  template<class U>
+  using rebind = typename detail::rebind_future_value<future_type,U>::type;
+
+  __agency_hd_warning_disable__
+  __AGENCY_ANNOTATION
+  static rebind<void> make_ready()
+  {
+    return detail::make_ready_shared_future();
+  }
+
+  __agency_hd_warning_disable__
+  template<class U, class... Args>
+  __AGENCY_ANNOTATION
+  static rebind<U> make_ready(Args&&... args)
+  {
+    return detail::make_ready_shared_future<U>(std::forward<Args>(args)...);
+  }
+
+  __agency_hd_warning_disable__
+  template<class Function>
+  __AGENCY_ANNOTATION
+  static auto then(future_type& fut, Function&& f) ->
+    decltype(detail::monadic_then(fut, std::forward<Function>(f)))
+  {
+    return detail::monadic_then(fut, std::forward<Function>(f));
+  }
+
+private:
+  template<class U>
+  static rebind<U> cast_impl(future_type& fut,
+                             typename std::enable_if<
+                               !std::is_constructible<rebind<U>,future_type&&>::value
+                             >::type* = 0)
+  {
+    return future_traits<future_type>::then(fut, detail::cast_functor<U>());
+  }
+
+
+  template<class U>
+  static rebind<U> cast_impl(future_type& fut,
+                             typename std::enable_if<
+                               std::is_constructible<rebind<U>,future_type&&>::value
+                             >::type* = 0)
+  {
+    return rebind<U>(std::move(fut));
+  }
+
+public:
   __agency_hd_warning_disable__
   template<class U>
   __AGENCY_ANNOTATION
