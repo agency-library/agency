@@ -25,11 +25,10 @@ class concurrent_executor
     {
       if(n > 0)
       {
-        return detail::then(fut, std::launch::async, [=](std::future<T>& past) mutable
+        return detail::monadic_then(fut, std::launch::async, [=](T& past_parameter) mutable
         {
           // put all the shared parameters on the first thread's stack
           auto result = result_factory(n);
-          auto past_parameter = past.get();
           auto shared_parameter = shared_factory();
 
           // create a lambda to handle parameter passing
@@ -70,7 +69,7 @@ class concurrent_executor
     {
       if(n > 0)
       {
-        return detail::then(fut, std::launch::async, [=](std::future<void>&) mutable
+        return detail::monadic_then(fut, std::launch::async, [=]() mutable
         {
           // put all the shared parameters on the first thread's stack
           auto result = result_factory(n);
