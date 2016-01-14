@@ -16,7 +16,7 @@
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/gpu.hpp>
 #include <agency/cuda/detail/bind.hpp>
-#include <agency/cuda/detail/unique_ptr.hpp>
+#include <agency/cuda/detail/memory/unique_ptr.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>

@@ -2,8 +2,8 @@
 
 #include <agency/cuda/grid_executor.hpp>
 #include <agency/flattened_executor.hpp>
-#include <agency/cuda/detail/allocator.hpp>
-#include <agency/cuda/detail/pinned_allocator.hpp>
+#include <agency/cuda/detail/memory/allocator.hpp>
+#include <agency/cuda/detail/memory/pinned_allocator.hpp>
 #include <agency/cuda/detail/array.hpp>
 #include "uber_future.hpp"
 

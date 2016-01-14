@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/optional.hpp>
 #include <agency/cuda/detail/boxed_value.hpp>
-#include <agency/cuda/detail/unique_ptr.hpp>
+#include <agency/cuda/detail/memory/unique_ptr.hpp>
 #include <agency/detail/unit.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/future.hpp>

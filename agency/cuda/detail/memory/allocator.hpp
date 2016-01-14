@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/detail/managed_allocator.hpp>
+#include <agency/cuda/detail/memory/managed_allocator.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <memory>
