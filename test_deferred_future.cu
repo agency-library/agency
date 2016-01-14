@@ -1,5 +1,5 @@
 #include <cassert>
-#include <agency/cuda/deferred_future.hpp>
+#include <agency/cuda/future.hpp>
 #include <iostream>
 
 int main()

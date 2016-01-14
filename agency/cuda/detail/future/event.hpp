@@ -5,7 +5,7 @@
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/kernel.hpp>
-#include <agency/cuda/detail/stream.hpp>
+#include <agency/cuda/detail/future/stream.hpp>
 #include <agency/cuda/gpu.hpp>
 
 namespace agency

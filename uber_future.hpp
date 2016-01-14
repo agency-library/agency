@@ -1,7 +1,6 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/deferred_future.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/detail/variant.hpp>
 

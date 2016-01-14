@@ -2,9 +2,9 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
-#include <agency/cuda/detail/stream.hpp>
-#include <agency/cuda/detail/event.hpp>
-#include <agency/cuda/detail/asynchronous_state.hpp>
+#include <agency/cuda/detail/future/stream.hpp>
+#include <agency/cuda/detail/future/event.hpp>
+#include <agency/cuda/detail/future/asynchronous_state.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/functional.hpp>
