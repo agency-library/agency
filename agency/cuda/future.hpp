@@ -240,9 +240,10 @@ class future
       return future<result_type>(std::move(next_event), std::move(result_state));
     }
 
+  // XXX stuff beneath here should be private but the implementation of when_all_execute_and_select() uses it
+  //private:
     // XXX should think about getting rid of Shape and IndexFunction
     //     and require grid_dim & block_dim
-    // XXX maybe this should be private
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     future<typename std::result_of<Factory(Shape)>::type>
@@ -305,7 +306,6 @@ class future
       return bulk_then_kernel(f, result_factory, s, index_function, outer_factory, inner_factory, gpu);
     }
 
-//  private:
     template<class U> friend class future;
     template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
 
