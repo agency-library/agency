@@ -65,6 +65,8 @@ using element_type_is_not_unit = std::integral_constant<
 //     a simple way to apply this operation would be to derive this class from a tuple of its members, since tuple already applies EBO
 // XXX should try to find a way to take an InnerParameterPointer instead of InnerFactory to make the way all the parameters are handled uniformly
 // XXX the problem is that the inner parameter needs to know who the leader is, and that info isn't easily passed through pointer dereference syntax
+// XXX it would be nice to refactor this functor such that IndexFunction was not a template parameter
+//     any reindexing of the CUDA built-ins would happen inside of Function
 template<class ContainerPointer, class Function, class IndexFunction, class PastParameterPointer, class OuterParameterPointer, class InnerFactory>
 struct bulk_then_functor
 {
@@ -238,9 +240,10 @@ class future
       return future<result_type>(std::move(next_event), std::move(result_state));
     }
 
+  // XXX stuff beneath here should be private but the implementation of when_all_execute_and_select() uses it
+  //private:
     // XXX should think about getting rid of Shape and IndexFunction
     //     and require grid_dim & block_dim
-    // XXX maybe this should be private
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     future<typename std::result_of<Factory(Shape)>::type>
@@ -278,6 +281,7 @@ class future
     }
 
     // these functions returns a pointer to the kernel used to implement the corresponding call to bulk_then()
+    // XXX there might not actually be implemented a corresponding bulk_then() for each of these bulk_then_kernel() functions
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     static void* bulk_then_kernel(const Function& f, const Factory& result_factory, const Shape& s, const IndexFunction& index_function, const OuterFactory&, const InnerFactory& inner_factory, const gpu_id&)
@@ -302,7 +306,6 @@ class future
       return bulk_then_kernel(f, result_factory, s, index_function, outer_factory, inner_factory, gpu);
     }
 
-//  private:
     template<class U> friend class future;
     template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
 
