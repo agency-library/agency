@@ -22,7 +22,6 @@
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/cuda/detail/when_all_execute_and_select.hpp>
 #include <agency/cuda/detail/then_execute.hpp>
-#include <agency/cuda/detail/new_then_execute.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/functional.hpp>
 #include <agency/detail/shape_cast.hpp>
@@ -112,7 +111,7 @@ class basic_grid_executor
     future<typename std::result_of<Factory1(shape_type)>::type>
       then_execute(Function f, Factory1 result_factory, shape_type shape, future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
     {
-      return detail::new_then_execute(f, result_factory, shape, ThisIndexFunction(), fut, outer_factory, inner_factory, gpu());
+      return fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, gpu());
     }
 
 
@@ -159,7 +158,7 @@ class basic_grid_executor
     __host__ __device__
     void* new_then_execute_kernel(const Function& f, const Factory1& result_factory, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
-      return detail::new_then_execute_kernel(f, result_factory, shape_type{}, ThisIndexFunction(), fut, outer_factory, inner_factory, gpu());
+      return fut.bulk_then_kernel(f, result_factory, shape_type{}, ThisIndexFunction(), outer_factory, inner_factory, gpu());
     }
 
 
