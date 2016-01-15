@@ -159,7 +159,7 @@ agency::cuda::future<
   auto f = make_move_construct_result_functor(result_state.data(), ptr, ptrs...);
 
   // launch the function
-  agency::cuda::detail::event result_event = dependency.then(f, dim3{1}, dim3{1}, 0);
+  agency::cuda::detail::event result_event = dependency.then_and_invalidate(f, dim3{1}, dim3{1}, 0);
 
   return agency::cuda::future<result_type>(std::move(result_event), std::move(result_state));
 }
@@ -203,7 +203,7 @@ event launch_when_all_execute_operation_impl(event& dependency,
   ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
 
   // launch the continuation
-  return dependency.then(continuation, grid_dim, block_dim, 0);
+  return dependency.then_and_invalidate(continuation, grid_dim, block_dim, 0);
 }
 
 
