@@ -65,6 +65,8 @@ using element_type_is_not_unit = std::integral_constant<
 //     a simple way to apply this operation would be to derive this class from a tuple of its members, since tuple already applies EBO
 // XXX should try to find a way to take an InnerParameterPointer instead of InnerFactory to make the way all the parameters are handled uniformly
 // XXX the problem is that the inner parameter needs to know who the leader is, and that info isn't easily passed through pointer dereference syntax
+// XXX it would be nice to refactor this functor such that IndexFunction was not a template parameter
+//     any reindexing of the CUDA built-ins would happen inside of Function
 template<class ContainerPointer, class Function, class IndexFunction, class PastParameterPointer, class OuterParameterPointer, class InnerFactory>
 struct bulk_then_functor
 {
@@ -290,14 +292,6 @@ class future
       using bulk_then_functor_type = decltype(detail::make_bulk_then_functor(std::declval<result_state_type>().data(), f, index_function, std::declval<future>().data(), std::declval<outer_future_type>().data(), inner_factory));
 
       return detail::event::then_on_kernel<bulk_then_functor_type>();
-    }
-
-    template<class Container, class Function, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
-    __host__ __device__
-    static void* bulk_then_kernel(const Function& f, const Shape& s, const IndexFunction& index_function, OuterFactory outer_factory, InnerFactory inner_factory, const gpu_id& gpu)
-    {
-      agency::detail::factory<Container> result_factory;
-      return bulk_then_kernel(f, result_factory, s, index_function, outer_factory, inner_factory);
     }
 
     template<class Function, class Factory, class Shape, class IndexFunction>

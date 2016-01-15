@@ -21,7 +21,6 @@
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/cuda/detail/when_all_execute_and_select.hpp>
-#include <agency/cuda/detail/then_execute.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/functional.hpp>
 #include <agency/detail/shape_cast.hpp>
@@ -119,13 +118,20 @@ class basic_grid_executor
     // alternatively, cuda_executor could report occupancy of a Function for a given block size
     // XXX probably shouldn't expose this -- max_shape() seems good enough
 
+    template<class Function, class Factory1, class T, class OuterFactory, class InnerFactory>
+    __host__ __device__
+    void* then_execute_kernel(const Function& f, const Factory1& result_factory, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
+    {
+      return fut.bulk_then_kernel(f, result_factory, shape_type{}, ThisIndexFunction(), outer_factory, inner_factory, gpu());
+    }
+
     template<class Container, class Function, class T, class OuterFactory, class InnerFactory>
     __host__ __device__
     void* then_execute_kernel(const Function& f, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
-      return detail::then_execute_kernel<Container>(f, shape_type{}, ThisIndexFunction(), fut, outer_factory, inner_factory);
+      agency::detail::factory<Container> result_factory;
+      return then_execute_kernel(f, result_factory, fut, outer_factory, inner_factory);
     }
-
 
     template<class Function, class T, class OuterFactory, class InnerFactory>
     __host__ __device__
@@ -133,16 +139,17 @@ class basic_grid_executor
     {
       using container_type = agency::detail::new_executor_traits_detail::discarding_container;
       auto g = agency::detail::invoke_and_return_unit<Function>{f};
-      return detail::then_execute_kernel<container_type>(g, shape_type{}, ThisIndexFunction(), fut, outer_factory, inner_factory);
+      return then_execute_kernel<container_type>(g, fut, outer_factory, inner_factory);
     }
 
     template<class Function, class T>
     __host__ __device__
     static void* then_execute_kernel(const Function& f, const future<T>& fut)
     {
-      using container_type = agency::detail::new_executor_traits_detail::discarding_container;
-      auto g = agency::detail::invoke_and_return_unit<Function>{f};
-      return detail::then_execute_kernel<container_type>(g, shape_type{}, ThisIndexFunction(), fut);
+      // XXX if T is void, then we only want to take the first parameter and invoke, because there is no second parameter
+      //     so what we really want is something like take_at_most_first_two_parameters_and_invoke<Function>
+      auto g = agency::detail::take_first_two_parameters_and_invoke<Function>{f};
+      return then_execute_kernel(g, fut, agency::detail::unit_factory(), agency::detail::unit_factory());
     }
 
 
@@ -151,14 +158,6 @@ class basic_grid_executor
     static void* then_execute_kernel(const Function& f)
     {
       return then_execute_kernel(f, future<void>());
-    }
-
-
-    template<class Function, class Factory1, class T, class OuterFactory, class InnerFactory>
-    __host__ __device__
-    void* new_then_execute_kernel(const Function& f, const Factory1& result_factory, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
-    {
-      return fut.bulk_then_kernel(f, result_factory, shape_type{}, ThisIndexFunction(), outer_factory, inner_factory, gpu());
     }
 
 
@@ -302,7 +301,7 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
     __host__ __device__
     shape_type max_shape(const Function& f, const Factory1& result_factory, const future<T>& fut, const Factory2& outer_factory, const Factory3& inner_factory) const
     {
-      return max_shape_impl(new_then_execute_kernel(f, result_factory, fut, outer_factory, inner_factory));
+      return max_shape_impl(then_execute_kernel(f, result_factory, fut, outer_factory, inner_factory));
     }
 };
 
