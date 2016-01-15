@@ -11,6 +11,9 @@
 #include <agency/detail/shape_cast.hpp>
 #include <memory>
 
+
+// XXX eliminate this file entirely
+
 namespace agency
 {
 namespace cuda
@@ -111,26 +114,10 @@ template<class Container, class Function, class Shape, class IndexFunction, clas
 __host__ __device__
 void* then_execute_kernel(const Function& f, const Shape& s, const IndexFunction& index_function, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory)
 {
-  using result_state_type = detail::asynchronous_state<Container>;
-  using outer_future_type = future<agency::detail::result_of_factory_t<OuterFactory>>;
-
-  using then_execute_functor_type = decltype(detail::make_then_execute_functor(std::declval<result_state_type>().data(), f, index_function, fut.data(), std::declval<outer_future_type>().data(), inner_factory));
-
-  return detail::event::then_kernel<then_execute_functor_type>();
+  agency::detail::factory<Container> result_factory;
+  return fut.bulk_then_kernel(f, result_factory, s, index_function, outer_factory, inner_factory);
 }
 
-
-
-template<class Container, class Function, class Shape, class IndexFunction, class T>
-__host__ __device__
-future<Container> then_execute(Function f, Shape shape, IndexFunction index_function, future<T>& fut)
-{
-  auto outer_factory = agency::detail::unit_factory{};
-  auto inner_factory = agency::detail::unit_factory{};
-  auto g = agency::detail::take_first_two_parameters_and_invoke<Function>{f};
-
-  return detail::then_execute<Container>(g, shape, index_function, fut, outer_factory, inner_factory);
-}
 
 
 template<class Container, class Function, class Shape, class IndexFunction, class T>
