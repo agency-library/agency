@@ -278,6 +278,7 @@ class future
     }
 
     // these functions returns a pointer to the kernel used to implement the corresponding call to bulk_then()
+    // XXX there might not actually be implemented a corresponding bulk_then() for each of these bulk_then_kernel() functions
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     static void* bulk_then_kernel(const Function& f, const Factory& result_factory, const Shape& s, const IndexFunction& index_function, const OuterFactory&, const InnerFactory& inner_factory, const gpu_id&)
@@ -289,6 +290,14 @@ class future
       using bulk_then_functor_type = decltype(detail::make_bulk_then_functor(std::declval<result_state_type>().data(), f, index_function, std::declval<future>().data(), std::declval<outer_future_type>().data(), inner_factory));
 
       return detail::event::then_on_kernel<bulk_then_functor_type>();
+    }
+
+    template<class Container, class Function, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
+    __host__ __device__
+    static void* bulk_then_kernel(const Function& f, const Shape& s, const IndexFunction& index_function, OuterFactory outer_factory, InnerFactory inner_factory, const gpu_id& gpu)
+    {
+      agency::detail::factory<Container> result_factory;
+      return bulk_then_kernel(f, result_factory, s, index_function, outer_factory, inner_factory);
     }
 
     template<class Function, class Factory, class Shape, class IndexFunction>
