@@ -234,7 +234,7 @@ class future
       auto continuation = detail::make_continuation(f, result_state.data(), pointer_tuple);
 
       // launch the continuation
-      detail::event next_event = event().then(continuation, dim3{1}, dim3{1}, 0);
+      detail::event next_event = event().then_and_invalidate(continuation, dim3{1}, dim3{1}, 0);
 
       // return the continuation's future
       return future<result_type>(std::move(next_event), std::move(result_state));
@@ -263,7 +263,7 @@ class future
       ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
       ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
       
-      auto next_event = event().then_on(g, grid_dim, block_dim, 0, gpu.native_handle());
+      auto next_event = event().then_on_and_invalidate(g, grid_dim, block_dim, 0, gpu.native_handle());
       
       return future<result_type>(std::move(next_event), std::move(result_state));
     }
@@ -405,7 +405,7 @@ when_all(future<Types>&... futures)
   auto continuation = detail::make_continuation(detail::when_all_functor<result_type>{}, result_state.data(), pointer_tuple);
 
   // launch the continuation
-  detail::event next_event = when_all_ready.then(continuation, dim3{1}, dim3{1}, 0);
+  detail::event next_event = when_all_ready.then_and_invalidate(continuation, dim3{1}, dim3{1}, 0);
 
   // return the continuation's future
   return future<result_type>(std::move(next_event), std::move(result_state));

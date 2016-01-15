@@ -126,12 +126,13 @@ class event
       return then_kernel<Function,Args...>();
     }
 
+    // this form of then() invalidates this event afterwards
     template<class Function, class... Args>
     __host__ __device__
-    event then(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const Args&... args)
+    event then_and_invalidate(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const Args&... args)
     {
       // make the stream wait before launching
-      stream_wait();
+      stream_wait_and_invalidate();
 
       // get the address of the kernel
       auto kernel = then_kernel(f,args...);
@@ -158,10 +159,10 @@ class event
 
     template<class Function, class... Args>
     __host__ __device__
-    event then_on(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const gpu_id& gpu, const Args&... args)
+    event then_on_and_invalidate(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const gpu_id& gpu, const Args&... args)
     {
       // make the stream wait before launching
-      stream_wait();
+      stream_wait_and_invalidate();
 
       // get the address of the kernel
       auto kernel = then_on_kernel(f,args...);
@@ -204,7 +205,7 @@ class event
     // makes the given stream wait on this event and invalidates this event
     // this function returns 0 so that we can pass it as an argument to swallow(...)
     __host__ __device__
-    int stream_wait(const detail::stream& s)
+    int stream_wait_and_invalidate(const detail::stream& s)
     {
 #if __cuda_lib_has_cudart
       // make the next launch wait on the event
@@ -219,10 +220,11 @@ class event
       return 0;
     }
 
+    // makes this event's stream wait on this event and invalidates this event
     __host__ __device__
-    int stream_wait()
+    int stream_wait_and_invalidate()
     {
-      return stream_wait(stream());
+      return stream_wait_and_invalidate(stream());
     }
 
     template<class... Args>
@@ -246,7 +248,7 @@ event when_all_events_are_ready(const gpu_id& gpu, Events&... events)
   detail::stream s{gpu};
 
   // tell the stream to wait on all the events
-  event::swallow(events.stream_wait(s)...);
+  event::swallow(events.stream_wait_and_invalidate(s)...);
 
   // return a new event recorded on the stream
   return event(std::move(s));
