@@ -126,7 +126,7 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
     }
 
     __AGENCY_ANNOTATION
-    bool ready() const
+    bool is_ready() const
     {
       return static_cast<bool>(this->value());
     }
@@ -188,7 +188,7 @@ class deferred_result<void> : detail::boxed_value<agency::detail::optional<agenc
     }
 
     __AGENCY_ANNOTATION
-    bool ready() const
+    bool is_ready() const
     {
       return static_cast<bool>(this->value());
     }
@@ -264,19 +264,19 @@ class deferred_state
     __AGENCY_ANNOTATION
     bool valid() const
     {
-      return function_ || result_.ready();
+      return function_ || result_.is_ready();
     }
 
     __AGENCY_ANNOTATION
-    bool ready() const
+    bool is_ready() const
     {
-      return valid() && result_.ready();
+      return valid() && result_.is_ready();
     }
 
     __AGENCY_ANNOTATION
     void wait()
     {
-      if(!ready())
+      if(!is_ready())
       {
         result_ = invoke_function<T>();
 
@@ -355,9 +355,9 @@ class deferred_future
     }
 
     __AGENCY_ANNOTATION
-    bool ready() const
+    bool is_ready() const
     {
-      return state_.ready();
+      return state_.is_ready();
     }
 
     __AGENCY_ANNOTATION

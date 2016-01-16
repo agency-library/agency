@@ -129,7 +129,12 @@ bulk_then_functor<ContainerPointer,Function,IndexFunction,PastParameterPointer,O
 } // end detail
 
 
-template<typename T>
+// forward declaration for future<T>'s benefit
+template<class T>
+class shared_future;
+
+
+template<class T>
 class future
 {
   private:
@@ -192,6 +197,12 @@ class future
     } // end valid()
 
     __host__ __device__
+    bool is_ready() const
+    {
+      return event_.is_ready();
+    } // end is_ready()
+
+    __host__ __device__
     detail::event& event()
     {
       return event_;
@@ -244,6 +255,10 @@ class future
       // return the continuation's future
       return future<result_type>(std::move(next_event), std::move(result_state));
     }
+
+    // XXX the implementation of future<T>::share() is in shared_future.hpp
+    //     because it needs access to shared_future<T>'s class definition
+    shared_future<T> share();
 
   // XXX stuff beneath here should be private but the implementation of when_all_execute_and_select() uses it
   //private:
