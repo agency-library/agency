@@ -63,10 +63,9 @@ class event
 
     __host__ __device__
     event(event&& other)
-      : stream_(std::move(other.stream())),
-        e_(other.e_)
+      : event()
     {
-      other.e_ = 0;
+      swap(other);
     }
 
     __host__ __device__
