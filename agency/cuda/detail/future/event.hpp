@@ -78,6 +78,13 @@ class event
     }
 
     __host__ __device__
+    event& operator=(event&& other)
+    {
+      swap(other);
+      return *this;
+    }
+
+    __host__ __device__
     bool valid() const
     {
       return e_ != 0;
@@ -205,9 +212,6 @@ class event
     __host__ __device__
     event then_on_and_invalidate(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const gpu_id& gpu, const Args&... args)
     {
-      // make the stream wait on this event before further launches
-      stream_wait_and_invalidate();
-
       // get the address of the kernel
       auto kernel = then_on_kernel(f,args...);
 
@@ -215,8 +219,14 @@ class event
       // otherwise, just reuse this event's stream
       detail::stream new_stream = (gpu == stream().gpu()) ? std::move(stream()) : detail::stream(gpu);
 
+      // make the new stream wait on this event
+      stream_wait(new_stream, *this);
+
       // launch the kernel on the new stream
       detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), gpu.native_handle(), f, args...);
+
+      // invalidate this event
+      *this = event();
 
       // return a new event
       return event(std::move(new_stream));
