@@ -159,20 +159,7 @@ class event
     __host__ __device__
     event then(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const Args&... args)
     {
-      // create a stream for the kernel
-      detail::stream result_stream;
-
-      // make the result_stream wait on this event before further launches
-      stream_wait(result_stream, *this);
-
-      // get the address of the kernel
-      auto kernel = then_kernel(f,args...);
-
-      // launch the kernel on the result's stream
-      detail::checked_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, result_stream.native_handle(), f, args...);
-
-      // return a new event
-      return event(std::move(result_stream));
+      return then_on(f, grid_dim, block_dim, shared_memory_size, stream().gpu(), args...);
     }
 
     // this form of then() leaves this event in an invalid state afterwards
@@ -212,9 +199,6 @@ class event
     __host__ __device__
     event then_on_and_invalidate(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const gpu_id& gpu, const Args&... args)
     {
-      // get the address of the kernel
-      auto kernel = then_on_kernel(f,args...);
-
       // if gpu differs from this event's stream's gpu, we need to create a new one for the launch
       // otherwise, just reuse this event's stream
       detail::stream new_stream = (gpu == stream().gpu()) ? std::move(stream()) : detail::stream(gpu);
@@ -222,11 +206,35 @@ class event
       // make the new stream wait on this event
       stream_wait(new_stream, *this);
 
+      // get the address of the kernel
+      auto kernel = then_on_kernel(f,args...);
+
       // launch the kernel on the new stream
       detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), gpu.native_handle(), f, args...);
 
       // invalidate this event
       *this = event();
+
+      // return a new event
+      return event(std::move(new_stream));
+    }
+
+    // this form of then_on() leaves this event in a valid state afterwards
+    template<class Function, class... Args>
+    __host__ __device__
+    event then_on(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const gpu_id& gpu, const Args&... args)
+    {
+      // create a stream for the kernel
+      detail::stream new_stream;
+
+      // make the new stream wait on this event
+      stream_wait(new_stream, *this);
+
+      // get the address of the kernel
+      auto kernel = then_on_kernel(f,args...);
+
+      // launch the kernel on the new stream
+      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), gpu.native_handle(), f, args...);
 
       // return a new event
       return event(std::move(new_stream));
