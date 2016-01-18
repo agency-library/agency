@@ -264,6 +264,27 @@ class future
   //private:
     friend class shared_future<T>; // for access to then_and_leave_valid()
 
+    __host__ __device__
+    static void get_ref_impl(agency::detail::unit_ptr)
+    {
+    }
+
+    template<class U>
+    __host__ __device__
+    static U& get_ref_impl(U* ptr)
+    {
+      return *ptr;
+    }
+
+    // XXX get_ref() should be a member of asynchronous_state
+    __host__ __device__
+    auto get_ref() ->
+      decltype(get_ref_impl(this->data()))
+    {
+      wait();
+      return get_ref_impl(data());
+    }
+
     // this version of then() leaves the future in a valid state
     // it's used by shared_future
     template<class Function>
@@ -358,6 +379,30 @@ class future
       auto g = agency::detail::take_first_two_parameters_and_invoke<Function>{f};
 
       return bulk_then_kernel(f, result_factory, s, index_function, outer_factory, inner_factory, gpu);
+    }
+
+    template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
+    __host__ __device__
+    future<typename std::result_of<Factory(Shape)>::type>
+      bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, gpu_id gpu)
+    {
+      using result_type = typename std::result_of<Factory(Shape)>::type;
+      detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory(shape));
+      
+      using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
+      auto outer_arg = future<outer_arg_type>::make_ready(outer_factory());
+      
+      auto g = detail::make_bulk_then_functor(result_state.data(), f, index_function, data(), outer_arg.data(), inner_factory);
+
+      uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
+      uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
+
+      ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
+      ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
+      
+      auto next_event = event().then_on(g, grid_dim, block_dim, 0, gpu.native_handle());
+      
+      return future<result_type>(std::move(next_event), std::move(result_state));
     }
 
     template<class U> friend class future;
