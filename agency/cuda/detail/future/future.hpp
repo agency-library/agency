@@ -262,6 +262,40 @@ class future
 
   // XXX stuff beneath here should be private but the implementation of when_all_execute_and_select() uses it
   //private:
+    friend class shared_future<T>; // for access to then_and_leave_valid()
+
+    // this version of then() leaves the future in a valid state
+    // it's used by shared_future
+    template<class Function>
+    __host__ __device__
+    future<
+      agency::detail::result_of_continuation_t<
+        typename std::decay<Function>::type,
+        future
+      >
+    >
+      then_and_leave_valid(Function f)
+    {
+      // create state for the continuation's result
+      using result_type = agency::detail::result_of_continuation_t<typename std::decay<Function>::type,future>;
+      detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready);
+
+      // tuple up f's input state
+      auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
+
+      // filter void states
+      auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
+      
+      // make a function implementing the continuation
+      auto continuation = detail::make_continuation(std::forward<Function>(f), result_state.data(), pointer_tuple);
+
+      // launch the continuation
+      detail::event next_event = event().then(std::move(continuation), dim3{1}, dim3{1}, 0);
+
+      // return the continuation's future
+      return future<result_type>(std::move(next_event), std::move(result_state));
+    }
+
     // XXX should think about getting rid of Shape and IndexFunction
     //     and require grid_dim & block_dim
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>

@@ -119,24 +119,7 @@ class shared_future
       //     it seems like we need to introduce a copy of this shared_future into
       //     a continuation dependent on the next_event
 
-      // create state for the continuation's result
-      using result_type = agency::detail::result_of_continuation_t<typename std::decay<Function>::type,shared_future>;
-      detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready);
-
-      // tuple up f's input state
-      auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
-
-      // filter void states
-      auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
-      
-      // make a function implementing the continuation
-      auto continuation = detail::make_continuation(std::forward<Function>(f), result_state.data(), pointer_tuple);
-
-      // launch the continuation
-      detail::event next_event = event().then(std::move(continuation), dim3{1}, dim3{1}, 0);
-
-      // return the continuation's future
-      return future<result_type>(std::move(next_event), std::move(result_state));
+      return underlying_future_->then_and_leave_valid(f);
     }
 };
 
