@@ -25,6 +25,19 @@ int main()
   static_assert(agency::detail::is_future<uber_future<int>>::value, "uber_future<int> is not a future");
 
   {
+    using shared_future_type = agency::future_traits<uber_future<int>>::shared_future_type;
+    using expected_shared_future_type = shared_uber_future<int>;
+
+    static_assert(
+      std::is_same<
+        shared_future_type,
+        expected_shared_future_type
+      >::value,
+      "Unexpected associated shared_future type"
+    );
+  }
+
+  {
     // default construction
     uber_future<int> f0;
     assert(!f0.valid());
