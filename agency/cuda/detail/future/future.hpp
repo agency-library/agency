@@ -264,9 +264,11 @@ class future
   //private:
     friend class shared_future<T>; // for access to then_and_leave_valid()
 
+    template<class U>
     __host__ __device__
-    static void get_ref_impl(agency::detail::unit_ptr)
+    static U get_ref_impl(agency::detail::empty_type_ptr<U> ptr)
     {
+      return *ptr;
     }
 
     template<class U>
