@@ -490,7 +490,7 @@ struct has_share_impl
   template<
     class Future1,
     class Result = decltype(
-      *std::declval<Future1*>.share()
+      std::declval<Future1>().share()
     ),
     class = typename std::enable_if<
       is_future<Result>::value
@@ -592,7 +592,7 @@ struct future_traits
     using shared_future_type = decltype(share_impl(*std::declval<future_type*>()));
 
     __AGENCY_ANNOTATION
-    shared_future_type share(future_type& fut)
+    static shared_future_type share(future_type& fut)
     {
       return share_impl(fut);
     }
