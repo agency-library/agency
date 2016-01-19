@@ -224,8 +224,8 @@ class event
     __host__ __device__
     event then_on(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const gpu_id& gpu, const Args&... args)
     {
-      // create a stream for the kernel
-      detail::stream new_stream;
+      // create a stream for the kernel on the given gpu
+      detail::stream new_stream(gpu);
 
       // make the new stream wait on this event
       stream_wait(new_stream, *this);
