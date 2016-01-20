@@ -109,7 +109,10 @@ tuple_cat_result<Tuples...> tuple_cat(Tuples&&... tuples)
 
 
 // fancy version of std::get which uses tuple_traits and can get() from things which aren't in std::
-template<size_t i, class Tuple>
+template<size_t i, class Tuple,
+         class = typename std::enable_if<
+           is_tuple<typename std::decay<Tuple>::type>::value
+         >::type>
 __AGENCY_ANNOTATION
 auto get(Tuple&& t)
   -> decltype(
