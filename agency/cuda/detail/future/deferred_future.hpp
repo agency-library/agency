@@ -7,7 +7,7 @@
 #include <agency/detail/unit.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/future.hpp>
-#include <agency/cuda/future.hpp>
+#include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/functional.hpp>
 
 
@@ -528,7 +528,7 @@ class deferred_future
       typename std::result_of<Factory(Shape)>::type
         operator()(U& past_arg)
       {
-        auto ready = future<U>::make_ready(std::move(past_arg));
+        auto ready = async_future<U>::make_ready(std::move(past_arg));
 
         return ready.bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory, gpu).get();
       }
@@ -538,7 +538,7 @@ class deferred_future
       typename std::result_of<Factory(Shape)>::type
         operator()()
       {
-        auto ready = future<void>::make_ready();
+        auto ready = async_future<void>::make_ready();
 
         return ready.bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory, gpu).get();
       }

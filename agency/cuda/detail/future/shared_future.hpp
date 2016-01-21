@@ -17,7 +17,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/detail/future/future.hpp>
+#include <agency/cuda/detail/future/async_future.hpp>
 #include <type_traits>
 #include <memory>
 
@@ -31,8 +31,7 @@ template<class T>
 class shared_future
 {
   private:
-    // XXX should we share a future<T> or a future_base<T> ?
-    std::shared_ptr<future<T>> underlying_future_;
+    std::shared_ptr<async_future<T>> underlying_future_;
 
     detail::event& event()
     {
@@ -50,8 +49,8 @@ class shared_future
 
     shared_future(const shared_future&) = default;
 
-    shared_future(future<T>&& other)
-      : underlying_future_(std::make_shared<future<T>>(std::move(other)))
+    shared_future(async_future<T>&& other)
+      : underlying_future_(std::make_shared<async_future<T>>(std::move(other)))
     {}
 
     shared_future(shared_future&& other) = default;
@@ -102,11 +101,11 @@ class shared_future
              >::type>
     static shared_future make_ready(Args&&... args)
     {
-      return future<T>::make_ready(std::forward<Args>(args)...).share();
+      return async_future<T>::make_ready(std::forward<Args>(args)...).share();
     }
 
     template<class Function>
-    future<
+    async_future<
       agency::detail::result_of_continuation_t<
         typename std::decay<Function>::type,
         shared_future
@@ -124,10 +123,10 @@ class shared_future
 };
 
 
-// implement future<T>::share() here because this implementation
+// implement async_future<T>::share() here because this implementation
 // requires the definition of one of shared_future<T>'s ctors
 template<class T>
-shared_future<T> future<T>::share()
+shared_future<T> async_future<T>::share()
 {
   return shared_future<T>(std::move(*this));
 }

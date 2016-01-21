@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/detail/variant.hpp>
+#include <utility>
 
 // forward declaration for uber_future::share()
 template<class T> class shared_uber_future;
@@ -12,7 +13,7 @@ template<class T>
 class uber_future
 {
   private:
-    using variant_type = agency::detail::variant<agency::cuda::deferred_future<T>, agency::cuda::future<T>>;
+    using variant_type = agency::detail::variant<agency::cuda::async_future<T>, agency::cuda::deferred_future<T>>;
 
   public:
     __AGENCY_ANNOTATION
@@ -34,6 +35,33 @@ class uber_future
     uber_future& operator=(uber_future&& other) = default;
 
     shared_uber_future<T> share();
+
+    template<class Future>
+    __AGENCY_ANNOTATION
+    Future& get()
+    {
+      return agency::detail::get<Future>(variant_);
+    }
+
+    template<class Future>
+    __AGENCY_ANNOTATION
+    const Future& get() const
+    {
+      return agency::detail::get<Future>(variant_);
+    }
+
+    template<class Future>
+    __AGENCY_ANNOTATION
+    Future&& get() &&
+    {
+      return agency::detail::get<Future>(std::move(variant_));
+    }
+
+    __AGENCY_ANNOTATION
+    size_t index() const
+    {
+      return variant_.index();
+    }
 
   private:
     struct valid_visitor
@@ -118,7 +146,7 @@ class uber_future
     __AGENCY_ANNOTATION
     static uber_future make_ready(Args&&... args)
     {
-      return agency::cuda::deferred_future<T>::make_ready(std::forward<Args>(args)...);
+      return agency::cuda::async_future<T>::make_ready(std::forward<Args>(args)...);
     }
 
   private:
@@ -145,10 +173,10 @@ class uber_future
       uber_future<
         agency::detail::result_of_continuation_t<
           Function,
-          agency::cuda::future<T>
+          agency::cuda::async_future<T>
         >
       >
-        async_future_impl(agency::cuda::future<T>& fut, Function1& f,
+        async_future_impl(agency::cuda::async_future<T>& fut, Function1& f,
                           typename std::enable_if<
                             !std::is_move_constructible<Function1>::value
                           >::type* = 0)
@@ -156,47 +184,76 @@ class uber_future
         return fut.then(f);
       }
 
+      // XXX all this functor should really do is return fut_.fmap(f_)
+      //     but cuda::async_future::fmap() doesn't exist at the time of writing
+      struct get_and_invoke_functor
+      {
+        agency::cuda::async_future<T> fut_;
+        Function f_;
+
+        using result_type = agency::detail::result_of_continuation_t<
+          Function,
+          agency::cuda::async_future<T>
+        >;
+
+        __AGENCY_ANNOTATION
+        result_type impl(agency::cuda::async_future<void>&)
+        {
+          return agency::invoke(f_); 
+        }
+
+        template<class U>
+        __AGENCY_ANNOTATION
+        result_type impl(agency::cuda::async_future<U>& fut)
+        {
+          U arg = fut.get();
+          return agency::invoke(f_, arg);
+        }
+
+        __AGENCY_ANNOTATION
+        result_type operator()()
+        {
+          return impl(fut_);
+        }
+      };
+
       template<class Function1>
       static __AGENCY_ANNOTATION
       uber_future<
         agency::detail::result_of_continuation_t<
           Function,
-          agency::cuda::future<T>
+          agency::cuda::async_future<T>
         >
       >
-        async_future_impl(agency::cuda::future<T>& fut, Function1& f,
+        async_future_impl(agency::cuda::async_future<T>& fut, Function1& f,
                           typename std::enable_if<
                             std::is_move_constructible<Function1>::value
                           >::type* = 0)
       {
+        // we can't move f into a CUDA kernel parameter at the time of writing
+        // implement the following workaround:
+        // "cast" fut to a deferred_future by calling .then()
+        // on a ready deferred_future which waits on fut
+        auto ready = agency::cuda::deferred_future<void>::make_ready();
+
+        get_and_invoke_functor continuation{std::move(fut), std::move(f)};
+        return ready.then(std::move(continuation));
+
+        // XXX the implementation above is not efficient because these
+        //     dependencies are hidden from the CUDA runtime
+        //     we should investigate a way to hack CUDA stream callbacks to implement
+        //     this form of .then() in cuda::async_future<T>
         //return fut.then(std::move(f));
-
-        // XXX Function is often move-only
-        //     the problem is that the above fut.then() will result in a CUDA kernel launch
-        //     and kernel parameters must be copyable
-        //     we should either implement movable CUDA kernel parameters
-        //     or find a way to attach a deferred continuation onto an asynchronous CUDA future
-        //     there ought to be a way to do it by implementing a deferred_continuation which waits on fut
-        // XXX when Function is copyable, we ought to just use fut.then()
-        printf("uber_future::then_visitor::operator()(cuda::future): unimplemented\n");
-        assert(0);
-
-        using result_type = agency::detail::result_of_continuation_t<
-          Function,
-          agency::cuda::future<T>
-        >;
-
-        return uber_future<result_type>();
       }
 
       __AGENCY_ANNOTATION
       uber_future<
         agency::detail::result_of_continuation_t<
           Function, 
-          agency::cuda::future<T>
+          agency::cuda::async_future<T>
         >
       >
-        operator()(agency::cuda::future<T>& fut) const
+        operator()(agency::cuda::async_future<T>& fut) const
       {
         return async_future_impl(fut, f);
       }
@@ -241,10 +298,10 @@ class uber_future
       uber_future<
         agency::detail::result_of_continuation_t<
           Function,
-          agency::cuda::future<T>
+          agency::cuda::async_future<T>
         >
       >
-        async_future_impl(agency::cuda::future<T>& fut, Function1& f,
+        async_future_impl(agency::cuda::async_future<T>& fut, Function1& f,
                           typename std::enable_if<
                             !std::is_move_constructible<Function1>::value
                           >::type* = 0)
@@ -257,10 +314,10 @@ class uber_future
       uber_future<
         agency::detail::result_of_continuation_t<
           Function,
-          agency::cuda::future<T>
+          agency::cuda::async_future<T>
         >
       >
-        async_future_impl(agency::cuda::future<T>& fut, Function1& f,
+        async_future_impl(agency::cuda::async_future<T>& fut, Function1& f,
                           typename std::enable_if<
                             std::is_move_constructible<Function1>::value
                           >::type* = 0)
@@ -268,7 +325,7 @@ class uber_future
         //return fut.then_and_leave_valid(std::move(f));
 
         // XXX Function is often move-only
-        //     the problem is that the above fut.then_and_leave_Valid() will result in a CUDA kernel launch
+        //     the problem is that the above fut.then_and_leave_valid() will result in a CUDA kernel launch
         //     and kernel parameters must be copyable
         //     we should either implement movable CUDA kernel parameters
         //     or find a way to attach a deferred continuation onto an asynchronous CUDA future
@@ -279,20 +336,22 @@ class uber_future
 
         using result_type = agency::detail::result_of_continuation_t<
           Function,
-          agency::cuda::future<T>
+          agency::cuda::async_future<T>
         >;
 
         return uber_future<result_type>();
+
+        // XXX TODO: implement a similar workaround as used in the then_future via casting to deferred_future
       }
 
       __AGENCY_ANNOTATION
       uber_future<
         agency::detail::result_of_continuation_t<
           Function, 
-          agency::cuda::future<T>
+          agency::cuda::async_future<T>
         >
       >
-        operator()(agency::cuda::future<T>& fut) const
+        operator()(agency::cuda::async_future<T>& fut) const
       {
         return async_future_impl(fut, f);
       }
@@ -353,14 +412,16 @@ class uber_future
       IndexFunction index_function;
       OuterFactory outer_factory;
       InnerFactory inner_factory;
+      agency::cuda::gpu_id gpu;
 
       template<class Future>
+      __AGENCY_ANNOTATION
       uber_future<
         typename std::result_of<Factory(Shape)>::type
       >
         operator()(Future& fut)
       {
-        return fut.bulk_then_and_leave_valid(f, result_factory, shape, index_function, outer_factory, inner_factory);
+        return fut.bulk_then_and_leave_valid(f, result_factory, shape, index_function, outer_factory, inner_factory, gpu);
       }
     };
 
@@ -471,6 +532,13 @@ class shared_uber_future
       //     a continuation dependent on the next_event
 
       return underlying_future_->then_and_leave_valid(f);
+    }
+
+    template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
+    uber_future<typename std::result_of<Factory(Shape)>::type>
+      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::gpu_id gpu)
+    {
+      return underlying_future_->bulk_then_and_leave_valid(f, result_factory, shape, index_function, outer_factory, inner_factory, gpu);
     }
 };
 
