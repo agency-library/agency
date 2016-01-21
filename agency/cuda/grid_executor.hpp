@@ -125,17 +125,17 @@ class basic_grid_executor
              class = agency::detail::result_of_continuation_t<
                Function,
                index_type,
-               shared_uber_future<T>,
+               shared_future<T>,
                agency::detail::result_of_factory_t<Factory2>&,
                agency::detail::result_of_factory_t<Factory3>&
              >
             >
     async_future<typename std::result_of<Factory1(shape_type)>::type>
-      then_execute(Function f, Factory1 result_factory, shape_type shape, shared_uber_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
+      then_execute(Function f, Factory1 result_factory, shape_type shape, shared_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
     {
       using result_type = async_future<typename std::result_of<Factory1(shape_type)>::type>;
-      auto uber_fut = fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, gpu());
-      return std::move(uber_fut.get<result_type>());
+      auto intermediate_future = fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, gpu());
+      return std::move(intermediate_future.get<result_type>());
     }
 
 

@@ -262,8 +262,6 @@ class async_future
 
   // XXX stuff beneath here should be private but the implementation of when_all_execute_and_select() uses it
   //private:
-    friend class shared_future<T>; // for access to then_and_leave_valid()
-
     template<class U>
     __host__ __device__
     static U get_ref_impl(agency::detail::empty_type_ptr<U> ptr)
@@ -288,7 +286,7 @@ class async_future
     }
 
     // this version of then() leaves the future in a valid state
-    // it's used by shared_future
+    // it's used by future
     template<class Function>
     __host__ __device__
     async_future<

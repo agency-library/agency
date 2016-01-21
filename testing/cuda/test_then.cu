@@ -41,7 +41,7 @@ int main()
 {
   {
     // void -> void
-    auto f1 = agency::cuda::make_ready_future();
+    auto f1 = agency::cuda::make_ready_async_future();
     auto f2 = f1.then(return_void());
 
     assert(!f1.valid());
@@ -50,7 +50,7 @@ int main()
 
   {
     // int -> void
-    auto f1 = agency::cuda::make_ready_future(7);
+    auto f1 = agency::cuda::make_ready_async_future(7);
     auto f2 = f1.then(return_void());
 
     assert(!f1.valid());
@@ -59,7 +59,7 @@ int main()
 
   {
     // void -> int
-    auto f1 = agency::cuda::make_ready_future();
+    auto f1 = agency::cuda::make_ready_async_future();
     auto f2 = f1.then(return_int());
 
     assert(!f1.valid());
@@ -68,7 +68,7 @@ int main()
 
   {
     // int -> int
-    auto f1 = agency::cuda::make_ready_future(7);
+    auto f1 = agency::cuda::make_ready_async_future(7);
     auto f2 = f1.then(return_int());
 
     assert(!f1.valid());

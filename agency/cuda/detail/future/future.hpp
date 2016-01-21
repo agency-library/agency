@@ -6,14 +6,15 @@
 #include <agency/detail/variant.hpp>
 #include <utility>
 
-// forward declaration for agency::cuda::future::share()
-template<class T> class shared_uber_future;
-
 
 namespace agency
 {
 namespace cuda
 {
+
+
+// forward declaration for future::share()
+template<class T> class shared_future;
 
 
 template<class T>
@@ -41,7 +42,7 @@ class future
     __AGENCY_ANNOTATION
     future& operator=(future&& other) = default;
 
-    shared_uber_future<T> share();
+    shared_future<T> share();
 
     template<class Future>
     __AGENCY_ANNOTATION
@@ -467,104 +468,8 @@ class future
       return agency::detail::visit(visitor, variant_);
     }
 
-    friend class shared_uber_future<T>;
+    friend class shared_future<T>;
 };
-
-
-} // end cuda
-} // end agency
-
-
-template<class T>
-class shared_uber_future
-{
-  private:
-    std::shared_ptr<agency::cuda::future<T>> underlying_future_;
-
-  public:
-    shared_uber_future() = default;
-
-    shared_uber_future(const shared_uber_future&) = default;
-
-    shared_uber_future(agency::cuda::future<T>&& other)
-      : underlying_future_(std::make_shared<agency::cuda::future<T>>(std::move(other)))
-    {}
-
-    shared_uber_future(shared_uber_future&& other) = default;
-
-    ~shared_uber_future() = default;
-
-    shared_uber_future& operator=(const shared_uber_future& other) = default;
-
-    shared_uber_future& operator=(shared_uber_future&& other) = default;
-
-    bool valid() const
-    {
-      return underlying_future_ && underlying_future_->valid();
-    }
-
-    bool is_ready() const
-    {
-      return underlying_future_ && underlying_future_->is_ready();
-    }
-
-    void wait() const
-    {
-      underlying_future_->wait();
-    }
-
-    auto get() ->
-      decltype(underlying_future_->get_ref())
-    {
-      return underlying_future_->get_ref();
-    } // end get()
-
-    template<class... Args,
-             class = typename std::enable_if<
-               agency::cuda::detail::is_constructible_or_void<T,Args...>::value
-             >::type>
-    static shared_uber_future make_ready(Args&&... args)
-    {
-      return agency::cuda::future<T>::make_ready(std::forward<Args>(args)...).share();
-    }
-
-    template<class Function>
-    agency::cuda::future<
-      agency::detail::result_of_continuation_t<
-        typename std::decay<Function>::type,
-        shared_uber_future
-      >
-    >
-      then(Function f)
-    {
-      // XXX what if there are no shared_uber_futures by the time the continuation runs?
-      //     who owns the data?
-      //     it seems like we need to introduce a copy of this shared_uber_future into
-      //     a continuation dependent on the next_event
-
-      return underlying_future_->then_and_leave_valid(f);
-    }
-
-    template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
-    agency::cuda::future<typename std::result_of<Factory(Shape)>::type>
-      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::gpu_id gpu)
-    {
-      return underlying_future_->bulk_then_and_leave_valid(f, result_factory, shape, index_function, outer_factory, inner_factory, gpu);
-    }
-};
-
-
-namespace agency
-{
-namespace cuda
-{
-
-
-template<class T>
-shared_uber_future<T> future<T>::share()
-{
-  return shared_uber_future<T>(std::move(*this));
-}
 
 
 } // end cuda

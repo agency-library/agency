@@ -28,7 +28,7 @@ int main()
 
   {
     using shared_future_type = agency::future_traits<future<int>>::shared_future_type;
-    using expected_shared_future_type = shared_uber_future<int>;
+    using expected_shared_future_type = shared_future<int>;
 
     static_assert(
       std::is_same<
