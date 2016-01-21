@@ -9,12 +9,11 @@ int main()
 {
   using namespace agency;
 
-  using outer_executor_type = this_thread::parallel_executor;
   using inner_executor_type = concurrent_executor;
 
   {
     // test executor_array async_execute()
-    using executor_type = executor_array<inner_executor_type, outer_executor_type>;
+    using executor_type = executor_array<inner_executor_type>;
     using traits = agency::executor_traits<executor_type>;
     using shape_type = typename traits::shape_type;
     using index_type = typename traits::index_type;
@@ -24,7 +23,7 @@ int main()
     auto shape = exec.make_shape(3,5);
 
     std::mutex mut;
-    auto f = exec.async_execute([=,&mut](const index_type& idx, int& outer_shared, int& inner_shared)
+    auto f = traits::async_execute(exec, [=,&mut](const index_type& idx, int& outer_shared, int& inner_shared)
     {
       mut.lock();
       std::cout << "Hello from agent " << idx << std::endl;
@@ -45,7 +44,7 @@ int main()
     std::cout << "main thread sleeping for a bit..." << std::endl;
     mut.unlock();
 
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     mut.lock();
     std::cout << "main thread woke up" << std::endl;
@@ -58,8 +57,8 @@ int main()
   }
 
   {
-    // test executor_array async_execute()
-    using executor_type = executor_array<inner_executor_type, outer_executor_type>;
+    // test executor_array then_execute()
+    using executor_type = executor_array<inner_executor_type>;
     using traits = agency::executor_traits<executor_type>;
     using shape_type = typename traits::shape_type;
     using index_type = typename traits::index_type;
@@ -70,8 +69,13 @@ int main()
 
     auto shape = exec.make_shape(3,5);
 
-    auto f = exec.then_execute([](const index_type& idx, int& past, int& outer_shared, int& inner_shared)
+    std::mutex mut;
+    auto f = traits::then_execute(exec, [=,&mut](const index_type& idx, int& past, int& outer_shared, int& inner_shared)
     {
+      mut.lock();
+      std::cout << "Hello from agent " << idx << std::endl;
+      mut.unlock();
+
       return 13 + past + outer_shared + inner_shared;
     },
     [](shape_type shape)
@@ -83,6 +87,17 @@ int main()
     []{ return 7; },
     []{ return 42; });
 
+    // sleep for a bit
+    mut.lock();
+    std::cout << "main thread sleeping for a bit..." << std::endl;
+    mut.unlock();
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    mut.lock();
+    std::cout << "main thread woke up" << std::endl;
+    mut.unlock();
+
     auto results = f.get();
 
     assert(results.size() == agency::detail::shape_size(shape));
@@ -91,7 +106,7 @@ int main()
 
   {
     // test flattened executor_array
-    using executor_array_type = executor_array<inner_executor_type, outer_executor_type>;
+    using executor_array_type = executor_array<inner_executor_type>;
     using executor_type = flattened_executor<executor_array_type>;
 
     using traits = agency::executor_traits<executor_type>;
