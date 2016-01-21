@@ -123,12 +123,94 @@ class executor_array
       return rank % inner_executors_.size();
     }
 
+  // XXX make this functor public to accomodate nvcc's requirement
+  //     on types used to instantiate __global__ function templates
+  public:
+    template<class Function, class... Factories>
+    struct then_execute_sequential_functor
+    {
+      executor_array& exec;
+      mutable Function f;
+      detail::tuple<Factories...> inner_factories;
+      outer_shape_type outer_shape;
+      inner_shape_type inner_shape;
+
+      template<class ResultsType, class PastArgType, class OuterSharedArgType>
+      struct inner_functor_with_past_arg
+      {
+        mutable Function f;
+        outer_index_type outer_idx;
+        ResultsType& results;
+        PastArgType& past_arg;
+        OuterSharedArgType& outer_shared_arg;
+
+        template<class... Args>
+        __AGENCY_ANNOTATION
+        void operator()(const inner_index_type& inner_idx, Args&... inner_shared_args)
+        {
+          auto idx = make_index(outer_idx, inner_idx);
+          results[idx] = agency::invoke(f, idx, past_arg, outer_shared_arg, inner_shared_args...);
+        }
+      };
+
+      template<class ResultsType, class OuterSharedArgType>
+      struct inner_functor_without_past_arg
+      {
+        mutable Function f;
+        outer_index_type outer_idx;
+        ResultsType& results;
+        OuterSharedArgType& outer_shared_arg;
+
+        template<class... Args>
+        void operator()(const inner_index_type& inner_idx, Args&... inner_shared_args)
+        {
+          auto idx = make_index(outer_idx, inner_idx);
+          results[idx] = agency::invoke(f, idx, outer_shared_arg, inner_shared_args...);
+        }
+      };
+
+      template<size_t... Indices, class... Args>
+      __AGENCY_ANNOTATION
+      void unpack_factories_and_call_execute(detail::index_sequence<Indices...>, inner_executor_type& exec, Args&&... args)
+      {
+        inner_traits::execute(exec, std::forward<Args>(args)..., detail::get<Indices>(inner_factories)...);
+      }
+
+      template<class ResultsType, class PastArgType, class OuterSharedArgType>
+      __AGENCY_ANNOTATION
+      void operator()(const outer_index_type& outer_idx, ResultsType& results, PastArgType& past_arg, OuterSharedArgType& outer_shared_arg)
+      {
+        auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
+        auto& inner_exec = exec.inner_executor(inner_executor_idx);
+
+        auto functor = inner_functor_with_past_arg<ResultsType,PastArgType,OuterSharedArgType>{f, outer_idx, results, past_arg, outer_shared_arg};
+
+        // execute the functor on the inner executor
+        unpack_factories_and_call_execute(detail::index_sequence_for<Factories...>(), inner_exec, functor, inner_shape);
+      }
+
+      template<class ResultsType, class OuterSharedArgType>
+      __AGENCY_ANNOTATION
+      void operator()(const outer_index_type& outer_idx, ResultsType& results, OuterSharedArgType& outer_shared_arg)
+      {
+        auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
+        auto& inner_exec = exec.inner_executor(inner_executor_idx);
+
+        auto functor = inner_functor_without_past_arg<ResultsType,OuterSharedArgType>{f, outer_idx, results, outer_shared_arg};
+
+        // execute the functor on the inner executor
+        unpack_factories_and_call_execute(detail::index_sequence_for<Factories...>(), inner_exec, functor, inner_shape);
+      }
+    };
+
+  private:
+    // implementation of then_execute() for sequential OuterExecutors
     template<class Function, class Factory1, class Future, class Factory2, class... Factories,
              class = typename std::enable_if<
                sizeof...(Factories) == inner_depth
              >::type>
     future<typename std::result_of<Factory1(shape_type)>::type>
-      then_execute_impl(sequential_execution_tag, Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
+      then_execute_impl(std::true_type, Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
     {
       // separate the shape into inner and outer portions
       auto outer_shape = this->outer_shape(shape);
@@ -143,27 +225,34 @@ class executor_array
       using past_arg_type = typename future_traits<Future>::value_type;
       using outer_shared_arg_type = decltype(outer_factory());
 
-      return outer_traits::template when_all_execute_and_select<0>(outer_executor(), [=](const outer_index_type& outer_idx, result_type& results, past_arg_type& past_arg, outer_shared_arg_type& outer_shared_arg) mutable
-      {
-        auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
+      // XXX avoid lambdas to workaround nvcc limitations as well as lack of polymorphic lambda
+      //return outer_traits::template when_all_execute_and_select<0>(outer_executor(), [=](const outer_index_type& outer_idx, result_type& results, past_arg_type& past_arg, outer_shared_arg_type& outer_shared_arg) mutable
+      //{
+      //  auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
 
-        inner_traits::execute(inner_executor(inner_executor_idx), [=,&outer_shared_arg,&results](const inner_index_type& inner_idx, decltype(inner_factories())&... inner_shared_args) mutable
-        {
-          auto idx = make_index(outer_idx, inner_idx);
-          results[idx] = agency::invoke(f, idx, past_arg, outer_shared_arg, inner_shared_args...);
-        },
-        inner_shape,
-        inner_factories...);
-      },
-      outer_shape,
-      futures,
-      outer_factory);
+      //  inner_traits::execute(inner_executor(inner_executor_idx), [=,&outer_shared_arg,&results](const inner_index_type& inner_idx, decltype(inner_factories())&... inner_shared_args) mutable
+      //  {
+      //    auto idx = make_index(outer_idx, inner_idx);
+      //    results[idx] = agency::invoke(f, idx, past_arg, outer_shared_arg, inner_shared_args...);
+      //  },
+      //  inner_shape,
+      //  inner_factories...);
+      //},
+      //outer_shape,
+      //futures,
+      //outer_factory);
+
+      auto functor = then_execute_sequential_functor<Function,Factories...>{*this, f, detail::make_tuple(inner_factories...), outer_shape, inner_shape};
+      return outer_traits::template when_all_execute_and_select<0>(outer_executor(), functor, outer_shape, futures, outer_factory);
       
       // XXX another option:
       // call a chain of then_execute()s, each then_execute() stores its results into the appropriate slots of the result
       // the last then_execute() would return all the results, somehow
     }
 
+  public:
+    // XXX make this functor public to accomodate nvcc's requirement
+    //     on types used to instantiate __global__ function templates
     template<class Function, class Results, class Futures, class OuterShared, class... Factories>
     struct then_execute_non_sequential_functor
     {
@@ -217,12 +306,14 @@ class executor_array
       }
     };
 
-    template<class ExecutionCategory, class Function, class Factory1, class Future, class Factory2, class... Factories,
+  private:
+    // implementation of then_execute() for nonsequential OuterExecutors
+    template<class Function, class Factory1, class Future, class Factory2, class... Factories,
              class = typename std::enable_if<
                sizeof...(Factories) == inner_depth
              >::type>
     future<typename std::result_of<Factory1(shape_type)>::type>
-      then_execute_impl(ExecutionCategory, Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
+      then_execute_impl(std::false_type, Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
     {
       // this implementation legal when the outer_category is not sequential
 
@@ -281,7 +372,12 @@ class executor_array
     future<typename std::result_of<Factory1(shape_type)>::type>
       then_execute(Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
     {
-      return then_execute_impl(outer_execution_category(), f, result_factory, shape, fut, outer_factory, inner_factories...);
+      using outer_execution_is_sequential = std::is_same<
+        outer_execution_category,
+        sequential_execution_tag
+      >;
+
+      return then_execute_impl(outer_execution_is_sequential(), f, result_factory, shape, fut, outer_factory, inner_factories...);
     }
 
   private:
