@@ -1,5 +1,5 @@
 #include <cassert>
-#include "uber_future.hpp"
+#include <agency/cuda/future.hpp>
 #include <iostream>
 
 struct continuation_1
@@ -22,10 +22,12 @@ struct continuation_2
 
 int main()
 {
-  static_assert(agency::detail::is_future<uber_future<int>>::value, "uber_future<int> is not a future");
+  using namespace agency::cuda;
+
+  static_assert(agency::detail::is_future<future<int>>::value, "cuda::future<int> is not a future");
 
   {
-    using shared_future_type = agency::future_traits<uber_future<int>>::shared_future_type;
+    using shared_future_type = agency::future_traits<future<int>>::shared_future_type;
     using expected_shared_future_type = shared_uber_future<int>;
 
     static_assert(
@@ -39,26 +41,26 @@ int main()
 
   {
     // default construction
-    uber_future<int> f0;
+    future<int> f0;
     assert(!f0.valid());
   }
 
   {
     // move construction
-    uber_future<int> f0 = uber_future<int>::make_ready(13);
+    future<int> f0 = future<int>::make_ready(13);
     assert(f0.valid());
 
-    uber_future<int> f1 = std::move(f0);
+    future<int> f1 = std::move(f0);
     assert(!f0.valid());
     assert(f1.valid());
   }
 
   {
     // move assignment
-    uber_future<int> f1 = uber_future<int>::make_ready(13);
+    future<int> f1 = future<int>::make_ready(13);
     assert(f1.valid());
 
-    uber_future<int> f2;
+    future<int> f2;
     assert(!f2.valid());
 
     f2 = std::move(f1);
@@ -68,7 +70,7 @@ int main()
 
   {
     // make_ready/then
-    auto f1 = uber_future<int>::make_ready(13);
+    auto f1 = future<int>::make_ready(13);
 
     assert(f1.valid());
 

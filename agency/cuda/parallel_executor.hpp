@@ -5,7 +5,7 @@
 #include <agency/cuda/detail/memory/allocator.hpp>
 #include <agency/cuda/detail/memory/pinned_allocator.hpp>
 #include <agency/cuda/detail/array.hpp>
-#include "uber_future.hpp"
+#include <agency/cuda/future.hpp>
 
 namespace agency
 {
@@ -27,7 +27,7 @@ class parallel_executor
     using container = cuda::detail::array<T, size_t, allocator<T>>;
 
     template<class T>
-    using future = uber_future<T>;
+    using future = cuda::future<T>;
 };
 
 

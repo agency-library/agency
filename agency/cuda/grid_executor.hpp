@@ -32,8 +32,6 @@
 #include <agency/detail/optional.hpp>
 #include <agency/detail/flatten_index_and_invoke.hpp>
 
-#include "uber_future.hpp"
-
 
 namespace agency
 {

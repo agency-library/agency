@@ -1,38 +1,45 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/future.hpp>
+#include <agency/cuda/detail/future/async_future.hpp>
+#include <agency/cuda/detail/future/deferred_future.hpp>
 #include <agency/detail/variant.hpp>
 #include <utility>
 
-// forward declaration for uber_future::share()
+// forward declaration for agency::cuda::future::share()
 template<class T> class shared_uber_future;
 
 
+namespace agency
+{
+namespace cuda
+{
+
+
 template<class T>
-class uber_future
+class future
 {
   private:
     using variant_type = agency::detail::variant<agency::cuda::async_future<T>, agency::cuda::deferred_future<T>>;
 
   public:
     __AGENCY_ANNOTATION
-    uber_future() = default;
+    future() = default;
 
     __AGENCY_ANNOTATION
-    uber_future(uber_future&&) = default;
+    future(future&&) = default;
 
     template<class Future,
              class = typename std::enable_if<
                std::is_constructible<variant_type,Future&&>::value
              >::type>
     __AGENCY_ANNOTATION
-    uber_future(Future&& other)
+    future(Future&& other)
       : variant_(std::forward<Future>(other))
     {}
 
     __AGENCY_ANNOTATION
-    uber_future& operator=(uber_future&& other) = default;
+    future& operator=(future&& other) = default;
 
     shared_uber_future<T> share();
 
@@ -144,7 +151,7 @@ class uber_future
                agency::cuda::detail::is_constructible_or_void<T,Args...>::value
              >::type>
     __AGENCY_ANNOTATION
-    static uber_future make_ready(Args&&... args)
+    static future make_ready(Args&&... args)
     {
       return agency::cuda::async_future<T>::make_ready(std::forward<Args>(args)...);
     }
@@ -157,7 +164,7 @@ class uber_future
 
       template<class Future>
       __AGENCY_ANNOTATION
-      uber_future<
+      future<
         agency::detail::result_of_continuation_t<
           Function, 
           Future
@@ -170,7 +177,7 @@ class uber_future
 
       template<class Function1>
       static __AGENCY_ANNOTATION
-      uber_future<
+      future<
         agency::detail::result_of_continuation_t<
           Function,
           agency::cuda::async_future<T>
@@ -219,7 +226,7 @@ class uber_future
 
       template<class Function1>
       static __AGENCY_ANNOTATION
-      uber_future<
+      future<
         agency::detail::result_of_continuation_t<
           Function,
           agency::cuda::async_future<T>
@@ -247,7 +254,7 @@ class uber_future
       }
 
       __AGENCY_ANNOTATION
-      uber_future<
+      future<
         agency::detail::result_of_continuation_t<
           Function, 
           agency::cuda::async_future<T>
@@ -262,10 +269,10 @@ class uber_future
   public:
     template<class Function>
     __AGENCY_ANNOTATION
-    uber_future<
+    future<
       agency::detail::result_of_continuation_t<
         typename std::decay<Function>::type,
-        uber_future
+        future
       >
     >
       then(Function&& f)
@@ -282,7 +289,7 @@ class uber_future
 
       template<class Future>
       __AGENCY_ANNOTATION
-      uber_future<
+      future<
         agency::detail::result_of_continuation_t<
           Function, 
           Future
@@ -295,7 +302,7 @@ class uber_future
 
       template<class Function1>
       static __AGENCY_ANNOTATION
-      uber_future<
+      future<
         agency::detail::result_of_continuation_t<
           Function,
           agency::cuda::async_future<T>
@@ -311,7 +318,7 @@ class uber_future
 
       template<class Function1>
       static __AGENCY_ANNOTATION
-      uber_future<
+      future<
         agency::detail::result_of_continuation_t<
           Function,
           agency::cuda::async_future<T>
@@ -331,7 +338,7 @@ class uber_future
         //     or find a way to attach a deferred continuation onto an asynchronous CUDA future
         //     there ought to be a way to do it by implementing a deferred_continuation which waits on fut
         // XXX when Function is copyable, we ought to just use fut.then()
-        printf("uber_future::then_and_leave_valid_visitor::operator()(cuda::future): unimplemented\n");
+        printf("future::then_and_leave_valid_visitor::operator()(cuda::future): unimplemented\n");
         assert(0);
 
         using result_type = agency::detail::result_of_continuation_t<
@@ -339,13 +346,13 @@ class uber_future
           agency::cuda::async_future<T>
         >;
 
-        return uber_future<result_type>();
+        return future<result_type>();
 
         // XXX TODO: implement a similar workaround as used in the then_future via casting to deferred_future
       }
 
       __AGENCY_ANNOTATION
-      uber_future<
+      future<
         agency::detail::result_of_continuation_t<
           Function, 
           agency::cuda::async_future<T>
@@ -359,10 +366,10 @@ class uber_future
 
     template<class Function>
     __AGENCY_ANNOTATION
-    uber_future<
+    future<
       agency::detail::result_of_continuation_t<
         typename std::decay<Function>::type,
-        uber_future
+        future
       >
     >
       then_and_leave_valid(Function&& f)
@@ -384,7 +391,7 @@ class uber_future
       agency::cuda::gpu_id gpu;
 
       template<class Future>
-      uber_future<
+      future<
         typename std::result_of<Factory(Shape)>::type
       >
         operator()(Future& fut)
@@ -395,7 +402,7 @@ class uber_future
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __AGENCY_ANNOTATION
-    uber_future<typename std::result_of<Factory(Shape)>::type>
+    future<typename std::result_of<Factory(Shape)>::type>
       bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::gpu_id gpu)
     {
       auto visitor = bulk_then_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,gpu};
@@ -416,7 +423,7 @@ class uber_future
 
       template<class Future>
       __AGENCY_ANNOTATION
-      uber_future<
+      future<
         typename std::result_of<Factory(Shape)>::type
       >
         operator()(Future& fut)
@@ -427,7 +434,7 @@ class uber_future
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __AGENCY_ANNOTATION
-    uber_future<typename std::result_of<Factory(Shape)>::type>
+    future<typename std::result_of<Factory(Shape)>::type>
       bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::gpu_id gpu)
     {
       auto visitor = bulk_then_and_leave_valid_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,gpu};
@@ -464,19 +471,23 @@ class uber_future
 };
 
 
+} // end cuda
+} // end agency
+
+
 template<class T>
 class shared_uber_future
 {
   private:
-    std::shared_ptr<uber_future<T>> underlying_future_;
+    std::shared_ptr<agency::cuda::future<T>> underlying_future_;
 
   public:
     shared_uber_future() = default;
 
     shared_uber_future(const shared_uber_future&) = default;
 
-    shared_uber_future(uber_future<T>&& other)
-      : underlying_future_(std::make_shared<uber_future<T>>(std::move(other)))
+    shared_uber_future(agency::cuda::future<T>&& other)
+      : underlying_future_(std::make_shared<agency::cuda::future<T>>(std::move(other)))
     {}
 
     shared_uber_future(shared_uber_future&& other) = default;
@@ -514,11 +525,11 @@ class shared_uber_future
              >::type>
     static shared_uber_future make_ready(Args&&... args)
     {
-      return uber_future<T>::make_ready(std::forward<Args>(args)...).share();
+      return agency::cuda::future<T>::make_ready(std::forward<Args>(args)...).share();
     }
 
     template<class Function>
-    uber_future<
+    agency::cuda::future<
       agency::detail::result_of_continuation_t<
         typename std::decay<Function>::type,
         shared_uber_future
@@ -535,16 +546,27 @@ class shared_uber_future
     }
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
-    uber_future<typename std::result_of<Factory(Shape)>::type>
+    agency::cuda::future<typename std::result_of<Factory(Shape)>::type>
       bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::gpu_id gpu)
     {
       return underlying_future_->bulk_then_and_leave_valid(f, result_factory, shape, index_function, outer_factory, inner_factory, gpu);
     }
 };
 
+
+namespace agency
+{
+namespace cuda
+{
+
+
 template<class T>
-shared_uber_future<T> uber_future<T>::share()
+shared_uber_future<T> future<T>::share()
 {
   return shared_uber_future<T>(std::move(*this));
 }
+
+
+} // end cuda
+} // end agency
 

@@ -1,6 +1,6 @@
 #include <cassert>
 #include <iostream>
-#include "uber_future.hpp"
+#include <agency/cuda/future.hpp>
 
 int main()
 {
