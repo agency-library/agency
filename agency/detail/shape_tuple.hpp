@@ -23,9 +23,6 @@ class shape_tuple :
     using agency::detail::tuple<Shapes...>::tuple;
 };
 
-// there's no need for a shape_tuple analogous to index_tuple yet
-// but we do need a make_nested_shape function
-
 template<class ExecutionCategory1,
          class ExecutionCategory2,
          class Shape1,
@@ -57,6 +54,7 @@ template<class ExecutionCategory1,
          class ExecutionCategory2,
          class Shape1,
          class Shape2>
+__AGENCY_ANNOTATION
 nested_shape_t<ExecutionCategory1,ExecutionCategory2,Shape1,Shape2> make_nested_shape(const Shape1& outer_shape, const Shape2& inner_shape)
 {
   return detail::tuple_cat(

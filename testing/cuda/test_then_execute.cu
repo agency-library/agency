@@ -42,7 +42,7 @@ int main()
     using traits = agency::executor_traits<executor_type>;
     executor_type exec;
 
-    auto ready = agency::cuda::make_ready_future();
+    auto ready = traits::make_ready_future<void>(exec);
 
     executor_type::shape_type shape{100,256};
 
@@ -73,7 +73,7 @@ int main()
     using traits = agency::executor_traits<executor_type>;
     executor_type exec;
 
-    auto ready = agency::cuda::make_ready_future<int>(13);
+    auto ready = traits::make_ready_future<int>(exec, 13);
 
     executor_type::shape_type shape = 100;
 
@@ -99,7 +99,7 @@ int main()
     using traits = agency::executor_traits<executor_type>;
     executor_type exec;
 
-    auto ready = agency::cuda::make_ready_future();
+    auto ready = traits::make_ready_future<void>(exec);
 
     executor_type::shape_type shape = 100;
 

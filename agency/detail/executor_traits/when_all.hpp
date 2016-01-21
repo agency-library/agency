@@ -104,7 +104,9 @@ using select_when_all_implementation =
 } // end when_all_implementation_strategies
 
 
+__agency_hd_warning_disable__
 template<class Executor, class... Futures>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::when_all_result_t<
     typename std::decay<Futures>::type...
@@ -118,6 +120,7 @@ typename new_executor_traits<Executor>::template future<
 
 
 template<size_t... Indices, class Executor, class... Futures>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::when_all_result_t<
     typename std::decay<Futures>::type...
@@ -131,6 +134,7 @@ typename new_executor_traits<Executor>::template future<
 
 
 template<class Executor, class... Futures>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::when_all_result_t<
     typename std::decay<Futures>::type...
@@ -152,20 +156,6 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
 {
   Executor& exec;
   mutable tuple<TailFutures...> tail_futures;
-
-  // XXX eliminate this constructor when we are able to
-  //     pass functions to then_execute() via universal reference
-  //     Agency issue #73
-  when_all_functor(Executor& ex, tuple<TailFutures...>&& tail) : exec(ex), tail_futures(std::move(tail)) {}
-
-  // move the tail_futures when we copy this object
-  // XXX eliminate this copy constructor when we are able to
-  //     pass functions to then_execute() via universal reference
-  //     Agency issue #73
-  when_all_functor(const when_all_functor& other)
-    : exec(other.exec),
-      tail_futures(std::move(other.tail_futures))
-  {}
 
   // this functor is so complicated because it needs to return:
   // void, when HeadFuture & TailFutures all have void value_type
@@ -189,6 +179,7 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
 
   // this function returns the result of the collection of tail futures
   // it can be void, a single T, or a tuple with size > 1
+  __AGENCY_ANNOTATION
   detail::when_all_result_t<TailFutures...>
     get_tail() const
   {
@@ -198,6 +189,7 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
   // get_tail_as_tuple() wraps result of get_tail() to ensure a tuple is returned
 
   // for n == 0, create an empty tuple
+  __AGENCY_ANNOTATION
   detail::tuple<>
     get_tail_as_tuple(std::integral_constant<size_t, 0>) const
   {
@@ -206,6 +198,7 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
   }
 
   // for n == 1, create a single element tuple
+  __AGENCY_ANNOTATION
   detail::tuple<when_all_result_t<TailFutures...>>
     get_tail_as_tuple(std::integral_constant<size_t, 1>) const
   {
@@ -214,6 +207,7 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
 
   // for n > 1, the tail is already a tuple
   template<size_t n>
+  __AGENCY_ANNOTATION
   detail::when_all_result_t<TailFutures...>
     get_tail_as_tuple(std::integral_constant<size_t, n>) const
   {
@@ -221,6 +215,7 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
   }
 
   template<class Arg>
+  __AGENCY_ANNOTATION
   detail::when_all_result_t<HeadFuture,TailFutures...>
     operator()(Arg& arg) const
   {
@@ -240,6 +235,7 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
     return detail::unwrap_single_element_tuple(std::move(full_tuple_of_values));
   }
 
+  __AGENCY_ANNOTATION
   detail::when_all_result_t<HeadFuture, TailFutures...> operator()() const
   {
     // XXX a more efficient version of this function might recurse by splitting the list of futures
@@ -252,6 +248,7 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
 
 
 template<class Executor, class Future, class... Futures>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::when_all_result_t<
     typename std::decay<Future>::type,
@@ -268,6 +265,7 @@ typename new_executor_traits<Executor>::template future<
 
 
 template<class Executor>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   when_all(when_all_implementation_strategies::use_single_agent_then_execute,
            Executor& ex)
@@ -283,6 +281,7 @@ typename new_executor_traits<Executor>::template future<void>
 
 template<class Executor>
   template<class... Futures>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   detail::when_all_result_t<
     typename std::decay<Futures>::type...

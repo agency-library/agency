@@ -41,6 +41,7 @@ class array
       data_ = alloc.allocate(size());
     }
 
+    __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     array(const shape_type& shape, const T& val)
       : array(shape)
@@ -68,9 +69,8 @@ class array
     array(array&& other)
       : shape_{}, data_{}
     {
-      using agency::detail::swap;
-      swap(shape_, other.shape_);
-      swap(data_,  other.data_);
+      agency::detail::swap(shape_, other.shape_);
+      agency::detail::swap(data_,  other.data_);
     }
 
     __agency_hd_warning_disable__

@@ -1152,8 +1152,9 @@ struct execute_in_for_loop
   typename std::result_of<Factory1(Shape)>::type
     operator()() const
   {
-    using result_type = decltype(result_factory(shape));
-    auto results = agency::detail::allocate_boxed<result_type>(allocator<result_type>(), result_factory(shape));
+    // we don't use a boxed_value for the results because the agents which assign to results
+    // execute in this thread in the for loop below
+    auto results = result_factory(shape);
 
     using shared_arg_type = decltype(shared_factory());
     auto shared_arg = agency::detail::allocate_boxed<shared_arg_type>(allocator<shared_arg_type>(), shared_factory());
@@ -1161,10 +1162,10 @@ struct execute_in_for_loop
     // XXX generalize to multidimensions
     for(size_t idx = 0; idx < shape; ++idx)
     {
-      results.value()[idx] = agency::invoke(f, idx, shared_arg.value());
+      results[idx] = agency::invoke(f, idx, shared_arg.value());
     }
 
-    return std::move(results.value());
+    return std::move(results);
   }
 };
 

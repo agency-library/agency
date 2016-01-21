@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/memory/allocator.hpp>
-#include <agency/detail/array.hpp>
+#include <agency/detail/boxed_value.hpp>
 
 namespace agency
 {
@@ -12,8 +12,8 @@ namespace detail
 {
 
 
-template<class T, class Shape = size_t, class Alloc = allocator<T>, class Index = Shape>
-using array = agency::detail::array<T,Shape,Alloc,Index>;
+template<class T>
+using boxed_value = agency::detail::boxed_value<T,allocator<T>>;
 
 
 } // end detail

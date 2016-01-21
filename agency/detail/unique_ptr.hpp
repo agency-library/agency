@@ -122,8 +122,7 @@ class unique_ptr
     {
       pointer result = nullptr;
 
-      using agency::detail::swap;
-      swap(ptr_, result);
+      agency::detail::swap(ptr_, result);
 
       return result;
     }

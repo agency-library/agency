@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/detail/asynchronous_state.hpp>
+#include <agency/cuda/detail/future/asynchronous_state.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
 
@@ -23,9 +23,10 @@ struct continuation
   mutable ResultPointer result_ptr_;
   mutable PointerTuple arg_ptr_tuple_;
 
+  template<class Function1>
   __host__ __device__
-  continuation(Function f, ResultPointer result_ptr, PointerTuple arg_ptr_tuple)
-    : f_(f), result_ptr_(result_ptr), arg_ptr_tuple_(arg_ptr_tuple)
+  continuation(Function1&& f, ResultPointer result_ptr, PointerTuple arg_ptr_tuple)
+    : f_(std::forward<Function1>(f)), result_ptr_(result_ptr), arg_ptr_tuple_(arg_ptr_tuple)
   {}
 
   template<size_t... Indices>
@@ -49,9 +50,10 @@ struct continuation<Function, agency::detail::empty_type_ptr<void>, PointerTuple
   mutable Function f_;
   mutable PointerTuple arg_ptr_tuple_;
 
+  template<class Function1>
   __host__ __device__
-  continuation(Function f, agency::detail::empty_type_ptr<void>, PointerTuple arg_ptr_tuple)
-    : f_(f), arg_ptr_tuple_(arg_ptr_tuple)
+  continuation(Function1&& f, agency::detail::empty_type_ptr<void>, PointerTuple arg_ptr_tuple)
+    : f_(std::forward<Function1>(f)), arg_ptr_tuple_(arg_ptr_tuple)
   {}
 
   template<size_t... Indices>
@@ -71,9 +73,10 @@ struct continuation<Function, agency::detail::empty_type_ptr<void>, PointerTuple
 
 template<class Function, class ResultPointer, class PointerTuple>
 __host__ __device__
-continuation<Function,ResultPointer,PointerTuple> make_continuation(Function f, ResultPointer result_ptr, PointerTuple arg_ptr_tuple)
+continuation<typename std::decay<Function>::type,ResultPointer,PointerTuple>
+  make_continuation(Function&& f, ResultPointer result_ptr, PointerTuple arg_ptr_tuple)
 {
-  return continuation<Function,ResultPointer,PointerTuple>(f, result_ptr, arg_ptr_tuple);
+  return continuation<typename std::decay<Function>::type,ResultPointer,PointerTuple>(std::forward<Function>(f), result_ptr, arg_ptr_tuple);
 }
 
 

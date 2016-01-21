@@ -16,7 +16,7 @@
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/gpu.hpp>
 #include <agency/cuda/detail/bind.hpp>
-#include <agency/cuda/detail/unique_ptr.hpp>
+#include <agency/cuda/detail/memory/unique_ptr.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
@@ -30,7 +30,7 @@
 #include <agency/cuda/future.hpp>
 #include <agency/cuda/detail/array.hpp>
 #include <agency/detail/optional.hpp>
-#include <agency/detail/project_index_and_invoke.hpp>
+#include <agency/detail/flatten_index_and_invoke.hpp>
 
 
 namespace agency
@@ -59,7 +59,7 @@ class basic_grid_executor
 
 
     template<class T>
-    using future = cuda::future<T>;
+    using future = cuda::async_future<T>;
 
 
     template<class T>
@@ -80,14 +80,21 @@ class basic_grid_executor
 
     
     __host__ __device__
-    future<void> make_ready_future()
+    void gpu(gpu_id gpu)
     {
-      return cuda::make_ready_future();
+      gpu_ = gpu;
+    }
+
+    
+    __host__ __device__
+    async_future<void> make_ready_future()
+    {
+      return cuda::make_ready_async_future();
     }
 
     template<size_t... Indices, class Function, class TupleOfFutures, class Factory1, class Factory2>
     __host__ __device__
-    future<detail::when_all_execute_and_select_result_t<agency::detail::index_sequence<Indices...>, agency::detail::decay_t<TupleOfFutures>>>
+    async_future<detail::when_all_execute_and_select_result_t<agency::detail::index_sequence<Indices...>, agency::detail::decay_t<TupleOfFutures>>>
       when_all_execute_and_select(Function f,
                                   shape_type shape,
                                   TupleOfFutures&& tuple_of_futures,
@@ -101,16 +108,34 @@ class basic_grid_executor
              class = agency::detail::result_of_continuation_t<
                Function,
                index_type,
-               future<T>,
+               async_future<T>,
                agency::detail::result_of_factory_t<Factory2>&,
                agency::detail::result_of_factory_t<Factory3>&
              >
             >
     __host__ __device__
-    future<typename std::result_of<Factory1(shape_type)>::type>
-      then_execute(Function f, Factory1 result_factory, shape_type shape, future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
+    async_future<typename std::result_of<Factory1(shape_type)>::type>
+      then_execute(Function f, Factory1 result_factory, shape_type shape, async_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
     {
       return fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, gpu());
+    }
+
+
+    template<class Function, class Factory1, class T, class Factory2, class Factory3,
+             class = agency::detail::result_of_continuation_t<
+               Function,
+               index_type,
+               shared_future<T>,
+               agency::detail::result_of_factory_t<Factory2>&,
+               agency::detail::result_of_factory_t<Factory3>&
+             >
+            >
+    async_future<typename std::result_of<Factory1(shape_type)>::type>
+      then_execute(Function f, Factory1 result_factory, shape_type shape, shared_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
+    {
+      using result_type = async_future<typename std::result_of<Factory1(shape_type)>::type>;
+      auto intermediate_future = fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, gpu());
+      return std::move(intermediate_future.get<result_type>());
     }
 
 
@@ -120,14 +145,14 @@ class basic_grid_executor
 
     template<class Function, class Factory1, class T, class OuterFactory, class InnerFactory>
     __host__ __device__
-    void* then_execute_kernel(const Function& f, const Factory1& result_factory, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
+    void* then_execute_kernel(const Function& f, const Factory1& result_factory, const async_future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
       return fut.bulk_then_kernel(f, result_factory, shape_type{}, ThisIndexFunction(), outer_factory, inner_factory, gpu());
     }
 
     template<class Container, class Function, class T, class OuterFactory, class InnerFactory>
     __host__ __device__
-    void* then_execute_kernel(const Function& f, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
+    void* then_execute_kernel(const Function& f, const async_future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
       agency::detail::factory<Container> result_factory;
       return then_execute_kernel(f, result_factory, fut, outer_factory, inner_factory);
@@ -135,7 +160,7 @@ class basic_grid_executor
 
     template<class Function, class T, class OuterFactory, class InnerFactory>
     __host__ __device__
-    void* then_execute_kernel(const Function& f, const future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
+    void* then_execute_kernel(const Function& f, const async_future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
       using container_type = agency::detail::new_executor_traits_detail::discarding_container;
       auto g = agency::detail::invoke_and_return_unit<Function>{f};
@@ -144,7 +169,7 @@ class basic_grid_executor
 
     template<class Function, class T>
     __host__ __device__
-    static void* then_execute_kernel(const Function& f, const future<T>& fut)
+    static void* then_execute_kernel(const Function& f, const async_future<T>& fut)
     {
       // XXX if T is void, then we only want to take the first parameter and invoke, because there is no second parameter
       //     so what we really want is something like take_at_most_first_two_parameters_and_invoke<Function>
@@ -157,7 +182,7 @@ class basic_grid_executor
     __host__ __device__
     static void* then_execute_kernel(const Function& f)
     {
-      return then_execute_kernel(f, future<void>());
+      return then_execute_kernel(f, async_future<void>());
     }
 
 
@@ -165,7 +190,7 @@ class basic_grid_executor
 
     template<class Function>
     __host__ __device__
-    future<void> async_execute(Function f, shape_type shape)
+    async_future<void> async_execute(Function f, shape_type shape)
     {
       auto ready = make_ready_future();
       return agency::executor_traits<basic_grid_executor>::then_execute(*this, f, shape, ready);
@@ -174,7 +199,7 @@ class basic_grid_executor
 
     template<class Function, class Factory1, class Factory2>
     __host__ __device__
-    future<void> async_execute(Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory)
+    async_future<void> async_execute(Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory)
     {
       auto ready = make_ready_future();
       return agency::executor_traits<basic_grid_executor>::then_execute(*this, f, shape, ready, outer_factory, inner_factory);
@@ -285,21 +310,21 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
 
     template<class Function, class T>
     __host__ __device__
-    shape_type max_shape(const Function& f, const future<T>& fut)
+    shape_type max_shape(const Function& f, const async_future<T>& fut)
     {
       return max_shape_impl(then_execute_kernel(f,fut));
     }
 
     template<class T, class Function, class Factory1, class Factory2>
     __host__ __device__
-    shape_type max_shape(const Function& f, const future<T>& fut, const Factory1& outer_factory, const Factory2& inner_factory) const
+    shape_type max_shape(const Function& f, const async_future<T>& fut, const Factory1& outer_factory, const Factory2& inner_factory) const
     {
       return max_shape_impl(then_execute_kernel(f, fut, outer_factory, inner_factory));
     }
 
     template<class Function, class Factory1, class T, class Factory2, class Factory3>
     __host__ __device__
-    shape_type max_shape(const Function& f, const Factory1& result_factory, const future<T>& fut, const Factory2& outer_factory, const Factory3& inner_factory) const
+    shape_type max_shape(const Function& f, const Factory1& result_factory, const async_future<T>& fut, const Factory2& outer_factory, const Factory3& inner_factory) const
     {
       return max_shape_impl(then_execute_kernel(f, result_factory, fut, outer_factory, inner_factory));
     }
@@ -424,7 +449,7 @@ class flattened_executor<cuda::grid_executor>
       then_execute(Function f, Factory1 result_factory, shape_type shape, future<T>& dependency, Factory2 shared_parameter_factory)
     {
       // create a dummy function for partitioning purposes
-      auto dummy_function = agency::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partition_type{}, shape);
+      auto dummy_function = agency::detail::make_flatten_index_and_invoke<cuda::grid_executor::index_type,T>(f, partition_type{}, shape);
 
       cuda::detail::guarded_container_factory<Factory1> intermediate_result_factory{result_factory,shape};
 
@@ -432,7 +457,7 @@ class flattened_executor<cuda::grid_executor>
       auto partitioning = partition(dummy_function, intermediate_result_factory, shape, dependency, shared_parameter_factory, agency::detail::unit_factory());
 
       // create a function to execute
-      auto execute_me = agency::detail::make_project_index_and_invoke<cuda::grid_executor::index_type>(f, partitioning, shape);
+      auto execute_me = agency::detail::make_flatten_index_and_invoke<cuda::grid_executor::index_type,T>(f, partitioning, shape);
 
       return base_executor().then_execute(execute_me, intermediate_result_factory, partitioning, dependency, shared_parameter_factory, agency::detail::unit_factory());
     }

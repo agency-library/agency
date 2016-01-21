@@ -11,6 +11,8 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/host_device_cast.hpp>
+#include <agency/detail/has_nested.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -50,6 +52,13 @@ using ignore_t = decltype(__tu::ignore);
 constexpr ignore_t ignore{};
 
 
+__DEFINE_HAS_NESTED_MEMBER(has_value, value);
+
+
+template<class T>
+struct is_tuple : has_value<std::tuple_size<T>> {};
+
+
 template<class IndexSequence, class... Tuples>
 struct tuple_cat_result_impl_impl;
 
@@ -77,14 +86,14 @@ template<class... Tuples>
 using tuple_cat_result = typename tuple_cat_result_impl<typename std::decay<Tuples>::type...>::type;
 
 
-template<class Tuple>
-struct tuple_maker
+template<class T>
+struct maker
 {
   template<class... Args>
   __AGENCY_ANNOTATION
-  Tuple operator()(Args&&... args)
+  T operator()(Args&&... args)
   {
-    return Tuple{std::forward<Args>(args)...};
+    return T{std::forward<Args>(args)...};
   }
 };
 
@@ -95,12 +104,15 @@ template<class... Tuples>
 __AGENCY_ANNOTATION
 tuple_cat_result<Tuples...> tuple_cat(Tuples&&... tuples)
 {
-  return __tu::tuple_cat_apply(tuple_maker<tuple_cat_result<Tuples...>>{}, std::forward<Tuples>(tuples)...);
+  return __tu::tuple_cat_apply(maker<tuple_cat_result<Tuples...>>{}, std::forward<Tuples>(tuples)...);
 }
 
 
 // fancy version of std::get which uses tuple_traits and can get() from things which aren't in std::
-template<size_t i, class Tuple>
+template<size_t i, class Tuple,
+         class = typename std::enable_if<
+           is_tuple<typename std::decay<Tuple>::type>::value
+         >::type>
 __AGENCY_ANNOTATION
 auto get(Tuple&& t)
   -> decltype(
@@ -145,6 +157,14 @@ auto forward_tail(Tuple&& t)
      )
 {
   return __tu::tuple_tail_invoke(std::forward<Tuple>(t), forwarder{});
+}
+
+
+template<class T, class Tuple>
+__AGENCY_ANNOTATION
+T make_from_tail(Tuple&& t)
+{
+  return __tu::tuple_tail_invoke(std::forward<Tuple>(t), maker<T>());
 }
 
 
@@ -195,6 +215,52 @@ auto tuple_tail(Tuple&& t)
      )
 {
   return __tu::tuple_tail_invoke(std::forward<Tuple>(t), agency_tuple_maker{});
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+auto tuple_head_if(T&& t) ->
+  decltype(detail::get<0>(std::forward<T>(t)))
+{
+  return detail::get<0>(std::forward<T>(t));
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           !is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+T&& tuple_head_if(T&& t)
+{
+  return std::forward<T>(t);
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+auto tuple_tail_if(T&& t) ->
+  decltype(detail::tuple_tail(std::forward<T>(t)))
+{
+  return detail::tuple_tail(std::forward<T>(t));
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           !is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+tuple<> tuple_tail_if(T&& t)
+{
+  return tuple<>();
 }
 
 
@@ -540,6 +606,71 @@ struct tuple_or_single_type_or_void_from_type_list<agency::detail::type_list<>>
 
 template<class TypeList>
 using tuple_or_single_type_or_void_from_type_list_t = typename tuple_or_single_type_or_void_from_type_list<TypeList>::type;
+
+
+template<class Indices, class Tuple>
+struct tuple_type_list_impl;
+
+template<size_t... Indices, class Tuple>
+struct tuple_type_list_impl<index_sequence<Indices...>, Tuple>
+{
+  using type = type_list<
+    typename std::tuple_element<Indices,Tuple>::type...
+  >;
+};
+
+
+template<class T, class Enable = void>
+struct tuple_type_list;
+
+
+template<class Tuple>
+struct tuple_type_list<Tuple, typename std::enable_if<is_tuple<Tuple>::value>::type>
+{
+  using type = typename tuple_type_list_impl<
+    make_index_sequence<std::tuple_size<Tuple>::value>,
+    Tuple
+  >::type;
+};
+
+
+template<class>
+struct is_empty_tuple;
+
+
+template<class T>
+struct is_empty_tuple_impl_impl;
+
+
+template<class... Types>
+struct is_empty_tuple_impl_impl<type_list<Types...>>
+{
+  using type = static_and<
+    static_or<
+      std::is_empty<Types>,
+      is_empty_tuple<Types>
+    >...
+  >;
+};
+
+
+template<class T, class Enable = void>
+struct is_empty_tuple_impl : std::false_type {};
+
+
+template<class Tuple>
+struct is_empty_tuple_impl<Tuple, typename std::enable_if<is_tuple<Tuple>::value>::type>
+{
+  using type = typename is_empty_tuple_impl_impl<
+    typename tuple_type_list<Tuple>::type
+  >::type;
+};
+
+
+template<class Tuple>
+struct is_empty_tuple : is_empty_tuple_impl<Tuple>::type {};
+
+
 
 
 

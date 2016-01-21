@@ -2,3 +2,4 @@
 *.out
 **/*.o
 **/*.out
+.sconsign.dblite

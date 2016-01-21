@@ -26,6 +26,7 @@ typename std::result_of<Function()>::type
 
 
 template<class Executor, class Function>
+__AGENCY_ANNOTATION
 typename std::result_of<Function()>::type
   single_agent_execute_impl(Executor& ex, Function&& f,
                             typename std::enable_if<
@@ -46,6 +47,7 @@ typename std::result_of<Function()>::type
 
 
 template<class Executor, class Function>
+__AGENCY_ANNOTATION
 typename std::result_of<Function()>::type
   single_agent_execute_impl(Executor& ex, Function&& f,
                             typename std::enable_if<
@@ -70,6 +72,7 @@ typename std::result_of<Function()>::type
 
 
 template<class Executor, class Function>
+__AGENCY_ANNOTATION
 typename std::result_of<Function()>::type
   single_agent_execute(std::false_type, Executor& ex, Function&& f)
 {
@@ -83,6 +86,7 @@ typename std::result_of<Function()>::type
 
 template<class Executor>
   template<class Function>
+__AGENCY_ANNOTATION
 typename std::result_of<Function()>::type
   new_executor_traits<Executor>
     ::execute(typename new_executor_traits<Executor>::executor_type& ex,
