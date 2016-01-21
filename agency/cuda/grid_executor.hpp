@@ -14,7 +14,7 @@
 #include <thrust/detail/minmax.h>
 #include <agency/cuda/detail/tuple.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
-#include <agency/cuda/gpu.hpp>
+#include <agency/cuda/device.hpp>
 #include <agency/cuda/detail/bind.hpp>
 #include <agency/cuda/detail/memory/unique_ptr.hpp>
 #include <agency/cuda/detail/terminate.hpp>
@@ -67,22 +67,22 @@ class basic_grid_executor
 
 
     __host__ __device__
-    explicit basic_grid_executor(gpu_id gpu = detail::current_gpu())
-      : gpu_(gpu)
+    explicit basic_grid_executor(device_id device = detail::current_device())
+      : device_(device)
     {}
 
 
     __host__ __device__
-    gpu_id gpu() const
+    device_id device() const
     {
-      return gpu_;
+      return device_;
     }
 
     
     __host__ __device__
-    void gpu(gpu_id gpu)
+    void device(device_id device)
     {
-      gpu_ = gpu;
+      device_ = device;
     }
 
     
@@ -101,7 +101,7 @@ class basic_grid_executor
                                   Factory1 outer_factory,
                                   Factory2 inner_factory)
     {
-      return detail::when_all_execute_and_select<Indices...>(f, shape, ThisIndexFunction(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory, gpu());
+      return detail::when_all_execute_and_select<Indices...>(f, shape, ThisIndexFunction(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory, device());
     }
 
     template<class Function, class Factory1, class T, class Factory2, class Factory3,
@@ -117,7 +117,7 @@ class basic_grid_executor
     async_future<typename std::result_of<Factory1(shape_type)>::type>
       then_execute(Function f, Factory1 result_factory, shape_type shape, async_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
     {
-      return fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, gpu());
+      return fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, device());
     }
 
 
@@ -134,7 +134,7 @@ class basic_grid_executor
       then_execute(Function f, Factory1 result_factory, shape_type shape, shared_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
     {
       using result_type = async_future<typename std::result_of<Factory1(shape_type)>::type>;
-      auto intermediate_future = fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, gpu());
+      auto intermediate_future = fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, device());
       return std::move(intermediate_future.get<result_type>());
     }
 
@@ -147,7 +147,7 @@ class basic_grid_executor
     __host__ __device__
     void* then_execute_kernel(const Function& f, const Factory1& result_factory, const async_future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
-      return fut.bulk_then_kernel(f, result_factory, shape_type{}, ThisIndexFunction(), outer_factory, inner_factory, gpu());
+      return fut.bulk_then_kernel(f, result_factory, shape_type{}, ThisIndexFunction(), outer_factory, inner_factory, device());
     }
 
     template<class Container, class Function, class T, class OuterFactory, class InnerFactory>
@@ -221,7 +221,7 @@ class basic_grid_executor
     }
 
   private:
-    gpu_id gpu_;
+    device_id device_;
 };
 
 
@@ -267,17 +267,17 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
       // record the current device
       int current_device = 0;
       detail::throw_on_error(cudaGetDevice(&current_device), "cuda::grid_executor::max_shape(): cudaGetDevice()");
-      if(current_device != gpu().native_handle())
+      if(current_device != device().native_handle())
       {
 #  ifndef __CUDA_ARCH__
-        detail::throw_on_error(cudaSetDevice(gpu().native_handle()), "cuda::grid_executor::max_shape(): cudaSetDevice()");
+        detail::throw_on_error(cudaSetDevice(device().native_handle()), "cuda::grid_executor::max_shape(): cudaSetDevice()");
 #  else
         detail::throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
 #  endif // __CUDA_ARCH__
       }
 
       int max_grid_dimension_x = 0;
-      detail::throw_on_error(cudaDeviceGetAttribute(&max_grid_dimension_x, cudaDevAttrMaxGridDimX, gpu().native_handle()),
+      detail::throw_on_error(cudaDeviceGetAttribute(&max_grid_dimension_x, cudaDevAttrMaxGridDimX, device().native_handle()),
                              "cuda::grid_executor::max_shape(): cudaDeviceGetAttribute");
 
       cudaFuncAttributes attr{};
@@ -285,7 +285,7 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
                              "cuda::grid_executor::max_shape(): cudaFuncGetAttributes");
 
       // restore current device
-      if(current_device != gpu().native_handle())
+      if(current_device != device().native_handle())
       {
 #  ifndef __CUDA_ARCH__
         detail::throw_on_error(cudaSetDevice(current_device), "cuda::grid_executor::max_shape(): cudaSetDevice()");

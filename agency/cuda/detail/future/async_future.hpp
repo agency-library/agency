@@ -21,7 +21,7 @@
 #include <agency/cuda/detail/future/asynchronous_state.hpp>
 #include <agency/cuda/detail/future/continuation.hpp>
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
-#include <agency/cuda/gpu.hpp>
+#include <agency/cuda/device.hpp>
 #include <agency/detail/unit.hpp>
 #include <agency/functional.hpp>
 #include <agency/future.hpp>
@@ -322,7 +322,7 @@ class async_future
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     async_future<typename std::result_of<Factory(Shape)>::type>
-      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, gpu_id gpu)
+      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       using result_type = typename std::result_of<Factory(Shape)>::type;
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory(shape));
@@ -338,7 +338,7 @@ class async_future
       ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
       ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
       
-      auto next_event = event().then_on_and_invalidate(g, grid_dim, block_dim, 0, gpu.native_handle());
+      auto next_event = event().then_on_and_invalidate(g, grid_dim, block_dim, 0, device.native_handle());
       
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }
@@ -346,20 +346,20 @@ class async_future
     template<class Function, class Factory, class Shape, class IndexFunction>
     __host__ __device__
     async_future<typename std::result_of<Factory(Shape)>::type>
-      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, gpu_id gpu)
+      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, device_id device)
     {
       auto outer_factory = agency::detail::unit_factory{};
       auto inner_factory = agency::detail::unit_factory{};
       auto g = agency::detail::take_first_two_parameters_and_invoke<Function>{f};
 
-      return this->bulk_then(g, result_factory, shape, index_function, outer_factory, inner_factory, gpu);
+      return this->bulk_then(g, result_factory, shape, index_function, outer_factory, inner_factory, device);
     }
 
     // these functions returns a pointer to the kernel used to implement the corresponding call to bulk_then()
     // XXX there might not actually be implemented a corresponding bulk_then() for each of these bulk_then_kernel() functions
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
-    static void* bulk_then_kernel(const Function& f, const Factory& result_factory, const Shape& s, const IndexFunction& index_function, const OuterFactory&, const InnerFactory& inner_factory, const gpu_id&)
+    static void* bulk_then_kernel(const Function& f, const Factory& result_factory, const Shape& s, const IndexFunction& index_function, const OuterFactory&, const InnerFactory& inner_factory, const device_id&)
     {
       using result_type = typename std::result_of<Factory(Shape)>::type;
       using result_state_type = detail::asynchronous_state<result_type>;
@@ -372,19 +372,19 @@ class async_future
 
     template<class Function, class Factory, class Shape, class IndexFunction>
     __host__ __device__
-    static void* bulk_then_kernel(const Function& f, const Factory& result_factory, const Shape& s, const IndexFunction& index_function, const gpu_id& gpu)
+    static void* bulk_then_kernel(const Function& f, const Factory& result_factory, const Shape& s, const IndexFunction& index_function, const device_id& device)
     {
       auto outer_factory = agency::detail::unit_factory{};
       auto inner_factory = agency::detail::unit_factory{};
       auto g = agency::detail::take_first_two_parameters_and_invoke<Function>{f};
 
-      return bulk_then_kernel(f, result_factory, s, index_function, outer_factory, inner_factory, gpu);
+      return bulk_then_kernel(f, result_factory, s, index_function, outer_factory, inner_factory, device);
     }
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     async_future<typename std::result_of<Factory(Shape)>::type>
-      bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, gpu_id gpu)
+      bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       using result_type = typename std::result_of<Factory(Shape)>::type;
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory(shape));
@@ -400,7 +400,7 @@ class async_future
       ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
       ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
       
-      auto next_event = event().then_on(g, grid_dim, block_dim, 0, gpu.native_handle());
+      auto next_event = event().then_on(g, grid_dim, block_dim, 0, device.native_handle());
       
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }

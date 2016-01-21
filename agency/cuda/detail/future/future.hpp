@@ -389,7 +389,7 @@ class future
       IndexFunction index_function;
       OuterFactory outer_factory;
       InnerFactory inner_factory;
-      agency::cuda::gpu_id gpu;
+      agency::cuda::device_id device;
 
       template<class Future>
       future<
@@ -404,9 +404,9 @@ class future
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __AGENCY_ANNOTATION
     future<typename std::result_of<Factory(Shape)>::type>
-      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::gpu_id gpu)
+      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
     {
-      auto visitor = bulk_then_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,gpu};
+      auto visitor = bulk_then_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
       return agency::detail::visit(visitor, variant_);
     }
 
@@ -420,7 +420,7 @@ class future
       IndexFunction index_function;
       OuterFactory outer_factory;
       InnerFactory inner_factory;
-      agency::cuda::gpu_id gpu;
+      agency::cuda::device_id device;
 
       template<class Future>
       __AGENCY_ANNOTATION
@@ -429,16 +429,16 @@ class future
       >
         operator()(Future& fut)
       {
-        return fut.bulk_then_and_leave_valid(f, result_factory, shape, index_function, outer_factory, inner_factory, gpu);
+        return fut.bulk_then_and_leave_valid(f, result_factory, shape, index_function, outer_factory, inner_factory, device);
       }
     };
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __AGENCY_ANNOTATION
     future<typename std::result_of<Factory(Shape)>::type>
-      bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::gpu_id gpu)
+      bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
     {
-      auto visitor = bulk_then_and_leave_valid_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,gpu};
+      auto visitor = bulk_then_and_leave_valid_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
       return agency::detail::visit(visitor, variant_);
     }
 

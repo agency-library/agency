@@ -51,7 +51,7 @@ int main()
 
     for(size_t i = 0; i < 2; ++i)
     {
-      exec[i].gpu(i);
+      exec[i].device(i);
     }
 
     auto shape = exec.make_shape(2,{2,2});
@@ -90,7 +90,7 @@ int main()
 
     for(size_t i = 0; i < 2; ++i)
     {
-      exec[i].gpu(i);
+      exec[i].device(i);
     }
 
     auto shape = exec.make_shape(2,{2,2});
@@ -127,7 +127,7 @@ int main()
 
     for(size_t i = 0; i < 2; ++i)
     {
-      exec_array[i].gpu(i);
+      exec_array[i].device(i);
     }
 
     executor_type exec{exec_array};

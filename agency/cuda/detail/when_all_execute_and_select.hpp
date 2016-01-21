@@ -8,7 +8,7 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
 #include <agency/cuda/future.hpp>
-#include <agency/cuda/gpu.hpp>
+#include <agency/cuda/device.hpp>
 #include <type_traits>
 #include <memory>
 #include <utility>
@@ -275,14 +275,14 @@ async_future<when_all_execute_and_select_result_t<agency::detail::index_sequence
                                    TupleOfFutures tuple_of_futures,
                                    OuterFactory outer_factory,
                                    InnerFactory inner_factory,
-                                   const gpu_id& gpu)
+                                   const device_id& device)
 {
   // create a future to contain the outer argument
   using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
   auto outer_arg_future = agency::cuda::make_ready_async_future<outer_arg_type>(outer_factory());
 
   // join the events
-  event when_all_ready = cuda::detail::when_all_events_are_ready(gpu, outer_arg_future.event(), agency::detail::get<TupleIndices>(tuple_of_futures).event()...);
+  event when_all_ready = cuda::detail::when_all_events_are_ready(device, outer_arg_future.event(), agency::detail::get<TupleIndices>(tuple_of_futures).event()...);
 
   // get a view of the non-void futures
   auto view_of_non_void_futures = agency::detail::tuple_filter_view<value_type_is_not_void>(tuple_of_futures);
@@ -325,7 +325,7 @@ async_future<when_all_execute_and_select_result_t<agency::detail::index_sequence
                               TupleOfFutures&& tuple_of_futures,
                               OuterFactory outer_factory,
                               InnerFactory inner_factory,
-                              const gpu_id& gpu)
+                              const device_id& device)
 {
   // XXX we should static_assert that SelectedIndices are unique and in the correct range
 
@@ -337,7 +337,7 @@ async_future<when_all_execute_and_select_result_t<agency::detail::index_sequence
                                                         std::move(tuple_of_futures),
                                                         outer_factory,
                                                         inner_factory,
-                                                        gpu);
+                                                        device);
 }
 
 

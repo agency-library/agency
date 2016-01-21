@@ -59,7 +59,7 @@ class block_executor : private grid_executor
     }
 
     using super_t::super_t;
-    using super_t::gpu;
+    using super_t::device;
 
     template<class Function>
     __host__ __device__

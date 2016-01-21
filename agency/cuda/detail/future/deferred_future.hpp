@@ -520,7 +520,7 @@ class deferred_future
       IndexFunction index_function;
       OuterFactory outer_factory;
       InnerFactory inner_factory;
-      gpu_id gpu;
+      device_id device;
 
       // operator() for non-void past_arg
       template<class U>
@@ -530,7 +530,7 @@ class deferred_future
       {
         auto ready = async_future<U>::make_ready(std::move(past_arg));
 
-        return ready.bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory, gpu).get();
+        return ready.bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory, device).get();
       }
 
       // operator() for void past_arg
@@ -540,16 +540,16 @@ class deferred_future
       {
         auto ready = async_future<void>::make_ready();
 
-        return ready.bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory, gpu).get();
+        return ready.bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory, device).get();
       }
     };
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     deferred_future<typename std::result_of<Factory(Shape)>::type>
-      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, gpu_id gpu)
+      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
-      bulk_then_functor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory> continuation{f,result_factory,shape,index_function,outer_factory,inner_factory,gpu};
+      bulk_then_functor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory> continuation{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
 
       return then(continuation);
     }
@@ -589,7 +589,7 @@ class deferred_future
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     deferred_future<typename std::result_of<Factory(Shape)>::type>
-      bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, gpu_id gpu)
+      bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       printf("deferred_future::bulk_then_and_leave_valid(): Unimplemented.\n");
 

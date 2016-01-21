@@ -1,6 +1,6 @@
 #include <agency/cuda/grid_executor.hpp>
 #include <agency/cuda/detail/when_all_execute_and_select.hpp>
-#include <agency/cuda/gpu.hpp>
+#include <agency/cuda/device.hpp>
 #include <memory>
 
 
@@ -52,7 +52,7 @@ agency::cuda::future<
 >
   when_all_execute_impl(agency::detail::index_sequence<Indices...> indices, Function f, Shape shape, IndexFunction index_function, TupleOfFutures&& futures, OuterFactory outer_factory, InnerFactory inner_factory)
 {
-  return agency::cuda::detail::when_all_execute_and_select<Indices...>(f, shape, index_function, std::forward<TupleOfFutures>(futures), outer_factory, inner_factory, agency::cuda::detail::current_gpu());
+  return agency::cuda::detail::when_all_execute_and_select<Indices...>(f, shape, index_function, std::forward<TupleOfFutures>(futures), outer_factory, inner_factory, agency::cuda::detail::current_device());
 }
 
 

@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
-#include <agency/cuda/gpu.hpp>
+#include <agency/cuda/device.hpp>
 
 namespace agency
 {
@@ -16,10 +16,10 @@ namespace detail
 class stream
 {
   public:
-    // creates a new stream associated with the current gpu
+    // creates a new stream associated with the current device
     inline __host__ __device__
     stream()
-      : gpu_(current_gpu())
+      : device_(current_device())
     {
 #if __cuda_lib_has_cudart
       detail::throw_on_error(cudaStreamCreate(&s_), "cudaStreamCreate in cuda::detail::stream ctor");
@@ -28,23 +28,23 @@ class stream
 #endif
     }
 
-    // creates a new stream associated with the given gpu
+    // creates a new stream associated with the given device
     inline __host__ __device__
-    stream(gpu_id g)
-      : gpu_(g)
+    stream(device_id g)
+      : device_(g)
     {
-      auto old_gpu = current_gpu();
+      auto old_device = current_device();
 
 #if __cuda_lib_has_cudart
 #  ifdef __CUDA_ARCH__
-      assert(g == old_gpu);
+      assert(g == old_device);
 #  else
-      detail::throw_on_error(cudaSetDevice(gpu().native_handle()), "cudaSetDevice in cuda::detail::stream ctor");
+      detail::throw_on_error(cudaSetDevice(device().native_handle()), "cudaSetDevice in cuda::detail::stream ctor");
 #  endif
 
       detail::throw_on_error(cudaStreamCreate(&s_), "cudaStreamCreate in cuda::detail::stream ctor");
 #  ifdef __CUDA_ARCH__
-      detail::throw_on_error(cudaSetDevice(old_gpu.native_handle()), "cudaSetDevice in cuda::detail::stream ctor");
+      detail::throw_on_error(cudaSetDevice(old_device.native_handle()), "cudaSetDevice in cuda::detail::stream ctor");
 #  endif
 #else
       detail::terminate_with_message("cuda::detail::stream ctor requires CUDART");
@@ -53,7 +53,7 @@ class stream
 
     inline __host__ __device__
     stream(stream&& other)
-      : gpu_(other.gpu()), s_{}
+      : device_(other.device()), s_{}
     {
       s_ = other.s_;
       other.s_ = 0;
@@ -73,9 +73,9 @@ class stream
     }
 
     inline __host__ __device__
-    gpu_id gpu() const
+    device_id device() const
     {
-      return gpu_;
+      return device_;
     }
 
     inline __host__ __device__
@@ -87,9 +87,9 @@ class stream
     inline __host__ __device__
     void swap(stream& other)
     {
-      gpu_id tmp1 = gpu_;
-      gpu_ = other.gpu_;
-      other.gpu_ = tmp1;
+      device_id tmp1 = device_;
+      device_ = other.device_;
+      other.device_ = tmp1;
 
       cudaStream_t tmp2 = s_;
       s_ = other.s_;
@@ -97,7 +97,7 @@ class stream
     }
 
   private:
-    gpu_id gpu_;
+    device_id device_;
     cudaStream_t s_;
 };
 

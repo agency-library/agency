@@ -6,7 +6,7 @@
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/kernel.hpp>
 #include <agency/cuda/detail/future/stream.hpp>
-#include <agency/cuda/gpu.hpp>
+#include <agency/cuda/device.hpp>
 
 namespace agency
 {
@@ -159,7 +159,7 @@ class event
     __host__ __device__
     event then(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const Args&... args)
     {
-      return then_on(f, grid_dim, block_dim, shared_memory_size, stream().gpu(), args...);
+      return then_on(f, grid_dim, block_dim, shared_memory_size, stream().device(), args...);
     }
 
     // this form of then() leaves this event in an invalid state afterwards
@@ -197,11 +197,11 @@ class event
     // this form of then_on() leaves this event in an invalid state afterwards
     template<class Function, class... Args>
     __host__ __device__
-    event then_on_and_invalidate(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const gpu_id& gpu, const Args&... args)
+    event then_on_and_invalidate(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const device_id& device, const Args&... args)
     {
-      // if gpu differs from this event's stream's gpu, we need to create a new one for the launch
+      // if device differs from this event's stream's device, we need to create a new one for the launch
       // otherwise, just reuse this event's stream
-      detail::stream new_stream = (gpu == stream().gpu()) ? std::move(stream()) : detail::stream(gpu);
+      detail::stream new_stream = (device == stream().device()) ? std::move(stream()) : detail::stream(device);
 
       // make the new stream wait on this event
       stream_wait(new_stream, *this);
@@ -210,7 +210,7 @@ class event
       auto kernel = then_on_kernel(f,args...);
 
       // launch the kernel on the new stream
-      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), gpu.native_handle(), f, args...);
+      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), device.native_handle(), f, args...);
 
       // invalidate this event
       *this = event();
@@ -222,10 +222,10 @@ class event
     // this form of then_on() leaves this event in a valid state afterwards
     template<class Function, class... Args>
     __host__ __device__
-    event then_on(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const gpu_id& gpu, const Args&... args)
+    event then_on(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const device_id& device, const Args&... args)
     {
-      // create a stream for the kernel on the given gpu
-      detail::stream new_stream(gpu);
+      // create a stream for the kernel on the given device
+      detail::stream new_stream(device);
 
       // make the new stream wait on this event
       stream_wait(new_stream, *this);
@@ -234,7 +234,7 @@ class event
       auto kernel = then_on_kernel(f,args...);
 
       // launch the kernel on the new stream
-      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), gpu.native_handle(), f, args...);
+      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), device.native_handle(), f, args...);
 
       // return a new event
       return event(std::move(new_stream));
@@ -318,7 +318,7 @@ class event
 
     template<class... Events>
     __host__ __device__
-    friend event when_all_events_are_ready(const gpu_id& gpu, Events&... events);
+    friend event when_all_events_are_ready(const device_id& device, Events&... events);
 
     template<class... Events>
     __host__ __device__
@@ -328,9 +328,9 @@ class event
 
 template<class... Events>
 __host__ __device__
-event when_all_events_are_ready(const gpu_id& gpu, Events&... events)
+event when_all_events_are_ready(const device_id& device, Events&... events)
 {
-  detail::stream s{gpu};
+  detail::stream s{device};
 
   // tell the stream to wait on all the events
   event::swallow(events.stream_wait_and_invalidate(s)...);
@@ -344,9 +344,9 @@ template<class... Events>
 __host__ __device__
 event when_all_events_are_ready(Events&... events)
 {
-  // just use the current gpu
-  // XXX we might prefer the gpu associated with the first event
-  return agency::cuda::detail::when_all_events_are_ready(current_gpu(), events...);
+  // just use the current device
+  // XXX we might prefer the device associated with the first event
+  return agency::cuda::detail::when_all_events_are_ready(current_device(), events...);
 }
 
 
