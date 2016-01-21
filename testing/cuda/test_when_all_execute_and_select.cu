@@ -8,12 +8,13 @@ int main()
   auto factory = [] __device__ { return 7; };
 
   agency::cuda::grid_executor exec;
+  using traits = agency::executor_traits<agency::cuda::grid_executor>;
   auto shape = agency::cuda::grid_executor::shape_type{100,256};
 
   {
     // int, float -> (int, float)
-    agency::cuda::future<int>   f1 = agency::cuda::make_ready_future<int>(7);
-    agency::cuda::future<float> f2 = agency::cuda::make_ready_future<float>(13);
+    auto f1 = traits::make_ready_future<int>(exec,7);
+    auto f2 = traits::make_ready_future<float>(exec,13);
 
     auto f3 = exec.when_all_execute_and_select<0,1>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
     {
@@ -35,8 +36,8 @@ int main()
 
   {
     // int, float -> (float, int)
-    agency::cuda::future<int>   f1 = agency::cuda::make_ready_future<int>(7);
-    agency::cuda::future<float> f2 = agency::cuda::make_ready_future<float>(13);
+    auto f1 = traits::make_ready_future<int>(exec,7);
+    auto f2 = traits::make_ready_future<float>(exec,13);
 
     auto f3 = exec.when_all_execute_and_select<1,0>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
     {
@@ -58,8 +59,8 @@ int main()
 
   {
     // int, float -> int
-    agency::cuda::future<int>   f1 = agency::cuda::make_ready_future<int>(7);
-    agency::cuda::future<float> f2 = agency::cuda::make_ready_future<float>(13);
+    auto f1 = traits::make_ready_future<int>(exec,7);
+    auto f2 = traits::make_ready_future<float>(exec,13);
 
     auto f3 = exec.when_all_execute_and_select<0>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
     {
@@ -81,8 +82,8 @@ int main()
 
   {
     // int, float -> float
-    agency::cuda::future<int>   f1 = agency::cuda::make_ready_future<int>(7);
-    agency::cuda::future<float> f2 = agency::cuda::make_ready_future<float>(13);
+    auto f1 = traits::make_ready_future<int>(exec,7);
+    auto f2 = traits::make_ready_future<float>(exec,13);
 
     auto f3 = exec.when_all_execute_and_select<1>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
     {
@@ -104,8 +105,8 @@ int main()
 
   {
     // int, void -> int
-    agency::cuda::future<int>  f1 = agency::cuda::make_ready_future<int>(7);
-    agency::cuda::future<void> f2 = agency::cuda::make_ready_future();
+    auto f1 = traits::make_ready_future<int>(exec,7);
+    auto f2 = traits::make_ready_future<void>(exec);
 
     auto f3 = exec.when_all_execute_and_select<0,1>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
     {
@@ -126,8 +127,8 @@ int main()
 
   {
     // void, int -> int
-    agency::cuda::future<void> f1 = agency::cuda::make_ready_future();
-    agency::cuda::future<int>  f2 = agency::cuda::make_ready_future<int>(7);
+    auto f1 = traits::make_ready_future<void>(exec);
+    auto f2 = traits::make_ready_future<int>(exec,7);
 
     auto f3 = exec.when_all_execute_and_select<0,1>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
     {
@@ -148,7 +149,7 @@ int main()
 
   {
     // void -> void
-    agency::cuda::future<void> f1 = agency::cuda::make_ready_future();
+    auto f1 = traits::make_ready_future<void>(exec);
 
     auto f3 = exec.when_all_execute_and_select<0>([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
@@ -163,8 +164,8 @@ int main()
 
   {
     // void, void -> void
-    agency::cuda::future<void> f1 = agency::cuda::make_ready_future();
-    agency::cuda::future<void> f2 = agency::cuda::make_ready_future();
+    auto f1 = traits::make_ready_future<void>(exec);
+    auto f2 = traits::make_ready_future<void>(exec);
 
     auto f3 = exec.when_all_execute_and_select<0,1>([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {

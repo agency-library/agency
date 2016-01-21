@@ -41,7 +41,7 @@ int main()
   using inner_executor_type = cuda::grid_executor;
 
   {
-    // test executor_array async_execute()
+    // test executor_array then_execute()
     using executor_type = executor_array<inner_executor_type, outer_executor_type>;
     using traits = agency::executor_traits<executor_type>;
     using shape_type = typename traits::shape_type;
@@ -95,7 +95,7 @@ int main()
 
     auto shape = exec.make_shape(2,{2,2});
 
-    auto f = exec.async_execute([] __device__ (const index_type& idx, int& outer_shared, int& inner_shared, int& inner_inner_shared)
+    auto f = traits::async_execute(exec, [] __device__ (const index_type& idx, int& outer_shared, int& inner_shared, int& inner_inner_shared)
     {
       return 13 + outer_shared + inner_shared + inner_inner_shared;
     },

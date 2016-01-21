@@ -4,9 +4,9 @@
 int main()
 {
   { // int, int -> (int, int, int)
-    auto f1 = agency::cuda::make_ready_future<int>(7);
-    auto f2 = agency::cuda::make_ready_future<int>(13);
-    auto f3 = agency::cuda::make_ready_future<int>(42);
+    auto f1 = agency::cuda::make_ready_async_future<int>(7);
+    auto f2 = agency::cuda::make_ready_async_future<int>(13);
+    auto f3 = agency::cuda::make_ready_async_future<int>(42);
 
     auto f4 = agency::cuda::when_all(f1, f2, f3);
 
@@ -20,8 +20,8 @@ int main()
 
   {
     // int, int -> (int, int)
-    auto f1 = agency::cuda::make_ready_future<int>(7);
-    auto f2 = agency::cuda::make_ready_future<int>(13);
+    auto f1 = agency::cuda::make_ready_async_future<int>(7);
+    auto f2 = agency::cuda::make_ready_async_future<int>(13);
 
     auto f3 = agency::cuda::when_all(f1, f2);
 
@@ -34,8 +34,8 @@ int main()
 
   {
     // int, void -> int
-    auto f1 = agency::cuda::make_ready_future<int>(7);
-    auto f2 = agency::cuda::make_ready_future();
+    auto f1 = agency::cuda::make_ready_async_future<int>(7);
+    auto f2 = agency::cuda::make_ready_async_future();
 
     auto f3 = agency::cuda::when_all(f1, f2);
 
@@ -48,8 +48,8 @@ int main()
 
   {
     // void, int -> int
-    auto f1 = agency::cuda::make_ready_future();
-    auto f2 = agency::cuda::make_ready_future<int>(7);
+    auto f1 = agency::cuda::make_ready_async_future();
+    auto f2 = agency::cuda::make_ready_async_future<int>(7);
 
     auto f3 = agency::cuda::when_all(f1, f2);
 
@@ -62,7 +62,7 @@ int main()
 
   {
     // int -> int
-    auto f1 = agency::cuda::make_ready_future<int>(7);
+    auto f1 = agency::cuda::make_ready_async_future<int>(7);
 
     auto f2 = agency::cuda::when_all(f1);
 
@@ -74,7 +74,7 @@ int main()
 
   {
     // void -> void
-    auto f1 = agency::cuda::make_ready_future();
+    auto f1 = agency::cuda::make_ready_async_future();
 
     auto f2 = agency::cuda::when_all(f1);
 

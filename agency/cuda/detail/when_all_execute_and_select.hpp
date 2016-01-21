@@ -135,12 +135,12 @@ move_construct_result_functor<ResultPointer,Pointers...>
 // the pointees of ptrs are moved into the result's constructor
 template<class Pointer, class... Pointers>
 __host__ __device__
-agency::cuda::future<
+agency::cuda::async_future<
   agency::detail::when_all_result_t<
-    agency::cuda::future<
+    agency::cuda::async_future<
       typename std::pointer_traits<Pointer>::element_type
     >,
-    agency::cuda::future<
+    agency::cuda::async_future<
       typename std::pointer_traits<Pointers>::element_type
     >...
   >
@@ -148,8 +148,8 @@ agency::cuda::future<
   move_construct_result(agency::cuda::detail::event& dependency, Pointer ptr, Pointers... ptrs)
 {
   using result_type = agency::detail::when_all_result_t<
-    agency::cuda::future<typename std::pointer_traits<Pointer>::element_type>,
-    agency::cuda::future<typename std::pointer_traits<Pointers>::element_type>...
+    agency::cuda::async_future<typename std::pointer_traits<Pointer>::element_type>,
+    agency::cuda::async_future<typename std::pointer_traits<Pointers>::element_type>...
   >;
 
   // create a state to hold the result
@@ -161,15 +161,15 @@ agency::cuda::future<
   // launch the function
   agency::cuda::detail::event result_event = dependency.then_and_invalidate(f, dim3{1}, dim3{1}, 0);
 
-  return agency::cuda::future<result_type>(std::move(result_event), std::move(result_state));
+  return agency::cuda::async_future<result_type>(std::move(result_event), std::move(result_state));
 }
 
 
 inline __host__ __device__
-agency::cuda::future<void>
+agency::cuda::async_future<void>
   move_construct_result(agency::cuda::detail::event& dependency)
 {
-  return agency::cuda::future<void>(std::move(dependency), agency::cuda::detail::asynchronous_state<void>(agency::detail::construct_not_ready));
+  return agency::cuda::async_future<void>(std::move(dependency), agency::cuda::detail::asynchronous_state<void>(agency::detail::construct_not_ready));
 }
 
 
@@ -266,7 +266,7 @@ using when_all_execute_and_select_result_t = typename when_all_execute_and_selec
 
 template<size_t... SelectedIndices, size_t... TupleIndices, class Function, class Shape, class IndexFunction, class TupleOfFutures, class OuterFactory, class InnerFactory>
 __host__ __device__
-future<when_all_execute_and_select_result_t<agency::detail::index_sequence<SelectedIndices...>, TupleOfFutures>>
+async_future<when_all_execute_and_select_result_t<agency::detail::index_sequence<SelectedIndices...>, TupleOfFutures>>
   when_all_execute_and_select_impl(agency::detail::index_sequence<SelectedIndices...>,
                                    agency::detail::index_sequence<TupleIndices...>,
                                    Function f,
@@ -279,7 +279,7 @@ future<when_all_execute_and_select_result_t<agency::detail::index_sequence<Selec
 {
   // create a future to contain the outer argument
   using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
-  auto outer_arg_future = agency::cuda::make_ready_future<outer_arg_type>(outer_factory());
+  auto outer_arg_future = agency::cuda::make_ready_async_future<outer_arg_type>(outer_factory());
 
   // join the events
   event when_all_ready = cuda::detail::when_all_events_are_ready(gpu, outer_arg_future.event(), agency::detail::get<TupleIndices>(tuple_of_futures).event()...);
@@ -318,7 +318,7 @@ template<size_t... SelectedIndices,
          class OuterFactory,
          class InnerFactory>
 __host__ __device__
-future<when_all_execute_and_select_result_t<agency::detail::index_sequence<SelectedIndices...>, agency::detail::decay_t<TupleOfFutures>>>
+async_future<when_all_execute_and_select_result_t<agency::detail::index_sequence<SelectedIndices...>, agency::detail::decay_t<TupleOfFutures>>>
   when_all_execute_and_select(Function f,
                               Shape shape,
                               IndexFunction index_function,

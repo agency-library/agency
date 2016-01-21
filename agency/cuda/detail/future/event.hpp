@@ -5,7 +5,7 @@
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/detail/kernel.hpp>
-#include <agency/cuda/detail/stream.hpp>
+#include <agency/cuda/detail/future/stream.hpp>
 #include <agency/cuda/gpu.hpp>
 
 namespace agency
@@ -63,10 +63,9 @@ class event
 
     __host__ __device__
     event(event&& other)
-      : stream_(std::move(other.stream())),
-        e_(other.e_)
+      : event()
     {
-      other.e_ = 0;
+      swap(other);
     }
 
     __host__ __device__
@@ -79,9 +78,38 @@ class event
     }
 
     __host__ __device__
+    event& operator=(event&& other)
+    {
+      swap(other);
+      return *this;
+    }
+
+    __host__ __device__
     bool valid() const
     {
       return e_ != 0;
+    }
+
+    __host__ __device__
+    bool is_ready() const
+    {
+      if(valid())
+      {
+#if __cuda_lib_has_cudart
+        cudaError_t result = cudaEventQuery(e_);
+
+        if(result != cudaErrorNotReady && result != cudaSuccess)
+        {
+          detail::throw_on_error(result, "cudaEventQuery in cuda::detail::event::is_ready");
+        }
+
+        return result == cudaSuccess;
+#else
+        detail::terminate_with_message("cuda::detail::event::is_ready requires CUDART");
+#endif
+      }
+
+      return false;
     }
 
     __host__ __device__
@@ -126,20 +154,29 @@ class event
       return then_kernel<Function,Args...>();
     }
 
-    // this form of then() invalidates this event afterwards
+    // this form of then() leaves this event in a valid state afterwards
+    template<class Function, class... Args>
+    __host__ __device__
+    event then(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const Args&... args)
+    {
+      return then_on(f, grid_dim, block_dim, shared_memory_size, stream().gpu(), args...);
+    }
+
+    // this form of then() leaves this event in an invalid state afterwards
     template<class Function, class... Args>
     __host__ __device__
     event then_and_invalidate(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const Args&... args)
     {
-      // make the stream wait before launching
+      // make the stream wait on this event before further launches
       stream_wait_and_invalidate();
 
       // get the address of the kernel
       auto kernel = then_kernel(f,args...);
 
-      // launch the kernel
+      // launch the kernel on this event's stream
       detail::checked_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream().native_handle(), f, args...);
 
+      // return a new event
       return event(std::move(stream()));
     }
 
@@ -157,22 +194,49 @@ class event
       return then_on_kernel<Function,Args...>();
     }
 
+    // this form of then_on() leaves this event in an invalid state afterwards
     template<class Function, class... Args>
     __host__ __device__
     event then_on_and_invalidate(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const gpu_id& gpu, const Args&... args)
     {
-      // make the stream wait before launching
-      stream_wait_and_invalidate();
-
-      // get the address of the kernel
-      auto kernel = then_on_kernel(f,args...);
-
       // if gpu differs from this event's stream's gpu, we need to create a new one for the launch
       // otherwise, just reuse this event's stream
       detail::stream new_stream = (gpu == stream().gpu()) ? std::move(stream()) : detail::stream(gpu);
 
+      // make the new stream wait on this event
+      stream_wait(new_stream, *this);
+
+      // get the address of the kernel
+      auto kernel = then_on_kernel(f,args...);
+
+      // launch the kernel on the new stream
       detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), gpu.native_handle(), f, args...);
 
+      // invalidate this event
+      *this = event();
+
+      // return a new event
+      return event(std::move(new_stream));
+    }
+
+    // this form of then_on() leaves this event in a valid state afterwards
+    template<class Function, class... Args>
+    __host__ __device__
+    event then_on(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const gpu_id& gpu, const Args&... args)
+    {
+      // create a stream for the kernel on the given gpu
+      detail::stream new_stream(gpu);
+
+      // make the new stream wait on this event
+      stream_wait(new_stream, *this);
+
+      // get the address of the kernel
+      auto kernel = then_on_kernel(f,args...);
+
+      // launch the kernel on the new stream
+      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), gpu.native_handle(), f, args...);
+
+      // return a new event
       return event(std::move(new_stream));
     }
 
@@ -206,17 +270,34 @@ class event
       return stream_;
     }
 
+    // makes the given stream wait on the given event
+    // XXX this should be moved into the implementation of detail::stream
+    __host__ __device__
+    static void stream_wait(const detail::stream& s, const detail::event& e)
+    {
+#if __cuda_lib_has_cudart
+      // make the next launch wait on the event
+      throw_on_error(cudaStreamWaitEvent(s.native_handle(), e.e_, 0), "cuda::detail::event::stream_wait(): cudaStreamWaitEvent()");
+#else
+      throw_on_error(cudaErrorNotSupported, "cuda::detail::event::stream_wait(): cudaStreamWaitEvent() requires CUDART");
+#endif // __cuda_lib_has_cudart
+    }
+
+    // makes the given stream wait on this event
+    __host__ __device__
+    int stream_wait(const detail::stream& s) const
+    {
+      stream_wait(s, *this);
+
+      return 0;
+    }
+
     // makes the given stream wait on this event and invalidates this event
     // this function returns 0 so that we can pass it as an argument to swallow(...)
     __host__ __device__
     int stream_wait_and_invalidate(const detail::stream& s)
     {
-#if __cuda_lib_has_cudart
-      // make the next launch wait on the event
-      throw_on_error(cudaStreamWaitEvent(s.native_handle(), e_, 0), "cuda::detail::event::stream_wait(): cudaStreamWaitEvent()");
-#else
-      throw_on_error(cudaErrorNotSupported, "cuda::detail::event::stream_wait(): cudaStreamWaitEvent() requires CUDART");
-#endif // __cuda_lib_has_cudart
+      stream_wait(s);
 
       // this operation invalidates this event
       destroy_event();
