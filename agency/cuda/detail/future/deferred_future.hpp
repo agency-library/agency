@@ -108,7 +108,7 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
 
     __AGENCY_ANNOTATION
     deferred_result(deferred_result&& other)
-      : super_t(std::move(other))
+      : super_t(std::move(static_cast<super_t&>(other)))
     {
       // empty other
       other.value() = agency::detail::nullopt;
