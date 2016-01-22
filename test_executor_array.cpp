@@ -105,6 +105,51 @@ int main()
   }
 
   {
+    // test executor_array then_execute() returning void
+    using executor_type = executor_array<inner_executor_type>;
+    using traits = agency::executor_traits<executor_type>;
+    using shape_type = typename traits::shape_type;
+    using index_type = typename traits::index_type;
+
+    executor_type exec(2);
+
+    auto past = traits::make_ready_future<int>(exec,1);
+
+    auto shape = exec.make_shape(3,5);
+
+    std::atomic<int> result{0};
+
+    std::mutex mut;
+    auto f = traits::then_execute(exec, [=,&mut,&result](const index_type& idx, int& past, int& outer_shared, int& inner_shared)
+    {
+      mut.lock();
+      std::cout << "Hello from agent " << idx << std::endl;
+      mut.unlock();
+
+      result += 13 + past + outer_shared + inner_shared;
+    },
+    shape,
+    past,
+    []{ return 7; },
+    []{ return 42; });
+
+    // sleep for a bit
+    mut.lock();
+    std::cout << "main thread sleeping for a bit..." << std::endl;
+    mut.unlock();
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    mut.lock();
+    std::cout << "main thread woke up" << std::endl;
+    mut.unlock();
+
+    f.wait();
+
+    assert(result == agency::detail::shape_size(shape) * (13 + 1 + 7 + 42));
+  }
+
+  {
     // test flattened executor_array
     using executor_array_type = executor_array<inner_executor_type>;
     using executor_type = flattened_executor<executor_array_type>;

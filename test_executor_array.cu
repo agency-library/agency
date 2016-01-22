@@ -6,6 +6,8 @@
 #include <agency/executor_array.hpp>
 #include <agency/cuda/parallel_executor.hpp>
 
+__managed__ int result;
+
 struct make_7
 {
   __host__ __device__
@@ -30,6 +32,18 @@ struct make_1
   int operator()() const
   {
     return 1;
+  }
+};
+
+struct functor
+{
+  int *result;
+
+  template<class Index>
+  __device__
+  void operator()(const Index&, int& past, int& outer_shared, int& inner_shared, int& inner_inner_shared)
+  {
+    atomicAdd(result, past + outer_shared + inner_shared + inner_inner_shared);
   }
 };
 
@@ -77,6 +91,33 @@ int main()
 
     assert(results.size() == agency::detail::shape_size(shape));
     assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 7 + 42 + 1; }));
+  }
+
+  {
+    // test executor_array then_execute() returning void
+    using executor_type = executor_array<inner_executor_type, outer_executor_type>;
+    using traits = agency::executor_traits<executor_type>;
+    using shape_type = typename traits::shape_type;
+
+    executor_type exec(2);
+
+    auto past = traits::make_ready_future<int>(exec,13);
+
+    auto shape = exec.make_shape(3,5);
+
+    result = 0;
+
+    auto f = traits::then_execute(exec,
+    functor{&result},
+    shape,
+    past,
+    make_7(),
+    make_42(),
+    make_1());
+
+    f.wait();
+
+    assert(result == agency::detail::shape_size(shape) * (13 + 7 + 42 + 1));
   }
 
   {
