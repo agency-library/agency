@@ -52,6 +52,18 @@ class array
       }
     }
 
+    __agency_hd_warning_disable__
+    template<class Iterator>
+    __AGENCY_ANNOTATION
+    array(Iterator first, Iterator last)
+      : array(shape_cast<shape_type>(last - first))
+    {
+      for(auto result = begin(); result != end(); ++result, ++first)
+      {
+        *result = *first;
+      }
+    }
+
     __AGENCY_ANNOTATION
     array(const array& other)
       : array(other.shape())
