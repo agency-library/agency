@@ -55,6 +55,11 @@ class executor_array
       : inner_executors_(n, exec)
     {}
 
+    template<class Iterator>
+    executor_array(Iterator executors_begin, Iterator executors_end)
+      : inner_executors_(executors_begin, executors_end)
+    {}
+
     template<class T>
     using future = typename outer_traits::template future<T>;
 
