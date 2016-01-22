@@ -53,7 +53,10 @@ class array
     }
 
     __agency_hd_warning_disable__
-    template<class Iterator>
+    template<class Iterator,
+             class = typename std::enable_if<
+               !std::is_convertible<Iterator,shape_type>::value
+             >::type>
     __AGENCY_ANNOTATION
     array(Iterator first, Iterator last)
       : array(shape_cast<shape_type>(last - first))
