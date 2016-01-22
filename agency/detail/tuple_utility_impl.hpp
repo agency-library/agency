@@ -580,11 +580,6 @@ struct __tuple_for_each_functor
 };
 
 
-template<class... Args>
-TUPLE_UTILITY_ANNOTATION
-void __swallow(Args&&...){}
-
-
 template<size_t I, class Function, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
 int __apply_row(Function f, Tuples&&... ts)
@@ -594,26 +589,23 @@ int __apply_row(Function f, Tuples&&... ts)
 }
 
 
-template<size_t... I, class Function, class... Tuples>
+template<class... Args>
 TUPLE_UTILITY_ANNOTATION
-void __tuple_for_each_n_impl(__index_sequence<I...>, Function f, Tuples&&... ts)
+void __swallow(Args&&...) {}
+
+
+template<size_t... Indices, class Function, class... Tuples>
+TUPLE_UTILITY_ANNOTATION
+void __tuple_for_each_impl(__index_sequence<Indices...>, Function f, Tuples&&... ts)
 {
   auto g = __tuple_for_each_functor<Function>{f};
 
   // XXX swallow g to WAR nvcc 7.0 unused variable warning
   __swallow(g);
 
-  // we want to write this expression, but can't do it directly with ellipsis operator
-  //  __swallow(
-  //    g(__get<0>(t0), __get<0>(t1), __get<0>(t2), ...),
-  //    g(__get<1>(t0), __get<1>(t1), __get<1>(t2), ...),
-  //    g(__get<2>(t0), __get<2>(t1), __get<2>(t2), ...),
-  //    ...
-  //  );
-
-  __swallow(
-    __apply_row<I>(g, std::forward<Tuples>(ts)...)...
-  );
+  // unpacking into a init lists preserves the order given by Indices
+  using ints = int[];
+  (void) ints{0, ((__apply_row<Indices>(g, std::forward<Tuples>(ts)...)), void(), 0)...};
 }
 
 
@@ -621,7 +613,7 @@ template<size_t N, class Function, class Tuple1, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
 void tuple_for_each_n(Function f, Tuple1&& t1, Tuples&&... ts)
 {
-  __tuple_for_each_n_impl(__make_index_sequence<N>{}, f, std::forward<Tuple1>(t1), std::forward<Tuples>(ts)...);
+  __tuple_for_each_impl(__make_index_sequence<N>(), f, std::forward<Tuple1>(t1), std::forward<Tuples>(ts)...);
 }
 
 
