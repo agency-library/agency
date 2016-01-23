@@ -199,7 +199,9 @@ struct is_execution_policy<cuda::concurrent_execution_policy> : std::true_type {
 template<class ExecutionPolicy>
 struct rebind_executor<ExecutionPolicy, cuda::grid_executor>
 {
-  using type = typename cuda::detail::rebind_executor_impl<ExecutionPolicy>::type;
+  // this rebind makes sense because cuda::parallel_execution_policy
+  // has a constructor that takes cuda::grid_executor
+  using type = cuda::parallel_execution_policy;
 };
 
 
