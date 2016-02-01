@@ -5,7 +5,7 @@ vars = Variables()
 vars.Add('CXX', 'compiler', 'clang')
 
 env = Environment(variables = vars)
-env.MergeFlags(['-I.', '-std=c++11', '-lstdc++', '-lpthread'])
+env.MergeFlags(['-I.', '-std=c++11', '-lstdc++', '-lpthread', '-lm'])
 
 # find all sources in the current directory
 sources = []
