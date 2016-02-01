@@ -1,7 +1,9 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
+#include <vector>
 
 namespace agency
 {
@@ -185,6 +187,7 @@ void wait(const Container& devices)
 }
 
 
+__host__ __device__
 size_t number_of_multiprocessors(const device_id& d)
 {
 #if __cuda_lib_has_cudart
@@ -193,6 +196,20 @@ size_t number_of_multiprocessors(const device_id& d)
   return static_cast<size_t>(attr);
 #else
   throw_on_error(cudaErrorNotSupported, "cuda::detail::number_of_multiprocessors(): cudaDeviceGetAttribute() requires CUDART");
+  return 0;
+#endif
+}
+
+
+__host__ __device__
+size_t maximum_grid_size_x(const device_id& d)
+{
+#if __cuda_lib_has_cudart
+  int attr = 0;
+  throw_on_error(cudaDeviceGetAttribute(&attr, cudaDevAttrMaxGridDimX, d.native_handle()), "cuda::detail::maximum_grid_size(): cudaDeviceGetAttribute()");
+  return static_cast<size_t>(attr);
+#else
+  throw_on_error(cudaErrorNotSupported, "cuda::detail::maximum_grid_size(): cudaDeviceGetAttribute() requires CUDART");
   return 0;
 #endif
 }
