@@ -4,7 +4,9 @@
 #include <agency/detail/factory.hpp>
 #include <agency/detail/optional.hpp>
 #include <agency/detail/index_cast.hpp>
+#include <agency/detail/index_tuple.hpp>
 #include <agency/detail/shape_cast.hpp>
+#include <agency/detail/shape_tuple.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <utility>
 #include <type_traits>
