@@ -185,6 +185,19 @@ void wait(const Container& devices)
 }
 
 
+size_t number_of_multiprocessors(const device_id& d)
+{
+#if __cuda_lib_has_cudart
+  int attr = 0;
+  throw_on_error(cudaDeviceGetAttribute(&attr, cudaDevAttrMultiProcessorCount, d.native_handle()), "cuda::detail::number_of_multiprocessors(): cudaDeviceGetAttribute()");
+  return static_cast<size_t>(attr);
+#else
+  throw_on_error(cudaErrorNotSupported, "cuda::detail::number_of_multiprocessors(): cudaDeviceGetAttribute() requires CUDART");
+  return 0;
+#endif
+}
+
+
 } // end detail
 } // end cuda
 } // end agency
