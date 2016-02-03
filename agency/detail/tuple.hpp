@@ -218,6 +218,17 @@ auto tuple_tail(Tuple&& t)
 }
 
 
+template<class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_prefix(Tuple&& t)
+  -> decltype(
+       __tu::tuple_prefix_invoke(std::forward<Tuple>(t), agency_tuple_maker{})
+     )
+{
+  return __tu::tuple_prefix_invoke(std::forward<Tuple>(t), agency_tuple_maker{});
+}
+
+
 template<class T,
          class = typename std::enable_if<
            is_tuple<typename std::decay<T>::type>::value
@@ -258,9 +269,55 @@ template<class T,
            !is_tuple<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
-tuple<> tuple_tail_if(T&& t)
+tuple<> tuple_tail_if(T&&)
 {
   return tuple<>();
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+auto tuple_prefix_if(T&& t) ->
+  decltype(detail::tuple_prefix(std::forward<T>(t)))
+{
+  return detail::tuple_prefix(std::forward<T>(t));
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           !is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+tuple<> tuple_prefix_if(T&&)
+{
+  return tuple<>();
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+auto tuple_last_if(T&& t) ->
+  decltype(__tu::tuple_last(std::forward<T>(t)))
+{
+  return __tu::tuple_last(std::forward<T>(t));
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           !is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+T&& tuple_last_if(T&& t)
+{
+  return std::forward<T>(t);
 }
 
 
@@ -671,7 +728,12 @@ template<class Tuple>
 struct is_empty_tuple : is_empty_tuple_impl<Tuple>::type {};
 
 
-
+template<class Tuple>
+using tuple_reverse_t = tuple_from_type_list_t<
+  type_list_reverse<
+    tuple_elements<Tuple>
+  >
+>;
 
 
 } // end detail
