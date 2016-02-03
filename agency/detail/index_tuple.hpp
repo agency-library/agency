@@ -96,6 +96,68 @@ nested_index_t<ExecutionCategory1,ExecutionCategory2,Index1,Index2> make_nested_
 }
 
 
+// a point on the number line is bounded by another if it is strictly less than the other
+template<class Integral1, class Integral2,
+         class = typename std::enable_if<
+           std::is_integral<Integral1>::value && std::is_integral<Integral2>::value
+         >::type>
+__AGENCY_ANNOTATION
+bool is_bounded_by(const Integral1& x, const Integral2& bound)
+{
+  return x < bound;
+}
+
+
+// a multidimensional index is bounded by another if all of its elements are
+// bounded by the corresponding element of the other
+// essentially we test whether x is contained within (not lying on)
+// the axis-aligned bounding box from the origin to the bound
+template<class IndexTuple1, class IndexTuple2,
+         class = typename std::enable_if<
+           is_tuple<IndexTuple1>::value && is_tuple<IndexTuple2>::value
+         >::type,
+         class = typename std::enable_if<
+           std::tuple_size<IndexTuple1>::value == std::tuple_size<IndexTuple2>::value
+         >::type>
+__AGENCY_ANNOTATION
+bool is_bounded_by(const IndexTuple1& x, const IndexTuple2& bound);
+
+
+// terminal case: x is bounded by bound
+template<size_t i, class IndexTuple1, class IndexTuple2>
+__AGENCY_ANNOTATION
+typename std::enable_if<
+  std::tuple_size<IndexTuple1>::value <= i,
+  bool
+>::type
+  is_bounded_by_impl(const IndexTuple1& x, const IndexTuple2& bound)
+{
+  return true;
+}
+
+
+// recursive case: early out if x[i] is not bounded by bound[i]
+template<size_t i, class IndexTuple1, class IndexTuple2>
+__AGENCY_ANNOTATION
+typename std::enable_if<
+  i < std::tuple_size<IndexTuple1>::value,
+  bool
+>::type
+  is_bounded_by_impl(const IndexTuple1& x, const IndexTuple2& bound)
+{
+  return detail::is_bounded_by(detail::get<i>(x), detail::get<i>(bound)) && detail::is_bounded_by_impl<i+1>(x,bound);
+}
+
+
+template<class IndexTuple1, class IndexTuple2,
+         class EnableIf1, class EnableIf2>
+__AGENCY_ANNOTATION
+bool is_bounded_by(const IndexTuple1& x, const IndexTuple2& bound)
+{
+  return detail::is_bounded_by_impl<0>(x,bound);
+}
+
+
 } // end detail
 } // end agency
 
