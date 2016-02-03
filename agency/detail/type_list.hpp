@@ -318,6 +318,21 @@ template<class TypeList>
 using type_list_reverse = typename type_list_reverse_impl<type_list_indices<TypeList>,TypeList>::type;
 
 
+template<template<class... Params> class Template, class TypeList>
+struct type_list_instantiate_impl;
+
+// XXX we should really enable_if sizeof...(Params) == sizeof...(Types)
+template<template<class... Params> class Template, class... Types>
+struct type_list_instantiate_impl<Template,type_list<Types...>>
+{
+  using type = Template<Types...>;
+};
+
+template<template<class... Params> class Template, class TypeList>
+using type_list_instantiate = typename type_list_instantiate_impl<Template,TypeList>::type;
+
+
+
 } // end detail
 } // end agency
 
