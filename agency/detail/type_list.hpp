@@ -290,6 +290,34 @@ template<template<class> class MetaFunction, class... Types>
 using type_list_index_map = type_list_integer_map<size_t, MetaFunction, Types...>;
 
 
+template<class TypeList>
+struct type_list_indices_impl;
+
+template<class... Types>
+struct type_list_indices_impl<type_list<Types...>>
+{
+  using type = make_index_sequence<sizeof...(Types)>;
+};
+
+template<class TypeList>
+using type_list_indices = typename type_list_indices_impl<TypeList>::type;
+
+
+template<class IndexSequence, class TypeList>
+struct type_list_reverse_impl;
+
+template<size_t... Indices, class TypeList>
+struct type_list_reverse_impl<index_sequence<Indices...>, TypeList>
+{
+  using type = type_list<
+    type_list_element<type_list_size<TypeList>::value - Indices - 1, TypeList>...
+  >;
+};
+
+template<class TypeList>
+using type_list_reverse = typename type_list_reverse_impl<type_list_indices<TypeList>,TypeList>::type;
+
+
 } // end detail
 } // end agency
 
