@@ -182,6 +182,46 @@ auto tuple_tail_invoke(Tuple&& t, Function f)
 }
 
 
+template<class Tuple, class Function, size_t... I>
+TUPLE_UTILITY_ANNOTATION
+auto __tuple_prefix_invoke_impl(Tuple&& t, Function f, __index_sequence<I...>)
+  -> decltype(
+       f(
+         __get<I>(std::forward<Tuple>(t))...
+       )
+     )
+{
+  return f(__get<I>(std::forward<Tuple>(t))...);
+}
+
+
+template<class Tuple, class Function>
+TUPLE_UTILITY_ANNOTATION
+auto tuple_prefix_invoke(Tuple&& t, Function f)
+  -> decltype(
+       __tuple_prefix_invoke_impl(
+         std::forward<Tuple>(t),
+         f,
+         __make_index_sequence<
+           std::tuple_size<
+             typename std::decay<Tuple>::type
+           >::value - 1
+         >()
+       )
+     )
+{
+  return __tuple_prefix_invoke_impl(
+    std::forward<Tuple>(t),
+    f,
+    __make_index_sequence<
+      std::tuple_size<
+        typename std::decay<Tuple>::type
+      >::value - 1
+    >()
+  );
+}
+
+
 struct __tuple_forwarder
 {
   template<class... Args>
