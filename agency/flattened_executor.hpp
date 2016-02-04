@@ -177,7 +177,7 @@ class flattened_executor
     using allocator = typename base_traits::template allocator<T>;
 
     template<class T>
-    using container = detail::array<T, shape_type, allocator<T>>;
+    using container = detail::array<T, shape_type, allocator<T>, index_type>;
 
     future<void> make_ready_future()
     {
