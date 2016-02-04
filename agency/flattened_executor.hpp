@@ -168,7 +168,7 @@ class flattened_executor
     using base_executor_type = Executor;
     using execution_category = detail::flattened_execution_tag<base_execution_category>;
     using shape_type = detail::flattened_shape_type_t<typename base_traits::shape_type>;
-    using index_type = detail::flattened_shape_type_t<typename base_traits::index_type>;
+    using index_type = detail::flattened_index_type_t<typename base_traits::index_type>;
 
     template<class T>
     using future = typename base_traits::template future<T>;
@@ -214,6 +214,7 @@ class flattened_executor
       using base_index_type = typename executor_traits<base_executor_type>::index_type;
       using future_value_type = typename future_traits<Future>::value_type;
       auto execute_me = detail::make_flatten_index_and_invoke<base_index_type,future_value_type>(f, base_shape, shape);
+
 
       // then_execute with the base_executor
       auto intermediate_fut = executor_traits<base_executor_type>::then_execute(
@@ -312,9 +313,8 @@ class flattened_executor
         }
       }
 
-      // XXX 0 and 1 are incorrect -- we want the penultimate and last elements
-      using outer_shape_type = typename std::tuple_element<0,base_shape_type>::type;
-      using inner_shape_type = typename std::tuple_element<1,base_shape_type>::type;
+      using outer_shape_type = typename std::tuple_element<0,last_partition_type>::type;
+      using inner_shape_type = typename std::tuple_element<1,last_partition_type>::type;
 
       // XXX we may want to use a different heuristic to lift these sizes into shapes
       //     such as trying to make the shapes as square as possible
