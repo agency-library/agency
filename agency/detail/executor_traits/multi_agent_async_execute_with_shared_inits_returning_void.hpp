@@ -28,6 +28,7 @@ typename new_executor_traits<Executor>::template future<void>
 
 
 template<class Executor, class Function, class... Factories>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<void>
   multi_agent_async_execute_with_shared_inits_returning_void(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, Factories... shared_factories)
 {

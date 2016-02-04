@@ -27,6 +27,7 @@ typename new_executor_traits<Executor>::template future<
 
 
 template<class Executor, class Function, class Factory, class... Factories>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_type)>::type
 >
@@ -45,6 +46,7 @@ typename new_executor_traits<Executor>::template future<
 template<class Executor>
   template<class Function, class Factory, class... Factories,
            class Enable>
+__AGENCY_ANNOTATION
 typename new_executor_traits<Executor>::template future<
   typename std::result_of<Factory(typename new_executor_traits<Executor>::shape_type)>::type
 >

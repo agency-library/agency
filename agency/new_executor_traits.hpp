@@ -457,6 +457,7 @@ struct new_executor_traits
              class = typename std::enable_if<
                sizeof...(Factories) == execution_depth
              >::type>
+    __AGENCY_ANNOTATION
     static future<typename std::result_of<Factory(shape_type)>::type> async_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Factories... shared_factories);
 
     // multi-agent async_execute() returning default container
