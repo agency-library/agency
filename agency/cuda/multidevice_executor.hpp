@@ -4,6 +4,7 @@
 #include <agency/cuda/parallel_executor.hpp>
 #include <agency/executor_array.hpp>
 #include <agency/flattened_executor.hpp>
+#include <numeric>
 
 namespace agency
 {
@@ -41,19 +42,49 @@ std::vector<grid_executor> all_devices_as_grid_executors()
 } // end detail
 
 
-class multidevice_executor : public flattened_executor<detail::supergrid_executor>
+class spanning_grid_executor : public flattened_executor<detail::supergrid_executor>
 {
   private:
     using super_t = flattened_executor<detail::supergrid_executor>;
 
+    static constexpr size_t maximum_blocksize = 256;
+
+    static size_t sum_maximum_grid_sizes()
+    {
+      auto all_devices = detail::all_devices();
+
+      return std::accumulate(all_devices.begin(), all_devices.end(), 0, [](size_t partial_sum, device_id d)
+      {
+        return partial_sum + detail::maximum_grid_size_x(d);
+      });
+    };
+
   public:
-    multidevice_executor()
-      : multidevice_executor(detail::all_devices_as_grid_executors())
-    {}
+    using super_t::super_t;
 
     template<class Container>
-    multidevice_executor(const Container& devices)
-      : super_t(detail::supergrid_executor(devices.begin(), devices.end()))
+    spanning_grid_executor(const Container& devices)
+      : super_t(detail::supergrid_executor(devices.begin(), devices.end()),
+                sum_maximum_grid_sizes(),
+                maximum_blocksize)
+    {}
+
+    spanning_grid_executor()
+      : spanning_grid_executor(detail::all_devices_as_grid_executors())
+    {}
+};
+
+
+class multidevice_executor : public flattened_executor<spanning_grid_executor>
+{
+  private:
+    using super_t = flattened_executor<spanning_grid_executor>;
+
+  public:
+    using super_t::super_t;
+
+    multidevice_executor()
+      : super_t(2)
     {}
 };
 
