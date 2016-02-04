@@ -44,8 +44,8 @@ class parallel_executor : public flattened_executor<grid_executor>
   public:
     using super_t::super_t;
 
-    parallel_executor()
-      : super_t(grid_executor(detail::current_device()),
+    parallel_executor(const grid_executor& exec = grid_executor(detail::current_device()))
+      : super_t(exec,
                 detail::maximum_grid_size_x(detail::current_device()),
                 maximum_blocksize)
     {}
