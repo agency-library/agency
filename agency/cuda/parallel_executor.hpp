@@ -34,7 +34,22 @@ class parallel_executor
 } // end this_thread
 
 
-using parallel_executor = agency::flattened_executor<grid_executor>;
+class parallel_executor : public flattened_executor<grid_executor>
+{
+  private:
+    using super_t = flattened_executor<grid_executor>;
+
+    static constexpr size_t maximum_blocksize = 256;
+
+  public:
+    using super_t::super_t;
+
+    parallel_executor()
+      : super_t(grid_executor(detail::current_device()),
+                detail::maximum_grid_size_x(detail::current_device()),
+                maximum_blocksize)
+    {}
+};
 
 
 } // end cuda
