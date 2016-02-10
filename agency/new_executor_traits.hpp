@@ -123,6 +123,27 @@ struct executor_future<Executor,T,false>
 };
 
 
+template<class Executor, class T>
+struct executor_shared_future
+{
+  // get the Executor's associated future_type for use in the tests below
+  using future_type = typename executor_future<Executor,T>::type;
+
+  // deduction of the Executor's shared_future proceeds from bottom to top below:
+
+  template<class Executor1> static auto test2(...) -> typename future_traits<future_type>::shared_future_type; // finally, defer to future_traits
+  template<class Executor1> static auto test2(int) -> decltype(std::declval<Executor1>().share_future(*std::declval<future_type*>())); // next check for a nested Executor::share_future() function
+
+  template<class Executor1> static auto test1(...) -> decltype(test2<Executor1>(0));
+  template<class Executor1> static auto test1(int) -> typename Executor1::template shared_future<T>; // first check for a nested Executor::shared_future<T>
+
+  using type = decltype(test1<Executor>(0));
+};
+
+template<class Executor, class T>
+using executor_shared_future_t = typename executor_shared_future<Executor,T>::type;
+
+
 //template<class T>
 //struct nested_container_template
 //{
@@ -265,6 +286,9 @@ struct new_executor_traits
     template<class T>
     using future = typename detail::new_executor_traits_detail::executor_future<executor_type,T>::type;
 
+    template<class T>
+    using shared_future = typename detail::new_executor_traits_detail::executor_shared_future<executor_type,T>::type;
+
     //template<class T>
     //using container = typename detail::new_executor_traits_detail::nested_container_with_default<
     //  executor_type,
@@ -285,6 +309,21 @@ struct new_executor_traits
     template<class T, class Future>
     __AGENCY_ANNOTATION
     static future<T> future_cast(executor_type& ex, Future& fut);
+
+    template<class Future>
+    __AGENCY_ANNOTATION
+    static shared_future<typename future_traits<Future>::value_type>
+      share_future(executor_type& ex, Future& fut);
+
+    template<class Future, class Factory>
+    __AGENCY_ANNOTATION
+    static typename std::result_of<Factory(shape_type)>::type
+      share_future(executor_type& ex, Future& fut, Factory result_factory, shape_type shape);
+
+    template<class Future>
+    __AGENCY_ANNOTATION
+    static container<shared_future<typename future_traits<Future>::value_type>>
+      share_future(executor_type& ex, Future& fut, shape_type shape);
 
     template<class... Futures>
     __AGENCY_ANNOTATION
@@ -603,6 +642,7 @@ struct new_executor_traits
 
 #include <agency/detail/executor_traits/make_ready_future.hpp>
 #include <agency/detail/executor_traits/future_cast.hpp>
+#include <agency/detail/executor_traits/share_future.hpp>
 #include <agency/detail/executor_traits/single_agent_when_all_execute_and_select.hpp>
 #include <agency/detail/executor_traits/multi_agent_when_all_execute_and_select.hpp>
 #include <agency/detail/executor_traits/multi_agent_when_all_execute_and_select_with_shared_inits.hpp>

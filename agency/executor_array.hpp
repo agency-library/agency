@@ -338,10 +338,9 @@ class executor_array
 
       using past_arg_type = typename future_traits<Future>::value_type;
 
-      // split the incoming future into something shareable
-      using shared_future_type = typename future_traits<Future>::shared_future_type;
-      using future_container = typename outer_traits::template container<shared_future_type>;
-      future_container past_futures(outer_shape, future_traits<Future>::share(fut));
+      // split the incoming future into a collection of shared futures
+      auto past_futures = outer_traits::share_future(outer_executor(), fut, outer_shape);
+      using future_container = decltype(past_futures);
 
       // XXX avoid lambdas to workaround nvcc limitations as well as lack of polymorphic lambda
       //auto inner_futures = outer_traits::execute(outer_executor(), [=,&past_futures](const outer_index_type& outer_idx) mutable
