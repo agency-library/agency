@@ -9,19 +9,6 @@
 
 namespace agency
 {
-namespace detail
-{
-namespace new_executor_traits_detail
-{
-
-
-
-template<class Executor, class Function, class TupleOfFutures>
-using has_single_agent_when_all_execute = typename has_single_agent_when_all_execute_impl<Executor, Function, TupleOfFutures>::type;
-
-
-} // end new_executor_traits_detail
-} // end detail
 
 
 template<class Executor>
@@ -36,10 +23,7 @@ struct new_executor_traits
 
     using index_type = detail::new_executor_traits_detail::executor_index_t<executor_type>;
 
-    using shape_type = typename detail::new_executor_traits_detail::nested_shape_type_with_default<
-      executor_type,
-      index_type
-    >::type;
+    using shape_type = detail::new_executor_traits_detail::executor_shape_t<executor_type>;
 
     template<class T>
     using future = typename detail::new_executor_traits_detail::executor_future_t<executor_type,T>;
@@ -47,18 +31,11 @@ struct new_executor_traits
     template<class T>
     using shared_future = typename detail::new_executor_traits_detail::executor_shared_future_t<executor_type,T>;
 
-    //template<class T>
-    //using container = typename detail::new_executor_traits_detail::nested_container_with_default<
-    //  executor_type,
-    //  std::vector
-    //>::template type_template<T>;
     template<class T>
-    using container = detail::new_executor_traits_detail::member_container_or_t<std::vector<T>, executor_type, T>;
+    using container = detail::new_executor_traits_detail::executor_container_t<executor_type,T>;
 
-    // XXX this should be the other way around - container<T> should depend on allocator<T>
-    // XXX should check the executor for the allocator
     template<class T>
-    using allocator = typename container<T>::allocator_type;
+    using allocator = detail::new_executor_traits_detail::executor_allocator_t<executor_type,T>;
 
     template<class T, class... Args>
     __AGENCY_ANNOTATION

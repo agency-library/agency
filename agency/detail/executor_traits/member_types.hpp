@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <vector>
 
 namespace agency
 {
@@ -145,19 +146,44 @@ template<class Executor, class T>
 using executor_shared_future_t = typename executor_shared_future<Executor,T>::type;
 
 
-//template<class T>
-//struct nested_container_template
-//{
-//  template<class U>
-//  using type_template = typename T::template container<U>;
-//};
+template<class T, class U>
+struct has_member_allocator_template_impl
+{
+  template<class T1,
+           class U1 = U,
+           class = typename T1::template allocator<U>
+          >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<T>(0));
+};
 
 template<class T, class U>
-using member_container_t = typename T::template container<U>;
+using has_member_allocator_template = typename has_member_allocator_template_impl<T,U>::type;
 
-// XXX WAR problems with gcc 4.X and nvcc 7.5
-//template<class Default, class T, class U>
-//using member_container_or_t = detected_or_t<Default, member_container_t, T, U>;
+
+template<class T, class U, bool = has_member_allocator_template<T,U>::value>
+struct member_allocator
+{
+};
+
+template<class T, class U>
+struct member_allocator<T,U,true>
+{
+  using type = typename T::template allocator<U>;
+};
+
+
+template<class Default, class T, class U>
+using member_allocator_or_t = typename lazy_conditional<
+  has_member_allocator_template<T,U>::value,
+  member_allocator<T,U>,
+  identity<Default>
+>::type;
+
 
 template<class T, class U>
 struct has_member_container_template_impl
@@ -177,6 +203,7 @@ struct has_member_container_template_impl
 template<class T, class U>
 using has_member_container_template = typename has_member_container_template_impl<T,U>::type;
 
+
 template<class T, class U, bool = has_member_container_template<T,U>::value>
 struct member_container
 {
@@ -187,6 +214,7 @@ struct member_container<T,U,true>
 {
   using type = typename T::template container<U>;
 };
+
 
 template<class Default, class T, class U>
 using member_container_or_t = typename lazy_conditional<
@@ -219,41 +247,6 @@ struct identity_template
 };
 
 
-//template<class T, template<class,class> class Default = std::vector>
-//struct nested_container_with_default
-//  : lazy_conditional_template<
-//      has_container_template<T,int>::value,
-//      nested_container_template<T>,
-//      identity_template<Default>
-//    >
-//{};
-
-
-template<class Default, class T, class U>
-struct member_container_or
-{
-};
-
-
-template<class Executor, class Function, class TupleOfFutures>
-struct has_single_agent_when_all_execute_impl
-{
-  template<class Executor1,
-           class = decltype(
-             std::declval<Executor1>().when_all_execute(
-               std::declval<Function>(),
-               std::declval<TupleOfFutures>()
-             )
-           )>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-
 template<class Executor>
 using executor_execution_category_t = typename nested_execution_category_with_default<
   Executor,
@@ -266,6 +259,23 @@ using executor_index_t = typename nested_index_type_with_default<
   Executor,
   size_t
 >::type;
+
+
+template<class Executor>
+using executor_shape_t = typename nested_shape_type_with_default<
+  Executor,
+  executor_index_t<Executor>
+>::type;
+
+
+template<class Executor, class T>
+using executor_container_t = member_container_or_t<std::vector<T>, Executor, T>;
+
+
+// XXX this should be the other way around - container<T> should depend on allocator<T>
+// XXX should check the executor for the allocator
+template<class Executor, class T>
+using executor_allocator_t = typename executor_container_t<Executor,T>::allocator_type;
 
 
 } // end new_executor_traits_detail
