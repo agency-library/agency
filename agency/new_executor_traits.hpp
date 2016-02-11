@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/executor_traits/member_types.hpp>
 #include <vector>
 
 namespace agency
@@ -14,243 +15,6 @@ namespace new_executor_traits_detail
 {
 
 
-__DEFINE_HAS_NESTED_TYPE(has_execution_category, execution_category);
-__DEFINE_HAS_NESTED_TYPE(has_index_type, index_type);
-__DEFINE_HAS_NESTED_TYPE(has_shape_type, shape_type);
-__DEFINE_HAS_NESTED_CLASS_TEMPLATE(has_container_template, container);
-
-
-template<class T, class Index>
-struct is_container_impl
-{
-  // test if T is a container by trying to index it using the bracket operator
-  // XXX should also check that it is constructible from Shape
-  template<class T1,
-           class Index1 = Index,
-           class Reference = decltype(
-             (*std::declval<T1*>())[std::declval<Index1>()]
-           ),
-           class = typename std::enable_if<
-             !std::is_void<Reference>::value
-           >::type>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<T>(0));
-};
-
-
-template<class T, class Index>
-using is_container = typename is_container_impl<T,Index>::type;
-
-
-template<class T>
-struct nested_execution_category
-{
-  using type = typename T::execution_category;
-};
-
-
-template<class T, class Default = parallel_execution_tag>
-struct nested_execution_category_with_default
-  : agency::detail::lazy_conditional<
-      has_execution_category<T>::value,
-      nested_execution_category<T>,
-      agency::detail::identity<Default>
-    >
-{};
-
-
-template<class T>
-struct nested_index_type
-{
-  using type = typename T::index_type;
-};
-
-
-template<class T, class Default = size_t>
-struct nested_index_type_with_default
-  : agency::detail::lazy_conditional<
-      has_index_type<T>::value,
-      nested_index_type<T>,
-      agency::detail::identity<Default>
-    >
-{};
-
-
-template<class T>
-struct nested_shape_type
-{
-  using type = typename T::shape_type;
-};
-
-
-template<class T, class Default = size_t>
-struct nested_shape_type_with_default
-  : agency::detail::lazy_conditional<
-      has_shape_type<T>::value,
-      nested_shape_type<T>,
-      agency::detail::identity<Default>
-    >
-{};
-
-
-template<class T, class U>
-struct has_future_impl
-{
-  template<class> static std::false_type test(...);
-  template<class X> static std::true_type test(typename X::template future<U>* = 0);
-
-  using type = decltype(test<T>(0));
-};
-
-template<class T, class U>
-using has_future = typename has_future_impl<T,U>::type;
-
-
-template<class Executor, class T, bool = has_future<Executor,T>::value>
-struct executor_future
-{
-  using type = typename Executor::template future<T>;
-};
-
-template<class Executor, class T>
-struct executor_future<Executor,T,false>
-{
-  using type = std::future<T>;
-};
-
-
-template<class Executor, class T>
-struct executor_shared_future
-{
-  // get the Executor's associated future_type for use in the tests below
-  using future_type = typename executor_future<Executor,T>::type;
-
-  // deduction of the Executor's shared_future proceeds from bottom to top below:
-
-  template<class Executor1> static auto test2(...) -> typename future_traits<future_type>::shared_future_type; // finally, defer to future_traits
-  template<class Executor1> static auto test2(int) -> decltype(std::declval<Executor1>().share_future(*std::declval<future_type*>())); // next check for a nested Executor::share_future() function
-
-  template<class Executor1> static auto test1(...) -> decltype(test2<Executor1>(0));
-  template<class Executor1> static auto test1(int) -> typename Executor1::template shared_future<T>; // first check for a nested Executor::shared_future<T>
-
-  using type = decltype(test1<Executor>(0));
-};
-
-template<class Executor, class T>
-using executor_shared_future_t = typename executor_shared_future<Executor,T>::type;
-
-
-//template<class T>
-//struct nested_container_template
-//{
-//  template<class U>
-//  using type_template = typename T::template container<U>;
-//};
-
-template<class T, class U>
-using member_container_t = typename T::template container<U>;
-
-// XXX WAR problems with gcc 4.X and nvcc 7.5
-//template<class Default, class T, class U>
-//using member_container_or_t = detected_or_t<Default, member_container_t, T, U>;
-
-template<class T, class U>
-struct has_member_container_template_impl
-{
-  template<class T1,
-           class U1 = U,
-           class = typename T1::template container<U>
-          >
-  static std::true_type test(int);
-           
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<T>(0));
-};
-
-template<class T, class U>
-using has_member_container_template = typename has_member_container_template_impl<T,U>::type;
-
-template<class T, class U, bool = has_member_container_template<T,U>::value>
-struct member_container
-{
-};
-
-template<class T, class U>
-struct member_container<T,U,true>
-{
-  using type = typename T::template container<U>;
-};
-
-template<class Default, class T, class U>
-using member_container_or_t = typename lazy_conditional<
-  has_member_container_template<T,U>::value,
-  member_container<T,U>,
-  identity<Default>
->::type;
-
-
-template<bool condition, class Then, class Else>
-struct lazy_conditional_template
-{
-  template<class... T>
-  using type_template = typename Then::template type_template<T...>;
-};
-
-template<class Then, class Else>
-struct lazy_conditional_template<false, Then, Else>
-{
-  template<class... T>
-  using type_template = typename Else::template type_template<T...>;
-};
-
-
-template<template<class...> class T>
-struct identity_template
-{
-  template<class... U>
-  using type_template = T<U...>;
-};
-
-
-//template<class T, template<class,class> class Default = std::vector>
-//struct nested_container_with_default
-//  : lazy_conditional_template<
-//      has_container_template<T,int>::value,
-//      nested_container_template<T>,
-//      identity_template<Default>
-//    >
-//{};
-
-
-template<class Default, class T, class U>
-struct member_container_or
-{
-};
-
-
-template<class Executor, class Function, class TupleOfFutures>
-struct has_single_agent_when_all_execute_impl
-{
-  template<class Executor1,
-           class = decltype(
-             std::declval<Executor1>().when_all_execute(
-               std::declval<Function>(),
-               std::declval<TupleOfFutures>()
-             )
-           )>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
 
 template<class Executor, class Function, class TupleOfFutures>
 using has_single_agent_when_all_execute = typename has_single_agent_when_all_execute_impl<Executor, Function, TupleOfFutures>::type;
@@ -266,17 +30,11 @@ struct new_executor_traits
   public:
     using executor_type = Executor;
 
-    using execution_category = typename detail::new_executor_traits_detail::nested_execution_category_with_default<
-      executor_type,
-      parallel_execution_tag
-    >::type;
+    using execution_category = detail::new_executor_traits_detail::executor_execution_category_t<executor_type>;
 
     constexpr static size_t execution_depth = detail::execution_depth<execution_category>::value;
 
-    using index_type = typename detail::new_executor_traits_detail::nested_index_type_with_default<
-      executor_type,
-      size_t
-    >::type;
+    using index_type = detail::new_executor_traits_detail::executor_index_t<executor_type>;
 
     using shape_type = typename detail::new_executor_traits_detail::nested_shape_type_with_default<
       executor_type,
@@ -284,10 +42,10 @@ struct new_executor_traits
     >::type;
 
     template<class T>
-    using future = typename detail::new_executor_traits_detail::executor_future<executor_type,T>::type;
+    using future = typename detail::new_executor_traits_detail::executor_future_t<executor_type,T>;
 
     template<class T>
-    using shared_future = typename detail::new_executor_traits_detail::executor_shared_future<executor_type,T>::type;
+    using shared_future = typename detail::new_executor_traits_detail::executor_shared_future_t<executor_type,T>;
 
     //template<class T>
     //using container = typename detail::new_executor_traits_detail::nested_container_with_default<
