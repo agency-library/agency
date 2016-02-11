@@ -5,10 +5,22 @@
 #include <agency/execution_categories.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/executor_traits/member_types.hpp>
+#include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <vector>
 
 namespace agency
 {
+
+
+// XXX is_executor should be much more permissive and just check for any function supported by executor_traits
+template<class T>
+struct is_executor
+  : std::integral_constant<
+      bool,
+      detail::new_executor_traits_detail::has_execution_category<T>::value &&
+      detail::new_executor_traits_detail::has_any_multi_agent_then_execute<T>::value
+    >
+{};
 
 
 template<class Executor>
@@ -373,6 +385,55 @@ struct new_executor_traits
 }; // end new_executor_traits
 
 
+namespace detail
+{
+
+
+// convenience metafunctions for accessing types associated with executors
+
+template<class Executor, class Enable = void>
+struct executor_index {};
+
+template<class Executor>
+struct executor_index<Executor, typename std::enable_if<is_executor<Executor>::value>::type>
+{
+  using type = typename new_executor_traits<Executor>::index_type;
+};
+
+template<class Executor>
+using executor_index_t = typename executor_index<Executor>::type;
+
+
+template<class Executor, class T, class Enable = void>
+struct executor_future {};
+
+template<class Executor, class T>
+struct executor_future<Executor, T, typename std::enable_if<is_executor<Executor>::value>::type>
+{
+  using type = typename new_executor_traits<Executor>::template future<T>;
+};
+
+template<class Executor, class T>
+using executor_future_t = typename executor_future<Executor,T>::type;
+
+
+template<class Executor, class T>
+struct executor_result
+{
+  using type = typename new_executor_traits<Executor>::template container<T>;
+};
+
+template<class Executor>
+struct executor_result<Executor,void>
+{
+  using type = void;
+};
+
+template<class Executor, class T>
+using executor_result_t = typename executor_result<Executor,T>::type;
+
+
+} // end detail
 } // end agency
 
 #include <agency/detail/executor_traits/make_ready_future.hpp>

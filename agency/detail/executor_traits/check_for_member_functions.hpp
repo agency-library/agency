@@ -1,9 +1,12 @@
 #pragma once
 
 #include <type_traits>
+#include <agency/detail/config.hpp>
 #include <agency/detail/executor_traits/discarding_container.hpp>
 #include <agency/detail/executor_traits/member_types.hpp>
+#include <agency/detail/executor_traits/container_factory.hpp>
 #include <agency/future.hpp>
+#include <agency/detail/factory.hpp>
 
 namespace agency
 {
@@ -619,6 +622,48 @@ struct has_multi_agent_then_execute_with_shared_inits_returning_void_impl
 
 template<class Executor, class Function, class Future, class... Types>
 using has_multi_agent_then_execute_with_shared_inits_returning_void = typename has_multi_agent_then_execute_with_shared_inits_returning_void_impl<Executor,Function,Future,Types...>::type;
+
+
+template<class Executor, class T, class TypeList>
+struct has_any_multi_agent_then_execute_impl;
+
+
+template<class Executor, class T, class... Factories>
+struct has_any_multi_agent_then_execute_impl<Executor, T, type_list<Factories...>>
+{
+  static constexpr bool has_then_execute_with_shared_inits_returning_user_specified_container = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<
+    Executor,
+    test_function_returning_int,
+    container_factory<new_executor_traits_detail::discarding_container>,
+    executor_future_t<Executor,void>,
+    Factories...
+  >::value;
+
+  static constexpr bool has_then_execute_with_shared_inits_returning_void = has_multi_agent_then_execute_with_shared_inits_returning_void<
+    Executor,
+    test_function_returning_void,
+    executor_future_t<Executor,void>,
+    Factories...
+  >::value;
+
+  using type = std::integral_constant<
+    bool,
+    has_then_execute_with_shared_inits_returning_user_specified_container ||
+    has_then_execute_with_shared_inits_returning_void
+  >;
+};
+
+
+template<class T>
+struct has_any_multi_agent_then_execute
+  : has_any_multi_agent_then_execute_impl<
+      T,
+      int,
+      repeat_type<
+        unit_factory, execution_depth<typename T::execution_category>::value
+      >
+    >::type
+{};
 
 
 template<class Executor, class Function, class TupleOfFutures, size_t... Indices>
