@@ -1,4 +1,4 @@
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <cassert>
 #include <iostream>
 
@@ -26,7 +26,7 @@ void test()
 
     int set_me_to_thirteen = 0;
 
-    auto f = agency::new_executor_traits<executor_type>::async_execute(exec, [&]
+    auto f = agency::executor_traits<executor_type>::async_execute(exec, [&]
     {
       set_me_to_thirteen = 13;
     });
@@ -42,7 +42,7 @@ void test()
 
     executor_type exec;
 
-    auto f = agency::new_executor_traits<executor_type>::async_execute(exec, []
+    auto f = agency::executor_traits<executor_type>::async_execute(exec, []
     {
       return 13;
     });
@@ -55,7 +55,7 @@ void test()
     // with move-only functor
     executor_type exec;
 
-    auto f = agency::new_executor_traits<executor_type>::async_execute(exec, move_only());
+    auto f = agency::executor_traits<executor_type>::async_execute(exec, move_only());
 
     assert(f.get() == 13);
     assert(exec.valid());

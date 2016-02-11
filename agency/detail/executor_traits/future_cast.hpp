@@ -1,14 +1,14 @@
 #pragma once
 
 #include <agency/future.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 
 namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 namespace future_cast_implementation_strategies
 {
@@ -46,7 +46,7 @@ using select_future_cast_implementation =
     has_future_cast<Executor,T,Future>::value,
     use_future_cast_member_function,
     typename std::conditional<
-      is_future_castable<Future, typename new_executor_traits<Executor>::template future<T>>::value,
+      is_future_castable<Future, typename executor_traits<Executor>::template future<T>>::value,
       use_future_traits,
       use_then_execute
     >::type
@@ -59,7 +59,7 @@ using select_future_cast_implementation =
 __agency_hd_warning_disable__
 template<class T, class Executor, class Future>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<T>
+typename executor_traits<Executor>::template future<T>
   future_cast(future_cast_implementation_strategies::use_future_cast_member_function, Executor& ex, Future& fut)
 {
   return ex.template future_cast<T>(ex, fut);
@@ -68,7 +68,7 @@ typename new_executor_traits<Executor>::template future<T>
 
 template<class T, class Executor, class Future>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<T>
+typename executor_traits<Executor>::template future<T>
   future_cast(future_cast_implementation_strategies::use_future_traits, Executor&, Future& fut)
 {
   return agency::future_traits<Future>::template cast<T>(fut);
@@ -97,25 +97,25 @@ struct future_cast_then_execute_functor
 
 template<class T, class Executor, class Future>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<T>
+typename executor_traits<Executor>::template future<T>
   future_cast(future_cast_implementation_strategies::use_then_execute, Executor& ex, Future& fut)
 {
-  return new_executor_traits<Executor>::then_execute(ex, future_cast_then_execute_functor<T>{}, fut);
+  return executor_traits<Executor>::then_execute(ex, future_cast_then_execute_functor<T>{}, fut);
 } // end future_cast()
 
 
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 
 
 template<class Executor>
   template<class T, class Future>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<T>
-  new_executor_traits<Executor>
-    ::future_cast(typename new_executor_traits<Executor>::executor_type& ex, Future& fut)
+typename executor_traits<Executor>::template future<T>
+  executor_traits<Executor>
+    ::future_cast(typename executor_traits<Executor>::executor_type& ex, Future& fut)
 {
-  using namespace agency::detail::new_executor_traits_detail::future_cast_implementation_strategies;
+  using namespace agency::detail::executor_traits_detail::future_cast_implementation_strategies;
 
   using implementation_strategy = select_future_cast_implementation<
     Executor,
@@ -123,7 +123,7 @@ typename new_executor_traits<Executor>::template future<T>
     Future
   >;
 
-  return detail::new_executor_traits_detail::future_cast<T>(implementation_strategy(), ex, fut);
+  return detail::executor_traits_detail::future_cast<T>(implementation_strategy(), ex, fut);
 } // end future_cast()
 
 

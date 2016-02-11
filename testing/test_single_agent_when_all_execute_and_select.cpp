@@ -1,5 +1,5 @@
 #include <agency/future.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <iostream>
 #include <cassert>
 
@@ -32,7 +32,7 @@ void test()
     
     std::mutex mut;
     executor_type exec;
-    std::future<int> fut = agency::new_executor_traits<executor_type>::template when_all_execute_and_select<1>(exec, [&mut](int& x)
+    std::future<int> fut = agency::executor_traits<executor_type>::template when_all_execute_and_select<1>(exec, [&mut](int& x)
     {
       mut.lock();
       x += 1;
@@ -54,7 +54,7 @@ void test()
     
     std::mutex mut;
     executor_type exec;
-    std::future<int> fut = agency::new_executor_traits<executor_type>::template when_all_execute_and_select<0>(exec, move_only(), std::move(futures));
+    std::future<int> fut = agency::executor_traits<executor_type>::template when_all_execute_and_select<0>(exec, move_only(), std::move(futures));
     
     auto got = fut.get();
     
@@ -70,7 +70,7 @@ void test()
     
     std::mutex mut;
     executor_type exec;
-    std::future<void> fut = agency::new_executor_traits<executor_type>::template when_all_execute_and_select(exec, move_only(), std::move(futures));
+    std::future<void> fut = agency::executor_traits<executor_type>::template when_all_execute_and_select(exec, move_only(), std::move(futures));
     
     fut.wait();
     

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/discarding_container.hpp>
 #include <agency/detail/executor_traits/container_factory.hpp>
@@ -12,14 +12,14 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 
 
 __agency_hd_warning_disable__
 template<class Executor, class Function>
 __AGENCY_ANNOTATION
-void multi_agent_execute_returning_void(std::true_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
+void multi_agent_execute_returning_void(std::true_type, Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape)
 {
   return ex.execute(f, shape);
 } // end multi_agent_execute_returning_void()
@@ -27,9 +27,9 @@ void multi_agent_execute_returning_void(std::true_type, Executor& ex, Function f
 
 template<class Executor, class Function>
 __AGENCY_ANNOTATION
-void multi_agent_execute_returning_void(std::false_type, Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape)
+void multi_agent_execute_returning_void(std::false_type, Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape)
 {
-  auto g = [=](const typename new_executor_traits<Executor>::index_type& idx) mutable
+  auto g = [=](const typename executor_traits<Executor>::index_type& idx) mutable
   {
     agency::invoke(f, idx);
 
@@ -37,11 +37,11 @@ void multi_agent_execute_returning_void(std::false_type, Executor& ex, Function 
     return 0;
   };
 
-  new_executor_traits<Executor>::execute(ex, g, container_factory<discarding_container>{}, shape);
+  executor_traits<Executor>::execute(ex, g, container_factory<discarding_container>{}, shape);
 } // end multi_agent_execute_returning_void()
 
 
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 
 
@@ -49,18 +49,18 @@ template<class Executor>
   template<class Function,
            class Enable>
 __AGENCY_ANNOTATION
-void new_executor_traits<Executor>
-  ::execute(typename new_executor_traits<Executor>::executor_type& ex,
+void executor_traits<Executor>
+  ::execute(typename executor_traits<Executor>::executor_type& ex,
             Function f,
-            typename new_executor_traits<Executor>::shape_type shape)
+            typename executor_traits<Executor>::shape_type shape)
 {
-  using check_for_member_function = detail::new_executor_traits_detail::has_multi_agent_execute_returning_void<
+  using check_for_member_function = detail::executor_traits_detail::has_multi_agent_execute_returning_void<
     Executor,
     Function
   >;
 
-  return detail::new_executor_traits_detail::multi_agent_execute_returning_void(check_for_member_function(), ex, f, shape);
-} // end new_executor_traits::execute()
+  return detail::executor_traits_detail::multi_agent_execute_returning_void(check_for_member_function(), ex, f, shape);
+} // end executor_traits::execute()
 
 
 } // end agency

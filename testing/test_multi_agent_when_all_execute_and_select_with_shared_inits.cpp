@@ -1,5 +1,5 @@
 #include <agency/future.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <agency/coordinate.hpp>
 #include <iostream>
 #include <cassert>
@@ -23,7 +23,7 @@ void test()
     int result = 0;
 
     std::mutex mut;
-    std::future<int> fut = agency::new_executor_traits<executor_type>::template when_all_execute_and_select<0>(exec, [&](size_t idx, int& addend, int& current_sum)
+    std::future<int> fut = agency::executor_traits<executor_type>::template when_all_execute_and_select<0>(exec, [&](size_t idx, int& addend, int& current_sum)
     {
       mut.lock();
       current_sum += addend;

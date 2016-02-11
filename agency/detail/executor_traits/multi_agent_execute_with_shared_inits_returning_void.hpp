@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/discarding_container.hpp>
 #include <agency/functional.hpp>
@@ -11,7 +11,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 namespace multi_agent_execute_with_shared_inits_returning_void_implementation_strategies
 {
@@ -37,7 +37,7 @@ __agency_hd_warning_disable__
 template<class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 void multi_agent_execute_with_shared_inits_returning_void(use_multi_agent_execute_with_shared_inits_returning_void_member_function,
-                                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
+                                                          Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape,
                                                           Factories... shared_factories)
 {
   return ex.execute(f, shape, shared_factories...);
@@ -78,17 +78,17 @@ struct factory
 template<class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 void multi_agent_execute_with_shared_inits_returning_void(use_multi_agent_execute_with_shared_inits_returning_user_specified_container,
-                                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape,
+                                                          Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape,
                                                           Factories... shared_factories)
 {
   auto g = multi_agent_execute_with_shared_inits_returning_void_functor<Function>{f};
 
-  new_executor_traits<Executor>::execute(ex, g, factory<discarding_container>{}, shape, shared_factories...);
+  executor_traits<Executor>::execute(ex, g, factory<discarding_container>{}, shape, shared_factories...);
 } // end multi_agent_execute_returning_void()
 
 
 } // end multi_agent_execute_with_shared_inits_returning_void_implementation_strategies
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 
 
@@ -97,13 +97,13 @@ template<class Executor>
            class Enable1,
            class Enable2>
 __AGENCY_ANNOTATION
-void new_executor_traits<Executor>
-  ::execute(typename new_executor_traits<Executor>::executor_type& ex,
+void executor_traits<Executor>
+  ::execute(typename executor_traits<Executor>::executor_type& ex,
             Function f,
-            typename new_executor_traits<Executor>::shape_type shape,
+            typename executor_traits<Executor>::shape_type shape,
             Factories... shared_factories)
 {
-  namespace ns = detail::new_executor_traits_detail::multi_agent_execute_with_shared_inits_returning_void_implementation_strategies;
+  namespace ns = detail::executor_traits_detail::multi_agent_execute_with_shared_inits_returning_void_implementation_strategies;
 
   using implementation_strategy = ns::select_multi_agent_execute_with_shared_inits_returning_void_implementation<
     Executor,
@@ -112,7 +112,7 @@ void new_executor_traits<Executor>
   >;
 
   return ns::multi_agent_execute_with_shared_inits_returning_void(implementation_strategy(), ex, f, shape, shared_factories...);
-} // end new_executor_traits::execute()
+} // end executor_traits::execute()
 
 
 } // end agency

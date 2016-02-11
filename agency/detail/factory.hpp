@@ -1,5 +1,6 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/unit.hpp>
 #include <utility>

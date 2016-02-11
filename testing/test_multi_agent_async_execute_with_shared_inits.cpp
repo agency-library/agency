@@ -1,5 +1,5 @@
 #include <agency/future.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <iostream>
 #include <cassert>
 #include <algorithm>
@@ -24,7 +24,7 @@ void test()
     int shared_arg = 0;
 
     std::mutex mut;
-    std::vector<int> result = agency::new_executor_traits<executor_type>::async_execute(exec, [&mut](size_t idx, int& shared_arg)
+    std::vector<int> result = agency::executor_traits<executor_type>::async_execute(exec, [&mut](size_t idx, int& shared_arg)
     {
       mut.lock();
       ++shared_arg;
@@ -59,7 +59,7 @@ void test()
     int shared_arg = 0;
 
     std::mutex mut;
-    auto result = agency::new_executor_traits<executor_type>::async_execute(exec, [&mut](size_t idx, int& shared_arg)
+    auto result = agency::executor_traits<executor_type>::async_execute(exec, [&mut](size_t idx, int& shared_arg)
     {
       mut.lock();
       ++shared_arg;
@@ -91,7 +91,7 @@ void test()
 
     int increment_me = 0;
     std::mutex mut;
-    agency::new_executor_traits<executor_type>::async_execute(exec, [&](size_t idx, int& shared_arg)
+    agency::executor_traits<executor_type>::async_execute(exec, [&](size_t idx, int& shared_arg)
     {
       mut.lock();
       ++shared_arg;
