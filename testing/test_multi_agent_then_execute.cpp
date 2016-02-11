@@ -1,5 +1,5 @@
 #include <agency/future.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <iostream>
 #include <cassert>
 #include <algorithm>
@@ -21,7 +21,7 @@ void test()
 
     auto past = agency::detail::make_ready_future(13);
 
-    std::future<std::vector<int>> fut = agency::new_executor_traits<executor_type>::then_execute(exec, [](size_t idx, int& past)
+    std::future<std::vector<int>> fut = agency::executor_traits<executor_type>::then_execute(exec, [](size_t idx, int& past)
     {
       return past;
     },
@@ -47,7 +47,7 @@ void test()
 
     auto past = agency::detail::make_ready_future(13);
 
-    auto fut = agency::new_executor_traits<executor_type>::then_execute(exec, [](size_t idx, int& past)
+    auto fut = agency::executor_traits<executor_type>::then_execute(exec, [](size_t idx, int& past)
     {
       return past;
     },
@@ -72,7 +72,7 @@ void test()
 
     int increment_me = 0;
     std::mutex mut;
-    auto fut = agency::new_executor_traits<executor_type>::then_execute(exec, [&](size_t idx, int& past)
+    auto fut = agency::executor_traits<executor_type>::then_execute(exec, [&](size_t idx, int& past)
     {
       mut.lock();
       increment_me += past;

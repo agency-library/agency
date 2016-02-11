@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/future.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/copy_constructible_function.hpp>
 #include <agency/functional.hpp>
@@ -13,7 +13,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 namespace single_agent_then_execute_implementation_strategies
 {
@@ -31,7 +31,7 @@ struct use_future_traits_then_with_nested_single_agent_execute {};
 
 template<class Executor, class Function, class Future>
 using has_multi_agent_when_all_execute_and_select =
-  new_executor_traits_detail::has_multi_agent_when_all_execute_and_select<
+  executor_traits_detail::has_multi_agent_when_all_execute_and_select<
     Executor,
     Function,
     detail::tuple<Future>,
@@ -61,7 +61,7 @@ using select_single_agent_then_execute_implementation =
 __agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
   single_agent_then_execute(single_agent_then_execute_implementation_strategies::use_single_agent_then_execute_member_function,
@@ -120,7 +120,7 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
 __agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
   single_agent_then_execute(single_agent_then_execute_implementation_strategies::use_single_agent_when_all_execute_and_select_member_function,
@@ -129,7 +129,7 @@ typename new_executor_traits<Executor>::template future<
   using arg_type = typename future_traits<Future>::value_type;
   using result_type = detail::result_of_continuation_t<Function,Future>;
 
-  auto result_future = new_executor_traits<Executor>::template make_ready_future<result_type>(ex);
+  auto result_future = executor_traits<Executor>::template make_ready_future<result_type>(ex);
 
   auto futures = detail::make_tuple(std::move(result_future), std::move(fut));
 
@@ -189,7 +189,7 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
 __agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
   single_agent_then_execute(single_agent_then_execute_implementation_strategies::use_multi_agent_when_all_execute_and_select_member_function,
@@ -198,13 +198,13 @@ typename new_executor_traits<Executor>::template future<
   using arg_type = typename future_traits<Future>::value_type;
   using result_type = detail::result_of_continuation_t<Function,Future>;
 
-  auto result_future = new_executor_traits<Executor>::template make_ready_future<result_type>(ex);
+  auto result_future = executor_traits<Executor>::template make_ready_future<result_type>(ex);
 
   auto futures = detail::make_tuple(std::move(result_future), std::move(fut));
 
   auto g = single_agent_then_execute_using_multi_agent_when_all_execute_and_select_functor<typename std::decay<Function>::type,result_type>{std::forward<Function>(f)};
 
-  using shape_type = typename new_executor_traits<Executor>::shape_type;
+  using shape_type = typename executor_traits<Executor>::shape_type;
 
   return ex.template when_all_execute_and_select<0>(g, detail::shape_cast<shape_type>(1), futures);
 } // end single_agent_then_execute()
@@ -223,7 +223,7 @@ struct future_traits_then_with_nested_single_agent_execute_functor
   {
     // XXX maybe should use invoke() inside
     auto g = [&]{ return f(args...); };
-    return new_executor_traits<Executor>::execute(ex, g);
+    return executor_traits<Executor>::execute(ex, g);
   }
 };
 
@@ -233,7 +233,7 @@ struct future_traits_then_with_nested_single_agent_execute_functor
 __agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
   single_agent_then_execute(single_agent_then_execute_implementation_strategies::use_future_traits_then_with_nested_single_agent_execute,
@@ -250,14 +250,14 @@ typename new_executor_traits<Executor>::template future<
 
   // cast to the right type of future
   using value_type2 = typename future_traits<decltype(fut2)>::value_type;
-  return new_executor_traits<Executor>::template future_cast<value_type2>(ex, fut2);
+  return executor_traits<Executor>::template future_cast<value_type2>(ex, fut2);
 } // end single_agent_then_execute()
 
 
 __agency_hd_warning_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
   single_agent_then_execute(single_agent_then_execute_implementation_strategies::use_future_traits_then_with_nested_single_agent_execute,
@@ -274,31 +274,31 @@ typename new_executor_traits<Executor>::template future<
 
   // cast to the right type of future
   using value_type = typename future_traits<decltype(fut2)>::value_type;
-  return new_executor_traits<Executor>::template future_cast<value_type>(ex, fut2);
+  return executor_traits<Executor>::template future_cast<value_type>(ex, fut2);
 } // end single_agent_then_execute()
 
 
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 
 
 template<class Executor>
   template<class Function, class Future>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::result_of_continuation_t<Function,Future>
 >
-  new_executor_traits<Executor>
-    ::then_execute(typename new_executor_traits<Executor>::executor_type& ex,
+  executor_traits<Executor>
+    ::then_execute(typename executor_traits<Executor>::executor_type& ex,
                    Function&& f,
                    Future& fut)
 {
-  using namespace detail::new_executor_traits_detail::single_agent_then_execute_implementation_strategies;
+  using namespace detail::executor_traits_detail::single_agent_then_execute_implementation_strategies;
 
   using implementation_strategy = select_single_agent_then_execute_implementation<Executor,Function,Future>;
 
-  return detail::new_executor_traits_detail::single_agent_then_execute(implementation_strategy(), ex, std::forward<Function>(f), fut);
-} // end new_executor_traits::then_execute()
+  return detail::executor_traits_detail::single_agent_then_execute(implementation_strategy(), ex, std::forward<Function>(f), fut);
+} // end executor_traits::then_execute()
 
 
 } // end agency

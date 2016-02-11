@@ -164,7 +164,7 @@ class basic_grid_executor
     __host__ __device__
     void* then_execute_kernel(const Function& f, const async_future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
-      using container_type = agency::detail::new_executor_traits_detail::discarding_container;
+      using container_type = agency::detail::executor_traits_detail::discarding_container;
       auto g = agency::detail::invoke_and_return_unit<Function>{f};
       return then_execute_kernel<container_type>(g, fut, outer_factory, inner_factory);
     }

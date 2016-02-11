@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
@@ -12,7 +12,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 namespace when_all_implementation_strategies
 {
@@ -44,7 +44,7 @@ struct has_single_agent_when_all_execute_and_select_impl;
 template<size_t... Indices, class Executor, class... Futures>
 struct has_single_agent_when_all_execute_and_select_impl<index_sequence<Indices...>, Executor, Futures...>
 {
-  using type = new_executor_traits_detail::has_single_agent_when_all_execute_and_select<
+  using type = executor_traits_detail::has_single_agent_when_all_execute_and_select<
     Executor,
     swallow,
     detail::tuple<Futures...>,
@@ -69,7 +69,7 @@ struct has_multi_agent_when_all_execute_and_select_impl;
 template<size_t... Indices, class Executor, class... Futures>
 struct has_multi_agent_when_all_execute_and_select_impl<index_sequence<Indices...>, Executor, Futures...>
 {
-  using type = new_executor_traits_detail::has_multi_agent_when_all_execute_and_select<
+  using type = executor_traits_detail::has_multi_agent_when_all_execute_and_select<
     Executor,
     swallow,
     detail::tuple<Futures...>,
@@ -107,7 +107,7 @@ using select_when_all_implementation =
 __agency_hd_warning_disable__
 template<class Executor, class... Futures>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::when_all_result_t<
     typename std::decay<Futures>::type...
   >
@@ -121,7 +121,7 @@ typename new_executor_traits<Executor>::template future<
 
 template<size_t... Indices, class Executor, class... Futures>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::when_all_result_t<
     typename std::decay<Futures>::type...
   >
@@ -129,13 +129,13 @@ typename new_executor_traits<Executor>::template future<
   when_all_single_agent_when_all_execute_and_select_impl(detail::index_sequence<Indices...>, Executor& ex, Futures&&... futures)
 {
   auto tuple_of_futures = std::make_tuple(std::move(futures)...);
-  return new_executor_traits<Executor>::template when_all_execute_and_select<Indices...>(ex, when_all_implementation_strategies::swallow(), std::move(tuple_of_futures));
+  return executor_traits<Executor>::template when_all_execute_and_select<Indices...>(ex, when_all_implementation_strategies::swallow(), std::move(tuple_of_futures));
 } // end when_all()
 
 
 template<class Executor, class... Futures>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::when_all_result_t<
     typename std::decay<Futures>::type...
   >
@@ -143,7 +143,7 @@ typename new_executor_traits<Executor>::template future<
   when_all(when_all_implementation_strategies::use_single_agent_when_all_execute_and_select implementation_strategy,
            Executor& ex, Futures&&... futures)
 {
-  return new_executor_traits_detail::when_all_single_agent_when_all_execute_and_select_impl(detail::index_sequence_for<Futures...>(), ex, std::forward<Futures>(futures)...);
+  return executor_traits_detail::when_all_single_agent_when_all_execute_and_select_impl(detail::index_sequence_for<Futures...>(), ex, std::forward<Futures>(futures)...);
 } // end when_all()
 
 
@@ -183,7 +183,7 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
   detail::when_all_result_t<TailFutures...>
     get_tail() const
   {
-    return new_executor_traits<Executor>::when_all(exec, std::get<Indices>(tail_futures)...).get();
+    return executor_traits<Executor>::when_all(exec, std::get<Indices>(tail_futures)...).get();
   }
 
   // get_tail_as_tuple() wraps result of get_tail() to ensure a tuple is returned
@@ -249,7 +249,7 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
 
 template<class Executor, class Future, class... Futures>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::when_all_result_t<
     typename std::decay<Future>::type,
     typename std::decay<Futures>::type...
@@ -260,45 +260,45 @@ typename new_executor_traits<Executor>::template future<
 {
   auto functor = when_all_functor<detail::index_sequence_for<Futures...>, Executor, typename std::decay<Future>::type, typename std::decay<Futures>::type...>{ex, detail::make_tuple(std::move(futures)...)};
 
-  return new_executor_traits<Executor>::then_execute(ex, std::move(functor), future);
+  return executor_traits<Executor>::then_execute(ex, std::move(functor), future);
 } // end when_all()
 
 
 template<class Executor>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<void>
+typename executor_traits<Executor>::template future<void>
   when_all(when_all_implementation_strategies::use_single_agent_then_execute,
            Executor& ex)
 {
   // no futures to join, return an immediately ready future
-  return new_executor_traits<Executor>::template make_ready_future<void>(ex);
+  return executor_traits<Executor>::template make_ready_future<void>(ex);
 } // end when_all()
 
 
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 
 
 template<class Executor>
   template<class... Futures>
 __AGENCY_ANNOTATION
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::when_all_result_t<
     typename std::decay<Futures>::type...
   >
 >
-  new_executor_traits<Executor>
-    ::when_all(typename new_executor_traits<Executor>::executor_type& ex, Futures&&... futures)
+  executor_traits<Executor>
+    ::when_all(typename executor_traits<Executor>::executor_type& ex, Futures&&... futures)
 {
-  using namespace detail::new_executor_traits_detail::when_all_implementation_strategies;
+  using namespace detail::executor_traits_detail::when_all_implementation_strategies;
 
   using implementation_strategy = select_when_all_implementation<
     Executor,
     typename std::decay<Futures>::type...
   >;
 
-  return detail::new_executor_traits_detail::when_all(implementation_strategy(), ex, std::forward<Futures>(futures)...);
-} // end new_executor_traits::when_all()
+  return detail::executor_traits_detail::when_all(implementation_strategy(), ex, std::forward<Futures>(futures)...);
+} // end executor_traits::when_all()
 
 
 } // end agency

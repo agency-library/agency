@@ -1,4 +1,4 @@
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <cassert>
 #include <iostream>
 
@@ -27,7 +27,7 @@ void test()
 
     int set_me_to_thirteen = 0;
 
-    auto f = agency::new_executor_traits<executor_type>::then_execute(exec, [&]
+    auto f = agency::executor_traits<executor_type>::then_execute(exec, [&]
     {
       set_me_to_thirteen = 13;
     },
@@ -45,7 +45,7 @@ void test()
 
     auto void_future = agency::when_all();
 
-    auto f = agency::new_executor_traits<executor_type>::then_execute(exec, []
+    auto f = agency::executor_traits<executor_type>::then_execute(exec, []
     {
       return 13;
     },
@@ -59,11 +59,11 @@ void test()
     // int -> void
     executor_type exec;
 
-    auto int_future = agency::new_executor_traits<executor_type>::template make_ready_future<int>(exec, 13);
+    auto int_future = agency::executor_traits<executor_type>::template make_ready_future<int>(exec, 13);
 
     int set_me_to_thirteen = 0;
 
-    auto f = agency::new_executor_traits<executor_type>::then_execute(exec, [&](int& x)
+    auto f = agency::executor_traits<executor_type>::then_execute(exec, [&](int& x)
     {
       set_me_to_thirteen = x;
     },
@@ -79,9 +79,9 @@ void test()
     // int -> float
     executor_type exec;
 
-    auto int_future = agency::new_executor_traits<executor_type>::template make_ready_future<int>(exec, 13);
+    auto int_future = agency::executor_traits<executor_type>::template make_ready_future<int>(exec, 13);
 
-    auto f = agency::new_executor_traits<executor_type>::then_execute(exec, [](int &x)
+    auto f = agency::executor_traits<executor_type>::then_execute(exec, [](int &x)
     {
       return float(x) + 1.f;
     },
@@ -95,9 +95,9 @@ void test()
     // with move-only functor
     executor_type exec;
 
-    auto void_future = agency::new_executor_traits<executor_type>::template make_ready_future<void>(exec);
+    auto void_future = agency::executor_traits<executor_type>::template make_ready_future<void>(exec);
 
-    auto f = agency::new_executor_traits<executor_type>::async_execute(exec, move_only());
+    auto f = agency::executor_traits<executor_type>::async_execute(exec, move_only());
 
     assert(f.get() == 13);
     assert(exec.valid());

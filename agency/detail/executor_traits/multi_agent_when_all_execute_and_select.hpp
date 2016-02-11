@@ -1,6 +1,6 @@
 #pragma once
 
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/factory.hpp>
@@ -12,7 +12,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 namespace multi_agent_when_all_execute_and_select_implementation_strategies
 {
@@ -31,7 +31,7 @@ using has_multi_agent_when_all_execute_and_select_with_unit_factories =
     Executor,
     Function,
     TupleOfFutures,
-    detail::type_list_repeat<new_executor_traits<Executor>::execution_depth, detail::unit_factory>
+    detail::type_list_repeat<executor_traits<Executor>::execution_depth, detail::unit_factory>
   >;
 
 
@@ -39,13 +39,13 @@ template<class Executor>
 struct dummy_functor_taking_index_type
 {
   __AGENCY_ANNOTATION
-  void operator()(const typename new_executor_traits<Executor>::index_type&) const {}
+  void operator()(const typename executor_traits<Executor>::index_type&) const {}
 };
 
 
 template<class Executor>
 using has_multi_agent_execute_returning_void =
-  new_executor_traits_detail::has_multi_agent_execute_returning_void<
+  executor_traits_detail::has_multi_agent_execute_returning_void<
     Executor,
     dummy_functor_taking_index_type<Executor>   
   >;
@@ -66,14 +66,14 @@ using select_multi_agent_when_all_execute_and_select_implementation =
 
 
 template<size_t... Indices, class Executor, class Function, class TupleOfFutures>
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::when_all_execute_and_select_result_t<
     detail::index_sequence<Indices...>,
     typename std::decay<TupleOfFutures>::type
   >
 >
   multi_agent_when_all_execute_and_select(use_multi_agent_when_all_execute_and_select_member_function,
-                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures)
+                                          Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures)
 {
   return ex.template when_all_execute_and_select<Indices...>(f, shape, std::forward<TupleOfFutures>(futures));
 } // end multi_agent_when_all_execute_and_select()
@@ -103,7 +103,7 @@ struct multi_agent_when_all_execute_and_select_ignoring_shared_args_functor
 
 
 template<size_t... SelectedIndices, size_t... SharedInitIndices, class Executor, class Function, class TupleOfFutures, class... Factories>
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::when_all_execute_and_select_result_t<
     detail::index_sequence<SelectedIndices...>,
     typename std::decay<TupleOfFutures>::type
@@ -111,7 +111,7 @@ typename new_executor_traits<Executor>::template future<
 >
   multi_agent_when_all_execute_and_select(use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function,
                                           detail::index_sequence<SharedInitIndices...>,
-                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures, const detail::tuple<Factories...>& unit_factories)
+                                          Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures, const detail::tuple<Factories...>& unit_factories)
 {
   constexpr size_t num_ignored_arguments = sizeof...(Factories);
   auto g = multi_agent_when_all_execute_and_select_ignoring_shared_args_functor<num_ignored_arguments, Function>{f};
@@ -121,16 +121,16 @@ typename new_executor_traits<Executor>::template future<
 
 
 template<size_t... SelectedIndices, class Executor, class Function, class TupleOfFutures>
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::when_all_execute_and_select_result_t<
     detail::index_sequence<SelectedIndices...>,
     typename std::decay<TupleOfFutures>::type
   >
 >
   multi_agent_when_all_execute_and_select(use_multi_agent_when_all_execute_and_select_with_shared_inits_member_function implementation_strategy,
-                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures)
+                                          Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures)
 {
-  constexpr size_t depth = new_executor_traits<Executor>::execution_depth;
+  constexpr size_t depth = executor_traits<Executor>::execution_depth;
 
   // create unit factories
   auto unit_factory_tuple = detail::tuple_repeat<depth>(detail::unit_factory());
@@ -146,7 +146,7 @@ struct multi_agent_when_all_execute_and_select_functor_using_nested_execute
 {
   Executor& ex;
   mutable Function f;
-  typename new_executor_traits<Executor>::shape_type shape;
+  typename executor_traits<Executor>::shape_type shape;
 
   template<class... Args>
   struct inner_functor
@@ -173,47 +173,47 @@ struct multi_agent_when_all_execute_and_select_functor_using_nested_execute
   __AGENCY_ANNOTATION
   void operator()(Args&... args) const
   {
-    new_executor_traits<Executor>::execute(ex, inner_functor<Args...>{f, detail::tie(args...)}, shape);
+    executor_traits<Executor>::execute(ex, inner_functor<Args...>{f, detail::tie(args...)}, shape);
   }
 };
 
 
 template<size_t... Indices, class Executor, class Function, class TupleOfFutures>
-typename new_executor_traits<Executor>::template future<
+typename executor_traits<Executor>::template future<
   detail::when_all_execute_and_select_result_t<
     detail::index_sequence<Indices...>,
     typename std::decay<TupleOfFutures>::type
   >
 >
   multi_agent_when_all_execute_and_select(use_single_agent_when_all_execute_and_select_with_nested_multi_agent_execute,
-                                          Executor& ex, Function f, typename new_executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures)
+                                          Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape, TupleOfFutures&& futures)
 {
-  return new_executor_traits<Executor>::template when_all_execute_and_select<Indices...>(ex, multi_agent_when_all_execute_and_select_functor_using_nested_execute<Executor,Function>{ex,f,shape}, std::forward<TupleOfFutures>(futures));
+  return executor_traits<Executor>::template when_all_execute_and_select<Indices...>(ex, multi_agent_when_all_execute_and_select_functor_using_nested_execute<Executor,Function>{ex,f,shape}, std::forward<TupleOfFutures>(futures));
 } // end multi_agent_when_all_execute_and_select()
 
 
 
 } // end multi_agent_when_all_execute_and_select_implementation_strategies
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 
 
 
 template<class Executor>
 template<size_t... Indices, class Function, class TupleOfFutures>
-  typename new_executor_traits<Executor>::template future<
+  typename executor_traits<Executor>::template future<
     detail::when_all_execute_and_select_result_t<
       detail::index_sequence<Indices...>,
       typename std::decay<TupleOfFutures>::type
     >
   >
-  new_executor_traits<Executor>
-    ::when_all_execute_and_select(typename new_executor_traits<Executor>::executor_type& ex,
+  executor_traits<Executor>
+    ::when_all_execute_and_select(typename executor_traits<Executor>::executor_type& ex,
                                   Function f,
-                                  typename new_executor_traits<Executor>::shape_type shape,
+                                  typename executor_traits<Executor>::shape_type shape,
                                   TupleOfFutures&& futures)
 {
-  namespace ns = detail::new_executor_traits_detail::multi_agent_when_all_execute_and_select_implementation_strategies;
+  namespace ns = detail::executor_traits_detail::multi_agent_when_all_execute_and_select_implementation_strategies;
 
   using implementation_strategy = ns::select_multi_agent_when_all_execute_and_select_implementation<
     Executor,
@@ -223,7 +223,7 @@ template<size_t... Indices, class Function, class TupleOfFutures>
   >;
 
   return ns::multi_agent_when_all_execute_and_select<Indices...>(implementation_strategy(), ex, f, shape, std::forward<TupleOfFutures>(futures));
-} // end new_executor_traits::when_all_execute_and_select()
+} // end executor_traits::when_all_execute_and_select()
 
 
 } // end agency

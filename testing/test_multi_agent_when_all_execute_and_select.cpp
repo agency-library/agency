@@ -1,5 +1,5 @@
 #include <agency/future.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <iostream>
 #include <cassert>
 
@@ -20,7 +20,7 @@ void test()
 
   std::mutex mut;
   executor_type exec;
-  std::future<agency::detail::tuple<std::vector<int>,int>> fut = agency::new_executor_traits<executor_type>::template when_all_execute_and_select<2,0>(exec, [&mut](size_t idx, int& x, std::vector<int>& vec)
+  std::future<agency::detail::tuple<std::vector<int>,int>> fut = agency::executor_traits<executor_type>::template when_all_execute_and_select<2,0>(exec, [&mut](size_t idx, int& x, std::vector<int>& vec)
   {
     mut.lock();
     x += 1;

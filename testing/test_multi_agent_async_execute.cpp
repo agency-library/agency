@@ -1,5 +1,5 @@
 #include <agency/future.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <iostream>
 #include <cassert>
 #include <algorithm>
@@ -20,7 +20,7 @@ void test()
 
     size_t n = 100;
 
-    std::future<std::vector<int>> fut = agency::new_executor_traits<executor_type>::async_execute(exec, [](size_t idx)
+    std::future<std::vector<int>> fut = agency::executor_traits<executor_type>::async_execute(exec, [](size_t idx)
     {
       return idx;
     },
@@ -46,7 +46,7 @@ void test()
 
     size_t n = 100;
 
-    auto fut = agency::new_executor_traits<executor_type>::async_execute(exec, [](size_t idx)
+    auto fut = agency::executor_traits<executor_type>::async_execute(exec, [](size_t idx)
     {
       return idx;
     },
@@ -70,7 +70,7 @@ void test()
 
     int increment_me = 0;
     std::mutex mut;
-    auto fut = agency::new_executor_traits<executor_type>::async_execute(exec, [&](size_t idx)
+    auto fut = agency::executor_traits<executor_type>::async_execute(exec, [&](size_t idx)
     {
       mut.lock();
       increment_me += 13;

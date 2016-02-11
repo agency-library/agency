@@ -10,7 +10,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 
 
@@ -60,7 +60,7 @@ template<class Function>
 using copy_constructible_function_t = typename copy_constructible_function<Function>::type;
 
 
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 } // end agency
 

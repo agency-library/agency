@@ -7,7 +7,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 
 
@@ -30,7 +30,7 @@ struct invoke_and_return_empty
 };
 
 
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 } // end agency
 

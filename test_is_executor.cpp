@@ -8,7 +8,7 @@
 
 int main()
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_traits_detail;
 
   std::cout << "is_executor<agency::sequential_executor>: " << agency::is_executor<agency::sequential_executor>::value << std::endl;
   std::cout << "has_then_execute<agency::sequential_executor>: " << has_any_multi_agent_then_execute<agency::sequential_executor>::value << std::endl;

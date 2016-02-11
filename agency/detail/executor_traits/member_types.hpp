@@ -8,7 +8,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 
 
@@ -278,7 +278,7 @@ template<class Executor, class T>
 using executor_allocator_t = typename executor_container_t<Executor,T>::allocator_type;
 
 
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 } // end agency
 

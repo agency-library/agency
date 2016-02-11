@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/functional.hpp>
 
@@ -10,7 +10,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 
 
@@ -39,13 +39,13 @@ ignore_tail_parameters_and_invoke<Function> make_ignore_tail_parameters_and_invo
 
 template<class Executor>
 __AGENCY_ANNOTATION
-homogeneous_tuple<detail::unit_factory,new_executor_traits<Executor>::execution_depth> make_tuple_of_unit_factories(Executor&)
+homogeneous_tuple<detail::unit_factory,executor_traits<Executor>::execution_depth> make_tuple_of_unit_factories(Executor&)
 {
-  return make_homogeneous_tuple<new_executor_traits<Executor>::execution_depth>(detail::unit_factory());
+  return make_homogeneous_tuple<executor_traits<Executor>::execution_depth>(detail::unit_factory());
 }
 
 
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 } // end agency
 

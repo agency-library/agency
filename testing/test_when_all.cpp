@@ -1,5 +1,5 @@
 #include <agency/future.hpp>
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <iostream>
 #include <cassert>
 
@@ -9,7 +9,7 @@ template<class Executor>
 void test()
 {
   using executor_type = Executor;
-  using traits = agency::new_executor_traits<executor_type>;
+  using traits = agency::executor_traits<executor_type>;
 
   {
     executor_type exec;

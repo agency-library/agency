@@ -6,7 +6,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 
 
@@ -34,7 +34,7 @@ struct discarding_container
 };
 
 
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 } // end agency
 

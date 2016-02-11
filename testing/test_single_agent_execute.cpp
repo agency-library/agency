@@ -1,4 +1,4 @@
-#include <agency/new_executor_traits.hpp>
+#include <agency/executor_traits.hpp>
 #include <future>
 #include <cassert>
 #include <iostream>
@@ -26,7 +26,7 @@ void test()
 
     int set_me_to_thirteen = 0;
 
-    agency::new_executor_traits<executor_type>::execute(exec, [&]
+    agency::executor_traits<executor_type>::execute(exec, [&]
     {
       set_me_to_thirteen = 13;
     });
@@ -39,7 +39,7 @@ void test()
     // returning int
     executor_type exec;
 
-    auto result = agency::new_executor_traits<executor_type>::execute(exec, []
+    auto result = agency::executor_traits<executor_type>::execute(exec, []
     {
       return 13;
     });
@@ -52,7 +52,7 @@ void test()
     // with move-only functor
     executor_type exec;
 
-    auto result = agency::new_executor_traits<executor_type>::execute(exec, move_only());
+    auto result = agency::executor_traits<executor_type>::execute(exec, move_only());
 
     assert(result == 13);
     assert(exec.valid());

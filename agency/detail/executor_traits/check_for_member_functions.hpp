@@ -12,7 +12,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_traits_detail
 {
 
 
@@ -634,7 +634,7 @@ struct has_any_multi_agent_then_execute_impl<Executor, T, type_list<Factories...
   static constexpr bool has_then_execute_with_shared_inits_returning_user_specified_container = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<
     Executor,
     test_function_returning_int,
-    container_factory<new_executor_traits_detail::discarding_container>,
+    container_factory<executor_traits_detail::discarding_container>,
     executor_future_t<Executor,void>,
     Factories...
   >::value;
@@ -851,7 +851,7 @@ template<class Executor, class Function, class TupleOfFutures>
 using has_single_agent_when_all_execute = typename has_single_agent_when_all_execute_impl<Executor, Function, TupleOfFutures>::type;
 
 
-} // end new_executor_traits_detail
+} // end executor_traits_detail
 } // end detail
 } // end agency
 
