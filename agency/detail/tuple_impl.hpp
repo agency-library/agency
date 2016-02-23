@@ -160,14 +160,13 @@ template<class T, bool = tuple_use_empty_base_class_optimization<T>::value>
 class tuple_leaf_base
 {
   public:
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && !(defined(__clang__) && defined(__CUDA__))
 #pragma nv_exec_check_disable
 #endif
     __TUPLE_ANNOTATION
     tuple_leaf_base() = default;
 
-#if defined(__CUDACC__)
-#pragma nv_exec_check_disable
+#if defined(__CUDACC__) && !(defined(__clang__) && defined(__CUDA__))
 #endif
     template<class U>
     __TUPLE_ANNOTATION
@@ -244,7 +243,7 @@ class tuple_leaf : public tuple_leaf_base<T>
     tuple_leaf(const tuple_leaf<I,U>& other) : super_t(other.const_get()) {}
 
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && !(defined(__clang__) && defined(__CUDA__))
 #pragma nv_exec_check_disable
 #endif
     template<class U,
@@ -258,7 +257,7 @@ class tuple_leaf : public tuple_leaf_base<T>
       return *this;
     }
     
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && !(defined(__clang__) && defined(__CUDA__))
 #pragma nv_exec_check_disable
 #endif
     __TUPLE_ANNOTATION
@@ -268,7 +267,7 @@ class tuple_leaf : public tuple_leaf_base<T>
       return *this;
     }
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && !(defined(__clang__) && defined(__CUDA__))
 #pragma nv_exec_check_disable
 #endif
     __TUPLE_ANNOTATION
@@ -278,7 +277,7 @@ class tuple_leaf : public tuple_leaf_base<T>
       return *this;
     }
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && !(defined(__clang__) && defined(__CUDA__))
 #pragma nv_exec_check_disable
 #endif
     template<class U,
@@ -292,7 +291,7 @@ class tuple_leaf : public tuple_leaf_base<T>
       return *this;
     }
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && !(defined(__clang__) && defined(__CUDA__))
 #pragma nv_exec_check_disable
 #endif
     __TUPLE_ANNOTATION
