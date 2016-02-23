@@ -167,6 +167,7 @@ class tuple_leaf_base
     tuple_leaf_base() = default;
 
 #if defined(__CUDACC__) && !(defined(__clang__) && defined(__CUDA__))
+#pragma nv_exec_check_disable
 #endif
     template<class U>
     __TUPLE_ANNOTATION
