@@ -137,7 +137,7 @@ class basic_grid_executor
     {
       using result_type = async_future<typename std::result_of<Factory1(shape_type)>::type>;
       auto intermediate_future = fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, device());
-      return std::move(intermediate_future.get<result_type>());
+      return std::move(intermediate_future.template get<result_type>());
     }
 
 
@@ -327,6 +327,18 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
     shape_type max_shape(const Function& f, const Factory1& result_factory, const async_future<T>& fut, const Factory2& outer_factory, const Factory3& inner_factory) const
     {
       return max_shape_impl(then_execute_kernel(f, result_factory, fut, outer_factory, inner_factory));
+    }
+
+    __host__ __device__
+    shape_type shape() const
+    {
+      return shape_type{detail::number_of_multiprocessors(device()), 256};
+    }
+
+    __host__ __device__
+    shape_type max_shape_dimensions() const
+    {
+      return shape_type{detail::maximum_grid_size_x(device()), 256};
     }
 };
 

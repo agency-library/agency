@@ -7,6 +7,8 @@
 #include <agency/detail/index_tuple.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/shape_tuple.hpp>
+#include <agency/detail/shape.hpp>
+#include <agency/detail/index.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <utility>
 #include <type_traits>
@@ -17,71 +19,13 @@ namespace detail
 {
 
 
-template<class TypeList>
-struct merge_first_two_types;
-
-template<class T1, class T2, class... Types>
-struct merge_first_two_types<type_list<T1,T2,Types...>>
-{
-  // XXX we probably want to think carefully about what it means two "merge" two arithmetic tuples together
-  template<class U1, class U2>
-  using merge_types_t = typename std::common_type<U1,U2>::type;
-
-  using type = type_list<merge_types_t<T1,T2>, Types...>;
-};
-
-
 template<class ShapeTuple>
-struct flattened_shape_type
-{
-  // two "flatten" a shape tuple, we merge the last two elements
-  using elements = tuple_elements<ShapeTuple>;
-
-  // reverse the type_list, merge the first two types, and then unreverse the result
-  using reversed_elements = type_list_reverse<elements>;
-  using merged_reversed_elements = typename merge_first_two_types<reversed_elements>::type;
-  using merged_elements = type_list_reverse<merged_reversed_elements>;
-
-  // turn the resulting type list into a shape_tuple
-  using shape_tuple_type = type_list_instantiate<shape_tuple, merged_elements>;
-
-  // finally, unwrap single-element tuples
-  using type = typename std::conditional<
-    (std::tuple_size<shape_tuple_type>::value == 1),
-    typename std::tuple_element<0,shape_tuple_type>::type,
-    shape_tuple_type
-  >::type;
-};
+using flattened_shape_type_t = merge_front_shape_elements_t<ShapeTuple>;
 
 
-template<class ShapeTuple>
-using flattened_shape_type_t = typename flattened_shape_type<ShapeTuple>::type;
-
-
+// XXX might not want to use a alias template here
 template<class IndexTuple>
-struct flattened_index_type
-{
-  // two "flatten" a index tuple, we merge the last two elements
-  using elements = tuple_elements<IndexTuple>;
-
-  // reverse the type_list, merge the first two types, and then unreverse the result
-  using reversed_elements = type_list_reverse<elements>;
-  using merged_reversed_elements = typename merge_first_two_types<reversed_elements>::type;
-  using merged_elements = type_list_reverse<merged_reversed_elements>;
-
-  // turn the resulting type list into a index_tuple
-  using index_tuple_type = type_list_instantiate<index_tuple, merged_elements>;
-
-  // finally, unwrap single-element tuples
-  using type = typename std::conditional<
-    (std::tuple_size<index_tuple_type>::value == 1),
-    typename std::tuple_element<0,index_tuple_type>::type,
-    index_tuple_type
-  >::type;
-};
-
-template<class IndexTuple>
-using flattened_index_type_t = typename flattened_index_type<IndexTuple>::type;
+using flattened_index_type_t = merge_front_shape_elements_t<IndexTuple>;
 
 
 
@@ -150,28 +94,10 @@ struct flatten_index_and_invoke_base
   template<class... Args>
   using result_t = void_or_optionally_value_and_index_t<result_of_function_t<Args...>>;
 
-  template<size_t... Indices>
-  __AGENCY_ANNOTATION
-  flattened_index_type flatten_index_impl(detail::index_sequence<Indices...>, const Index& idx) const
-  {
-    // to flatten a multidimensional index, we take the last two elements of idx and merge them together
-    // this merger becomes the last element of the result
-    // the remaining elements of idx shift one position right
-    constexpr size_t last_idx = std::tuple_size<Index>::value - 1;
-    return flattened_index_type(detail::get<Indices>(idx)..., detail::get<last_idx>(shape_) * detail::get<last_idx-1>(idx) + detail::get<last_idx>(idx));
-  }
-
-  // XXX WAR nvcc issue with handling empty index_sequence<> given to the function above
-  __AGENCY_ANNOTATION
-  flattened_index_type flatten_index_impl(detail::index_sequence<>, const Index& idx) const
-  {
-    return flattened_index_type(detail::get<1>(idx) + detail::get<0>(idx) * detail::get<1>(shape_));
-  }
-
   __AGENCY_ANNOTATION
   flattened_index_type flatten_index(const Index& idx) const
   {
-    return flatten_index_impl(detail::make_index_sequence<std::tuple_size<Index>::value - 2>(), idx);
+    return detail::merge_front_index_elements(idx, shape_);
   }
 
   __AGENCY_ANNOTATION

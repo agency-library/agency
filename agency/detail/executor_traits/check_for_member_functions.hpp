@@ -80,6 +80,46 @@ template<class Executor, class T, class... Args>
 using has_make_ready_future = typename has_make_ready_future_impl<Executor,T,Args...>::type;
 
 
+template<class Executor>
+struct has_shape_impl
+{
+  template<
+    class Executor2,
+    class = decltype(std::declval<Executor2>().shape())
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor>
+using has_shape = typename has_shape_impl<Executor>::type;
+
+
+template<class Executor>
+struct has_max_shape_dimensions_impl
+{
+  template<
+    class Executor2,
+    class = decltype(
+      std::declval<Executor2>().max_shape_dimensions()
+    )
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor>(0));
+};
+
+template<class Executor>
+using has_max_shape_dimensions = typename has_max_shape_dimensions_impl<Executor>::type;
+
+
 template<class Executor, class Function>
 struct has_multi_agent_async_execute_returning_default_container_impl
 {

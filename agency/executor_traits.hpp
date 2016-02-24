@@ -72,6 +72,12 @@ struct executor_traits
     static container<shared_future<typename future_traits<Future>::value_type>>
       share_future(executor_type& ex, Future& fut, shape_type shape);
 
+    __AGENCY_ANNOTATION
+    static shape_type shape(const executor_type& ex);
+
+    __AGENCY_ANNOTATION
+    static shape_type max_shape_dimensions(const executor_type& ex);
+
     template<class... Futures>
     __AGENCY_ANNOTATION
     static future<
@@ -439,6 +445,8 @@ using executor_result_t = typename executor_result<Executor,T>::type;
 #include <agency/detail/executor_traits/make_ready_future.hpp>
 #include <agency/detail/executor_traits/future_cast.hpp>
 #include <agency/detail/executor_traits/share_future.hpp>
+#include <agency/detail/executor_traits/shape.hpp>
+#include <agency/detail/executor_traits/max_shape_dimensions.hpp>
 #include <agency/detail/executor_traits/single_agent_when_all_execute_and_select.hpp>
 #include <agency/detail/executor_traits/multi_agent_when_all_execute_and_select.hpp>
 #include <agency/detail/executor_traits/multi_agent_when_all_execute_and_select_with_shared_inits.hpp>
