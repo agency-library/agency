@@ -137,7 +137,7 @@ class basic_grid_executor
     {
       using result_type = async_future<typename std::result_of<Factory1(shape_type)>::type>;
       auto intermediate_future = fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, device());
-      return std::move(intermediate_future.get<result_type>());
+      return std::move(intermediate_future.template get<result_type>());
     }
 
 
