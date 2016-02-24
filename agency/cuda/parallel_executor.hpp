@@ -34,22 +34,7 @@ class parallel_executor
 } // end this_thread
 
 
-class parallel_executor : public flattened_executor<grid_executor>
-{
-  private:
-    using super_t = flattened_executor<grid_executor>;
-
-    static constexpr size_t maximum_blocksize = 256;
-
-  public:
-    using super_t::super_t;
-
-    parallel_executor(const grid_executor& exec = grid_executor(detail::current_device()))
-      : super_t(exec,
-                detail::maximum_grid_size_x(detail::current_device()),
-                maximum_blocksize)
-    {}
-};
+using parallel_executor = flattened_executor<grid_executor>;
 
 
 } // end cuda

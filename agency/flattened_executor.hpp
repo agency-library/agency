@@ -145,18 +145,8 @@ class flattened_executor
       return executor_traits<base_executor_type>::make_ready_future(base_executor());
     }
 
-    flattened_executor(const base_executor_type& base_executor = base_executor_type(),
-                       size_t maximum_outer_size = std::numeric_limits<size_t>::max(),
-                       size_t maximum_inner_size = std::numeric_limits<size_t>::max())
-      :
-        maximum_outer_size_(maximum_outer_size),
-        maximum_inner_size_(maximum_inner_size),
-        base_executor_(base_executor)
-    {}
-
-    flattened_executor(size_t maximum_outer_size,
-                       size_t maximum_inner_size = std::numeric_limits<size_t>::max())
-      : flattened_executor(base_executor_type(), maximum_outer_size, maximum_inner_size)
+    flattened_executor(const base_executor_type& base_executor = base_executor_type())
+      : base_executor_(base_executor)
     {}
 
     template<class Function, class Factory1, class Future, class Factory2, class... Factories,
@@ -308,8 +298,6 @@ class flattened_executor
       return make_base_shape(partition_head(head), tail);
     }
 
-    size_t maximum_outer_size_;
-    size_t maximum_inner_size_;
     base_executor_type base_executor_;
 };
 
