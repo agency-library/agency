@@ -400,9 +400,9 @@ class executor_array
 
     __AGENCY_ANNOTATION
     auto begin() const ->
-      decltype(inner_executors_.begin())
+      decltype(inner_executors_.cbegin())
     {
-      return inner_executors_.begin();
+      return inner_executors_.cbegin();
     }
 
     __AGENCY_ANNOTATION
@@ -414,15 +414,35 @@ class executor_array
 
     __AGENCY_ANNOTATION
     auto end() const ->
-      decltype(inner_executors_.end())
+      decltype(inner_executors_.cend())
     {
-      return inner_executors_.end();
+      return inner_executors_.cend();
     }
 
     __AGENCY_ANNOTATION
     size_t size() const
     {
       return inner_executors_.size();
+    }
+
+    __AGENCY_ANNOTATION
+    shape_type shape() const
+    {
+      auto outer_exec_shape = size() * outer_traits::shape(outer_executor());
+      auto inner_exec_shape = inner_traits::shape(inner_executor(0));
+
+      return make_shape(outer_exec_shape, inner_exec_shape);
+    }
+
+    __AGENCY_ANNOTATION
+    shape_type max_shape_dimensions() const
+    {
+      // XXX might want to multiply shape() * max_shape_dimensions(outer_executor())
+      auto outer_max_shape = outer_traits::max_shape_dimensions(outer_executor());
+
+      auto inner_max_shape = inner_traits::max_shape_dimensions(inner_executor(0));
+
+      return make_shape(outer_max_shape, inner_max_shape);
     }
 
     __AGENCY_ANNOTATION
@@ -444,7 +464,7 @@ class executor_array
     }
 
     __AGENCY_ANNOTATION
-    inner_executor_type& inner_executor(size_t i) const
+    const inner_executor_type& inner_executor(size_t i) const
     {
       return begin()[i];
     }

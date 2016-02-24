@@ -157,9 +157,21 @@ class array
     }
 
     __AGENCY_ANNOTATION
+    const_pointer cbegin() const
+    {
+      return begin();
+    }
+
+    __AGENCY_ANNOTATION
     const_pointer end() const
     {
       return begin() + size();
+    }
+
+    __AGENCY_ANNOTATION
+    const_pointer cend() const
+    {
+      return end();
     }
 
     __agency_hd_warning_disable__

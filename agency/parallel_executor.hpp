@@ -21,18 +21,7 @@ class parallel_executor : public sequential_executor
 } // end this_thread
 
 
-class parallel_executor : public flattened_executor<nested_executor<concurrent_executor, this_thread::parallel_executor>>
-{
-  private:
-    using super_t = flattened_executor<nested_executor<concurrent_executor, this_thread::parallel_executor>>;
-
-  public:
-    using super_t::super_t;
-
-    parallel_executor()
-      : super_t(2 * std::thread::hardware_concurrency())
-    {}
-};
+using parallel_executor = flattened_executor<nested_executor<concurrent_executor, this_thread::parallel_executor>>;
 
 
 } // end agency
