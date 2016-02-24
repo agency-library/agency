@@ -108,46 +108,6 @@ template<class ExecutionCategory>
 using flattened_execution_tag = typename flattened_execution_tag_impl<ExecutionCategory>::type;
 
 
-template<class Integral>
-__AGENCY_ANNOTATION
-Integral isqrt_ceil(Integral x)
-{
-  auto arg = x;
-
-  Integral result = 0;
-
-  // set the second-to-top bit
-  Integral one = Integral(1) << ((sizeof(Integral) * 8) - 2);
-  
-  // "one" starts at the highest power of four <= than the argument.
-  while(one > x)
-  {
-    one >>= 2;
-  }
-  
-  while(one != 0)
-  {
-    if(x >= result + one)
-    {
-      x = x - (result + one);
-      result = result + 2 * one;
-    }
-
-    result >>= 1;
-    one >>= 2;
-  }
-
-  // if squaring the result doesn't yield arg, then the ceiling is 1 + result
-  // XXX could be a better way to do this besides storing arg and doing a multiplication
-  if(result * result < arg)
-  {
-    ++result;
-  }
-  
-  return result;
-}
-
-
 } // end detail
 
 
@@ -206,8 +166,7 @@ class flattened_executor
     future<typename std::result_of<Factory1(shape_type)>::type>
       then_execute(Function f, Factory1 result_factory, shape_type shape, Future& dependency, Factory2 outer_factory, Factories... inner_factories)
     {
-      //base_shape_type base_shape = partition_into_base_shape(shape);
-      base_shape_type base_shape = new_partition_into_base_shape(shape);
+      base_shape_type base_shape = partition_into_base_shape(shape);
 
       // store results into an intermediate result
       detail::guarded_container_factory<Factory1,shape_type> intermediate_result_factory{result_factory,shape};
@@ -264,30 +223,6 @@ class flattened_executor
 
     using shape_tail_type = detail::shape_tail_t<shape_type>;
 
-    // the type of shape_type's last type is simply its last element when the shape_type is a tuple
-    // otherwise, it's just the shape_type
-    using shape_last_type = typename std::decay<
-      decltype(detail::tuple_last_if(std::declval<shape_type>()))
-    >::type;
-
-    // the type of shape_type's prefix is simply its prefix when the shape_type is a tuple
-    // otherwise, it's just an empty tuple
-    using shape_prefix_type = decltype(detail::tuple_prefix_if(std::declval<shape_type>()));
-
-    // when shape_type is a tuple, returns its prefix
-    // otherwise, returns an empty tuple
-    static shape_prefix_type shape_prefix(const shape_type& shape)
-    {
-      return detail::tuple_prefix_if(shape);
-    }
-
-    // when shape_type is a tuple, returns its last element
-    // otherwise, returns shape
-    static const shape_last_type& shape_last(const shape_type& shape)
-    {
-      return detail::tuple_last_if(shape);
-    }
-
     using head_partition_type = detail::tuple<
       typename std::tuple_element<0,base_shape_type>::type,
       typename std::tuple_element<1,base_shape_type>::type
@@ -316,9 +251,6 @@ class flattened_executor
 
       size_t inner_size = (size + outer_size - 1) / outer_size;
 
-      //std::cout << "partition_head(): candidate outer_size: " << outer_size << std::endl;
-      //std::cout << "partition_head(): candidate inner_size: " << inner_size << std::endl;
-
       // address inner underutilization
       // XXX consider trying to balance the utilization
       while(inner_size < inner_granularity)
@@ -336,23 +268,12 @@ class flattened_executor
         if(outer_size > outer_max_size)
         {
           // XXX we could have asserted size <= outer_max_size * inner_max_size at the very beginning
-          throw std::runtime_error("partition_head(): size is too large to accomodate");
+          throw std::runtime_error("flattened_executor::partition_head(): size is too large to accomodate");
         }
       }
 
-      //std::cout << "partition_head(): size: " << size << std::endl;
-      //std::cout << "partition_head(): outer_granularity: " << outer_granularity << std::endl;
-      //std::cout << "partition_head(): inner_granularity: " << inner_granularity << std::endl;
-
-      //std::cout << "partition_head(): outer_max_size: " << outer_max_size << std::endl;
-      //std::cout << "partition_head(): inner_max_size: " << inner_max_size << std::endl;
-
-      //std::cout << "partition_head(): outer_size: " << outer_size << std::endl;
-      //std::cout << "partition_head(): inner_size: " << inner_size << std::endl;
-      //std::cout << std::endl;
-
-      using outer_shape_type = typename std::tuple_element<0,last_partition_type>::type;
-      using inner_shape_type = typename std::tuple_element<1,last_partition_type>::type;
+      using outer_shape_type = typename std::tuple_element<0,head_partition_type>::type;
+      using inner_shape_type = typename std::tuple_element<1,head_partition_type>::type;
 
       // XXX we may want to use a different heuristic to lift these sizes into shapes
       //     such as trying to make the shapes as square as possible
@@ -363,180 +284,28 @@ class flattened_executor
       return head_partition_type{outer_shape, inner_shape};
     }
 
-    using last_partition_type = detail::tuple<
-      typename std::tuple_element<std::tuple_size<base_shape_type>::value - 2,base_shape_type>::type,
-      typename std::tuple_element<std::tuple_size<base_shape_type>::value - 1,base_shape_type>::type
-    >;
-
-    last_partition_type new_partition_last(const shape_last_type& shape) const
-    {
-      // avoid division by zero outer_size below
-      size_t size = detail::shape_cast<size_t>(shape);
-      if(size == 0)
-      {
-        return last_partition_type{};
-      }
-
-      base_shape_type base_executor_shape = base_traits::shape(base_executor());
-      size_t outer_granularity = detail::shape_size(detail::tuple_prefix(base_executor_shape));
-      size_t inner_granularity = detail::shape_size(__tu::tuple_last(base_executor_shape));
-
-      base_shape_type base_executor_max_sizes = detail::max_sizes(base_traits::max_shape_dimensions(base_executor()));
-
-      size_t outer_max_size = detail::shape_product(detail::tuple_prefix(base_executor_max_sizes));
-      size_t inner_max_size = __tu::tuple_last(base_executor_max_sizes);
-
-      // set outer subscription to 1
-      size_t outer_size = std::min(outer_max_size, std::min(size, outer_granularity));
-
-      size_t inner_size = (size + outer_size - 1) / outer_size;
-
-      // address inner underutilization
-      while(inner_size < inner_granularity)
-      {
-        // halve the outer size
-        outer_size = std::max<int>(1, outer_size / 2);
-        inner_size *= 2;
-      }
-
-      if(inner_size > inner_max_size)
-      {
-        inner_size = inner_max_size;
-        outer_size = (size + inner_size - 1) / inner_size;
-
-        if(outer_size > outer_max_size)
-        {
-          // XXX we could have asserted size <= outer_max_size * inner_max_size at the very beginning
-          throw std::runtime_error("new_partition_last(): size is too large to accomodate");
-        }
-      }
-
-//      std::cout << "size: " << size << std::endl;
-//      std::cout << "outer_granularity: " << outer_granularity << std::endl;
-//      std::cout << "inner_granularity: " << inner_granularity << std::endl;
-
-//      std::cout << "maximum_outer_size_: " << maximum_outer_size_ << std::endl;
-//      std::cout << "maximum_inner_size_: " << maximum_inner_size_ << std::endl;
-
-//      std::cout << "outer_size: " << outer_size << std::endl;
-//      std::cout << "inner_size: " << inner_size << std::endl;
-//      std::cout << std::endl;
-
-      using outer_shape_type = typename std::tuple_element<0,last_partition_type>::type;
-      using inner_shape_type = typename std::tuple_element<1,last_partition_type>::type;
-
-      // XXX we may want to use a different heuristic to lift these sizes into shapes
-      //     such as trying to make the shapes as square as possible
-      //     or trying to preserve the original aspect ratio of shape somehow
-      outer_shape_type outer_shape = detail::shape_cast<outer_shape_type>(outer_size);
-      inner_shape_type inner_shape = detail::shape_cast<inner_shape_type>(inner_size);
-
-      return last_partition_type{outer_shape, inner_shape};
-    }
-
-    last_partition_type partition_last(const shape_last_type& shape) const
-    {
-      // avoid division by zero outer_size below
-      size_t size = detail::shape_cast<size_t>(shape);
-      if(size == 0)
-      {
-        return last_partition_type{};
-      }
-
-      // maximize the inner_size
-      size_t inner_size = std::min(size, maximum_inner_size_);
-
-      // divide to find the outer size
-      size_t outer_size = (size + inner_size - 1) / inner_size;
-
-      if(outer_size == 0)
-      {
-        inner_size = detail::isqrt_ceil(size);
-        outer_size = (size + inner_size - 1) / inner_size;
-      }
-
-      if(outer_size > maximum_outer_size_)
-      {
-        outer_size = maximum_outer_size_;
-
-        inner_size = (size + maximum_outer_size_ - 1) / outer_size;
-
-        if(inner_size > maximum_inner_size_)
-        {
-          throw std::runtime_error("flattened_executor::partition_head(): the dimensions of shape are too large");
-        }
-      }
-
-//      std::cout << "partition_last(): size: " << size << std::endl;
-//      std::cout << "partition_last(): maximum_outer_size_: " << maximum_outer_size_ << std::endl;
-//      std::cout << "partition_last(): maximum_inner_size_: " << maximum_inner_size_ << std::endl;
-//      std::cout << "partition_last(): outer_size: " << outer_size << std::endl;
-//      std::cout << "partition_last(): inner_size: " << inner_size << std::endl;
-
-      using outer_shape_type = typename std::tuple_element<0,last_partition_type>::type;
-      using inner_shape_type = typename std::tuple_element<1,last_partition_type>::type;
-
-      // XXX we may want to use a different heuristic to lift these sizes into shapes
-      //     such as trying to make the shapes as square as possible
-      //     or trying to preserve the original aspect ratio of shape somehow
-      outer_shape_type outer_shape = detail::shape_cast<outer_shape_type>(outer_size);
-      inner_shape_type inner_shape = detail::shape_cast<inner_shape_type>(inner_size);
-
-      return last_partition_type{outer_shape, inner_shape};
-    }
-
-
     template<size_t... Indices>
-    static base_shape_type make_base_shape_impl(detail::index_sequence<Indices...>, const shape_prefix_type& prefix, const last_partition_type& partition_of_last)
-    {
-      return base_shape_type{detail::get<Indices>(prefix)..., detail::get<0>(partition_of_last), detail::get<1>(partition_of_last)};
-    }
-
-    static base_shape_type make_base_shape(const shape_prefix_type& prefix, const last_partition_type& partition_of_last)
-    {
-      auto indices = detail::make_index_sequence<std::tuple_size<shape_prefix_type>::value>();
-
-      return make_base_shape_impl(indices, prefix, partition_of_last);
-    }
-
-    template<size_t... Indices>
-    static base_shape_type new_make_base_shape_impl(detail::index_sequence<Indices...>, const head_partition_type& partition_of_head, const shape_tail_type& tail)
+    static base_shape_type make_base_shape_impl(detail::index_sequence<Indices...>, const head_partition_type& partition_of_head, const shape_tail_type& tail)
     {
       return base_shape_type{detail::get<0>(partition_of_head), detail::get<1>(partition_of_head), detail::get<Indices>(tail)...};
     }
 
-    static base_shape_type new_make_base_shape(const head_partition_type& partition_of_head, const shape_tail_type& tail)
+    static base_shape_type make_base_shape(const head_partition_type& partition_of_head, const shape_tail_type& tail)
     {
       auto indices = detail::make_index_sequence<std::tuple_size<shape_tail_type>::value>();
 
-      return new_make_base_shape_impl(indices, partition_of_head, tail);
+      return make_base_shape_impl(indices, partition_of_head, tail);
     }
 
-    base_shape_type new_partition_into_base_shape(const shape_type& shape) const
+    base_shape_type partition_into_base_shape(const shape_type& shape) const
     {
-//      std::cout << "new_partition_into_base_shape(): partitioning " << shape << std::endl;
-
       // split the shape into its head and tail elements
       shape_head_type head = detail::shape_head(shape);
       shape_tail_type tail = detail::shape_tail(shape);
 
       // to partition the head and tail elements into the base_shape_type,
       // we partition the head element and then concatenate the resulting tuple with the tail
-      return new_make_base_shape(partition_head(head), tail);
-    }
-
-    base_shape_type partition_into_base_shape(const shape_type& shape) const
-    {
-//      std::cout << "partition_into_base_shape(): partitioning " << shape << std::endl;
-
-      // split the shape into its prefix and last element
-      shape_prefix_type prefix = shape_prefix(shape);
-      shape_last_type last = shape_last(shape);
-
-      // to partition the prefix and last element into the base_shape_type,
-      // we partition the last element and then concatenate the resulting tuple with the prefix
-      //return make_base_shape(prefix, partition_last(last));
-      return make_base_shape(prefix, new_partition_last(last));
+      return make_base_shape(partition_head(head), tail);
     }
 
     size_t maximum_outer_size_;
