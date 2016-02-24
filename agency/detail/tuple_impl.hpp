@@ -41,6 +41,18 @@
 #  define __TUPLE_ANNOTATION_NEEDS_UNDEF
 #endif
 
+
+// define the incantation to silence nvcc errors concerning __host__ __device__ functions
+#if defined(__CUDACC__) && !(defined(__CUDA__) && defined(__clang__))
+
+#define __TUPLE_EXEC_CHECK_DISABLE \
+#pragma nv_exec_check_disable
+#else
+
+#define __TUPLE_EXEC_CHECK_DISABLE
+
+#endif
+
 // allow the user to define a namespace for these functions
 #ifndef __TUPLE_NAMESPACE
 #define __TUPLE_NAMESPACE std
@@ -160,15 +172,11 @@ template<class T, bool = tuple_use_empty_base_class_optimization<T>::value>
 class tuple_leaf_base
 {
   public:
-#if defined(__CUDACC__)
-#pragma nv_exec_check_disable
-#endif
+    __TUPLE_EXEC_CHECK_DISABLE
     __TUPLE_ANNOTATION
     tuple_leaf_base() = default;
 
-#if defined(__CUDACC__)
-#pragma nv_exec_check_disable
-#endif
+    __TUPLE_EXEC_CHECK_DISABLE
     template<class U>
     __TUPLE_ANNOTATION
     tuple_leaf_base(U&& arg) : val_(std::forward<U>(arg)) {}
@@ -244,9 +252,7 @@ class tuple_leaf : public tuple_leaf_base<T>
     tuple_leaf(const tuple_leaf<I,U>& other) : super_t(other.const_get()) {}
 
 
-#if defined(__CUDACC__)
-#pragma nv_exec_check_disable
-#endif
+    __TUPLE_EXEC_CHECK_DISABLE
     template<class U,
              class = typename std::enable_if<
                std::is_assignable<T,U>::value
@@ -258,9 +264,7 @@ class tuple_leaf : public tuple_leaf_base<T>
       return *this;
     }
     
-#if defined(__CUDACC__)
-#pragma nv_exec_check_disable
-#endif
+    __TUPLE_EXEC_CHECK_DISABLE
     __TUPLE_ANNOTATION
     tuple_leaf& operator=(const tuple_leaf& other)
     {
@@ -268,9 +272,7 @@ class tuple_leaf : public tuple_leaf_base<T>
       return *this;
     }
 
-#if defined(__CUDACC__)
-#pragma nv_exec_check_disable
-#endif
+    __TUPLE_EXEC_CHECK_DISABLE
     __TUPLE_ANNOTATION
     tuple_leaf& operator=(tuple_leaf&& other)
     {
@@ -278,9 +280,7 @@ class tuple_leaf : public tuple_leaf_base<T>
       return *this;
     }
 
-#if defined(__CUDACC__)
-#pragma nv_exec_check_disable
-#endif
+    __TUPLE_EXEC_CHECK_DISABLE
     template<class U,
              class = typename std::enable_if<
                std::is_assignable<T,U&&>::value
@@ -292,9 +292,7 @@ class tuple_leaf : public tuple_leaf_base<T>
       return *this;
     }
 
-#if defined(__CUDACC__)
-#pragma nv_exec_check_disable
-#endif
+    __TUPLE_EXEC_CHECK_DISABLE
     __TUPLE_ANNOTATION
     int swap(tuple_leaf& other)
     {
@@ -897,7 +895,7 @@ struct tuple_find_exactly_one_impl<I,T> : std::integral_constant<int, -1> {};
 template<class T, class... Types>
 struct tuple_find_exactly_one : tuple_find_exactly_one_impl<0,T,Types...>
 {
-  static_assert(tuple_find_exactly_one::value != -1, "type not found in type list");
+  static_assert(int(tuple_find_exactly_one::value) != -1, "type not found in type list");
 };
 
 
@@ -1080,4 +1078,6 @@ __TUPLE_ANNOTATION
 #undef __TUPLE_NAMESPACE
 #undef __TUPLE_NAMESPACE_NEEDS_UNDEF
 #endif
+
+#undef __TUPLE_EXEC_CHECK_DISABLE
 
