@@ -255,16 +255,29 @@ using executor_execution_category_t = typename nested_execution_category_with_de
 
 
 template<class Executor>
-using executor_index_t = typename nested_index_type_with_default<
-  Executor,
-  size_t
->::type;
+struct executor_shape
+{
+  // deduction of the Executor's shape_type proceeds from bottom to top below:
+
+  template<class Executor1> static auto test2(...) -> std::size_t; // finally, just use size_t
+  template<class Executor1> static auto test2(int) -> decltype(std::declval<Executor1>().shape()); // next check for a nested Executor::shape() function
+
+  template<class Executor1> static auto test1(...) -> decltype(test2<Executor1>(0));
+  template<class Executor1> static auto test1(int) -> typename Executor1::shape_type; // first check for a nested Executor::shape_type
+                                                                                      // XXX should insist that the result of .shape() can convert to Executor::shape_type
+
+  using type = decltype(test1<Executor>(0));
+};
 
 
 template<class Executor>
-using executor_shape_t = typename nested_shape_type_with_default<
+using executor_shape_t = typename executor_shape<Executor>::type;
+
+
+template<class Executor>
+using executor_index_t = typename nested_index_type_with_default<
   Executor,
-  executor_index_t<Executor>
+  executor_shape_t<Executor>
 >::type;
 
 
