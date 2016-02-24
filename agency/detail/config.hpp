@@ -12,7 +12,7 @@
 #  define __AGENCY_ANNOTATION __AGENCY_CONSTEXPR_AFTER_CXX11
 #endif // __AGENCY_ANNOTATION
 
-#if defined(__CUDACC__) && !(defined(__clang__) && defined(__CUDA__))
+#if defined(__NVCC__) && !(defined(__clang__) && defined(__CUDA__))
 #  ifndef __agency_hd_warning_disable__
 #    define __agency_hd_warning_disable__ \
 #    pragma hd_warning_disable

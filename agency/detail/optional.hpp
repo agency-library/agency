@@ -70,7 +70,7 @@ inline void throw_bad_optional_access(const char* what_arg)
 }
 
 
-#if !(defined(__clang__) && defined(__CUDA__))
+#if defined(__NVCC__) && !(defined(__clang__) && defined(__CUDA__))
 #pragma nv_exec_check_disable
 #endif
 template<class T>
