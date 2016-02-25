@@ -40,7 +40,7 @@ void saxpy(size_t n, float a, const float* x, const float* y, float* z)
 
 int main()
 {
-  size_t n = 16 << 20;
+  size_t n = 8 << 20;
   thrust::device_vector<float> x(n, 1), y(n, 2), z(n);
   float a = 13.;
 
