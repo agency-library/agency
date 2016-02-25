@@ -51,7 +51,7 @@ struct is_constructible_or_void
 
 
 // declare this so future may befriend it
-template<class Shape, class Index, class ThisIndexFunction>
+template<class Shape, class Index>
 class basic_grid_executor;
 
 template<class U>
@@ -406,7 +406,7 @@ class async_future
     }
 
     template<class U> friend class async_future;
-    template<class Shape, class Index, class ThisIndexFunction> friend class agency::cuda::detail::basic_grid_executor;
+    template<class Shape, class Index> friend class agency::cuda::detail::basic_grid_executor;
 
     __host__ __device__
     async_future(detail::event&& e, detail::asynchronous_state<T>&& state)
