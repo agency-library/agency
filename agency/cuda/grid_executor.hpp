@@ -43,9 +43,117 @@ namespace detail
 {
 
 
-template<class Shape, class Index, class ThisIndexFunction>
+// this_cuda_thread_index maps the builtin threadIdx to the given Index type
+// Index must have 1, 2, or 3 elements
+
+template<class Index>
+__device__
+typename std::enable_if<
+  agency::detail::index_size<Index>::value == 1,
+  Index
+>::type
+  this_cuda_thread_index()
+{
+  return Index{threadIdx.x};
+}
+
+template<class Index>
+__device__
+typename std::enable_if<
+  agency::detail::index_size<Index>::value == 2,
+  Index
+>::type
+  this_cuda_thread_index()
+{
+  return Index{threadIdx.x, threadIdx.y};
+}
+
+template<class Index>
+__device__
+typename std::enable_if<
+  agency::detail::index_size<Index>::value == 3,
+  Index
+>::type
+  this_cuda_thread_index()
+{
+  return Index{threadIdx.x, threadIdx.y, threadIdx.z};
+}
+
+
+// this_cuda_block_index maps the builtin blockIdx to the given Index type
+// Index must have 1, 2, or 3 elements
+
+template<class Index>
+__device__
+typename std::enable_if<
+  agency::detail::index_size<Index>::value == 1,
+  Index
+>::type
+  this_cuda_block_index()
+{
+  return Index{blockIdx.x};
+}
+
+template<class Index>
+__device__
+typename std::enable_if<
+  agency::detail::index_size<Index>::value == 2,
+  Index
+>::type
+  this_cuda_block_index()
+{
+  return Index{blockIdx.x, blockIdx.y};
+}
+
+template<class Index>
+__device__
+typename std::enable_if<
+  agency::detail::index_size<Index>::value == 3,
+  Index
+>::type
+  this_cuda_block_index()
+{
+  return Index{blockIdx.x, blockIdx.y, blockIdx.z};
+}
+
+
+// this_cuda_index() maps the builtins blockIdx & threadIdx to the given Index type
+// Index must have 2 elements
+template<class Index,
+         class = typename std::enable_if<
+           agency::detail::index_size<Index>::value == 2
+         >::type>
+__device__
+Index this_cuda_index()
+{
+  using outer_index_type = typename std::tuple_element<0,Index>::type;
+  using inner_index_type = typename std::tuple_element<1,Index>::type;
+
+  return Index{
+    cuda::detail::this_cuda_block_index<outer_index_type>(),
+    cuda::detail::this_cuda_thread_index<inner_index_type>()
+  };
+}
+
+
+// this is a functor wrapping this_cuda_index()
+template<class Index>
+struct this_cuda_index_functor
+{
+  __device__
+  Index operator()() const
+  {
+    return cuda::detail::this_cuda_index<Index>();
+  }
+};
+
+
+template<class Shape, class Index = Shape>
 class basic_grid_executor
 {
+  static_assert(std::tuple_size<Shape>::value == std::tuple_size<Index>::value,
+                "basic_grid_executor's Shape and Index types must have the same number of elements.");
+
   public:
     using execution_category =
       nested_execution_tag<
@@ -60,6 +168,12 @@ class basic_grid_executor
     using index_type = Index;
 
 
+  private:
+    // this is a functor that will map the CUDA builtin variables blockIdx & threadIdx to an Index
+    using this_index_function_type = this_cuda_index_functor<index_type>;
+
+
+  public:
     template<class T>
     using future = cuda::async_future<T>;
 
@@ -103,7 +217,7 @@ class basic_grid_executor
                                   Factory1 outer_factory,
                                   Factory2 inner_factory)
     {
-      return detail::when_all_execute_and_select<Indices...>(f, shape, ThisIndexFunction(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory, device());
+      return detail::when_all_execute_and_select<Indices...>(f, shape, this_index_function_type(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory, device());
     }
 
     template<class Function, class Factory1, class T, class Factory2, class Factory3,
@@ -119,7 +233,7 @@ class basic_grid_executor
     async_future<typename std::result_of<Factory1(shape_type)>::type>
       then_execute(Function f, Factory1 result_factory, shape_type shape, async_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
     {
-      return fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, device());
+      return fut.bulk_then(f, result_factory, shape, this_index_function_type(), outer_factory, inner_factory, device());
     }
 
 
@@ -136,7 +250,7 @@ class basic_grid_executor
       then_execute(Function f, Factory1 result_factory, shape_type shape, shared_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
     {
       using result_type = async_future<typename std::result_of<Factory1(shape_type)>::type>;
-      auto intermediate_future = fut.bulk_then(f, result_factory, shape, ThisIndexFunction(), outer_factory, inner_factory, device());
+      auto intermediate_future = fut.bulk_then(f, result_factory, shape, this_index_function_type(), outer_factory, inner_factory, device());
       return std::move(intermediate_future.template get<result_type>());
     }
 
@@ -149,7 +263,7 @@ class basic_grid_executor
     __host__ __device__
     void* then_execute_kernel(const Function& f, const Factory1& result_factory, const async_future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
-      return fut.bulk_then_kernel(f, result_factory, shape_type{}, ThisIndexFunction(), outer_factory, inner_factory, device());
+      return fut.bulk_then_kernel(f, result_factory, shape_type{}, this_index_function_type(), outer_factory, inner_factory, device());
     }
 
     template<class Container, class Function, class T, class OuterFactory, class InnerFactory>
@@ -227,35 +341,13 @@ class basic_grid_executor
 };
 
 
-struct this_index_1d
-{
-  __device__
-  agency::uint2 operator()() const
-  {
-    return agency::uint2{blockIdx.x, threadIdx.x};
-  }
-};
-
-
-struct this_index_2d
-{
-  __device__
-  agency::point<agency::uint2,2> operator()() const
-  {
-    auto block = agency::uint2{blockIdx.x, blockIdx.y};
-    auto thread = agency::uint2{threadIdx.x, threadIdx.y};
-    return agency::point<agency::uint2,2>{block, thread};
-  }
-};
-
-
 } // end detail
 
 
-class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::uint2, detail::this_index_1d>
+class grid_executor : public detail::basic_grid_executor<agency::uint2>
 {
   public:
-    using detail::basic_grid_executor<agency::uint2, agency::uint2, detail::this_index_1d>::basic_grid_executor;
+    using detail::basic_grid_executor<agency::uint2>::basic_grid_executor;
 
   private:
     inline __host__ __device__
@@ -343,18 +435,10 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2, agency::
 };
 
 
-class grid_executor_2d : public detail::basic_grid_executor<
-  point<agency::uint2,2>,
-  point<agency::uint2,2>,
-  detail::this_index_2d
->
+class grid_executor_2d : public detail::basic_grid_executor<point<agency::uint2,2>>
 {
   public:
-    using detail::basic_grid_executor<
-      point<agency::uint2,2>,
-      point<agency::uint2,2>,
-      detail::this_index_2d
-    >::basic_grid_executor;
+    using detail::basic_grid_executor<point<agency::uint2,2>>::basic_grid_executor;
 
     // XXX implement max_shape()
 };
