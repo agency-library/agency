@@ -1,5 +1,6 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
 #include <agency/cuda/grid_executor.hpp>
 #include <agency/cuda/parallel_executor.hpp>
 #include <agency/executor_array.hpp>
