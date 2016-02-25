@@ -42,8 +42,6 @@ class supergrid_executor : public executor_array<grid_executor, this_thread::par
     using super_t = executor_array<grid_executor, this_thread::parallel_executor>;
 
   public:
-    using super_t::super_t;
-
     template<class Container>
     supergrid_executor(const Container& grid_executors)
       : super_t(grid_executors.begin(), grid_executors.end())
