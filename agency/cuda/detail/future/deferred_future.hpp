@@ -173,20 +173,26 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
     }
 };
 
+
 template<>
-class deferred_result<void> : detail::boxed_value<agency::detail::optional<agency::detail::unit>>
+class deferred_result<void> : agency::detail::optional<agency::detail::unit>
 {
   public:
-    using super_t = detail::boxed_value<agency::detail::optional<agency::detail::unit>>;
+    using super_t = agency::detail::optional<agency::detail::unit>;
     using super_t::super_t;
     using super_t::operator=;
+
+    __AGENCY_ANNOTATION
+    deferred_result()
+      : super_t{}
+    {}
 
     __AGENCY_ANNOTATION
     deferred_result(deferred_result&& other)
       : super_t(std::move(other))
     {
       // empty other
-      other.value() = agency::detail::nullopt;
+      other = agency::detail::nullopt;
     }
 
     __AGENCY_ANNOTATION
@@ -195,7 +201,7 @@ class deferred_result<void> : detail::boxed_value<agency::detail::optional<agenc
       super_t::operator=(std::move(other));
 
       // empty other
-      other.value() = agency::detail::nullopt;
+      other = agency::detail::nullopt;
 
       return *this;
     }
@@ -203,7 +209,7 @@ class deferred_result<void> : detail::boxed_value<agency::detail::optional<agenc
     __AGENCY_ANNOTATION
     bool is_ready() const
     {
-      return static_cast<bool>(this->value());
+      return static_cast<bool>(*this);
     }
 
     __AGENCY_ANNOTATION
@@ -219,7 +225,7 @@ class deferred_result<void> : detail::boxed_value<agency::detail::optional<agenc
       __AGENCY_ANNOTATION
       ~invalidate_at_scope_exit()
       {
-        self.value() = agency::detail::nullopt;
+        self = agency::detail::nullopt;
       }
     };
 
