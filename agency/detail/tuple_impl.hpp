@@ -246,10 +246,19 @@ class tuple_leaf : public tuple_leaf_base<T>
 
     template<class U,
              class = typename std::enable_if<
-               std::is_constructible<T,U>::value
+               std::is_constructible<T,const U&>::value
              >::type>
     __TUPLE_ANNOTATION
     tuple_leaf(const tuple_leaf<I,U>& other) : super_t(other.const_get()) {}
+
+    // converting move-constructor
+    // note the use of std::forward<U> here to allow construction of T from U&&
+    template<class U,
+             class = typename std::enable_if<
+               std::is_constructible<T,U&&>::value
+             >::type>
+    __TUPLE_ANNOTATION
+    tuple_leaf(tuple_leaf<I,U>&& other) : super_t(std::forward<U>(other.mutable_get())) {}
 
 
     __TUPLE_EXEC_CHECK_DISABLE
@@ -377,6 +386,19 @@ class tuple_base<tuple_index_sequence<I...>, Types...>
     __TUPLE_ANNOTATION
     tuple_base(const tuple_base<tuple_index_sequence<I...>,UTypes...>& other)
       : tuple_leaf<I,Types>(other.template const_leaf<I>())...
+    {}
+
+
+    template<class... UTypes,
+             class = typename std::enable_if<
+               (sizeof...(Types) == sizeof...(UTypes)) &&
+               tuple_and<
+                 std::is_constructible<Types,UTypes&&>...
+                >::value
+             >::type>
+    __TUPLE_ANNOTATION
+    tuple_base(tuple_base<tuple_index_sequence<I...>,UTypes...>&& other)
+      : tuple_leaf<I,Types>(std::move(other.template mutable_leaf<I>()))...
     {}
 
 
