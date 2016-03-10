@@ -222,6 +222,9 @@ class deferred_function<Result(Args...)>
 };
 
 
+struct ready_made_t {};
+constexpr ready_made_t ready_made{};
+
 
 template<class T, bool = deferred_state_requires_storage<T>::value>
 class deferred_result : detail::boxed_value<agency::detail::optional<T>>
@@ -240,6 +243,17 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
       // empty other
       other.value() = agency::detail::nullopt;
     }
+
+    template<class... Args,
+             class = typename std::enable_if<
+               detail::is_constructible_or_void<
+                 T, Args&&...
+               >::value
+             >::type>
+    __AGENCY_ANNOTATION
+    deferred_result(ready_made_t, Args&&... args)
+      : super_t(std::forward<Args>(args)...)
+    {}
 
     __AGENCY_ANNOTATION
     deferred_result& operator=(deferred_result&& other)
@@ -350,6 +364,17 @@ class deferred_result<T,false>
       // empty other
       other = agency::detail::nullopt;
     }
+
+    template<class... Args,
+             class = typename std::enable_if<
+               detail::is_constructible_or_void<
+                 T, Args&&...
+               >::value
+             >::type>
+    __AGENCY_ANNOTATION
+    deferred_result(ready_made_t, Args&&... args)
+      : super_t(std::forward<Args>(args)...)
+    {}
 
     __AGENCY_ANNOTATION
     deferred_result& operator=(deferred_result&& other)
@@ -524,6 +549,16 @@ class deferred_state
     __AGENCY_ANNOTATION
     deferred_state(Function&& f)
       : function_(std::forward<Function>(f))
+    {}
+
+    template<class... Args,
+             class = typename std::enable_if<
+               detail::is_constructible_or_void<T,Args&&...>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    deferred_state(ready_made_t, Args&&... args)
+      : function_{},
+        result_{std::forward<Args>(args)...}
     {}
 
     __AGENCY_ANNOTATION
@@ -701,9 +736,7 @@ class deferred_future
     __AGENCY_ANNOTATION
     static deferred_future make_ready(Args&&... args)
     {
-      deferred_future result(agency::detail::make_factory<T>(std::forward<Args>(args)...));
-      result.wait();
-      return std::move(result);
+      return deferred_future(detail::ready_made, std::forward<Args>(args)...);
     }
 
     template<class Function>
@@ -751,6 +784,15 @@ class deferred_future
     __AGENCY_ANNOTATION
     deferred_future(Function&& f)
       : state_(std::forward<Function>(f))
+    {}
+
+    template<class... Args,
+             class = typename std::enable_if<
+               detail::is_constructible_or_void<T,Args&&...>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    deferred_future(detail::ready_made_t, Args&&... args)
+      : state_(detail::ready_made, std::forward<Args>(args)...)
     {}
 
     template<class Function>
