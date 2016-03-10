@@ -9,6 +9,7 @@
 #include <agency/future.hpp>
 #include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/functional.hpp>
+#include <type_traits>
 
 
 namespace agency
@@ -26,6 +27,8 @@ template<class Result, class... Args>
 class unique_function<Result(Args...)>
 {
   public:
+    using result_type = Result;
+
     __AGENCY_ANNOTATION
     unique_function() = default;
 
@@ -99,12 +102,136 @@ class unique_function<Result(Args...)>
 
 
 template<class T>
+struct is_trivial_and_empty :
+  agency::detail::conjunction<
+    // XXX stdlibc++ doesn't have this yet???
+    //std::is_trivially_default_constructible<T>,
+    std::is_trivially_destructible<T>,
+    std::is_empty<T>
+>
+{};
+
+
+template<class T>
+struct deferred_state_requires_storage
+  : std::integral_constant<
+      bool,
+      !std::is_void<T>::value && !is_trivial_and_empty<T>::value
+    >
+{};
+
+
+template<class T>
+struct deferred_function_result : std::conditional<
+  deferred_state_requires_storage<T>::value,
+  T,
+  agency::detail::unit
+>
+{};
+
+
+template<class>
+class deferred_function;
+
+template<class Result, class... Args>
+class deferred_function<Result(Args...)>
+{
+  private:
+    template<class> friend class deferred_function;
+
+    using result_type = typename deferred_function_result<Result>::type;
+
+    unique_function<result_type(Args...)> function_;
+
+    template<class Function>
+    struct invoke_and_return_unit
+    {
+      mutable Function function_;
+
+      __AGENCY_ANNOTATION
+      agency::detail::unit operator()(Args&&... args) const
+      {
+        agency::invoke(function_, std::forward<Args>(args)...);
+        return agency::detail::unit{};
+      }
+    };
+
+    template<class Function>
+    __AGENCY_ANNOTATION
+    invoke_and_return_unit<Function> make_invoke_and_return_unit(Function&& f)
+    {
+      return invoke_and_return_unit<Function>{std::forward<Function>(f)};
+    }
+
+  public:
+    __AGENCY_ANNOTATION
+    deferred_function() = default;
+
+    __AGENCY_ANNOTATION
+    deferred_function(deferred_function&& other) = default;
+
+    __AGENCY_ANNOTATION
+    deferred_function& operator=(deferred_function&& other) = default;
+
+    template<class Function>
+    __AGENCY_ANNOTATION
+    deferred_function(Function&& f,
+                      typename std::enable_if<
+                        !deferred_state_requires_storage<
+                          typename std::result_of<Function(Args...)>::type
+                        >::value
+                      >::type* = 0)
+      : function_(make_invoke_and_return_unit(std::forward<Function>(f)))
+    {}
+
+    template<class Function>
+    __AGENCY_ANNOTATION
+    deferred_function(Function&& f,
+                      typename std::enable_if<
+                        deferred_state_requires_storage<
+                          typename std::result_of<Function(Args...)>::type
+                        >::value
+                      >::type* = 0)
+      : function_(std::forward<Function>(f))
+    {}
+
+    // allow moves from other deferred_function if their result_type is the same as ours
+    template<class OtherResult,
+             class = typename std::enable_if<
+               std::is_same<
+                 result_type, typename deferred_function<OtherResult(Args...)>::result_type
+               >::value
+             >::type>
+    __AGENCY_ANNOTATION
+    deferred_function(deferred_function<OtherResult(Args...)>&& other)
+      : function_(std::move(other.function_))
+    {
+    }
+
+    __AGENCY_ANNOTATION
+    result_type operator()(Args... args) const
+    {
+      return function_(args...);
+    }
+
+    __AGENCY_ANNOTATION
+    operator bool () const
+    {
+      return function_;
+    }
+};
+
+
+
+template<class T, bool = deferred_state_requires_storage<T>::value>
 class deferred_result : detail::boxed_value<agency::detail::optional<T>>
 {
   public:
     using super_t = detail::boxed_value<agency::detail::optional<T>>;
     using super_t::super_t;
     using super_t::operator=;
+
+    using value_type = T;
 
     __AGENCY_ANNOTATION
     deferred_result(deferred_result&& other)
@@ -174,11 +301,28 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
 };
 
 
-template<>
-class deferred_result<void> : agency::detail::optional<agency::detail::unit>
+template<class T>
+class deferred_result<T,false>
+  : agency::detail::optional<
+      typename std::conditional<
+        std::is_void<T>::value,
+        agency::detail::unit,
+        T
+      >::type
+    >
 {
+  private:
+    template<class,bool> friend class deferred_result;
+
   public:
-    using super_t = agency::detail::optional<agency::detail::unit>;
+    using value_type = typename std::conditional<
+      std::is_void<T>::value,
+      agency::detail::unit,
+      T
+    >::type;
+
+    using super_t = agency::detail::optional<value_type>;
+
     using super_t::super_t;
     using super_t::operator=;
 
@@ -189,6 +333,18 @@ class deferred_result<void> : agency::detail::optional<agency::detail::unit>
 
     __AGENCY_ANNOTATION
     deferred_result(deferred_result&& other)
+      : super_t(std::move(other))
+    {
+      // empty other
+      other = agency::detail::nullopt;
+    }
+
+    template<class U,
+             class = typename std::enable_if<
+               !deferred_state_requires_storage<U>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    deferred_result(deferred_result<U>&& other)
       : super_t(std::move(other))
     {
       // empty other
@@ -212,9 +368,40 @@ class deferred_result<void> : agency::detail::optional<agency::detail::unit>
       return static_cast<bool>(*this);
     }
 
+  private:
+    using reference = typename agency::detail::lazy_conditional<
+      std::is_void<T>::value,
+      agency::detail::identity<void>,
+      std::add_lvalue_reference<T>
+    >::type;
+
+    template<class U>
     __AGENCY_ANNOTATION
-    void ref() const
+    typename std::enable_if<
+      !std::is_void<U>::value,
+      reference
+    >::type
+      ref_impl() const
     {
+      deferred_result& self = const_cast<deferred_result&>(*this);
+      return *self;
+    }
+
+    template<class U>
+    __AGENCY_ANNOTATION
+    typename std::enable_if<
+      std::is_void<U>::value,
+      void
+    >::type
+      ref_impl() const
+    {
+    }
+
+  public:
+    __AGENCY_ANNOTATION
+    reference ref()
+    {
+      return ref_impl<T>();
     }
 
   private:
@@ -229,15 +416,38 @@ class deferred_result<void> : agency::detail::optional<agency::detail::unit>
       }
     };
 
+    template<class U, class Function,
+             class = typename std::enable_if<
+               std::is_void<U>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    auto fmap_impl(Function&& f) ->
+      decltype(agency::invoke(std::forward<Function>(f)))
+    {
+      return agency::invoke(std::forward<Function>(f));
+    }
+
+    template<class U, class Function,
+             class = typename std::enable_if<
+               !std::is_void<U>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    auto fmap_impl(Function&& f) ->
+      decltype(agency::invoke(std::forward<Function>(f), this->ref()))
+    {
+      return agency::invoke(std::forward<Function>(f), this->ref());
+    }
+
+
   public:
     // calls f
     // undefined is !is_ready()
     template<class Function>
     __AGENCY_ANNOTATION
     auto fmap(Function&& f) ->
-      decltype(agency::invoke(std::forward<Function>(f)))
+      decltype(this->template fmap_impl<T>(std::forward<Function>(f)))
     {
-      return agency::invoke(std::forward<Function>(f));
+      return fmap_impl<T>(std::forward<Function>(f));
     }
 
     // calls f and invalidates this deferred_result
@@ -257,26 +467,32 @@ template<class T>
 class deferred_state
 {
   private:
-    deferred_result<T> result_;
-    unique_function<T()> function_;
+    template<class> friend class deferred_state;
 
-    template<class U,
-             class = typename std::enable_if<
-               std::is_void<U>::value
-             >::type>
+    deferred_result<T> result_;
+
+    using function_type = deferred_function<T()>;
+    function_type function_;
+
+    template<class U>
     __AGENCY_ANNOTATION
-    agency::detail::unit invoke_function()
+    typename std::enable_if<
+      !deferred_state_requires_storage<U>::value,
+      typename deferred_result<T>::value_type
+    >::type
+      invoke_function()
     {
       function_();
-      return agency::detail::unit();
+      return typename deferred_result<T>::value_type{};
     }
 
-    template<class U,
-             class = typename std::enable_if<
-               !std::is_void<U>::value
-             >::type>
+    template<class U>
     __AGENCY_ANNOTATION
-    T invoke_function()
+    typename std::enable_if<
+      deferred_state_requires_storage<U>::value,
+      typename deferred_result<T>::value_type
+    >::type
+      invoke_function()
     {
       return function_();
     }
@@ -287,6 +503,22 @@ class deferred_state
 
     __AGENCY_ANNOTATION
     deferred_state(deferred_state&&) = default;
+
+    template<class U,
+             class = typename std::enable_if<
+               std::is_constructible<
+                 deferred_result<T>, deferred_result<U>&&
+               >::value &&
+               std::is_constructible<
+                 function_type, typename deferred_state<U>::function_type&&
+               >::value
+             >::type>
+    __AGENCY_ANNOTATION
+    deferred_state(deferred_state<U>&& other)
+      : result_(std::move(other.result_)),
+        function_(std::move(other.function_))
+    {
+    }
 
     template<class Function>
     __AGENCY_ANNOTATION
@@ -317,7 +549,7 @@ class deferred_state
         result_ = invoke_function<T>();
 
         // empty the function
-        function_ = unique_function<T()>();
+        function_ = function_type();
       }
     }
 
@@ -394,7 +626,7 @@ class deferred_state
 };
 
 
-// XXX why is this functor external nto deferred_future?
+// XXX why is this functor external to deferred_future?
 template<class Function, class DeferredFuture>
 struct deferred_continuation
 {
@@ -425,6 +657,18 @@ class deferred_future
 
     __AGENCY_ANNOTATION
     deferred_future& operator=(deferred_future&& other) = default;
+
+    template<class U,
+             class = typename std::enable_if<
+               std::is_constructible<
+                 detail::deferred_state<T>,detail::deferred_state<U>&&
+               >::value
+             >::type>
+    __AGENCY_ANNOTATION
+    deferred_future(deferred_future<U>&& other)
+      : state_(std::move(other.state_))
+    {
+    }
 
     __AGENCY_ANNOTATION
     bool valid() const
