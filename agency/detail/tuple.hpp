@@ -702,8 +702,8 @@ struct is_empty_tuple_impl_impl;
 template<class... Types>
 struct is_empty_tuple_impl_impl<type_list<Types...>>
 {
-  using type = static_and<
-    static_or<
+  using type = conjunction<
+    disjunction<
       std::is_empty<Types>,
       is_empty_tuple<Types>
     >...

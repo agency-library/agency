@@ -60,31 +60,31 @@ using repeat_type = typename repeat_type_impl<T,n>::type;
 
 
 template<class... Conditions>
-struct static_and;
+struct conjunction;
 
 template<>
-struct static_and<> : std::true_type {};
+struct conjunction<> : std::true_type {};
 
 template<class Condition, class... Conditions>
-struct static_and<Condition, Conditions...>
+struct conjunction<Condition, Conditions...>
   : std::integral_constant<
       bool,
-      Condition::value && static_and<Conditions...>::value
+      Condition::value && conjunction<Conditions...>::value
     >
 {};
 
 
 template<class... Conditions>
-struct static_or;
+struct disjunction;
 
 template<>
-struct static_or<> : std::false_type {};
+struct disjunction<> : std::false_type {};
 
 template<class Condition, class... Conditions>
-struct static_or<Condition, Conditions...>
+struct disjunction<Condition, Conditions...>
   : std::integral_constant<
       bool,
-      Condition::value || static_or<Conditions...>::value
+      Condition::value || disjunction<Conditions...>::value
     >
 {};
 
