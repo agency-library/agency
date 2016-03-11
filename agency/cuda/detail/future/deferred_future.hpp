@@ -9,6 +9,7 @@
 #include <agency/future.hpp>
 #include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/functional.hpp>
+#include <stdexcept>
 #include <type_traits>
 
 
@@ -18,6 +19,28 @@ namespace cuda
 {
 namespace detail
 {
+
+
+class bad_function_call : public std::exception
+{
+  public:
+    virtual const char* what() const noexcept
+    {
+      return "bad_function_call: unique_function has no target";
+    }
+};
+
+
+__AGENCY_ANNOTATION
+inline void throw_bad_function_call()
+{
+#ifdef __CUDA_ARCH__
+  printf("bad_function_call: unique_function has no target\n");
+  assert(0);
+#else
+  throw bad_function_call();
+#endif
+}
 
 
 template<class>
@@ -47,6 +70,11 @@ class unique_function<Result(Args...)>
     __AGENCY_ANNOTATION
     Result operator()(Args... args) const
     {
+      if(!*this)
+      {
+        throw_bad_function_call();
+      }
+
       return (*f_ptr_)(args...);
     }
 
@@ -373,8 +401,9 @@ class deferred_result<T,false>
              >::type>
     __AGENCY_ANNOTATION
     deferred_result(ready_made_t, Args&&... args)
-      : super_t(std::forward<Args>(args)...)
-    {}
+      : super_t(value_type{std::forward<Args>(args)...}) // note we explicitly construct a value_type here to ensure we get the correct super_t constructor
+    {
+    }
 
     __AGENCY_ANNOTATION
     deferred_result& operator=(deferred_result&& other)
@@ -558,8 +587,9 @@ class deferred_state
     __AGENCY_ANNOTATION
     deferred_state(ready_made_t, Args&&... args)
       : function_{},
-        result_{std::forward<Args>(args)...}
-    {}
+        result_{ready_made, std::forward<Args>(args)...}
+    {
+    }
 
     __AGENCY_ANNOTATION
     deferred_state& operator=(deferred_state&& other) = default;
@@ -793,7 +823,8 @@ class deferred_future
     __AGENCY_ANNOTATION
     deferred_future(detail::ready_made_t, Args&&... args)
       : state_(detail::ready_made, std::forward<Args>(args)...)
-    {}
+    {
+    }
 
     template<class Function>
     __AGENCY_ANNOTATION
