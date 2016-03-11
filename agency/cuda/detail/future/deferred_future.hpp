@@ -401,8 +401,9 @@ class deferred_result<T,false>
              >::type>
     __AGENCY_ANNOTATION
     deferred_result(ready_made_t, Args&&... args)
-      : super_t(std::forward<Args>(args)...)
-    {}
+      : super_t(value_type{std::forward<Args>(args)...}) // note we explicitly construct a value_type here to ensure we get the correct super_t constructor
+    {
+    }
 
     __AGENCY_ANNOTATION
     deferred_result& operator=(deferred_result&& other)
@@ -586,8 +587,9 @@ class deferred_state
     __AGENCY_ANNOTATION
     deferred_state(ready_made_t, Args&&... args)
       : function_{},
-        result_{std::forward<Args>(args)...}
-    {}
+        result_{ready_made, std::forward<Args>(args)...}
+    {
+    }
 
     __AGENCY_ANNOTATION
     deferred_state& operator=(deferred_state&& other) = default;
@@ -821,7 +823,8 @@ class deferred_future
     __AGENCY_ANNOTATION
     deferred_future(detail::ready_made_t, Args&&... args)
       : state_(detail::ready_made, std::forward<Args>(args)...)
-    {}
+    {
+    }
 
     template<class Function>
     __AGENCY_ANNOTATION

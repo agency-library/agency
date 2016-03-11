@@ -16,6 +16,12 @@ int main()
   }
 
   {
+    deferred_future<void> f0 = deferred_future<void>::make_ready();
+    assert(f0.valid());
+    assert(f0.is_ready());
+  }
+
+  {
     // move construction
     deferred_future<int> f0 = deferred_future<int>::make_ready(13);
     assert(f0.valid());
