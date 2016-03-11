@@ -9,6 +9,7 @@
 #include <agency/future.hpp>
 #include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/functional.hpp>
+#include <stdexcept>
 #include <type_traits>
 
 
@@ -18,6 +19,28 @@ namespace cuda
 {
 namespace detail
 {
+
+
+class bad_function_call : public std::exception
+{
+  public:
+    virtual const char* what() const noexcept
+    {
+      return "bad_function_call: unique_function has no target";
+    }
+};
+
+
+__AGENCY_ANNOTATION
+inline void throw_bad_function_call()
+{
+#ifdef __CUDA_ARCH__
+  printf("bad_function_call: unique_function has no target\n");
+  assert(0);
+#else
+  throw bad_function_call();
+#endif
+}
 
 
 template<class>
@@ -47,6 +70,11 @@ class unique_function<Result(Args...)>
     __AGENCY_ANNOTATION
     Result operator()(Args... args) const
     {
+      if(!*this)
+      {
+        throw_bad_function_call();
+      }
+
       return (*f_ptr_)(args...);
     }
 
