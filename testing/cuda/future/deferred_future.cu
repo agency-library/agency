@@ -2,6 +2,9 @@
 #include <agency/cuda/future.hpp>
 #include <iostream>
 
+struct empty1 {};
+struct empty2 {};
+
 int main()
 {
   using namespace agency::cuda;
@@ -16,9 +19,23 @@ int main()
   }
 
   {
+    // make_ready void
     deferred_future<void> f0 = deferred_future<void>::make_ready();
     assert(f0.valid());
     assert(f0.is_ready());
+  }
+
+  {
+    // make_ready empty
+    deferred_future<empty1> f0 = deferred_future<empty1>::make_ready();
+    assert(f0.valid());
+    assert(f0.is_ready());
+
+    // move from empty to empty
+    deferred_future<empty2> f1 = std::move(f0);
+    assert(!f0.valid());
+    assert(f1.valid());
+    assert(f1.is_ready());
   }
 
   {

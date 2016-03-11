@@ -387,8 +387,14 @@ class deferred_result<T,false>
              >::type>
     __AGENCY_ANNOTATION
     deferred_result(deferred_result<U>&& other)
-      : super_t(std::move(other))
+      : deferred_result()
     {
+      if(other.is_ready())
+      {
+        // ready ourself
+        *this = value_type{};
+      }
+
       // empty other
       other = agency::detail::nullopt;
     }
@@ -574,7 +580,12 @@ class deferred_state
     {
     }
 
-    template<class Function>
+    template<class Function,
+             class = typename std::enable_if<
+               std::is_constructible<
+                 function_type, Function&&
+               >::value
+             >::type>
     __AGENCY_ANNOTATION
     deferred_state(Function&& f)
       : function_(std::forward<Function>(f))
