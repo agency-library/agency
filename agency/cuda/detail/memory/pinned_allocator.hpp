@@ -17,6 +17,13 @@ class pinned_allocator
   public:
     using value_type = T;
 
+    pinned_allocator() = default;
+
+    pinned_allocator(const pinned_allocator&) = default;
+
+    template<class U>
+    pinned_allocator(const pinned_allocator<U>&) {}
+
     value_type* allocate(size_t n)
     {
       value_type* result = nullptr;

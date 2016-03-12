@@ -38,6 +38,13 @@ class managed_allocator
         device_ = devices[0];
       }
     }
+
+    managed_allocator(const managed_allocator&) = default;
+
+    template<class U>
+    managed_allocator(const managed_allocator<U>& other)
+      : device_(other.device_)
+    {}
   
     value_type* allocate(size_t n)
     {
