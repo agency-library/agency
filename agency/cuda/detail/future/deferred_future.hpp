@@ -3,13 +3,12 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/optional.hpp>
 #include <agency/cuda/detail/boxed_value.hpp>
-#include <agency/cuda/detail/memory/unique_ptr.hpp>
 #include <agency/detail/unit.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/future.hpp>
 #include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/functional.hpp>
-#include <stdexcept>
+#include <agency/detail/unique_function.hpp>
 #include <type_traits>
 
 
@@ -19,114 +18,6 @@ namespace cuda
 {
 namespace detail
 {
-
-
-class bad_function_call : public std::exception
-{
-  public:
-    virtual const char* what() const noexcept
-    {
-      return "bad_function_call: unique_function has no target";
-    }
-};
-
-
-__AGENCY_ANNOTATION
-inline void throw_bad_function_call()
-{
-#ifdef __CUDA_ARCH__
-  printf("bad_function_call: unique_function has no target\n");
-  assert(0);
-#else
-  throw bad_function_call();
-#endif
-}
-
-
-template<class>
-class unique_function;
-
-template<class Result, class... Args>
-class unique_function<Result(Args...)>
-{
-  public:
-    using result_type = Result;
-
-    __AGENCY_ANNOTATION
-    unique_function() = default;
-
-    __AGENCY_ANNOTATION
-    unique_function(unique_function&& other) = default;
-
-    template<class Function>
-    __AGENCY_ANNOTATION
-    unique_function(Function&& f)
-      : f_ptr_(make_function_pointer(std::forward<Function>(f)))
-    {}
-
-    __AGENCY_ANNOTATION
-    unique_function& operator=(unique_function&& other) = default;
-
-    __AGENCY_ANNOTATION
-    Result operator()(Args... args) const
-    {
-      if(!*this)
-      {
-        throw_bad_function_call();
-      }
-
-      return (*f_ptr_)(args...);
-    }
-
-    __AGENCY_ANNOTATION
-    operator bool () const
-    {
-      return f_ptr_;
-    }
-
-  private:
-    struct callable_base
-    {
-      __AGENCY_ANNOTATION
-      virtual ~callable_base() {}
-
-      __AGENCY_ANNOTATION
-      virtual Result operator()(Args... args) const = 0;
-    };
-
-    template<class Function>
-    struct callable : callable_base
-    {
-      mutable Function f_;
-
-      template<class OtherFunction,
-               class = typename std::enable_if<
-                 std::is_constructible<Function,OtherFunction&&>::value
-               >::type>
-      __AGENCY_ANNOTATION
-      callable(OtherFunction&& f)
-        : f_(std::forward<OtherFunction>(f))
-      {}
-
-      __AGENCY_ANNOTATION
-      virtual Result operator()(Args... args) const
-      {
-        return f_(args...);
-      }
-    };
-
-    using function_pointer = detail::unique_ptr<callable_base>;
-
-    template<class Function>
-    __AGENCY_ANNOTATION
-    static function_pointer make_function_pointer(Function&& f)
-    {
-      using concrete_function_type = callable<typename std::decay<Function>::type>;
-      return detail::make_unique<concrete_function_type>(std::forward<Function>(f));
-    }
-
-    function_pointer f_ptr_; 
-};
 
 
 template<class T>
@@ -169,7 +60,7 @@ class deferred_function<Result(Args...)>
 
     using result_type = typename deferred_function_result<Result>::type;
 
-    unique_function<result_type(Args...)> function_;
+    agency::detail::unique_function<result_type(Args...)> function_;
 
     template<class Function>
     struct invoke_and_return_unit
