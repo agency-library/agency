@@ -9,6 +9,7 @@
 #include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/functional.hpp>
 #include <agency/detail/unique_function.hpp>
+#include <agency/cuda/detail/memory/malloc_allocator.hpp>
 #include <type_traits>
 
 
@@ -59,6 +60,7 @@ class deferred_function<Result(Args...)>
     template<class> friend class deferred_function;
 
     using result_type = typename deferred_function_result<Result>::type;
+    using allocator_type = malloc_allocator<void>;
 
     agency::detail::unique_function<result_type(Args...)> function_;
 
@@ -100,7 +102,7 @@ class deferred_function<Result(Args...)>
                           typename std::result_of<Function(Args...)>::type
                         >::value
                       >::type* = 0)
-      : function_(make_invoke_and_return_unit(std::forward<Function>(f)))
+      : function_(std::allocator_arg, allocator_type(), make_invoke_and_return_unit(std::forward<Function>(f)))
     {}
 
     template<class Function>
@@ -111,7 +113,7 @@ class deferred_function<Result(Args...)>
                           typename std::result_of<Function(Args...)>::type
                         >::value
                       >::type* = 0)
-      : function_(std::forward<Function>(f))
+      : function_(std::allocator_arg, allocator_type(), std::forward<Function>(f))
     {}
 
     // allow moves from other deferred_function if their result_type is the same as ours
