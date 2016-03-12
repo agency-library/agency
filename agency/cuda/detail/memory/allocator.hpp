@@ -24,6 +24,16 @@ class allocator
     using value_type = T;
 
     __host__ __device__
+    allocator() = default;
+
+    __host__ __device__
+    allocator(const allocator&) = default;
+
+    template<class U>
+    __host__ __device__
+    allocator(const allocator<U>&) {}
+
+    __host__ __device__
     value_type* allocate(size_t n)
     {
       value_type* result = nullptr;

@@ -51,7 +51,22 @@ class deleter
       Allocator alloc;
       alloc.deallocate(ptr, 1);
     }
+
+    __AGENCY_ANNOTATION
+    void swap(deleter& other)
+    {
+      // there's nothing to swap
+    }
 };
+
+
+// introduce free function swap to avoid ambiguities during ADL between std::swap & agency::detail::swap
+template<class Allocator>
+__AGENCY_ANNOTATION
+void swap(deleter<Allocator>& a, deleter<Allocator>& b)
+{
+  a.swap(b);
+}
 
 
 template<class T>
@@ -182,18 +197,28 @@ class unique_ptr
 };
 
 
-template<class T, class Alloc, class... Args>
+template<class T, class Alloc, class Deleter, class... Args>
 __AGENCY_ANNOTATION
-unique_ptr<T,deleter<Alloc>> allocate_unique(const Alloc& alloc, Args&&... args)
+unique_ptr<T,Deleter> allocate_unique_with_deleter(const Alloc& alloc, const Deleter& deleter, Args&&... args)
 {
-  Alloc alloc_copy = alloc;
+  using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
+  allocator_type alloc_copy = alloc;
+  Deleter deleter_copy = deleter;
 
-  unique_ptr<T,deleter<Alloc>> result(alloc_copy.allocate(1), deleter<Alloc>());
+  unique_ptr<T,Deleter> result(alloc_copy.allocate(1), deleter_copy);
 
   // XXX should use allocator_traits::construct()
   alloc_copy.template construct<T>(result.get(), std::forward<Args>(args)...);
 
   return std::move(result);
+}
+
+
+template<class T, class Alloc, class... Args>
+__AGENCY_ANNOTATION
+unique_ptr<T,deleter<Alloc>> allocate_unique(const Alloc& alloc, Args&&... args)
+{
+  return allocate_unique_with_deleter<T>(alloc, deleter<Alloc>(), std::forward<Args>(args)...);
 }
 
 
