@@ -66,6 +66,7 @@ class allocator
 #endif
     }
 
+    __agency_hd_warning_disable__
     template<class U, class... Args>
     __host__ __device__
     void construct(U* ptr, Args&&... args)
