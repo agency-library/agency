@@ -35,21 +35,17 @@ class array
     __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     array(const shape_type& shape)
-      : shape_(shape)
+      : shape_(shape),
+        data_(allocate_and_construct_elements(size()))
     {
-      allocator_type alloc;
-      data_ = alloc.allocate(size());
     }
 
     __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     array(const shape_type& shape, const T& val)
-      : array(shape)
+      : shape_(shape),
+        data_(allocate_and_construct_elements(size(), val))
     {
-      for(auto& x : *this)
-      {
-        x = val;
-      }
     }
 
     __agency_hd_warning_disable__
@@ -92,6 +88,12 @@ class array
     __AGENCY_ANNOTATION
     ~array()
     {
+      // XXX should really destroy through the allocator
+      for(auto& x : *this)
+      {
+        x.~value_type();
+      }
+
       allocator_type alloc;
       alloc.deallocate(data_, size());
     }
@@ -194,6 +196,22 @@ class array
     }
 
   private:
+    __agency_hd_warning_disable__
+    template<class... Args>
+    __AGENCY_ANNOTATION
+    static pointer allocate_and_construct_elements(size_t size, Args&&... args)
+    {
+      allocator_type alloc;
+      pointer result = alloc.allocate(size);
+
+      for(pointer ptr = result; ptr != result + size; ++ptr)
+      {
+        alloc.construct(ptr, std::forward<Args>(args)...);
+      }
+
+      return result;
+    }
+
     shape_type shape_;
 
     pointer data_;
