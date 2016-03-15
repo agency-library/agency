@@ -162,7 +162,7 @@ class caching_allocator
     __AGENCY_ANNOTATION
     void deallocate(pointer ptr, size_type n)
     {
-      resource_.deallocate(ptr, n / sizeof(value_type));
+      resource_.deallocate(ptr, n * sizeof(value_type));
     }
 
     __agency_hd_warning_disable__
