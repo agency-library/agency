@@ -82,7 +82,7 @@ class managed_allocator
       // we need to synchronize with all devices before touching the ptr
       detail::wait(all_devices());
 
-      new(ptr) T(std::forward<Args>(args)...);
+      new(ptr) U(std::forward<Args>(args)...);
     }
 };
 
