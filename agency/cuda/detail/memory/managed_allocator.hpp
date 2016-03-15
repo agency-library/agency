@@ -18,6 +18,8 @@ template<class T>
 class managed_allocator
 {
   private:
+    template<class> friend class managed_allocator;
+
     device_id device_;
 
     const device_id& device() const
