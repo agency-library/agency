@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/terminate.hpp>
+#include <mutex>
 #include <utility>
 #include <memory>
 #include <map>
@@ -13,7 +14,6 @@ namespace detail
 {
 
 
-// XXX we need to make this thread-safe with a mutex
 template<class Alloc>
 struct caching_memory_resource
   : private std::allocator_traits<Alloc>::template rebind_alloc<char>
@@ -46,6 +46,8 @@ struct caching_memory_resource
       char* ptr = nullptr;
 
 #ifndef __CUDA_ARCH__
+      std::lock_guard<std::mutex> guard(mutex_);
+
       // XXX this searches for a block of exactly the right size, but
       //     in general we could look for anything that fits, which is just
       //     the textbook malloc implementation
@@ -77,6 +79,8 @@ struct caching_memory_resource
     void deallocate(void* ptr, size_t num_bytes)
     {
 #ifndef __CUDA_ARCH__
+      std::lock_guard<std::mutex> guard(mutex_);
+
       // erase the allocation from the allocated blocks map
       auto found = allocated_blocks_.find(reinterpret_cast<char*>(ptr));
       assert(found != allocated_blocks_.end());
@@ -93,11 +97,14 @@ struct caching_memory_resource
     using free_blocks_type = std::multimap<size_t, char*>;
     using allocated_blocks_type = std::map<char*, size_t>;
     
+    std::mutex            mutex_;
     free_blocks_type      free_blocks_;
     allocated_blocks_type allocated_blocks_;
 
     void deallocate_free_blocks()
     {
+      std::lock_guard<std::mutex> guard(mutex_);
+
       for(auto b : free_blocks_)
       {
         base_allocator_type::deallocate(b.second, b.first);
