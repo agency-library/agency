@@ -198,11 +198,7 @@ class future
     __AGENCY_ANNOTATION
     static future make_ready(Args&&... args)
     {
-      //return agency::cuda::async_future<T>::make_ready(std::forward<Args>(args)...);
-      printf("cuda::future::make_ready(): about to make_ready\n");
-      auto result = agency::cuda::async_future<T>::make_ready(std::forward<Args>(args)...);
-      printf("cuda::future::make_ready(): back from make_ready\n");
-      return std::move(result);
+      return agency::cuda::async_future<T>::make_ready(std::forward<Args>(args)...);
     }
 
   private:
@@ -286,7 +282,6 @@ class future
                             std::is_move_constructible<Function1>::value
                           >::type* = 0)
       {
-        printf("cuda::future::then_visitor::async_future_impl(): f is not copy constructible\n");
         // we can't move f into a CUDA kernel parameter at the time of writing
         // implement the following workaround:
         // "cast" fut to a deferred_future by calling .then()
@@ -327,14 +322,8 @@ class future
     >
       then(Function&& f)
     {
-      //return agency::detail::visit(visitor, variant_);
-
-      printf("cuda::future::then(): about to call visit\n");
       auto visitor = then_visitor<typename std::decay<Function>::type>{std::forward<Function>(f)};
-      auto result = agency::detail::visit(visitor, variant_);
-      printf("cuda::future::then(): back from visit\n");
-
-      return std::move(result);
+      return agency::detail::visit(visitor, variant_);
     }
 
   private:
