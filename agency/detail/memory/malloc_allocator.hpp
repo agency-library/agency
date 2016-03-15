@@ -1,11 +1,10 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-
+#include <stdlib.h>
+#include <utility>
 
 namespace agency
-{
-namespace cuda
 {
 namespace detail
 {
@@ -30,7 +29,7 @@ struct malloc_allocator
   __AGENCY_ANNOTATION
   void construct(U* ptr, Args&&... args)
   {
-    ::new(ptr) T(std::forward<Args>(args)...);
+    ::new(ptr) U(std::forward<Args>(args)...);
   }
 
   __AGENCY_ANNOTATION
@@ -47,14 +46,6 @@ struct malloc_allocator
 };
 
 
-template<>
-struct malloc_allocator<void>
-{
-  using value_type = void;
-};
-
-
 } // end detail
-} // end cuda
 } // end agency
 
