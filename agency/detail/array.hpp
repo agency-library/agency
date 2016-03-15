@@ -88,14 +88,17 @@ class array
     __AGENCY_ANNOTATION
     ~array()
     {
-      // XXX should really destroy through the allocator
-      for(auto& x : *this)
+      if(size())
       {
-        x.~value_type();
-      }
+        // XXX should really destroy through the allocator
+        for(auto& x : *this)
+        {
+          x.~value_type();
+        }
 
-      allocator_type alloc;
-      alloc.deallocate(data_, size());
+        allocator_type alloc;
+        alloc.deallocate(data_, size());
+      }
     }
 
     __AGENCY_ANNOTATION

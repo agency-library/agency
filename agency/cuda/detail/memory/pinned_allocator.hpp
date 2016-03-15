@@ -58,7 +58,7 @@ class pinned_allocator
         throw thrust::system_error(error, thrust::cuda_category(), "pinned_allocator::allocate(): cudaDeviceSynchronize");
       }
 
-      new(ptr) T(std::forward<Args>(args)...);
+      new(ptr) U(std::forward<Args>(args)...);
     }
 };
 
