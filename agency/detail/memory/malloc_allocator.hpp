@@ -25,6 +25,7 @@ struct malloc_allocator
   __AGENCY_ANNOTATION
   malloc_allocator(const malloc_allocator<U>&) {}
 
+  __agency_hd_warning_disable__
   template<class U, class... Args>
   __AGENCY_ANNOTATION
   void construct(U* ptr, Args&&... args)
