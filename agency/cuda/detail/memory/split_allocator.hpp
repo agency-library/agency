@@ -4,6 +4,7 @@
 #include <agency/cuda/detail/memory/managed_allocator.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
+#include <agency/detail/memory/malloc_allocator.hpp>
 #include <memory>
 
 namespace agency
@@ -24,6 +25,7 @@ class split_allocator
 {
   private:
     using host_allocator = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
+    using device_allocator = agency::detail::malloc_allocator<T>;
 
   public:
     using value_type = T;
@@ -47,21 +49,22 @@ class split_allocator
     __host__ __device__
     split_allocator(const split_allocator<U>&) {}
 
+    __agency_hd_warning_disable__
+    __host__ __device__
+    split_allocator(const host_allocator& host_alloc, const device_allocator& device_alloc = device_allocator())
+      : host_alloc_(host_alloc),
+        device_alloc_(device_alloc)
+    {}
+
     __host__ __device__
     value_type* allocate(size_t n)
     {
       value_type* result = nullptr;
 
 #ifndef __CUDA_ARCH__
-      host_allocator alloc;
-      result = alloc.allocate(n);
+      result = host_alloc_.allocate(n);
 #else
-      result = reinterpret_cast<T*>(malloc(sizeof(T)));
-
-      if(result == nullptr)
-      {
-        terminate_with_message("agency::cuda::detail::allocator::allocate(): malloc failed");
-      }
+      result = device_alloc_.allocate(n);
 #endif
 
       return result;
@@ -71,12 +74,9 @@ class split_allocator
     void deallocate(value_type* ptr, size_t n)
     {
 #ifndef __CUDA_ARCH__
-      host_allocator alloc;
-      alloc.deallocate(ptr, n);
+      host_alloc_.deallocate(ptr, n);
 #else
-      agency::cuda::detail::workaround_unused_variable_warning(n);
-
-      free(ptr);
+      device_alloc_.deallocate(ptr, n);
 #endif
     }
 
@@ -86,12 +86,16 @@ class split_allocator
     void construct(U* ptr, Args&&... args)
     {
 #ifndef __CUDA_ARCH__
-      host_allocator alloc;
-      alloc.template construct<U>(ptr, std::forward<Args>(args)...);
+      host_alloc_.template construct<U>(ptr, std::forward<Args>(args)...);
 #else
-      new(ptr) U(std::forward<Args>(args)...);
+      device_alloc_.template construct<U>(ptr, std::forward<Args>(args)...);
 #endif
     }
+
+    // XXX we might want to derive from these instead of make them members
+    //     to get the empty base class optimization
+    host_allocator host_alloc_;
+    device_allocator device_alloc_;
 }; // end split_allocator
 
 

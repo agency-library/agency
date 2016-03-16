@@ -41,6 +41,18 @@ struct caching_memory_resource
     using base_allocator_type::construct;
 
     __AGENCY_ANNOTATION
+    base_allocator_type& get_allocator()
+    {
+      return *this;
+    }
+
+    __AGENCY_ANNOTATION
+    const base_allocator_type& get_allocator() const
+    {
+      return *this;
+    }
+
+    __AGENCY_ANNOTATION
     void* allocate(size_t num_bytes)
     {
       char* ptr = nullptr;
@@ -177,8 +189,7 @@ class caching_allocator
     __AGENCY_ANNOTATION
     void construct(T* ptr, Args&&... args)
     {
-      Alloc alloc;
-      alloc.construct(ptr, std::forward<Args>(args)...);
+      return resource_.get_allocator().construct(ptr, std::forward<Args>(args)...);
     }
 
     __agency_hd_warning_disable__
@@ -186,8 +197,7 @@ class caching_allocator
     __AGENCY_ANNOTATION
     void destroy(T* ptr, size_type n)
     {
-      Alloc alloc;
-      alloc.destroy(ptr, n);
+      resource_.get_allocator().destroy(ptr, n);
     }
 
   private:
