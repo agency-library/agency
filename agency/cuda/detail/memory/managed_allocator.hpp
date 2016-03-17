@@ -78,13 +78,20 @@ class managed_allocator
       }
     }
 
-    template<class U, class... Args>
-    void construct(U* ptr, Args&&... args)
+    template<class Iterator, class... Args>
+    Iterator construct_each(Iterator first, Iterator last, Args&&... args)
     {
+      using value_type = typename std::iterator_traits<Iterator>::value_type;
+
       // we need to synchronize with all devices before touching the ptr
       detail::wait(all_devices());
 
-      new(ptr) U(std::forward<Args>(args)...);
+      for(; first != last; ++first)
+      {
+        new(&*first) value_type(std::forward<Args>(args)...);
+      }
+
+      return first;
     }
 };
 

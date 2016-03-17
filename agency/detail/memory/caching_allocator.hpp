@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/terminate.hpp>
+#include <agency/detail/memory/allocator_traits.hpp>
 #include <mutex>
 #include <utility>
 #include <memory>
@@ -19,7 +20,7 @@ struct caching_memory_resource
   : private std::allocator_traits<Alloc>::template rebind_alloc<char>
 {
   public:
-    using base_allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<char>;
+    using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<char>;
 
     __AGENCY_ANNOTATION
     caching_memory_resource() = default;
@@ -38,16 +39,14 @@ struct caching_memory_resource
 #endif
     }
 
-    using base_allocator_type::construct;
-
     __AGENCY_ANNOTATION
-    base_allocator_type& get_allocator()
+    allocator_type& get_allocator()
     {
       return *this;
     }
 
     __AGENCY_ANNOTATION
-    const base_allocator_type& get_allocator() const
+    const allocator_type& get_allocator() const
     {
       return *this;
     }
@@ -75,13 +74,13 @@ struct caching_memory_resource
       {
         // no allocation of the right size exists
         // create a new allocation with the base allocator
-        ptr = base_allocator_type::allocate(num_bytes);
+        ptr = allocator_type::allocate(num_bytes);
       }
 
       // insert the allocation into the allocated_blocks map
       allocated_blocks_.insert(std::make_pair(ptr, num_bytes));
 #else
-      ptr = base_allocator_type::allocate(num_bytes);
+      ptr = allocator_type::allocate(num_bytes);
 #endif
 
       return ptr;
@@ -101,7 +100,7 @@ struct caching_memory_resource
       // insert the block into the free blocks map
       free_blocks_.insert(std::make_pair(num_bytes, reinterpret_cast<char*>(ptr)));
 #else
-      base_allocator_type::deallocate(reinterpret_cast<char*>(ptr),num_bytes);
+      allocator_type::deallocate(reinterpret_cast<char*>(ptr),num_bytes);
 #endif
     }
 
@@ -119,7 +118,7 @@ struct caching_memory_resource
 
       for(auto b : free_blocks_)
       {
-        base_allocator_type::deallocate(b.second, b.first);
+        allocator_type::deallocate(b.second, b.first);
       }
       free_blocks_.clear();
 
@@ -184,12 +183,12 @@ class caching_allocator
       resource_.deallocate(ptr, n * sizeof(value_type));
     }
 
-    __agency_hd_warning_disable__
-    template<class T, class... Args>
+    template<class Iterator, class... Args>
     __AGENCY_ANNOTATION
-    void construct(T* ptr, Args&&... args)
+    Iterator construct_each(Iterator first, Iterator last, Args&&... args)
     {
-      return resource_.get_allocator().construct(ptr, std::forward<Args>(args)...);
+      using allocator_type = typename resource_type::allocator_type;
+      return allocator_traits<allocator_type>::construct_each(resource_.get_allocator(), first, last, std::forward<Args>(args)...);
     }
 
     __agency_hd_warning_disable__
