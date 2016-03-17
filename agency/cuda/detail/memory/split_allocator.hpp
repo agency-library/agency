@@ -5,6 +5,7 @@
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/detail/memory/malloc_allocator.hpp>
+#include <agency/detail/memory/allocator_traits.hpp>
 #include <memory>
 
 namespace agency
@@ -80,15 +81,14 @@ class split_allocator
 #endif
     }
 
-    __agency_hd_warning_disable__
-    template<class U, class... Args>
+    template<class Iterator, class... Args>
     __host__ __device__
-    void construct(U* ptr, Args&&... args)
+    Iterator construct_each(Iterator first, Iterator last, Args&&... args)
     {
 #ifndef __CUDA_ARCH__
-      host_alloc_.template construct<U>(ptr, std::forward<Args>(args)...);
+      return agency::detail::allocator_traits<host_allocator>::construct_each(host_alloc_, first, last, std::forward<Args>(args)...);
 #else
-      device_alloc_.template construct<U>(ptr, std::forward<Args>(args)...);
+      return agency::detail::allocator_traits<device_allocator>::construct_each(device_alloc_, first, last, std::forward<Args>(args)...);
 #endif
     }
 

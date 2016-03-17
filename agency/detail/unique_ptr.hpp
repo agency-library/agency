@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/swap.hpp>
+#include <agency/detail/memory/allocator_traits.hpp>
 #include <utility>
 #include <memory>
 #include <type_traits>
@@ -48,6 +49,7 @@ class deleter
       ptr->~value_type();
 
       // deallocate
+      // XXX should use allocator_traits:deallocate()
       Allocator alloc;
       alloc.deallocate(ptr, 1);
     }
@@ -207,8 +209,7 @@ unique_ptr<T,Deleter> allocate_unique_with_deleter(const Alloc& alloc, const Del
 
   unique_ptr<T,Deleter> result(alloc_copy.allocate(1), deleter_copy);
 
-  // XXX should use allocator_traits::construct()
-  alloc_copy.template construct<T>(result.get(), std::forward<Args>(args)...);
+  allocator_traits<allocator_type>::construct(alloc_copy, result.get(), std::forward<Args>(args)...);
 
   return std::move(result);
 }
