@@ -30,16 +30,13 @@ class managed_allocator
   public:
     using value_type = T;
 
-    managed_allocator()
-      : device_()
-    {
-      auto devices = all_devices();
+    explicit managed_allocator(const device_id& d)
+      : device_(d)
+    {}
 
-      if(!devices.empty())
-      {
-        device_ = devices[0];
-      }
-    }
+    managed_allocator()
+      : managed_allocator(all_devices()[0])
+    {}
 
     managed_allocator(const managed_allocator&) = default;
 
