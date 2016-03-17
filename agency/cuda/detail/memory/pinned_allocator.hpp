@@ -47,12 +47,6 @@ class pinned_allocator
         throw thrust::system_error(error, thrust::cuda_category(), "pinned_allocator::deallocate(): cudaFree");
       }
     }
-
-    template<class U, class... Args>
-    void construct(U* ptr, Args&&... args)
-    {
-      new(ptr) U(std::forward<Args>(args)...);
-    }
 };
 
 

@@ -207,10 +207,7 @@ class array
       allocator_type alloc;
       pointer result = alloc.allocate(size);
 
-      for(pointer ptr = result; ptr != result + size; ++ptr)
-      {
-        alloc.construct(ptr, std::forward<Args>(args)...);
-      }
+      allocator_traits<allocator_type>::construct_each(alloc, result, result + size, std::forward<Args>(args)...);
 
       return result;
     }

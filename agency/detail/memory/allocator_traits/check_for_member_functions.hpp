@@ -1,0 +1,69 @@
+#pragma once
+
+#include <agency/detail/config.hpp>
+#include <type_traits>
+
+namespace agency
+{
+namespace detail
+{
+namespace allocator_traits_detail
+{
+
+
+template<class Alloc, class T, class... Args>
+struct has_construct_impl
+{
+  template<
+    class Alloc1,
+    class = decltype(
+      std::declval<Alloc1*>()->construct(
+        std::declval<T*>(),
+        std::declval<Args>()...
+      )
+    )
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Alloc>(0));
+};
+
+template<class Alloc, class T, class... Args>
+using has_construct = typename has_construct_impl<Alloc,T*,Args...>::type;
+
+
+template<class Alloc, class Iterator, class... Args>
+struct has_construct_each_impl
+{
+  template<
+    class Alloc1,
+    class Result = decltype(
+      std::declval<Alloc1*>()->construct_each(
+        std::declval<Iterator>(),
+        std::declval<Iterator>(),
+        std::declval<Args>()...
+      )
+    ),
+    class = typename std::enable_if<
+      std::is_convertible<Result,Iterator>::value
+    >::type
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Alloc>(0));
+};
+
+template<class Alloc, class Iterator, class... Args>
+using has_construct_each = typename has_construct_each_impl<Alloc,Iterator,Args...>::type;
+
+
+} // end allocator_traits_detail
+} // end detail
+} // end agency
+
