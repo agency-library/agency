@@ -2,7 +2,10 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/unique_ptr.hpp>
+#include <agency/detail/tuple.hpp>
 #include <memory>
+#include <type_traits>
+
 
 namespace agency
 {
@@ -10,8 +13,25 @@ namespace detail
 {
 
 
-template<class T, class Alloc = std::allocator<T>>
-class boxed_value
+namespace boxed_value_detail
+{
+
+
+template<class T, class Alloc>
+struct use_small_object_optimization : disjunction<
+  std::is_same<Alloc,std::allocator<T>>,
+  std::is_empty<T>,
+  is_empty_tuple<T> 
+>
+{};
+
+
+} // end boxed_value_detail
+
+
+template<class T, class Alloc = std::allocator<T>,
+         bool use_optimization = boxed_value_detail::use_small_object_optimization<T,Alloc>::value>
+class boxed_value : private std::allocator_traits<Alloc>::template rebind_alloc<T>
 {
   public:
     using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
@@ -38,7 +58,7 @@ class boxed_value
              >::type>
     __AGENCY_ANNOTATION
     explicit boxed_value(Args... args)
-      : data_(agency::detail::allocate_unique<T>(allocator_type(), std::forward<Args>(args)...))
+      : data_(agency::detail::allocate_unique<T>(get_allocator(), std::forward<Args>(args)...))
     {}
 
     __AGENCY_ANNOTATION
@@ -91,16 +111,22 @@ class boxed_value
     }
 
   private:
+    __AGENCY_ANNOTATION
+    allocator_type& get_allocator()
+    {
+      return *this;
+    }
+
     agency::detail::unique_ptr<T,agency::detail::deleter<allocator_type>> data_;
 };
 
 
-// when the allocator is std::allocator<T>, we can just put this on the stack
-template<class T, class OtherT>
-class boxed_value<T,std::allocator<OtherT>>
+// when using the optimization, we put the object on the stack
+template<class T, class Alloc>
+class boxed_value<T,Alloc,true>
 {
   public:
-    using allocator_type = std::allocator<T>;
+    using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
     using value_type = typename allocator_type::value_type;
 
     __AGENCY_ANNOTATION
