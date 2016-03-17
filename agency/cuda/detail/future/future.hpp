@@ -21,6 +21,8 @@ template<class T>
 class future
 {
   private:
+    template<class U> friend class future;
+
     using variant_type = agency::detail::variant<agency::cuda::async_future<T>, agency::cuda::deferred_future<T>>;
 
   public:
@@ -37,6 +39,48 @@ class future
     __AGENCY_ANNOTATION
     future(Future&& other)
       : variant_(std::forward<Future>(other))
+    {
+    }
+
+  private:
+    template<class U>
+    struct converting_move_construct_visitor
+    {
+      __AGENCY_ANNOTATION
+      future operator()(async_future<U>& other) const
+      {
+        return async_future<T>(std::move(other));
+      }
+
+      __AGENCY_ANNOTATION
+      future operator()(deferred_future<U>& other) const
+      {
+        return deferred_future<T>(std::move(other));
+      }
+    };
+
+    template<class U>
+    __AGENCY_ANNOTATION
+    static future converting_move_construct(future<U>&& other)
+    {
+      return agency::detail::visit(converting_move_construct_visitor<U>{}, other.variant_);
+    }
+
+  public:
+    // this constructor allows move construction of our T from a U
+    // when that is possible for all the alternative futures
+    template<class U,
+             class = typename std::enable_if<
+               std::is_constructible<
+                 async_future<T>,async_future<U>&&
+               >::value
+               && std::is_constructible<
+                 deferred_future<T>,deferred_future<U>&&
+               >::value
+             >::type>
+    __AGENCY_ANNOTATION
+    future(future<U>&& other)
+      : future(converting_move_construct(std::move(other)))
     {}
 
     __AGENCY_ANNOTATION

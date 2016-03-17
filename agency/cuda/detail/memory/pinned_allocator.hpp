@@ -51,13 +51,6 @@ class pinned_allocator
     template<class U, class... Args>
     void construct(U* ptr, Args&&... args)
     {
-      cudaError_t error = cudaDeviceSynchronize();
-
-      if(error != cudaSuccess)
-      {
-        throw thrust::system_error(error, thrust::cuda_category(), "pinned_allocator::allocate(): cudaDeviceSynchronize");
-      }
-
       new(ptr) U(std::forward<Args>(args)...);
     }
 };
