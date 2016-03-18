@@ -10,8 +10,6 @@ namespace agency
 {
 namespace cuda
 {
-namespace detail
-{
 
 
 template<class T>
@@ -75,15 +73,15 @@ class device_allocator
       }
     }
 
-    template<class U, class... Args>
-    void construct(U* ptr, Args&&... args)
+    // XXX this should be implemented with a kernel launch or something
+    template<class Iterator, class... Args>
+    Iterator construct_each(Iterator first, Iterator last, Args&&... args)
     {
       //new(ptr) U(std::forward<Args>(args)...);
     }
 };
 
 
-} // end detail
 } // end cuda
 } // end agency
 
