@@ -2,8 +2,8 @@
 
 #include <agency/cuda/grid_executor.hpp>
 #include <agency/flattened_executor.hpp>
-#include <agency/cuda/detail/memory/allocator.hpp>
-#include <agency/cuda/detail/memory/pinned_allocator.hpp>
+#include <agency/cuda/memory/allocator.hpp>
+#include <agency/cuda/memory/detail/pinned_allocator.hpp>
 #include <agency/cuda/detail/array.hpp>
 #include <agency/cuda/future.hpp>
 
