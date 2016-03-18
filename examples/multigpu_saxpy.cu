@@ -8,8 +8,8 @@
 #include <agency/experimental/view.hpp>
 
 
-template<class View>
-void saxpy(agency::cuda::multidevice_executor& exec, size_t n, float a, View x, View y, View z)
+template<class Executor, class View>
+void saxpy(Executor& exec, size_t n, float a, View x, View y, View z)
 {
   using namespace agency;
 
@@ -21,13 +21,12 @@ void saxpy(agency::cuda::multidevice_executor& exec, size_t n, float a, View x, 
 }
 
 
-template<class Container>
-void time_saxpy()
+template<class Container, class Executor>
+double time_saxpy()
 {
-  using namespace agency;
-  using namespace agency::experimental;
+  using agency::experimental::view;
 
-  cuda::multidevice_executor exec;
+  Executor exec;
 
   size_t n = 32 << 20;
   Container x(n, 1.f), y(n, 2.f), z(n);
@@ -57,22 +56,45 @@ void time_saxpy()
 
   double seconds = elapsed.count() / num_trials;
   double gigabytes = double(3 * n * sizeof(float)) / (1 << 30);
-  double bandwidth = gigabytes / seconds;
-
-  std::cout << "SAXPY Bandwidth: " << bandwidth << " GB/s" << std::endl;
+  return gigabytes / seconds;
 }
+
 
 int main()
 {
-  std::cout << "Measuring the performance of SAXPY using contiguous containers..." << std::endl;
+  // the right choice of container can make a huge difference to performance
+
+  // a contiguous container such as std::vector is laid out in a single contiguous allocation
   using contiguous_container = std::vector<float, agency::cuda::managed_allocator<float>>;
-  time_saxpy<contiguous_container>();
+
+  // a segmented container such as multidevice_array is pieced together from separate, contiguous allocations
+  using segmented_container  = agency::cuda::experimental::multidevice_array<float>;
+
+  // let's first measure the performance of SAXPY on a single GPU using a contiguous container
+  using gpu_executor = agency::cuda::grid_executor;
+
+  std::cout << "Measuring the performance of gpu SAXPY using contiguous containers..." << std::endl;
+  auto singlegpu_bandwidth = time_saxpy<contiguous_container, gpu_executor>();
+  std::cout << "SAXPY Bandwidth: " << singlegpu_bandwidth << " GB/s" << std::endl;
 
   std::cout << std::endl;
 
-  std::cout << "Measuring the performance of SAXPY using segmented containers..." << std::endl;
-  using segmented_container = agency::cuda::experimental::multidevice_array<float>;
-  time_saxpy<segmented_container>();
+  // now let's use multiple gpus at once to execute SAXPY and see how the choice of container impacts performance
+  using multigpu_executor = agency::cuda::multidevice_executor;
+
+  std::cout << "Measuring the performance of multigpu SAXPY using contiguous containers..." << std::endl;
+  auto multigpu_contiguous_bandwidth = time_saxpy<contiguous_container, multigpu_executor>();
+  std::cout << "SAXPY Bandwidth: " << multigpu_contiguous_bandwidth << " GB/s" << std::endl;
+
+  std::cout << std::endl;
+
+  std::cout << "Measuring the performance of multigpu SAXPY using segmented containers..." << std::endl;
+  auto multigpu_segmented_bandwidth = time_saxpy<segmented_container, multigpu_executor>();
+  std::cout << "SAXPY Bandwidth: " << multigpu_segmented_bandwidth << " GB/s" << std::endl;
+
+  std::cout << std::endl;
+
+  std::cout << "Multigpu speedup: " <<  multigpu_segmented_bandwidth / singlegpu_bandwidth << "x" << std::endl;
 
   return 0;
 }
