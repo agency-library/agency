@@ -10,8 +10,6 @@ namespace agency
 {
 namespace cuda
 {
-namespace detail
-{
 
 
 template<class T>
@@ -35,7 +33,7 @@ class managed_allocator
     {}
 
     managed_allocator()
-      : managed_allocator(all_devices()[0])
+      : managed_allocator(detail::all_devices()[0])
     {}
 
     managed_allocator(const managed_allocator&) = default;
@@ -48,7 +46,7 @@ class managed_allocator
     value_type* allocate(size_t n)
     {
       // switch to our device
-      scoped_current_device set_current_device(device());
+      detail::scoped_current_device set_current_device(device());
 
       value_type* result = nullptr;
   
@@ -65,7 +63,7 @@ class managed_allocator
     void deallocate(value_type* ptr, size_t)
     {
       // switch to our device
-      scoped_current_device set_current_device(device());
+      detail::scoped_current_device set_current_device(device());
 
       cudaError_t error = cudaFree(ptr);
   
@@ -81,7 +79,7 @@ class managed_allocator
       using value_type = typename std::iterator_traits<Iterator>::value_type;
 
       // we need to synchronize with all devices before touching the ptr
-      detail::wait(all_devices());
+      detail::wait(detail::all_devices());
 
       for(; first != last; ++first)
       {
@@ -93,7 +91,6 @@ class managed_allocator
 };
 
 
-} // end detail
 } // end cuda
 } // end agency
 

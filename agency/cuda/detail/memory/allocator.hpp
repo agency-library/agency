@@ -8,8 +8,6 @@ namespace agency
 {
 namespace cuda
 {
-namespace detail
-{
 
 
 template<class T, class Alloc = managed_allocator<T>>
@@ -18,7 +16,6 @@ using allocator = agency::detail::caching_allocator<
 >;
 
 
-} // end detail
 } // end cuda
 } // end agency
 

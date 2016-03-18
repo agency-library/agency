@@ -13,7 +13,7 @@ namespace detail
 
 
 template<class T>
-using asynchronous_state = agency::detail::asynchronous_state<T,detail::allocator<T>>;
+using asynchronous_state = agency::detail::asynchronous_state<T,allocator<T>>;
 
   
 } // end detail

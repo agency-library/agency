@@ -21,7 +21,7 @@ class parallel_executor
     using execution_category = parallel_execution_tag;
 
     template<class T>
-    using allocator = cuda::detail::allocator<T, cuda::detail::pinned_allocator<T>>;
+    using allocator = cuda::allocator<T, cuda::detail::pinned_allocator<T>>;
 
     template<class T>
     using container = cuda::detail::array<T, size_t, allocator<T>>;

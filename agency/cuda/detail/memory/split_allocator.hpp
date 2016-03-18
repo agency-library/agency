@@ -12,8 +12,6 @@ namespace agency
 {
 namespace cuda
 {
-namespace detail
-{
 
 
 // split_allocator uses a different primitive allocator depending on whether
@@ -99,7 +97,6 @@ class split_allocator
 }; // end split_allocator
 
 
-} // end detail
 } // end cuda
 } // end agency
 
