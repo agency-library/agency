@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/asynchronous_state.hpp>
-#include <agency/cuda/detail/memory/allocator.hpp>
+#include <agency/cuda/memory/allocator.hpp>
 
 namespace agency
 {
@@ -13,7 +13,7 @@ namespace detail
 
 
 template<class T>
-using asynchronous_state = agency::detail::asynchronous_state<T,detail::allocator<T>>;
+using asynchronous_state = agency::detail::asynchronous_state<T,allocator<T>>;
 
   
 } // end detail

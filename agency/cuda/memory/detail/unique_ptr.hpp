@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/unique_ptr.hpp>
-#include <agency/cuda/detail/memory/allocator.hpp>
+#include <agency/cuda/memory/allocator.hpp>
 
 namespace agency
 {

@@ -148,7 +148,7 @@ class caching_allocator
   public:
     __AGENCY_ANNOTATION
     caching_allocator()
-      : resource_(*get_system_resource<resource_type>())
+      : resource_(get_system_resource<resource_type>())
     {}
 
     using value_type = typename std::allocator_traits<Alloc>::value_type;
@@ -174,13 +174,13 @@ class caching_allocator
     __AGENCY_ANNOTATION
     pointer allocate(size_type n)
     {
-      return reinterpret_cast<pointer>(resource_.allocate(n * sizeof(value_type)));
+      return reinterpret_cast<pointer>(resource_->allocate(n * sizeof(value_type)));
     }
 
     __AGENCY_ANNOTATION
     void deallocate(pointer ptr, size_type n)
     {
-      resource_.deallocate(ptr, n * sizeof(value_type));
+      resource_->deallocate(ptr, n * sizeof(value_type));
     }
 
     template<class Iterator, class... Args>
@@ -188,7 +188,7 @@ class caching_allocator
     Iterator construct_each(Iterator first, Iterator last, Args&&... args)
     {
       using allocator_type = typename resource_type::allocator_type;
-      return allocator_traits<allocator_type>::construct_each(resource_.get_allocator(), first, last, std::forward<Args>(args)...);
+      return allocator_traits<allocator_type>::construct_each(resource_->get_allocator(), first, last, std::forward<Args>(args)...);
     }
 
     __agency_hd_warning_disable__
@@ -196,7 +196,7 @@ class caching_allocator
     __AGENCY_ANNOTATION
     void destroy(T* ptr, size_type n)
     {
-      resource_.get_allocator().destroy(ptr, n);
+      resource_->get_allocator().destroy(ptr, n);
     }
 
   private:
@@ -204,7 +204,7 @@ class caching_allocator
       typename std::allocator_traits<Alloc>::template rebind_alloc<char>
     >;
 
-    resource_type& resource_;
+    resource_type* resource_;
 };
 
 

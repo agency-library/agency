@@ -7,8 +7,6 @@ namespace agency
 {
 namespace cuda
 {
-namespace detail
-{
 
 
 template<class T>
@@ -50,7 +48,6 @@ class pinned_allocator
 };
 
 
-} // end detail
 } // end cuda
 } // end agency
 

@@ -1,14 +1,12 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/detail/memory/split_allocator.hpp>
+#include <agency/cuda/memory/split_allocator.hpp>
 #include <agency/detail/memory/caching_allocator.hpp>
 
 namespace agency
 {
 namespace cuda
-{
-namespace detail
 {
 
 
@@ -18,7 +16,6 @@ using allocator = agency::detail::caching_allocator<
 >;
 
 
-} // end detail
 } // end cuda
 } // end agency
 

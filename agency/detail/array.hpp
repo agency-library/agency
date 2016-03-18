@@ -29,22 +29,28 @@ class array
 
     using index_type = Index;
 
-    __AGENCY_ANNOTATION
-    array() : shape_{}, data_(nullptr) {}
+    // note that array's constructors have __agency_hd_warning_disable__
+    // because Alloc's constructors may not have __AGENCY_ANNOTATION
 
     __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
-    array(const shape_type& shape)
-      : shape_(shape),
-        data_(allocate_and_construct_elements(size()))
+    array() : alloc_{}, shape_{}, data_(nullptr) {}
+
+    __agency_hd_warning_disable__
+    __AGENCY_ANNOTATION
+    explicit array(const shape_type& shape, const allocator_type& alloc = allocator_type())
+      : alloc_(allocator_type()),
+        shape_(shape),
+        data_(allocate_and_construct_elements(alloc_, size()))
     {
     }
 
     __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
-    array(const shape_type& shape, const T& val)
-      : shape_(shape),
-        data_(allocate_and_construct_elements(size(), val))
+    explicit array(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
+      : alloc_(alloc),
+        shape_(shape),
+        data_(allocate_and_construct_elements(alloc_, size(), val))
     {
     }
 
@@ -63,6 +69,7 @@ class array
       }
     }
 
+    __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     array(const array& other)
       : array(other.shape())
@@ -76,29 +83,20 @@ class array
       }
     }
 
+    __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     array(array&& other)
-      : shape_{}, data_{}
+      : alloc_{}, shape_{}, data_{}
     {
+      agency::detail::swap(alloc_, other.alloc_);
       agency::detail::swap(shape_, other.shape_);
       agency::detail::swap(data_,  other.data_);
     }
 
-    __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     ~array()
     {
-      if(size())
-      {
-        // XXX should really destroy through the allocator
-        for(auto& x : *this)
-        {
-          x.~value_type();
-        }
-
-        allocator_type alloc;
-        alloc.deallocate(data_, size());
-      }
+      clear();
     }
 
     __AGENCY_ANNOTATION
@@ -180,6 +178,24 @@ class array
     }
 
     __agency_hd_warning_disable__
+    __AGENCY_ANNOTATION
+    void clear()
+    {
+      if(size())
+      {
+        // XXX should really destroy through the allocator
+        for(auto& x : *this)
+        {
+          x.~value_type();
+        }
+
+        alloc_.deallocate(data_, size());
+
+        shape_ = shape_type{};
+      }
+    }
+
+    __agency_hd_warning_disable__
     template<class Range>
     __AGENCY_ANNOTATION
     bool operator==(const Range& rhs) const
@@ -202,15 +218,16 @@ class array
     __agency_hd_warning_disable__
     template<class... Args>
     __AGENCY_ANNOTATION
-    static pointer allocate_and_construct_elements(size_t size, Args&&... args)
+    static pointer allocate_and_construct_elements(allocator_type& alloc, size_t size, Args&&... args)
     {
-      allocator_type alloc;
       pointer result = alloc.allocate(size);
 
       allocator_traits<allocator_type>::construct_each(alloc, result, result + size, std::forward<Args>(args)...);
 
       return result;
     }
+
+    allocator_type alloc_;
 
     shape_type shape_;
 
