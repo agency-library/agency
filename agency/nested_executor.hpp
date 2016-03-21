@@ -55,7 +55,6 @@ class nested_executor
         inner_execution_category
       >;
 
-    // XXX consider adding a public static make_shape() function
     using shape_type = detail::nested_shape_t<
       outer_execution_category,
       inner_execution_category,
@@ -206,6 +205,14 @@ class nested_executor
       return inner_ex_;
     }
 
+    shape_type shape() const
+    {
+      auto outer_exec_shape = outer_traits::shape(outer_executor());
+      auto inner_exec_shape = inner_traits::shape(inner_executor());
+
+      return make_shape(outer_exec_shape, inner_exec_shape);
+    }
+
   private:
     static outer_shape_type outer_shape(const shape_type& shape)
     {
@@ -218,6 +225,12 @@ class nested_executor
       // the inner portion is the tail of the tuple, but if the 
       // inner executor is not nested, then the tuple needs to be unwrapped
       return detail::unwrap_tuple_if_not_nested<inner_execution_category>(detail::forward_tail(shape));
+    }
+
+    __AGENCY_ANNOTATION
+    static shape_type make_shape(const outer_shape_type& outer_shape, const inner_shape_type& inner_shape)
+    {
+      return detail::make_nested_shape<outer_execution_category,inner_execution_category>(outer_shape, inner_shape);
     }
 
     outer_executor_type outer_ex_;
