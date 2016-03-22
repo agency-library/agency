@@ -88,9 +88,7 @@ class array
     array(array&& other)
       : alloc_{}, shape_{}, data_{}
     {
-      agency::detail::swap(alloc_, other.alloc_);
-      agency::detail::swap(shape_, other.shape_);
-      agency::detail::swap(data_,  other.data_);
+      swap(other);
     }
 
     __AGENCY_ANNOTATION
@@ -100,13 +98,26 @@ class array
     }
 
     __AGENCY_ANNOTATION
+    array& operator=(const array& other)
+    {
+      // XXX this is not a very efficient implementation
+      array tmp = other;
+      swap(tmp);
+      return *this;
+    }
+
+    __AGENCY_ANNOTATION
     array& operator=(array&& other)
     {
-      using agency::detail::swap;
-      swap(shape_, other.shape_);
-      swap(data_,  other.data_);
-
+      swap(other);
       return *this;
+    }
+
+    __AGENCY_ANNOTATION
+    void swap(array& other)
+    {
+      agency::detail::swap(shape_, other.shape_);
+      agency::detail::swap(data_,  other.data_);
     }
 
     __AGENCY_ANNOTATION
