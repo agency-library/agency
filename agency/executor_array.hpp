@@ -277,13 +277,39 @@ class executor_array
         Results& results;
         OuterShared& outer_arg;
 
-        template<class... Args>
+        // this overload is chosen when the future is void
+        // no additional past_arg will be passed to this function, so the number of Args
+        // is equal to the number of shared Factories
+        // unfortunately, this seems to be the most straightforward application of SFINAE
+        // to choose between these two cases
+        template<class... Args,
+                 class = typename std::enable_if<
+                   sizeof...(Args) == sizeof...(Factories)
+                 >::type>
         __AGENCY_ANNOTATION
         void operator()(const inner_index_type& inner_idx, Args&... inner_shared_args) const
         {
           auto idx = make_index(outer_idx, inner_idx);
 
           results[idx] = agency::invoke(f, idx, outer_arg, inner_shared_args...);
+        }
+
+        // this overload is chosen when the future is not void
+        // an additional past_arg will be passed to this function, so the number of Args
+        // unfortunately, this seems to be the most straightforward application of SFINAE
+        // to choose between these two cases
+        template<class PastArg,
+                 class... Args,
+                 class = typename std::enable_if<
+                   sizeof...(Args) == sizeof...(Factories)
+                 >::type>
+        __AGENCY_ANNOTATION
+        void operator()(const inner_index_type& inner_idx, PastArg& past_arg, Args&... inner_shared_args) const
+        {
+          auto idx = make_index(outer_idx, inner_idx);
+
+          // when PastArg is not void, we pass it to invoke in the slot before outer_arg
+          results[idx] = agency::invoke(f, idx, past_arg, outer_arg, inner_shared_args...);
         }
       };
 
