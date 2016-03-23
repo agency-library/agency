@@ -479,7 +479,11 @@ struct cast_functor
   __AGENCY_ANNOTATION
   T operator()(U& val) const
   {
-    return static_cast<T>(val);
+    // XXX future_traits::cast() invalidates the future,
+    //     so it makes sense to move the future's value
+    //     but what do we do if the future is a shared_future?
+    //     doesn't really make sense to move in that case
+    return static_cast<T>(std::move(val));
   }
 };
 
