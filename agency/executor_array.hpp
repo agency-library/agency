@@ -44,12 +44,15 @@ class executor_array
       return detail::make_nested_shape<outer_execution_category,inner_execution_category>(outer_shape, inner_shape);
     }
 
+    __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     executor_array() = default;
 
+    __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     executor_array(const executor_array&) = default;
 
+    __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     executor_array(size_t n, const inner_executor_type& exec = inner_executor_type())
       : inner_executors_(n, exec)
