@@ -92,6 +92,7 @@ class array
       swap(other);
     }
 
+    __agency_hd_warning_disable__
     __AGENCY_ANNOTATION
     ~array()
     {
