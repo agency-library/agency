@@ -24,7 +24,24 @@ class blocking_barrier
       if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
     }
 
-    inline void count_down_and_wait()
+    inline void arrive_and_drop()
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+
+      if(--count_ == 0)
+      {
+        // initialize the count variable
+        count_ = count_init_;
+
+        // bump the generation number
+        generation_++;
+
+        // unblock all blocking threads
+        cv_.notify_all();
+      }
+    }
+
+    inline void arrive_and_wait()
     {
       std::unique_lock<std::mutex> lock(mutex_);
 
@@ -67,7 +84,18 @@ class spinning_barrier
       if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
     }
 
-    inline void count_down_and_wait()
+    inline void arrive_and_drop()
+    {
+      size_t generation = generation_.load();
+
+      if(num_spinning_.fetch_add(1) == count_ - 1)
+      {
+        num_spinning_.store(0);
+        generation_.fetch_add(1);
+      }
+    }
+
+    inline void arrive_and_wait()
     {
       size_t generation = generation_.load();
 

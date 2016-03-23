@@ -428,7 +428,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
   public:
     void wait() const
     {
-      barrier_.count_down_and_wait();
+      barrier_.arrive_and_wait();
     }
 
     struct shared_param_type
