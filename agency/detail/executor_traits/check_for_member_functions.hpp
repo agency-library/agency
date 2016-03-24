@@ -484,23 +484,31 @@ struct has_any_multi_agent_execute_impl;
 template<class Executor, class... Factories>
 struct has_any_multi_agent_execute_impl<Executor, type_list<Factories...>>
 {
-  static constexpr bool has_execute_with_shared_inits_returning_user_specified_container = has_multi_agent_execute_with_shared_inits_returning_user_specified_container<
+  // XXX this implementation is incomplete -- there are more variants
+  //     of multi-agent execute() than are checked for here
+
+  using has_execute_with_shared_inits_returning_user_specified_container = has_multi_agent_execute_with_shared_inits_returning_user_specified_container<
     Executor,
     test_function_returning_int,
     container_factory<executor_traits_detail::discarding_container>,
     Factories...
-  >::value;
+  >;
 
-  static constexpr bool has_execute_with_shared_inits_returning_void = has_multi_agent_execute_with_shared_inits_returning_void<
+  using has_execute_with_shared_inits_returning_void = has_multi_agent_execute_with_shared_inits_returning_void<
     Executor,
     test_function_returning_void,
     Factories...
-  >::value;
+  >;
 
-  using type = std::integral_constant<
-    bool,
-    has_execute_with_shared_inits_returning_user_specified_container ||
-    has_execute_with_shared_inits_returning_void
+  using has_execute_returning_void = has_multi_agent_execute_returning_void<
+    Executor,
+    test_function_returning_void
+  >;
+
+  using type = detail::disjunction<
+    has_execute_with_shared_inits_returning_user_specified_container,
+    has_execute_with_shared_inits_returning_void,
+    has_execute_returning_void
   >;
 };
 
@@ -710,24 +718,32 @@ struct has_any_multi_agent_then_execute_impl;
 template<class Executor, class T, class... Factories>
 struct has_any_multi_agent_then_execute_impl<Executor, T, type_list<Factories...>>
 {
-  static constexpr bool has_then_execute_with_shared_inits_returning_user_specified_container = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<
+  // XXX this implementation is incomplete -- there are more variants
+  //     of multi-agent then_execute() than are checked for here
+
+  using has_then_execute_with_shared_inits_returning_user_specified_container = has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container<
     Executor,
     test_function_returning_int,
     container_factory<executor_traits_detail::discarding_container>,
     executor_future_t<Executor,void>,
     Factories...
-  >::value;
+  >;
 
-  static constexpr bool has_then_execute_with_shared_inits_returning_void = has_multi_agent_then_execute_with_shared_inits_returning_void<
+  using has_then_execute_with_shared_inits_returning_void = has_multi_agent_then_execute_with_shared_inits_returning_void<
     Executor,
     test_function_returning_void,
     executor_future_t<Executor,void>,
     Factories...
-  >::value;
+  >;
 
-  using type = std::integral_constant<
-    bool,
-    has_then_execute_with_shared_inits_returning_user_specified_container ||
+  using has_then_execute_returning_void = has_multi_agent_then_execute_returning_void<
+    Executor,
+    test_function_returning_void,
+    executor_future_t<Executor,void>
+  >;
+
+  using type = detail::disjunction<
+    has_then_execute_with_shared_inits_returning_user_specified_container,
     has_then_execute_with_shared_inits_returning_void
   >;
 };
