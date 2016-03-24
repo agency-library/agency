@@ -15,10 +15,12 @@ namespace agency
 // XXX is_executor should be much more permissive and just check for any function supported by executor_traits
 template<class T>
 struct is_executor
-  : std::integral_constant<
-      bool,
-      detail::executor_traits_detail::has_execution_category<T>::value &&
-      detail::executor_traits_detail::has_any_multi_agent_then_execute<T>::value
+  : detail::conjunction<
+      detail::executor_traits_detail::has_execution_category<T>,
+      detail::disjunction<
+        detail::executor_traits_detail::has_any_multi_agent_then_execute<T>,
+        detail::executor_traits_detail::has_any_multi_agent_execute<T>
+      >
     >
 {};
 
