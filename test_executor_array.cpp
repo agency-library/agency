@@ -4,6 +4,8 @@
 #include <mutex>
 #include <thread>
 #include <agency/executor_array.hpp>
+#include <agency/concurrent_executor.hpp>
+#include <agency/flattened_executor.hpp>
 
 int main()
 {
