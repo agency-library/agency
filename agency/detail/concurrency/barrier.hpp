@@ -1,14 +1,16 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
+
 #include <functional>
 #include <thread>
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
 
-// XXX this functionality probably needn't be exposed in a public namespace
-
 namespace agency
+{
+namespace detail
 {
 
 
@@ -123,5 +125,6 @@ protected:
 using barrier = blocking_barrier;
 
 
+} // end detail
 } // end agency
 
