@@ -11,6 +11,7 @@
 
 #include <thread>
 #include <vector>
+#include <algorithm>
 
 
 namespace agency
@@ -48,9 +49,24 @@ class thread_pool
 
     template<class Function,
              class = typename std::result_of<Function()>::type>
-    inline void enqueue(Function&& f)
+    inline void submit(Function&& f)
     {
-      tasks_.emplace(std::forward<Function>(f));
+      auto is_this_thread = [=](const joining_thread& t)
+      {
+        return t.get_id() == std::this_thread::get_id();
+      };
+
+      // guard against self-submission which may result in deadlock
+      // XXX it might be faster to compare this to a thread_local variable
+      if(std::find_if(threads_.begin(), threads_.end(), is_this_thread) == threads_.end())
+      {
+        tasks_.emplace(std::forward<Function>(f));
+      }
+      else
+      {
+        // the submitting thread is part of this pool so execute immediately 
+        std::forward<Function>(f)();
+      }
     }
 
     inline size_t size() const
@@ -104,7 +120,7 @@ class thread_pool_executor
 
         for(size_t idx = 0; idx < n; ++idx)
         {
-          system_thread_pool().enqueue([=,&result,&shared_arg,&work_remaining] () mutable
+          system_thread_pool().submit([=,&result,&shared_arg,&work_remaining] () mutable
           {
             result[idx] = f(idx, shared_arg);
 
@@ -140,7 +156,7 @@ class thread_pool_executor
   
         for(size_t idx = 0; idx < n; ++idx)
         {
-          system_thread_pool().enqueue([=,&shared_arg,&work_remaining]() mutable
+          system_thread_pool().submit([=,&shared_arg,&work_remaining]() mutable
           {
             f(idx, shared_arg);
   
@@ -167,10 +183,9 @@ class thread_pool_executor
   
         for(size_t idx = 0; idx < n; ++idx)
         {
-          system_thread_pool().enqueue([=,&work_remaining]() mutable
+          system_thread_pool().submit([=,&work_remaining]() mutable
           {
             f(idx);
-  
             work_remaining.count_down(1);
           });
         }
@@ -187,7 +202,7 @@ class thread_pool_executor
 };
 
 
-// compose concurrent_thread_pool_executor with other fancy executors
+// compose thread_pool_executor with other fancy executors
 // to yield a parallel_thread_pool_executor
 using parallel_thread_pool_executor = agency::flattened_executor<
   agency::nested_executor<
@@ -197,7 +212,7 @@ using parallel_thread_pool_executor = agency::flattened_executor<
 >;
 
 
-// compose concurrent_thread_pool_executor with other fancy executors
+// compose thread_pool_executor with other fancy executors
 // to yield a parallel_vector_thread_pool_executor
 using parallel_vector_thread_pool_executor = agency::flattened_executor<
   agency::nested_executor<
