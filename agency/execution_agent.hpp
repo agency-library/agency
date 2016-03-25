@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/execution_categories.hpp>
-#include <agency/barrier.hpp>
+#include <agency/detail/concurrency/barrier.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/index_tuple.hpp>
@@ -444,7 +444,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       {}
 
       int count_;
-      agency::barrier barrier_;
+      agency::detail::barrier barrier_;
     };
 
     // XXX seems like we either need shared_param_type or make_shared_initializer()
@@ -457,7 +457,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     }
 
   private:
-    agency::barrier &barrier_;
+    agency::detail::barrier &barrier_;
 
   protected:
     basic_concurrent_agent(const typename super_t::index_type& index, const typename super_t::param_type& param, shared_param_type& shared_param)

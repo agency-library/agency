@@ -1,10 +1,12 @@
 #pragma once
 
-#include <agency/parallel_executor.hpp>
+#include <agency/detail/config.hpp>
+#include <agency/detail/this_thread_parallel_executor.hpp>
 #include <agency/detail/array.hpp>
 #include <agency/detail/shape_tuple.hpp>
 #include <agency/detail/index_tuple.hpp>
 #include <agency/functional.hpp>
+#include <agency/executor_traits.hpp>
 
 namespace agency
 {
@@ -137,7 +139,7 @@ class executor_array
     template<class Function, class... Factories>
     struct then_execute_sequential_functor
     {
-      executor_array& exec;
+      executor_array exec;
       mutable Function f;
       detail::tuple<Factories...> inner_factories;
       outer_shape_type outer_shape;
@@ -212,13 +214,17 @@ class executor_array
     };
 
   private:
-    // implementation of then_execute() for sequential OuterExecutors
+    // lazy implementation of then_execute()
+    // it is universally applicable, but it might not be as efficient
+    // as calling execute() eagerly on the outer_executor
+    struct lazy_strategy {};
+
     template<class Function, class Factory1, class Future, class Factory2, class... Factories,
              class = typename std::enable_if<
                sizeof...(Factories) == inner_depth
              >::type>
     future<typename std::result_of<Factory1(shape_type)>::type>
-      then_execute_impl(std::true_type, Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
+      then_execute_impl(lazy_strategy, Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
     {
       // separate the shape into inner and outer portions
       auto outer_shape = this->outer_shape(shape);
@@ -294,6 +300,7 @@ class executor_array
         {
           auto idx = make_index(outer_idx, inner_idx);
 
+          // when PastArg is void, there's no past_arg to pass to invoke()
           results[idx] = agency::invoke(f, idx, outer_arg, inner_shared_args...);
         }
 
@@ -323,6 +330,8 @@ class executor_array
       {
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
 
+        using past_arg_type = typename future_traits<typename Futures::value_type>::value_type;
+
         return inner_traits::then_execute(
           exec.inner_executor(inner_executor_idx),
           inner_functor{f,outer_idx,*results_ptr,*outer_shared_arg_ptr},
@@ -341,15 +350,22 @@ class executor_array
     };
 
   private:
-    // implementation of then_execute() for nonsequential OuterExecutors
+    struct eager_strategy {};
+
+    // eager implementation of then_execute()
+    // not universally applicable, but can be more efficient
+    // because work gets issued immediately to the outer_executor via execute()
     template<class Function, class Factory1, class Future, class Factory2, class... Factories,
              class = typename std::enable_if<
                sizeof...(Factories) == inner_depth
              >::type>
     future<typename std::result_of<Factory1(shape_type)>::type>
-      then_execute_impl(std::false_type, Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
+      then_execute_impl(eager_strategy, Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
     {
       // this implementation legal when the outer_category is not sequential
+      // XXX and the inner executor's is concurrent with the launching agent
+      //     i.e., we have to make sure that the inner call to then_execute() actually makes progress
+      //     without having to call .get() on the returned futures
 
       // separate the shape into inner and outer portions
       auto outer_shape = this->outer_shape(shape);
@@ -405,12 +421,7 @@ class executor_array
     future<typename std::result_of<Factory1(shape_type)>::type>
       then_execute(Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
     {
-      using outer_execution_is_sequential = std::is_same<
-        outer_execution_category,
-        sequential_execution_tag
-      >;
-
-      return then_execute_impl(outer_execution_is_sequential(), f, result_factory, shape, fut, outer_factory, inner_factories...);
+      return then_execute_impl(then_execute_implementation_strategy(), f, result_factory, shape, fut, outer_factory, inner_factories...);
     }
 
   private:
@@ -418,6 +429,15 @@ class executor_array
 
     // XXX consider using container here instead of array
     agency::detail::array<inner_executor_type, size_t, allocator<inner_executor_type>> inner_executors_;
+
+    using then_execute_implementation_strategy = typename std::conditional<
+      detail::disjunction<
+        std::is_same<outer_execution_category, sequential_execution_tag>,
+        std::is_same<inner_execution_category, sequential_execution_tag> // XXX this should really check whether the inner executor's async_execute() method executes concurrently with the caller 
+      >::value,
+      lazy_strategy,
+      eager_strategy
+    >::type;
 
   public:
     __AGENCY_ANNOTATION
