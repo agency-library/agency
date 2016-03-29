@@ -284,9 +284,13 @@ inline namespace concurrency_v2 {
             // If there are no pending calls to futex wait then we don't need to call futex wake.
             if(__synchronic_expect(waiting.fetch_add(0, memory_order_acq_rel) != 0, 0)) {
                 if (all)
+                {
                     __synchronic_wake_all(&object);
+                }
                 else
+                {
                     __synchronic_wake_one(&object);
+                }
             }
             
             // Prevent use-after-free.
@@ -329,15 +333,30 @@ inline namespace concurrency_v2 {
             base::wait_for_change_for(last_writer, invalid_writer, memory_order_acquire, rel_time);
             return object.load(order) != nval;
         }
+
+    private:
+        struct notify_functor
+        {
+          template<class U>
+          void operator()(U& object) const
+          {
+            // Signal that this thread wrote a new value.
+            auto store_me = __synchronic_gettid();
+            object.store(store_me, memory_order_release);
+          }
+        };
+
+    public:
         template <class F>
         void notify(atomic<T>& object, F func, bool const all) {
             
             func(object);
-            base::notify(last_writer, [](auto& object) {
-                
-                // Signal that this thread wrote a new value.
-                object.store(__synchronic_gettid(), memory_order_release);
-            }, all);
+            //base::notify(last_writer, [](auto& object) {
+            //    
+            //    // Signal that this thread wrote a new value.
+            //    object.store(__synchronic_gettid(), memory_order_release);
+            //}, all);
+            base::notify(last_writer, notify_functor(), all);
         }
     };
 

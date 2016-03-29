@@ -46,6 +46,12 @@ class thread_pool
         });
       }
     }
+    
+    ~thread_pool()
+    {
+      tasks_.close();
+      threads_.clear();
+    }
 
     template<class Function,
              class = typename std::result_of<Function()>::type>
@@ -79,14 +85,14 @@ class thread_pool
     {
       std::function<void()> task;
 
-      while(tasks_.blocking_pop(task))
+      while(tasks_.wait_and_pop(task))
       {
         task();
       }
     }
 
-    std::vector<joining_thread> threads_;
     agency::detail::concurrent_queue<std::function<void()>> tasks_;
+    std::vector<joining_thread> threads_;
 };
 
 
