@@ -6,26 +6,6 @@
 #include <thrust/host_vector.h>
 #include <agency/cuda/execution_policy.hpp>
 
-template<class Result, class Function>
-struct device_lambda_wrapper
-{
-  mutable Function f;
-
-  template<class... Args>
-  __device__
-  Result operator()(Args&&... args) const
-  {
-    return f(std::forward<Args>(args)...);
-  }
-};
-
-template<class Result, class Function>
-device_lambda_wrapper<Result,Function> wrap_lambda(Function f)
-{
-  return device_lambda_wrapper<Result,Function>{f};
-}
-
-
 // XXX need to figure out how to make this par(con) select grid_executor_2d automatically
 auto grid(agency::size2 outer_shape, agency::size2 inner_shape)
   -> decltype(agency::cuda::par(outer_shape, agency::cuda::con(inner_shape)).on(agency::cuda::grid_executor_2d{}))
@@ -44,8 +24,8 @@ agency::cuda::future<void> async_square_transpose(size_t matrix_dim, float* tran
   size2 outer_shape{matrix_dim/tile_dim, matrix_dim/tile_dim};
   size2 inner_shape{tile_dim, num_rows_per_block};
 
-  return cuda::bulk_async(grid(outer_shape, inner_shape), wrap_lambda<void>(
-    [=] __device__ (parallel_group_2d<cuda::concurrent_agent_2d>& self)
+  return cuda::bulk_async(grid(outer_shape, inner_shape), 
+    [=] __host__ __device__ (parallel_group_2d<cuda::concurrent_agent_2d>& self)
     {
       auto idx = tile_dim * self.outer().index() + self.inner().index();
 
@@ -54,7 +34,7 @@ agency::cuda::future<void> async_square_transpose(size_t matrix_dim, float* tran
         transposed_matrix[idx[0]*matrix_dim + (idx[1]+j)] = input_matrix[(idx[1]+j)*matrix_dim + idx[0]];
       }
     }
-  ));
+  );
 }
 
 

@@ -71,7 +71,7 @@ agency::cuda::future<
 
 int main()
 {
-  auto factory = [] __device__ { return 7; };
+  auto factory = [] __host__ __device__ { return 7; };
 
   auto index_function = agency::cuda::detail::this_index_1d{};
 
@@ -80,7 +80,7 @@ int main()
     auto f1 = agency::cuda::make_ready_async_future<int>(7);
     auto f2 = agency::cuda::make_ready_async_future<float>(13);
 
-    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
+    auto f3 = when_all_execute([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
     {
       if(idx[0] == 0 && idx[1] == 0)
       {
@@ -104,7 +104,7 @@ int main()
     auto f1 = agency::cuda::make_ready_async_future<int>(7);
     auto f2 = agency::cuda::make_ready_async_future();
 
-    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
+    auto f3 = when_all_execute([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
     {
       if(idx[0] == 0 && idx[1] == 0)
       {
@@ -127,7 +127,7 @@ int main()
     auto f1 = agency::cuda::make_ready_async_future();
     auto f2 = agency::cuda::make_ready_async_future<int>(7);
 
-    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
+    auto f3 = when_all_execute([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
     {
       if(idx[0] == 0 && idx[1] == 0)
       {
@@ -149,7 +149,7 @@ int main()
     // void -> void
     auto f1 = agency::cuda::make_ready_async_future();
 
-    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
+    auto f3 = when_all_execute([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
     agency::cuda::grid_executor::shape_type{100,256},
@@ -166,7 +166,7 @@ int main()
     auto f1 = agency::cuda::make_ready_async_future();
     auto f2 = agency::cuda::make_ready_async_future();
 
-    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
+    auto f3 = when_all_execute([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
     agency::cuda::grid_executor::shape_type{100,256},
@@ -181,7 +181,7 @@ int main()
   {
     // -> void
 
-    auto f3 = when_all_execute([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
+    auto f3 = when_all_execute([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
     agency::cuda::grid_executor::shape_type{100,256},

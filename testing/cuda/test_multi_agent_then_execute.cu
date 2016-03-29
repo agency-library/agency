@@ -48,7 +48,7 @@ void test()
 
     using index_type = typename executor_type::index_type;
 
-    auto fut = traits::then_execute(exec, [] __device__ (index_type idx, int& past)
+    auto fut = traits::then_execute(exec, [] __host__ __device__ (index_type idx, int& past)
     {
       return past;
     },
@@ -72,7 +72,7 @@ void test()
 
     using index_type = typename traits::index_type;
 
-    auto fut = traits::then_execute(exec, [] __device__ (index_type idx, int& past)
+    auto fut = traits::then_execute(exec, [] __host__ __device__ (index_type idx, int& past)
     {
       return past;
     },

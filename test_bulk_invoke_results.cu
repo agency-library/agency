@@ -13,7 +13,7 @@ void test()
     execution_policy_type policy;
 
     auto result = agency::bulk_invoke(policy(10),
-      [] __device__ (typename execution_policy_type::execution_agent_type& self)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self)
     {
       return 7;
     });
@@ -32,7 +32,7 @@ void test()
     int val = 13;
 
     auto result = agency::bulk_invoke(policy(10),
-      [] __device__ (typename execution_policy_type::execution_agent_type& self, int val)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int val)
     {
       return val;
     },
@@ -52,7 +52,7 @@ void test()
     int val = 13;
 
     auto result = agency::bulk_invoke(policy(10),
-      [] __device__ (typename execution_policy_type::execution_agent_type& self, int& val)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& val)
     {
       return val;
     },
