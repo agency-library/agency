@@ -6,36 +6,15 @@
 #include <thrust/device_vector.h>
 
 
-template<class Result, class Function>
-struct device_lambda_wrapper
-{
-  mutable Function f;
-
-  template<class... Args>
-  __device__
-  Result operator()(Args&&... args) const
-  {
-    return f(std::forward<Args>(args)...);
-  }
-};
-
-template<class Result, class Function>
-device_lambda_wrapper<Result,Function> wrap_lambda(Function f)
-{
-  return device_lambda_wrapper<Result,Function>{f};
-}
-
 void saxpy(size_t n, float a, const float* x, const float* y, float* z)
 {
   using namespace agency;
 
-  bulk_invoke(cuda::par(n), wrap_lambda<void>(
-    [=] __device__ (parallel_agent &self)
-    {
-      int i = self.index();
-      z[i] = a * x[i] + y[i];
-    }
-  ));
+  bulk_invoke(cuda::par(n), [=] __host__ __device__ (parallel_agent &self)
+  {
+    int i = self.index();
+    z[i] = a * x[i] + y[i];
+  });
 }
 
 int main()

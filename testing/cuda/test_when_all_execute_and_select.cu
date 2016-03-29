@@ -5,7 +5,7 @@
 
 int main()
 {
-  auto factory = [] __device__ { return 7; };
+  auto factory = [] __host__ __device__ { return 7; };
 
   agency::cuda::grid_executor exec;
   using traits = agency::executor_traits<agency::cuda::grid_executor>;
@@ -16,7 +16,7 @@ int main()
     auto f1 = traits::make_ready_future<int>(exec,7);
     auto f2 = traits::make_ready_future<float>(exec,13);
 
-    auto f3 = exec.when_all_execute_and_select<0,1>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
+    auto f3 = exec.when_all_execute_and_select<0,1>([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
     {
       if(idx[0] == 0 && idx[1] == 0)
       {
@@ -39,7 +39,7 @@ int main()
     auto f1 = traits::make_ready_future<int>(exec,7);
     auto f2 = traits::make_ready_future<float>(exec,13);
 
-    auto f3 = exec.when_all_execute_and_select<1,0>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
+    auto f3 = exec.when_all_execute_and_select<1,0>([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
     {
       if(idx[0] == 0 && idx[1] == 0)
       {
@@ -62,7 +62,7 @@ int main()
     auto f1 = traits::make_ready_future<int>(exec,7);
     auto f2 = traits::make_ready_future<float>(exec,13);
 
-    auto f3 = exec.when_all_execute_and_select<0>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
+    auto f3 = exec.when_all_execute_and_select<0>([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
     {
       if(idx[0] == 0 && idx[1] == 0)
       {
@@ -85,7 +85,7 @@ int main()
     auto f1 = traits::make_ready_future<int>(exec,7);
     auto f2 = traits::make_ready_future<float>(exec,13);
 
-    auto f3 = exec.when_all_execute_and_select<1>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
+    auto f3 = exec.when_all_execute_and_select<1>([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg1, float& past_arg2, int& outer_arg, int& inner_arg)
     {
       if(idx[0] == 0 && idx[1] == 0)
       {
@@ -108,7 +108,7 @@ int main()
     auto f1 = traits::make_ready_future<int>(exec,7);
     auto f2 = traits::make_ready_future<void>(exec);
 
-    auto f3 = exec.when_all_execute_and_select<0,1>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
+    auto f3 = exec.when_all_execute_and_select<0,1>([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
     {
       if(idx[0] == 0 && idx[1] == 0)
       {
@@ -130,7 +130,7 @@ int main()
     auto f1 = traits::make_ready_future<void>(exec);
     auto f2 = traits::make_ready_future<int>(exec,7);
 
-    auto f3 = exec.when_all_execute_and_select<0,1>([] __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
+    auto f3 = exec.when_all_execute_and_select<0,1>([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& past_arg, int& outer_arg, int& inner_arg)
     {
       if(idx[0] == 0 && idx[1] == 0)
       {
@@ -151,7 +151,7 @@ int main()
     // void -> void
     auto f1 = traits::make_ready_future<void>(exec);
 
-    auto f3 = exec.when_all_execute_and_select<0>([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
+    auto f3 = exec.when_all_execute_and_select<0>([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
     shape,
@@ -167,7 +167,7 @@ int main()
     auto f1 = traits::make_ready_future<void>(exec);
     auto f2 = traits::make_ready_future<void>(exec);
 
-    auto f3 = exec.when_all_execute_and_select<0,1>([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
+    auto f3 = exec.when_all_execute_and_select<0,1>([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
     shape,
@@ -181,7 +181,7 @@ int main()
   {
     // -> void
 
-    auto f3 = exec.when_all_execute_and_select([] __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
+    auto f3 = exec.when_all_execute_and_select([] __host__ __device__ (agency::cuda::grid_executor::index_type idx, int& outer_arg, int& inner_arg)
     {
     },
     shape,

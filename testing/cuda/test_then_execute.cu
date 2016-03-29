@@ -48,7 +48,7 @@ int main()
     executor_type::shape_type shape{100,256};
 
     auto f = traits::then_execute(exec,
-      [] __device__ (executor_type::index_type idx, int& outer, int& inner)
+      [] __host__ __device__ (executor_type::index_type idx, int& outer, int& inner)
       {
         return outer + inner;
       },

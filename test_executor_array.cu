@@ -72,7 +72,7 @@ int main()
 
     auto past = traits::make_ready_future<int>(exec, 13);
 
-    auto f = exec.then_execute([=] __device__ (const index_type& idx, int& past, int& outer_shared, int& inner_shared, int& inner_inner_shared)
+    auto f = exec.then_execute([=] __host__ __device__ (const index_type& idx, int& past, int& outer_shared, int& inner_shared, int& inner_inner_shared)
     {
       printf("hello from agent %d %d %d\n", (int)agency::detail::get<0>(idx), (int)agency::detail::get<1>(idx), (int)agency::detail::get<2>(idx));
       return past + outer_shared + inner_shared + inner_inner_shared;
@@ -136,7 +136,7 @@ int main()
 
     auto shape = exec.make_shape(2,{2,2});
 
-    auto f = traits::async_execute(exec, [] __device__ (const index_type& idx, int& outer_shared, int& inner_shared, int& inner_inner_shared)
+    auto f = traits::async_execute(exec, [] __host__ __device__ (const index_type& idx, int& outer_shared, int& inner_shared, int& inner_inner_shared)
     {
       return 13 + outer_shared + inner_shared + inner_inner_shared;
     },
@@ -177,7 +177,7 @@ int main()
 
     auto ready = traits::make_ready_future<void>(exec);
 
-    auto f = exec.then_execute([] __device__ (const index_type& idx, int& outer_shared, int& inner_shared)
+    auto f = exec.then_execute([] __host__ __device__ (const index_type& idx, int& outer_shared, int& inner_shared)
     {
       return 13 + outer_shared + inner_shared;
     },

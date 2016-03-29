@@ -63,7 +63,7 @@ class synchronic_concurrent_queue
           // if the queue is closed, return
           if(status_ == inactive)
           {
-            return false;
+            break;
           }
 
           // if there are no items go back to sleep
@@ -161,7 +161,10 @@ class condition_variable_concurrent_queue
           });
 
           // if the queue is closed, return
-          if(is_closed_) return false;
+          if(is_closed_)
+          {
+            break;
+          }
 
           // if there are no items go back to sleep
           if(items_.empty()) continue;
