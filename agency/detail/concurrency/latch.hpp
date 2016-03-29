@@ -1,14 +1,11 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/concurrency/synchronic>
 
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
-
-#if __cplusplus > 201103L
-#include <agency/detail/concurrency/synchronic>
-#endif
 
 
 namespace agency
@@ -16,7 +13,6 @@ namespace agency
 namespace detail
 {
 
-#if __cplusplus > 201103L
 
 class synchronic_latch
 {
@@ -60,8 +56,6 @@ class synchronic_latch
     std::atomic<bool> released_;
     std::experimental::synchronic<bool, std::experimental::synchronic_option::optimize_for_short_wait> notifier_;
 };
-
-#endif // c++14
 
 
 class condition_variable_latch
@@ -113,6 +107,7 @@ class condition_variable_latch
 };
 
 
+// condition_variable_latch is much faster than synchronic_latch for some reason
 using latch = condition_variable_latch;
 
 
