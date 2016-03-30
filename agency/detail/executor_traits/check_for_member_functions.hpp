@@ -5,6 +5,7 @@
 #include <agency/detail/executor_traits/discarding_container.hpp>
 #include <agency/detail/executor_traits/member_types.hpp>
 #include <agency/detail/executor_traits/container_factory.hpp>
+#include <agency/detail/type_list.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/factory.hpp>
 
@@ -517,8 +518,8 @@ template<class T>
 struct has_any_multi_agent_execute
   : has_any_multi_agent_execute_impl<
       T,
-      repeat_type<
-        unit_factory, execution_depth<typename T::execution_category>::value
+      type_list_repeat<
+        execution_depth<typename T::execution_category>::value, unit_factory
       >
     >::type
 {};
@@ -754,8 +755,8 @@ struct has_any_multi_agent_then_execute
   : has_any_multi_agent_then_execute_impl<
       T,
       int,
-      repeat_type<
-        unit_factory, execution_depth<typename T::execution_category>::value
+      type_list_repeat<
+        execution_depth<typename T::execution_category>::value, unit_factory
       >
     >::type
 {};

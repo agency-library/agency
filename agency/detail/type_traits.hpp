@@ -2,7 +2,6 @@
 
 #include <type_traits>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/detail/type_list.hpp>
 
 namespace agency
 {
@@ -37,26 +36,6 @@ using decay_t = typename std::decay<T>::type;
 
 template<class T>
 using result_of_t = typename std::result_of<T>::type;
-
-
-template<class T, size_t n>
-struct repeat_type_impl
-{
-  using rest = typename repeat_type_impl<T,n-1>::type;
-  using type = typename type_list_prepend<
-    T,
-    rest
-  >::type;
-};
-
-template<class T>
-struct repeat_type_impl<T,0>
-{
-  using type = type_list<>;
-};
-
-template<class T, size_t n>
-using repeat_type = typename repeat_type_impl<T,n>::type;
 
 
 template<class... Conditions>
