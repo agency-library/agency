@@ -400,6 +400,19 @@ namespace detail
 // convenience metafunctions for accessing types associated with executors
 
 template<class Executor, class Enable = void>
+struct executor_shape {};
+
+template<class Executor>
+struct executor_shape<Executor, typename std::enable_if<is_executor<Executor>::value>::type>
+{
+  using type = typename executor_traits<Executor>::shape_type;
+};
+
+template<class Executor>
+using executor_shape_t = typename executor_shape<Executor>::type;
+
+
+template<class Executor, class Enable = void>
 struct executor_index {};
 
 template<class Executor>
