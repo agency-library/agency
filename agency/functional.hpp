@@ -3,6 +3,8 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/factory.hpp>
+#include <agency/detail/optional.hpp>
+#include <tuple>
 #include <utility>
 #include <type_traits>
 
@@ -118,7 +120,5 @@ struct invoke_and_return_unit
 
 
 } // end detail
-
-
 } // end agency
 
