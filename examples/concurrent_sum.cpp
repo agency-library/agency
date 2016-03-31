@@ -5,36 +5,37 @@ int sum(const std::vector<int>& data)
 {
   using namespace agency;
 
-  int result = 0;
-
-  bulk_invoke(con(data.size()), [&](concurrent_agent& self, std::vector<int>& scratch)
-  {
-    auto i = self.index();
-    auto n = scratch.size();
-
-    while(n > 1)
+  return bulk_invoke(con(data.size()),
+    [&](concurrent_agent& self, std::vector<int>& scratch) -> single_result<int>
     {
-      if(i < n/2)
+      auto i = self.index();
+      auto n = scratch.size();
+
+      while(n > 1)
       {
-        scratch[i] += scratch[n - i - 1];
+        if(i < n/2)
+        {
+          scratch[i] += scratch[n - i - 1];
+        }
+
+        // wait for every agent in the group to reach this point
+        self.wait();
+
+        // cut the number of active agents in half
+        n -= n/2;
       }
 
-      // wait for every agent in the group to reach this point
-      self.wait();
+      // the first agent returns the result
+      if(i == 0)
+      {
+        return scratch[0];
+      }
 
-      // cut the number of active agents in half
-      n -= n/2;
-    }
-
-    // the first agent stores the result
-    if(i == 0)
-    {
-      result = scratch[0];
-    }
-  },
-  share<0>(data));
-
-  return result;
+      // all other agents return an ignored value 
+      return std::ignore;
+    },
+    share<0>(data)
+  );
 }
 
 int main()
