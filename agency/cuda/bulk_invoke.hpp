@@ -63,26 +63,6 @@ struct unpack_shared_parameters_from_executor_and_invoke
 };
 
 
-template<class Executor, class Function, class Tuple, size_t... TupleIndices>
-auto bulk_invoke_executor_impl(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Tuple&& shared_init_tuple, agency::detail::index_sequence<TupleIndices...>)
-  -> decltype(
-       executor_traits<Executor>::execute(exec, f, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...)
-     )
-{
-  return executor_traits<Executor>::execute(exec, f, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...);
-}
-
-
-template<class Executor, class Function, class Tuple, size_t... TupleIndices>
-auto bulk_async_executor_impl(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Tuple&& shared_init_tuple, agency::detail::index_sequence<TupleIndices...>)
-  -> decltype(
-       executor_traits<Executor>::async_execute(exec, f, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...)
-     )
-{
-  return executor_traits<Executor>::async_execute(exec, f, shape, agency::detail::get<TupleIndices>(std::forward<Tuple>(shared_init_tuple))...);
-}
-
-
 } // end detail
 
 
@@ -101,16 +81,21 @@ typename agency::detail::enable_if_bulk_invoke_executor<
   using traits = executor_traits<Executor>;
 
   // package up the shared parameters for the executor
-  const size_t executor_depth = agency::detail::execution_depth<
-    typename traits::execution_category
-  >::value;
+  const size_t execution_depth = traits::execution_depth;
 
   // create a tuple of factories to use for shared parameters for the executor
-  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<executor_depth>(shared_arg_tuple);
+  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<execution_depth>(shared_arg_tuple);
 
-  auto functor = detail::unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
+  // unpack shared parameters we receive from the executor
+  auto h = detail::unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
 
-  return detail::bulk_invoke_executor_impl(exec, shape, functor, factory_tuple, agency::detail::make_index_sequence<executor_depth>());
+  // compute the type of f's result
+  using result_of_f = typename std::result_of<Function(agency::detail::executor_index_t<Executor>,agency::detail::decay_parameter_t<Args>...)>::type;
+
+  // based on the type of f's result, make a factory that will create the appropriate type of container to store f's results
+  auto result_factory = agency::detail::make_result_factory<result_of_f>(exec);
+
+  return agency::detail::bulk_invoke_executor_impl(exec, h, result_factory, shape, factory_tuple, agency::detail::make_index_sequence<execution_depth>());
 }
 
 
@@ -129,16 +114,21 @@ typename agency::detail::enable_if_bulk_async_executor<
   using traits = executor_traits<Executor>;
 
   // package up the shared parameters for the executor
-  const size_t executor_depth = agency::detail::execution_depth<
-    typename traits::execution_category
-  >::value;
+  const size_t execution_depth = traits::execution_depth;
 
   // create a tuple of factories to use for shared parameters for the executor
-  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<executor_depth>(shared_arg_tuple);
+  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<execution_depth>(shared_arg_tuple);
 
-  auto functor = detail::unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
+  // unpack shared parameters we receive from the executor
+  auto h = detail::unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
 
-  return detail::bulk_async_executor_impl(exec, shape, functor, factory_tuple, agency::detail::make_index_sequence<executor_depth>());
+  // compute the type of f's result
+  using result_of_f = typename std::result_of<Function(agency::detail::executor_index_t<Executor>,agency::detail::decay_parameter_t<Args>...)>::type;
+
+  // based on the type of f's result, make a factory that will create the appropriate type of container to store f's results
+  auto result_factory = agency::detail::make_result_factory<result_of_f>(exec);
+
+  return agency::detail::bulk_async_executor_impl(exec, h, result_factory, shape, factory_tuple, agency::detail::make_index_sequence<execution_depth>());
 }
 
 
