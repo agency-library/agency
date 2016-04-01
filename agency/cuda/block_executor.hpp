@@ -53,6 +53,9 @@ class block_executor : private grid_executor
     template<class T>
     using future = super_traits::future<T>;
 
+    template<class T>
+    using container = detail::array<T, shape_type>;
+
     future<void> make_ready_future()
     {
       return super_traits::template make_ready_future<void>(*this);
