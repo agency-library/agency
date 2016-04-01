@@ -143,6 +143,12 @@ class span : private detail::span_base<Extent>
       return begin()[idx];
     }
 
+    __AGENCY_ANNOTATION
+    span<element_type, dynamic_extent> subspan(index_type offset, index_type count = dynamic_extent) const
+    {
+      return span<element_type, dynamic_extent>(data() + offset, count);
+    }
+
   private:
     pointer data_;
 };
