@@ -107,6 +107,25 @@ bool is_bounded_by(const Tuple1& x, const Tuple2& bound)
 }
 
 
+template<size_t n, class Index>
+using index_take_t = decltype(
+  detail::decay_copy(
+    detail::unwrap_single_element_tuple_if(
+      detail::tuple_take_if<n>(std::declval<Index>())
+    )
+  )
+);
+
+
+// note that index_take() unwraps single element tuples which result from tuple_take_if
+template<size_t n, class Index>
+__AGENCY_ANNOTATION
+index_take_t<n,Index> index_take(const Index& s)
+{
+  return detail::unwrap_single_element_tuple_if(detail::tuple_take_if<n>(s));
+}
+
+
 } // end detail
 } // end agency
 

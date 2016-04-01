@@ -266,6 +266,25 @@ size_t shape_head_size(const Shape& s)
 } // end shape_head_size()
 
 
+template<size_t n, class Shape>
+using shape_take_t = decltype(
+  detail::decay_copy(
+    detail::unwrap_single_element_tuple_if(
+      detail::tuple_take_if<n>(std::declval<Shape>())
+    )
+  )
+);
+
+
+// note that shape_take() unwraps single element tuples which result from tuple_take_if
+template<size_t n, class Shape>
+__AGENCY_ANNOTATION
+shape_take_t<n,Shape> shape_take(const Shape& s)
+{
+  return detail::unwrap_single_element_tuple_if(detail::tuple_take_if<n>(s));
+}
+
+
 } // end detail
 } // agency
 
