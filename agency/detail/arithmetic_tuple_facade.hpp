@@ -11,6 +11,13 @@ namespace agency
 namespace detail
 {
 
+template<typename Derived>
+class arithmetic_tuple_facade;
+
+
+template<class T>
+struct is_arithmetic_tuple : std::is_base_of<arithmetic_tuple_facade<T>, T> {};
+
 
 template<typename Derived>
   class arithmetic_tuple_facade
@@ -268,7 +275,10 @@ template<typename Derived>
 
 
   // equality
-  template<class ArithmeticTuple>
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             is_arithmetic_tuple<ArithmeticTuple>::value
+           >::type>
   __AGENCY_ANNOTATION
   bool operator==(const ArithmeticTuple& rhs) const
   {
@@ -276,7 +286,10 @@ template<typename Derived>
   }
 
 
-  template<class ArithmeticTuple>
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             is_arithmetic_tuple<ArithmeticTuple>::value
+           >::type>
   __AGENCY_ANNOTATION
   bool operator!=(const ArithmeticTuple& rhs) const
   {
@@ -286,28 +299,40 @@ template<typename Derived>
 
   // relational ops
 
-  template<class ArithmeticTuple>
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             is_arithmetic_tuple<ArithmeticTuple>::value
+           >::type>
   __AGENCY_ANNOTATION
   bool operator<(const ArithmeticTuple& rhs) const
   {
     return __tu::tuple_lexicographical_compare(derived(), rhs);
   }
 
-  template<class ArithmeticTuple>
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             is_arithmetic_tuple<ArithmeticTuple>::value
+           >::type>
   __AGENCY_ANNOTATION
   bool operator>(const ArithmeticTuple& rhs) const
   {
     return __tu::tuple_lexicographical_compare(rhs, derived());
   }
 
-  template<class ArithmeticTuple>
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             is_arithmetic_tuple<ArithmeticTuple>::value
+           >::type>
   __AGENCY_ANNOTATION
   bool operator<=(const ArithmeticTuple& rhs) const
   {
     return !operator>(rhs);
   }
 
-  template<class ArithmeticTuple>
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             is_arithmetic_tuple<ArithmeticTuple>::value
+           >::type>
   __AGENCY_ANNOTATION
   bool operator>=(const ArithmeticTuple& rhs) const
   {
