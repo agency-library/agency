@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <type_traits>
 #include <utility>
 
 namespace agency
@@ -21,7 +22,7 @@ void swap(T& a, T& b)
 
 template<class T>
 __AGENCY_ANNOTATION
-T&& decay_copy(T&& arg)
+typename std::decay<T>::type decay_copy(T&& arg)
 {
   return std::forward<T>(arg);
 }
