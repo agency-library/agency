@@ -211,12 +211,12 @@ class array
     __agency_hd_warning_disable__
     template<class Range>
     __AGENCY_ANNOTATION
-    bool operator==(const Range& rhs) const
+    friend bool operator==(const array& lhs, const Range& rhs)
     {
-      auto i = begin();
+      auto i = lhs.begin();
       auto j = rhs.begin();
 
-      for(; i != end(); ++i, ++j)
+      for(; i != lhs.end(); ++i, ++j)
       {
         if(*i != *j)
         {
@@ -225,6 +225,14 @@ class array
       }
 
       return true;
+    }
+
+    __agency_hd_warning_disable__
+    template<class Range>
+    __AGENCY_ANNOTATION
+    friend bool operator==(const Range& lhs, const array& rhs)
+    {
+      return rhs == lhs;
     }
 
   private:
