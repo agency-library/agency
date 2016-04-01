@@ -449,7 +449,7 @@ agency::detail::boxed_value<
 }
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -488,7 +488,7 @@ struct multi_agent_execute_with_shared_inits_functor
                                       detail::shape_size(detail::tuple_take<depth+1>(augmented_shape)));
   }
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<size_t... ContainerIndices, class AgentIndex>
   __AGENCY_ANNOTATION
   Result impl(detail::index_sequence<ContainerIndices...>, AgentIndex&& agent_idx) const
@@ -519,7 +519,7 @@ multi_agent_execute_with_shared_inits_functor<Result,Function,Shape,TupleOfConta
 } 
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -557,7 +557,7 @@ struct invoke_and_store_result_to_container
   Container& c;
   mutable Function f;
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Index, class... Args>
   __AGENCY_ANNOTATION
   Result operator()(const Index& idx, Args&... shared_args) const
@@ -570,7 +570,7 @@ struct invoke_and_store_result_to_container
 };
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Result, class Container, class Alloc, class Function>
 __AGENCY_ANNOTATION
 invoke_and_store_result_to_container<Result,Container,Function>
@@ -580,7 +580,7 @@ invoke_and_store_result_to_container<Result,Container,Function>
 } // end make_invoke_and_store_result_to_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -599,7 +599,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -634,7 +634,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -650,7 +650,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -673,7 +673,7 @@ struct strategy_7_functor
 {
   mutable Function f;
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Index, class Container, class... Args>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Container& results, Args&... shared_args) const
@@ -683,7 +683,7 @@ struct strategy_7_functor
 };
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -704,7 +704,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -734,7 +734,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -771,7 +771,7 @@ struct invoke_and_store_to_second_parameter
 {
   mutable Function f;
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Index, class Container>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Container& c) const
@@ -788,7 +788,7 @@ invoke_and_store_to_second_parameter<Function> make_invoke_and_store_to_second_p
 }
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -826,7 +826,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -846,7 +846,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 }
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -868,7 +868,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 }
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -889,7 +889,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -910,7 +910,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -948,7 +948,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -988,7 +988,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -1011,7 +1011,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -1048,7 +1048,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -1086,7 +1086,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -1137,7 +1137,7 @@ struct execute_in_for_loop
   Shape shape;
   mutable Factory2 shared_factory;
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class F, class F1, class S, class F2>
   __AGENCY_ANNOTATION
   execute_in_for_loop(F&& f_, F1&& result_factory_, S&& shape_, F2&& shared_factory_)
@@ -1147,7 +1147,7 @@ struct execute_in_for_loop
       shared_factory(std::forward<F2>(shared_factory_))
   {}
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   __AGENCY_ANNOTATION
   typename std::result_of<Factory1(Shape)>::type
     operator()() const
@@ -1178,7 +1178,7 @@ execute_in_for_loop<Executor, Function,Factory1,Shape,Factory2>
 }
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -1195,7 +1195,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -1213,7 +1213,7 @@ typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>
 } // end multi_agent_execute_with_shared_inits_returning_user_specified_container()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
@@ -1240,7 +1240,7 @@ struct single_agent_when_all_execute_and_select_functor
   Shape shape;
   mutable Factory shared_factory;
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Container>
   __AGENCY_ANNOTATION
   void operator()(Container& results) const
@@ -1266,7 +1266,7 @@ single_agent_when_all_execute_and_select_functor<Function,Shape,Factory> make_si
 }
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type

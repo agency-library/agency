@@ -16,7 +16,7 @@ namespace multi_agent_execute_returning_user_specified_container_implementation_
 {
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory>
 __AGENCY_ANNOTATION
 typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type

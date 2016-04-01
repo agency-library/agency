@@ -33,7 +33,7 @@ using select_multi_agent_execute_with_shared_inits_returning_void_implementation
   >::type;
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 void multi_agent_execute_with_shared_inits_returning_void(use_multi_agent_execute_with_shared_inits_returning_void_member_function,

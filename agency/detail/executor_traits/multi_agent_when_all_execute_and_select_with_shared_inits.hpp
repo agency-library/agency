@@ -51,7 +51,7 @@ struct multi_agent_when_all_execute_and_select_with_shared_inits_functor
                                       detail::shape_size(detail::tuple_take<depth+1>(augmented_shape)));
   }
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<size_t... ContainerIndices, class AgentIndex, class TupleOfContainers, class... Types>
   __AGENCY_ANNOTATION
   void impl(detail::index_sequence<ContainerIndices...>, AgentIndex&& agent_idx, TupleOfContainers&& shared_arg_containers, Types&... past_args) const

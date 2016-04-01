@@ -16,7 +16,7 @@ namespace executor_traits_detail
 {
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function>
 __AGENCY_ANNOTATION
 void multi_agent_execute_returning_void(std::true_type, Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape)

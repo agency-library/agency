@@ -19,7 +19,7 @@ namespace allocator_traits_detail
 // 3. Use placement new in a for loop
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Alloc, class Iterator, class... Args>
 __AGENCY_ANNOTATION
 typename std::enable_if<
@@ -32,7 +32,7 @@ typename std::enable_if<
 } // end construct_each_impl1()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Alloc, class Iterator, class... Args>
 __AGENCY_ANNOTATION
 typename std::enable_if<
@@ -50,7 +50,7 @@ typename std::enable_if<
 } // end construct_each_impl2()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Alloc, class Iterator, class... Args>
 __AGENCY_ANNOTATION
 typename std::enable_if<

@@ -25,7 +25,7 @@ typename std::enable_if<
 } // end executor_type::max_shape_dimensions()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor>
 __AGENCY_ANNOTATION
 typename std::enable_if<

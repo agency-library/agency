@@ -533,7 +533,7 @@ struct future_traits
     // 2. return fut, if future_type is copiable
     // 3. convert fut into a std::future via std::async() and call .share()
     
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Future1,
              class = typename std::enable_if<
                std::is_copy_constructible<Future1>::value
@@ -561,7 +561,7 @@ struct future_traits
       return std_fut.share();
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Future1,
              class = typename std::enable_if<
                detail::has_share<Future1>::value
@@ -573,7 +573,7 @@ struct future_traits
       return fut.share();
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Future1,
              class = typename std::enable_if<
                !detail::has_share<Future1>::value
@@ -635,7 +635,7 @@ struct future_traits
     }
 
   private:
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
     static rebind<U> cast_impl2(future_type& fut,
@@ -656,7 +656,7 @@ struct future_traits
       return future_traits<future_type>::then(fut, detail::cast_functor<U>());
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
     static rebind<U> cast_impl1(future_type& fut,
@@ -700,20 +700,20 @@ struct future_traits<std::future<T>>
 
     using shared_future_type = std::shared_future<T>;
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     static shared_future_type share(future_type& fut)
     {
       return fut.share();
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     static rebind<void> make_ready()
     {
       return detail::make_ready_future();
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U, class... Args>
     __AGENCY_ANNOTATION
     static rebind<U> make_ready(Args&&... args)
@@ -721,7 +721,7 @@ struct future_traits<std::future<T>>
       return detail::make_ready_future<U>(std::forward<Args>(args)...);
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Function>
     __AGENCY_ANNOTATION
     static auto then(future_type& fut, Function&& f) ->
@@ -752,7 +752,7 @@ struct future_traits<std::future<T>>
 
 
   public:
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
     static rebind<U> cast(future_type& fut)
@@ -775,20 +775,20 @@ struct future_traits<std::shared_future<T>>
 
     using shared_future_type = std::shared_future<T>;
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     static shared_future_type share(future_type& fut)
     {
       return fut;
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     static rebind<void> make_ready()
     {
       return detail::make_ready_shared_future();
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U, class... Args>
     __AGENCY_ANNOTATION
     static rebind<U> make_ready(Args&&... args)
@@ -796,7 +796,7 @@ struct future_traits<std::shared_future<T>>
       return detail::make_ready_shared_future<U>(std::forward<Args>(args)...);
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Function>
     __AGENCY_ANNOTATION
     static auto then(future_type& fut, Function&& f) ->
@@ -826,7 +826,7 @@ struct future_traits<std::shared_future<T>>
     }
   
   public:
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
     static rebind<U> cast(future_type& fut)
@@ -871,7 +871,7 @@ void unwrap_small_tuple(Tuple&&,
                         >::type* = 0)
 {}
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Tuple>
 __AGENCY_ANNOTATION
 unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
@@ -941,7 +941,7 @@ template<class... Futures>
 using tuple_of_future_values = typename tuple_of_future_values_impl<Futures...>::type;
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Future,
          class = typename std::enable_if<
            std::is_void<
@@ -957,7 +957,7 @@ void_value get_value(Future& fut)
 }
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Future,
          class = typename std::enable_if<
            !std::is_void<
@@ -973,7 +973,7 @@ typename future_traits<Future>::value_type
 }
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class... Futures>
 __AGENCY_ANNOTATION
 tuple_of_future_values<Futures...>

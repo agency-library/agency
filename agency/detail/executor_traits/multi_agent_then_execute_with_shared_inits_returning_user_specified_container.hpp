@@ -91,7 +91,7 @@ using select_multi_agent_then_execute_with_shared_inits_returning_user_specified
 
 
 // strategy 1
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class Future, class... Factories>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
@@ -112,7 +112,7 @@ struct strategy_2_functor
 {
   mutable Function f;
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Index, class Container, class... Args>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Container& c, Args&&... args) const
@@ -122,7 +122,7 @@ struct strategy_2_functor
 };
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class Future, class... Factories>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<

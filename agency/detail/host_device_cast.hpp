@@ -16,7 +16,7 @@ struct host_device_function
 
   // XXX this should use agency::invoke(), but there's a circular dependency
   // between this header and functional.hpp
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class... Args>
   __AGENCY_ANNOTATION
   auto operator()(Args&&... args) const

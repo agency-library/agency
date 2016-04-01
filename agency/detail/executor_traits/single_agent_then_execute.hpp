@@ -58,7 +58,7 @@ using select_single_agent_then_execute_implementation =
 } // end single_agent_then_execute_implementation_strategies
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
@@ -84,7 +84,7 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
   }
 
   // neither f's argument nor result are void
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Arg1, class Arg2>
   __AGENCY_ANNOTATION
   void operator()(Arg1& arg1, Arg2& arg2) const
@@ -94,7 +94,7 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
 
   // when the functor receives only a single argument,
   // that means either f's result or parameter is void, but not both
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Arg>
   __AGENCY_ANNOTATION
   void operator()(Arg& arg,
@@ -117,7 +117,7 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
 };
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
@@ -153,7 +153,7 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
   }
 
   // neither f's argument nor result are void
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Index, class Arg1, class Arg2>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Arg1& arg1, Arg2& arg2) const
@@ -163,7 +163,7 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
 
   // when the functor receives only a single argument,
   // that means either f's result or parameter is void, but not both
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Index, class Arg>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Arg& arg,
@@ -186,7 +186,7 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
 };
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
@@ -230,7 +230,7 @@ struct future_traits_then_with_nested_single_agent_execute_functor
 
 // XXX collapse this function and the next one into the same
 //     by eliminating the enable_if
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
@@ -254,7 +254,7 @@ typename executor_traits<Executor>::template future<
 } // end single_agent_then_execute()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<

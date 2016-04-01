@@ -106,7 +106,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
   //     default should be lattice<index_type>, but by what process should we eventually
   //     arrive at that default?
   // XXX yank the general implementation from execution_group now that param_type::inner() exists
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   __AGENCY_ANNOTATION
   static auto domain(const param_type& param)
     -> decltype(ExecutionAgent::domain(param))
@@ -286,7 +286,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
     }
 
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class ExecutionAgent1>
     __AGENCY_ANNOTATION
     static shared_param_tuple_type make_shared_param_tuple_impl(const param_type& param, std::true_type)
@@ -384,7 +384,7 @@ class basic_execution_agent
 
 
   protected:
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_execution_agent(const index_type& index, const param_type& param) : index_(index), domain_(param.domain()) {}
 
@@ -711,7 +711,7 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
     }
 
   protected:
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     execution_group(const index_type& index, const param_type& param)
       : outer_agent_(detail::make_agent<outer_execution_agent_type>(outer_index(index), param.outer())),
@@ -719,7 +719,7 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
     {}
 
     // XXX ensure all the shared params are the right type
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class SharedParam1, class... SharedParams>
     __AGENCY_ANNOTATION
     execution_group(const index_type& index, const param_type& param, SharedParam1& shared_param1, SharedParams&... shared_params)

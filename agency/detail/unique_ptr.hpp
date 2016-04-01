@@ -40,7 +40,7 @@ class deleter
     __AGENCY_ANNOTATION
     deleter(const deleter<OtherAllocator>&) {}
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     void operator()(pointer ptr) const
     {

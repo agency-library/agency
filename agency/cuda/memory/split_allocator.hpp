@@ -48,7 +48,7 @@ class split_allocator
     __host__ __device__
     split_allocator(const split_allocator<U>&) {}
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __host__ __device__
     split_allocator(const host_allocator& host_alloc, const device_allocator& device_alloc = device_allocator())
       : host_alloc_(host_alloc),

@@ -56,7 +56,7 @@ using select_future_cast_implementation =
 } // end future_cast_implementation_strategies
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class T, class Executor, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<T>

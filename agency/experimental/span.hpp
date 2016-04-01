@@ -93,7 +93,7 @@ class span : private detail::span_base<Extent>
     span(element_type (&arr)[N]) : span(arr, N) {}
 
     // XXX should require iterator contiguity, but that requires contiguous_iterator_tag
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Container,
              class BeginPointer = decltype(&*std::declval<Container>().begin()),
              class EndPointer = decltype(&*std::declval<Container>().end()),

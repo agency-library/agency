@@ -16,7 +16,7 @@ struct single_element_container
   __AGENCY_ANNOTATION
   single_element_container() {}
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Shape>
   __AGENCY_ANNOTATION
   single_element_container(const Shape&) : element{} {}

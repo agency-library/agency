@@ -50,7 +50,7 @@ using select_multi_agent_then_execute_returning_void_implementation_strategy =
   >::type;
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<void>
@@ -61,7 +61,7 @@ typename executor_traits<Executor>::template future<void>
 } // end multi_agent_then_execute_returning_void()
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<void>
@@ -92,7 +92,7 @@ struct invoke_and_return_empty
 };
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<void>

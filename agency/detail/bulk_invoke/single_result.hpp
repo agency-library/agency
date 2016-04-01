@@ -91,13 +91,13 @@ class single_result_container
   public:
     using shape_type = Shape;
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     single_result_container()
       : element_{}
     {}
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     single_result_container(const single_result_container& other)
       : element_(other.element_)
@@ -105,7 +105,7 @@ class single_result_container
 
     // XXX we might prefer to make this a template and do enable_if<is_shape<T>> here,
     //     but g++ < 5 cannot handle it
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     single_result_container(const shape_type&)
       : single_result_container()
@@ -118,7 +118,7 @@ class single_result_container
       return *this;
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     void operator=(single_result<T>&& result)
     {

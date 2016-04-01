@@ -56,7 +56,7 @@ detail::shared_parameter<level,T,T> share(const T& val)
 }
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class F, class... Args>
 inline __AGENCY_ANNOTATION
 auto invoke(F&& f, Args&&... args) -> 

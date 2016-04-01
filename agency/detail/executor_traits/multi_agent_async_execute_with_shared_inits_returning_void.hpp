@@ -17,7 +17,7 @@ namespace executor_traits_detail
 {
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class... Factories>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<void>

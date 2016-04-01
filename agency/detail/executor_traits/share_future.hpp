@@ -71,7 +71,7 @@ struct has_multi_future_share_future_with_factory
 };
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Future, class Factory>
 __AGENCY_ANNOTATION
 typename std::enable_if<

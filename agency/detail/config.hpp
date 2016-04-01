@@ -7,11 +7,11 @@
 #endif // __AGENCY_ANNOTATION
 
 #if defined(__NVCC__) && !(defined(__clang__) && defined(__CUDA__))
-#  ifndef __agency_hd_warning_disable__
-#    define __agency_hd_warning_disable__ \
-#    pragma hd_warning_disable
-#  endif // __agency_hd_warning_disable__
+#  ifndef __agency_exec_check_disable__
+#    define __agency_exec_check_disable__ \
+#    pragma nv_exec_check_disable
+#  endif // __agency_exec_check_disable__
 #else
-#  define __agency_hd_warning_disable__
-#endif // __agency_hd_warning_disable__
+#  define __agency_exec_check_disable__
+#endif // __agency_exec_check_disable__
 

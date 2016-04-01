@@ -13,7 +13,7 @@ namespace allocator_traits_detail
 {
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Alloc, class T, class... Args>
 __AGENCY_ANNOTATION
 typename std::enable_if<

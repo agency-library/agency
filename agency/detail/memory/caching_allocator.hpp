@@ -191,7 +191,7 @@ class caching_allocator
       return allocator_traits<allocator_type>::construct_each(resource_->get_allocator(), first, last, std::forward<Args>(args)...);
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class T>
     __AGENCY_ANNOTATION
     void destroy(T* ptr, size_type n)

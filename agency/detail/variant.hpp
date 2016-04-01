@@ -681,7 +681,7 @@ struct apply_visitor_impl : apply_visitor_impl<VisitorReference,Result,Types...>
 {
   typedef apply_visitor_impl<VisitorReference,Result,Types...> super_t;
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   __AGENCY_ANNOTATION
   static Result do_it(VisitorReference visitor, void* ptr, size_t index)
   {
@@ -694,7 +694,7 @@ struct apply_visitor_impl : apply_visitor_impl<VisitorReference,Result,Types...>
   }
 
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   __AGENCY_ANNOTATION
   static Result do_it(VisitorReference visitor, const void* ptr, size_t index)
   {
@@ -711,14 +711,14 @@ struct apply_visitor_impl : apply_visitor_impl<VisitorReference,Result,Types...>
 template<typename VisitorReference, typename Result, typename T>
 struct apply_visitor_impl<VisitorReference,Result,T>
 {
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   __AGENCY_ANNOTATION
   static Result do_it(VisitorReference visitor, void* ptr, size_t)
   {
     return visitor(*reinterpret_cast<T*>(ptr));
   }
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   __AGENCY_ANNOTATION
   static Result do_it(VisitorReference visitor, const void* ptr, size_t)
   {

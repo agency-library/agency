@@ -33,7 +33,7 @@ using select_multi_agent_then_execute_returning_user_specified_container_impleme
   >::type;
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
@@ -66,7 +66,7 @@ struct ignore_tail_parameters_and_invoke<Function,void>
 {
   mutable Function f;
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Index, class... Args>
   __AGENCY_ANNOTATION
   typename std::result_of<Function(Index)>::type

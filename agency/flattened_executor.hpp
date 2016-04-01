@@ -74,7 +74,7 @@ struct guarded_container_factory
 
   using container_type = typename std::result_of<Factory(Shape)>::type;
 
-  __agency_hd_warning_disable__
+  __agency_exec_check_disable__
   template<class Arg>
   __AGENCY_ANNOTATION
   guarded_container<container_type> operator()(const Arg&)
