@@ -213,6 +213,8 @@ class array
     __AGENCY_ANNOTATION
     friend bool operator==(const array& lhs, const Range& rhs)
     {
+      if(lhs.size() != rhs.size()) return false;
+
       auto i = lhs.begin();
       auto j = rhs.begin();
 
@@ -233,6 +235,27 @@ class array
     friend bool operator==(const Range& lhs, const array& rhs)
     {
       return rhs == lhs;
+    }
+
+    // this operator== avoids ambiguities introduced by the template friends above
+    __agency_hd_warning_disable__
+    __AGENCY_ANNOTATION
+    bool operator==(const array& rhs) const
+    {
+      if(size() != rhs.size()) return false;
+
+      auto i = begin();
+      auto j = rhs.begin();
+
+      for(; i != end(); ++i, ++j)
+      {
+        if(*i != *j)
+        {
+          return false;
+        }
+      }
+
+      return true;
     }
 
   private:
