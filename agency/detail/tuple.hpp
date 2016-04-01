@@ -580,6 +580,32 @@ auto unwrap_single_element_tuple(Tuple&& t)
 }
 
 
+// if the argument is a tuple, it unwraps it if it is a single-element tuple,
+// otherwise, it returns the tuple
+// if the argument is not a tuple, it returns the argument
+template<class Tuple,
+         class = typename std::enable_if<
+           is_tuple<typename std::decay<Tuple>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+auto unwrap_single_element_tuple_if(Tuple&& t)
+  -> decltype(
+       detail::unwrap_single_element_tuple(std::forward<Tuple>(t))
+     )
+{
+  return detail::unwrap_single_element_tuple(std::forward<Tuple>(t));
+}
+
+template<class T,
+         class = typename std::enable_if<
+           !is_tuple<typename std::decay<T>::type>::value
+         >::type>
+T&& unwrap_single_element_tuple_if(T&& arg)
+{
+  return std::forward<T>(arg);
+}
+
+
 template<class TupleReference, class IndexSequence>
 struct decay_tuple_impl;
 
@@ -734,6 +760,37 @@ using tuple_reverse_t = tuple_from_type_list_t<
     tuple_elements<Tuple>
   >
 >;
+
+
+template<size_t n,
+         class T,
+         class = typename std::enable_if<
+           is_tuple<typename std::decay<T>::type>::value
+         >::type,
+         class = typename std::enable_if<
+           (n <= std::tuple_size<typename std::decay<T>::type>::value)
+         >::type>
+__AGENCY_ANNOTATION
+auto tuple_take_if(T&& t) ->
+  decltype(detail::tuple_take<n>(std::forward<T>(t)))
+{
+  return detail::tuple_take<n>(std::forward<T>(t));
+}
+
+
+template<size_t n,
+         class T,
+         class = typename std::enable_if<
+           !is_tuple<typename std::decay<T>::type>::value
+         >::type,
+         class = typename std::enable_if<
+           n == 1
+         >::type>
+__AGENCY_ANNOTATION
+typename std::decay<T>::type tuple_take_if(T&& value)
+{
+  return std::forward<T>(value);
+}
 
 
 } // end detail
