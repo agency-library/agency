@@ -29,25 +29,9 @@ void_factory make_result_factory(const Executor&)
 template<class Executor, class ResultOfFunction>
 struct result_container
 {
-  template<class T, class Default>
-  struct member_result_type_or
-  {
-    template<class U,
-             class Result = typename U::result_type>
-    static Result test(int);
-
-    template<class U>
-    static Default test(...);
-
-    using type = decltype(test<T>(0));
-  };
-
   using type = typename std::conditional<
-    detail::is_single_result<ResultOfFunction>::value,
-    detail::single_result_container<
-      typename member_result_type_or<ResultOfFunction, int>::type,
-      executor_shape_t<Executor>
-    >,
+    detail::is_scope_result<ResultOfFunction>::value,
+    typename detail::scope_result_to_scope_result_container<ResultOfFunction, Executor>::type,
     executor_result_t<Executor,ResultOfFunction>
   >::type;
 };

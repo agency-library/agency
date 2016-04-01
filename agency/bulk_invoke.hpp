@@ -104,7 +104,7 @@ unpack_shared_parameters_from_executor_and_invoke<Function> make_unpack_shared_p
 }
 
 
-// this overload handles the general case where bulk_invoke_executor() has multiple non-void results
+// this overload handles the general case where the user function returns a normal result
 template<class Executor, class Function, class Factory, class Tuple, size_t... TupleIndices>
 typename std::result_of<Factory(executor_shape_t<Executor>)>::type
   bulk_invoke_executor_impl(Executor& exec,
@@ -117,11 +117,12 @@ typename std::result_of<Factory(executor_shape_t<Executor>)>::type
   return executor_traits<Executor>::execute(exec, f, result_factory, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
 }
 
-// this overload handles the special case where bulk_invoke_executor() has a single non-void result
-template<class Executor, class Function, class T, class Tuple, size_t... TupleIndices>
-T bulk_invoke_executor_impl(Executor& exec,
+// this overload handles the special case where the user function returns a scope_result
+template<class Executor, class Function, class T, size_t scope, class Tuple, size_t... TupleIndices>
+typename detail::scope_result_container<T,scope,Executor>::result_type
+  bulk_invoke_executor_impl(Executor& exec,
                             Function f,
-                            detail::executor_traits_detail::container_factory<detail::single_result_container<T,executor_shape_t<Executor>>> result_factory,
+                            detail::executor_traits_detail::container_factory<detail::scope_result_container<T,scope,Executor>> result_factory,
                             typename executor_traits<Executor>::shape_type shape,
                             Tuple&& factory_tuple,
                             detail::index_sequence<TupleIndices...>)
@@ -129,7 +130,7 @@ T bulk_invoke_executor_impl(Executor& exec,
   return executor_traits<Executor>::execute(exec, f, result_factory, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
 }
 
-// this overload handles the special case where bulk_invoke_executor() has a void result
+// this overload handles the special case where the user function returns void
 template<class Executor, class Function, class Tuple, size_t... TupleIndices>
 void bulk_invoke_executor_impl(Executor& exec,
                                Function f,
@@ -142,7 +143,7 @@ void bulk_invoke_executor_impl(Executor& exec,
 }
 
 
-// this overload handles the general case where bulk_async_executor() has multiple non-void results
+// this overload handles the general case where the user function returns a normal result
 template<class Executor, class Function, class Factory, class Tuple, size_t... TupleIndices>
 executor_future_t<Executor, typename std::result_of<Factory(executor_shape_t<Executor>)>::type>
   bulk_async_executor_impl(Executor& exec,
@@ -155,22 +156,24 @@ executor_future_t<Executor, typename std::result_of<Factory(executor_shape_t<Exe
   return executor_traits<Executor>::async_execute(exec, f, result_factory, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
 }
 
-// this overload handles the special case where bulk_async_executor() has a single result
-template<class Executor, class Function, class T, class Tuple, size_t... TupleIndices>
-executor_future_t<Executor,T>
+// this overload handles the special case where the user function returns a scope_result
+template<class Executor, class Function, class T, size_t scope, class Tuple, size_t... TupleIndices>
+executor_future_t<Executor, typename detail::scope_result_container<T,scope,Executor>::result_type>
   bulk_async_executor_impl(Executor& exec,
                            Function f,
-                           detail::executor_traits_detail::container_factory<detail::single_result_container<T,executor_shape_t<Executor>>> result_factory,
+                           detail::executor_traits_detail::container_factory<detail::scope_result_container<T,scope,Executor>> result_factory,
                            typename executor_traits<Executor>::shape_type shape,
                            Tuple&& factory_tuple,
                            detail::index_sequence<TupleIndices...>)
 {
   auto intermediate_future = executor_traits<Executor>::async_execute(exec, f, result_factory, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
 
-  return executor_traits<Executor>::template future_cast<T>(exec, intermediate_future);
+  using result_type = typename detail::scope_result_container<T,scope,Executor>::result_type;
+
+  return executor_traits<Executor>::template future_cast<result_type>(exec, intermediate_future);
 }
 
-// this overload handles the special case where bulk_async_executor() has a void result
+// this overload handles the special case where the user function returns void
 template<class Executor, class Function, class Tuple, size_t... TupleIndices>
 executor_future_t<Executor,void>
   bulk_async_executor_impl(Executor& exec,
@@ -203,20 +206,17 @@ struct decay_parameter<shared_parameter<level,T,Args...>>
 template<class Executor, class Function, class... Args>
 struct bulk_invoke_executor_result
 {
-  // first figure out what type the function returns
-  using function_result = result_of_t<
+  // first figure out what type the user function returns
+  using user_function_result = result_of_t<
     Function(executor_index_t<Executor>, decay_parameter_t<Args>...)
   >;
 
-  template<class T>
-  using nested_result_type = typename T::result_type;
-
-  // if the function returns single_result<T>, then the result of bulk_invoke(executor) is T
+  // if the user function returns scope_result, then use scope_result_to_bulk_invoke_result to figure out what to return
   // else, the result is whatever executor_result<Executor, function_result> thinks it is
   using type = typename detail::lazy_conditional<
-    detail::is_single_result<function_result>::value,
-    detail::detected_or<void, nested_result_type, function_result>,
-    executor_result<Executor, function_result>
+    detail::is_scope_result<user_function_result>::value,
+    detail::scope_result_to_bulk_invoke_result<user_function_result, Executor>,
+    executor_result<Executor, user_function_result>
   >::type;
 };
 
@@ -409,20 +409,17 @@ struct execute_agent_functor
 template<class ExecutionPolicy, class Function, class... Args>
 struct bulk_invoke_execution_policy_result
 {
-  // first figure out what type the function results
-  using function_result = result_of_t<
+  // first figure out what type the user function returns
+  using user_function_result = result_of_t<
     Function(execution_policy_agent_t<ExecutionPolicy>&, decay_parameter_t<Args>...)
   >;
 
-  template<class T>
-  using nested_result_type = typename T::result_type;
-
-  // if the function returns single_result<T>, then the result of bulk_invoke(policy) is T
+  // if the user function returns scope_result, then use scope_result_to_bulk_invoke_result to figure out what to return
   // else, the result is whatever executor_result<executor_type, function_result> thinks it is
   using type = typename detail::lazy_conditional<
-    detail::is_single_result<function_result>::value,
-    detail::detected_or<void, nested_result_type, function_result>,
-    executor_result<execution_policy_executor_t<ExecutionPolicy>, function_result>
+    detail::is_scope_result<user_function_result>::value,
+    detail::scope_result_to_bulk_invoke_result<user_function_result, execution_policy_executor_t<ExecutionPolicy>>,
+    executor_result<execution_policy_executor_t<ExecutionPolicy>, user_function_result>
   >::type;
 };
 
