@@ -19,6 +19,15 @@ void swap(T& a, T& b)
 }
 
 
+template<class T>
+__AGENCY_ANNOTATION
+T&& decay_copy(T&& arg)
+{
+  return std::forward<T>(arg);
+}
+
+
 } // end detail
 } // end agency
+
 

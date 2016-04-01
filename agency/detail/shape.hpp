@@ -5,6 +5,7 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/shape_tuple.hpp>
+#include <agency/detail/utility.hpp>
 
 // we can't use std::numeric_limits<T>::max() in a __device__
 // function, so we need to use an alternative in Thrust

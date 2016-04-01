@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/swap.hpp>
+#include <agency/detail/utility.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
 #include <utility>
 #include <memory>
