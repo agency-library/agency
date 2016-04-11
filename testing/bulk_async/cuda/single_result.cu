@@ -70,7 +70,7 @@ void test()
 
       return std::ignore;
     },
-    agency::share<0>(val));
+    agency::share(val));
 
     auto result = f.get();
 

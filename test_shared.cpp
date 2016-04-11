@@ -166,7 +166,7 @@ void test0()
   };
 
   agency::sequential_executor exec;
-  ::bulk_invoke_executor(exec, lambda, 10, agency::share<0>(13));
+  ::bulk_invoke_executor(exec, lambda, 10, agency::share(13));
 }
 
 

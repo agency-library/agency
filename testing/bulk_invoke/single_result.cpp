@@ -64,7 +64,7 @@ void test()
 
       return std::ignore;
     },
-    agency::share<0>(val));
+    agency::share(val));
 
     assert(result == 13);
   }

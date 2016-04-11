@@ -60,7 +60,7 @@ void test()
     {
       return val;
     },
-    agency::share<0>(val));
+    agency::share(val));
 
     auto result = f.get();
 

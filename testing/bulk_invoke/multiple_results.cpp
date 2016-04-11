@@ -56,7 +56,7 @@ void test()
     {
       return val;
     },
-    agency::share<0>(val));
+    agency::share(val));
 
     using executor_type = typename ExecutionPolicy::executor_type;
     using container_type = typename agency::executor_traits<executor_type>::template container<int>;

@@ -72,7 +72,7 @@ void test(ExecutionPolicy1 outer, ExecutionPolicy2 inner)
 
       return std::ignore;
     },
-    agency::share<0>(val));
+    agency::share(val));
 
     auto result = f.get();
 

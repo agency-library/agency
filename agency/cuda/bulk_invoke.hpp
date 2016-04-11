@@ -240,7 +240,7 @@ agency::detail::bulk_invoke_execution_policy_result_t<
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto invoke_me = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  return agency::cuda::bulk_invoke(policy.executor(), executor_shape, invoke_me, std::forward<Args>(args)..., agency::share<SharedArgIndices>(agency::detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
+  return agency::cuda::bulk_invoke(policy.executor(), executor_shape, invoke_me, std::forward<Args>(args)..., agency::share_at_scope<SharedArgIndices>(agency::detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
 }
 
 
@@ -271,7 +271,7 @@ agency::detail::bulk_async_execution_policy_result_t<
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto invoke_me = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  return agency::cuda::bulk_async(policy.executor(), executor_shape, invoke_me, std::forward<Args>(args)..., agency::share<SharedArgIndices>(agency::detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
+  return agency::cuda::bulk_async(policy.executor(), executor_shape, invoke_me, std::forward<Args>(args)..., agency::share_at_scope<SharedArgIndices>(agency::detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
 }
 
 
