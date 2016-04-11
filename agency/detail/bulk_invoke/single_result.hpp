@@ -9,7 +9,7 @@ namespace agency
 
 
 template<class T>
-using single_result = scope_result<T,0>;
+using single_result = scope_result<0,T>;
 
 
 } // end agency

@@ -14,7 +14,7 @@ void test(ExecutionPolicy1 outer, ExecutionPolicy2 inner)
     using agent = typename decltype(policy)::execution_agent_type;
 
     auto f = agency::bulk_async(policy,
-      [] __host__ __device__ (agent& self) -> agency::scope_result<int,1>
+      [] __host__ __device__ (agent& self) -> agency::scope_result<1,int>
     {
       if(self.inner().index() == 0)
       {
@@ -38,7 +38,7 @@ void test(ExecutionPolicy1 outer, ExecutionPolicy2 inner)
     int val = 13;
 
     auto f = agency::bulk_async(policy,
-      [] __host__ __device__ (agent& self, int val) -> agency::scope_result<int,1>
+      [] __host__ __device__ (agent& self, int val) -> agency::scope_result<1,int>
     {
       if(self.inner().index() == 0)
       {
@@ -63,7 +63,7 @@ void test(ExecutionPolicy1 outer, ExecutionPolicy2 inner)
     int val = 13;
 
     auto f = agency::bulk_async(policy,
-      [] __host__ __device__ (agent& self, int& val) -> agency::scope_result<int,1>
+      [] __host__ __device__ (agent& self, int& val) -> agency::scope_result<1,int>
     {
       if(self.inner().index() == 0)
       {

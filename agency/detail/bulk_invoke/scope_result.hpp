@@ -21,20 +21,31 @@ constexpr size_t invalid_scope{100000};
 } // end detail
 
 
-template<class T, size_t scope>
+template<size_t scope, class T>
 class scope_result;
 
 
 template<class T>
-class scope_result<T,detail::invalid_scope> {};
+class scope_result<detail::invalid_scope,T> {};
+
+
+namespace detail
+{
+
+
+template<class T>
+using no_result_t = scope_result<detail::invalid_scope,T>;
+
+
+} // end detail
 
 
 template<class T>
 __AGENCY_ANNOTATION
-scope_result<T,detail::invalid_scope> no_result();
+detail::no_result_t<T> no_result();
 
 
-template<class T, size_t N>
+template<size_t N, class T>
 class scope_result : public detail::optional<T>
 {
   private:
@@ -66,7 +77,7 @@ class scope_result : public detail::optional<T>
     {}
 
     __AGENCY_ANNOTATION
-    scope_result(const scope_result<T,detail::invalid_scope>&)
+    scope_result(const detail::no_result_t<T>&)
       : scope_result()
     {}
 
@@ -78,15 +89,15 @@ class scope_result : public detail::optional<T>
 
     template<class U>
     __AGENCY_ANNOTATION
-    friend scope_result<U,detail::invalid_scope> no_result();
+    friend detail::no_result_t<U> no_result();
 };
 
 
 template<class T>
 __AGENCY_ANNOTATION
-scope_result<T,detail::invalid_scope> no_result()
+detail::no_result_t<T> no_result()
 {
-  return scope_result<T,detail::invalid_scope>();
+  return detail::no_result_t<T>();
 }
 
 
@@ -97,11 +108,11 @@ namespace detail
 template<class T>
 struct is_scope_result : std::false_type {};
 
-template<class T, size_t scope>
-struct is_scope_result<scope_result<T,scope>> : std::true_type {};
+template<size_t scope,class T>
+struct is_scope_result<scope_result<scope,T>> : std::true_type {};
 
 
-template<class T, size_t scope, class Executor>
+template<size_t scope, class T, class Executor>
 class scope_result_container
   : public detail::array<
       T,
@@ -152,7 +163,7 @@ class scope_result_container
 
       __agency_exec_check_disable__
       __AGENCY_ANNOTATION
-      void operator=(scope_result<T,scope>&& result)
+      void operator=(scope_result<scope,T>&& result)
       {
         if(result)
         {
@@ -174,7 +185,7 @@ class scope_result_container
 
 // special case for scope 0: there is only a single result
 template<class T, class Executor>
-class scope_result_container<T, 0, Executor>
+class scope_result_container<0, T, Executor>
 {
   private:
     // XXX not making this a base class might make it difficult to cast
@@ -213,7 +224,7 @@ class scope_result_container<T, 0, Executor>
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    void operator=(scope_result<T,0>&& result)
+    void operator=(scope_result<0,T>&& result)
     {
       if(result)
       {
@@ -259,8 +270,8 @@ struct scope_result_to_scope_result_container
 
   // the type returned by bulk_invoke()
   using type = scope_result_container<
-    user_result_type,
     scope,
+    user_result_type,
     Executor
   >;
 };
