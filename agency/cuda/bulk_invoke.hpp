@@ -20,121 +20,6 @@ namespace detail
 {
 
   
-template<class Function>
-struct unpack_shared_parameters_from_executor_and_invoke
-{
-  mutable Function g;
-
-  template<class Index, class Tuple, size_t... I>
-  __AGENCY_ANNOTATION
-  auto invoke_from_tuple_impl(const Index& idx, const Tuple& t, agency::detail::index_sequence<I...>) const
-    -> decltype(
-         g(idx, agency::detail::get<I>(t)...)
-       )
-  {
-    return g(idx, agency::detail::get<I>(t)...);
-  }
-
-  template<class Index, class Tuple>
-  __AGENCY_ANNOTATION
-  auto invoke_from_tuple(const Index& idx, const Tuple& t) const
-    -> decltype(
-         this->invoke_from_tuple_impl(idx, t, agency::detail::make_index_sequence<std::tuple_size<Tuple>::value>())
-       )
-  {
-    return this->invoke_from_tuple_impl(idx, t, agency::detail::make_index_sequence<std::tuple_size<Tuple>::value>());
-  }
-
-  template<class Index, class... Types>
-  __AGENCY_ANNOTATION
-  auto operator()(const Index& idx, Types&... packaged_shared_params) const
-    -> decltype(
-         this->invoke_from_tuple(
-           idx,
-           agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params...)
-         )
-       )
-  {
-    auto shared_param_tuple = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params...);
-
-    return this->invoke_from_tuple(idx, shared_param_tuple);
-  }
-};
-
-
-} // end detail
-
-
-template<class Executor, class Function, class... Args>
-typename agency::detail::enable_if_bulk_invoke_executor<
-  Executor, Function, Args...
->::type
-  bulk_invoke(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
-{
-  // the _1 is for the executor idx parameter, which is the first parameter passed to f
-  auto g = agency::detail::bind_agent_local_parameters_workaround_nvbug1754712(std::integral_constant<size_t,1>(), f, agency::detail::placeholders::_1, std::forward<Args>(args)...);
-
-  // make a tuple of the shared args
-  auto shared_arg_tuple = agency::detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
-
-  using traits = executor_traits<Executor>;
-
-  // package up the shared parameters for the executor
-  const size_t execution_depth = traits::execution_depth;
-
-  // create a tuple of factories to use for shared parameters for the executor
-  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<execution_depth>(shared_arg_tuple);
-
-  // unpack shared parameters we receive from the executor
-  auto h = detail::unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
-
-  // compute the type of f's result
-  using result_of_f = typename std::result_of<Function(agency::detail::executor_index_t<Executor>,agency::detail::decay_parameter_t<Args>...)>::type;
-
-  // based on the type of f's result, make a factory that will create the appropriate type of container to store f's results
-  auto result_factory = agency::detail::make_result_factory<result_of_f>(exec);
-
-  return agency::detail::bulk_invoke_executor_impl(exec, h, result_factory, shape, factory_tuple, agency::detail::make_index_sequence<execution_depth>());
-}
-
-
-template<class Executor, class Function, class... Args>
-typename agency::detail::enable_if_bulk_async_executor<
-  Executor, Function, Args...
->::type
-  bulk_async(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
-{
-  // the _1 is for the executor idx parameter, which is the first parameter passed to f
-  auto g = agency::detail::bind_agent_local_parameters_workaround_nvbug1754712(std::integral_constant<size_t,1>(), f, agency::detail::placeholders::_1, std::forward<Args>(args)...);
-
-  // make a tuple of the shared args
-  auto shared_arg_tuple = agency::detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
-
-  using traits = executor_traits<Executor>;
-
-  // package up the shared parameters for the executor
-  const size_t execution_depth = traits::execution_depth;
-
-  // create a tuple of factories to use for shared parameters for the executor
-  auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<execution_depth>(shared_arg_tuple);
-
-  // unpack shared parameters we receive from the executor
-  auto h = detail::unpack_shared_parameters_from_executor_and_invoke<decltype(g)>{g};
-
-  // compute the type of f's result
-  using result_of_f = typename std::result_of<Function(agency::detail::executor_index_t<Executor>,agency::detail::decay_parameter_t<Args>...)>::type;
-
-  // based on the type of f's result, make a factory that will create the appropriate type of container to store f's results
-  auto result_factory = agency::detail::make_result_factory<result_of_f>(exec);
-
-  return agency::detail::bulk_async_executor_impl(exec, h, result_factory, shape, factory_tuple, agency::detail::make_index_sequence<execution_depth>());
-}
-
-
-namespace detail
-{
-
-
 template<class Function, class Tuple, size_t... Indices>
 struct unpack_arguments_and_invoke_with_self
 {
@@ -212,6 +97,7 @@ struct execute_agent_functor
 };
 
 
+// XXX eliminate this function
 template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
 agency::detail::bulk_invoke_execution_policy_result_t<
   ExecutionPolicy, Function, Args...
@@ -239,10 +125,11 @@ agency::detail::bulk_invoke_execution_policy_result_t<
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto invoke_me = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  return agency::cuda::bulk_invoke(policy.executor(), executor_shape, invoke_me, std::forward<Args>(args)..., agency::share_at_scope<SharedArgIndices>(agency::detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
+  return agency::detail::bulk_invoke_executor(policy.executor(), executor_shape, invoke_me, std::forward<Args>(args)..., agency::share_at_scope<SharedArgIndices>(agency::detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
 }
 
 
+// XXX eliminate this function
 template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
 agency::detail::bulk_async_execution_policy_result_t<
   ExecutionPolicy, Function, Args...
@@ -270,7 +157,7 @@ agency::detail::bulk_async_execution_policy_result_t<
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto invoke_me = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  return agency::cuda::bulk_async(policy.executor(), executor_shape, invoke_me, std::forward<Args>(args)..., agency::share_at_scope<SharedArgIndices>(agency::detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
+  return agency::detail::bulk_async_executor(policy.executor(), executor_shape, invoke_me, std::forward<Args>(args)..., agency::share_at_scope<SharedArgIndices>(agency::detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
 }
 
 

@@ -109,12 +109,13 @@ struct enable_if_bulk_async_executor
 {};
 
 
+// XXX we no longer need this enable_if
 template<class Executor, class Function, class... Args>
 typename detail::enable_if_bulk_async_executor<Executor, Function, Args...>::type
-  bulk_async(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
+  bulk_async_executor(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
-  auto g = detail::bind_agent_local_parameters<1>(f, detail::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::bind_agent_local_parameters_workaround_nvbug1754712(std::integral_constant<size_t,1>(), f, detail::placeholders::_1, std::forward<Args>(args)...);
 
   // make a tuple of the shared args
   auto shared_arg_tuple = detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
@@ -201,7 +202,7 @@ bulk_async_execution_policy_result_t<
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  return detail::bulk_async(policy.executor(), executor_shape, lambda, std::forward<Args>(args)..., agency::share_at_scope<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
+  return detail::bulk_async_executor(policy.executor(), executor_shape, lambda, std::forward<Args>(args)..., agency::share_at_scope<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
 }
 
 

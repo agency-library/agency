@@ -206,6 +206,8 @@ struct enable_if_bulk_invoke_executor
 {};
 
 
+// XXX we no longer need this has_bulk_invoke
+//     nor the enable_if
 template<class Executor, class Function, class... Args,
          class = typename std::enable_if<
            !has_bulk_invoke<Executor&,typename executor_traits<Executor>::shape_type,Function,Args&&...>::value
@@ -218,7 +220,7 @@ typename detail::enable_if_bulk_invoke_executor<
   bulk_invoke_executor(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
-  auto g = detail::bind_agent_local_parameters<1>(f, detail::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::bind_agent_local_parameters_workaround_nvbug1754712(std::integral_constant<size_t,1>(), f, detail::placeholders::_1, std::forward<Args>(args)...);
 
   // make a tuple of the shared args
   auto shared_arg_tuple = detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
