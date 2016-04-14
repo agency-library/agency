@@ -4,7 +4,7 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/tuple_matrix.hpp>
-#include <agency/detail/bind.hpp>
+#include <agency/detail/bulk_invoke/bind.hpp>
 #include <agency/functional.hpp>
 #include <agency/detail/factory.hpp>
 #include <type_traits>
