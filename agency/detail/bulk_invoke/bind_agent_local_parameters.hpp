@@ -40,10 +40,10 @@ typename std::enable_if<
 template<size_t index_of_first_user_parameter, size_t... I, class Function, class... Args>
 auto bind_agent_local_parameters_impl(index_sequence<I...>, Function f, Args&&... args)
   -> decltype(
-       std::bind(f, hold_shared_parameters_place<index_of_first_user_parameter + I>(std::forward<Args>(args))...)
+       detail::bind(f, hold_shared_parameters_place<index_of_first_user_parameter + I>(std::forward<Args>(args))...)
      )
 {
-  return std::bind(f, hold_shared_parameters_place<index_of_first_user_parameter + I>(std::forward<Args>(args))...);
+  return detail::bind(f, hold_shared_parameters_place<index_of_first_user_parameter + I>(std::forward<Args>(args))...);
 }
 
 
