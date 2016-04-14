@@ -38,6 +38,7 @@ typename std::enable_if<
 // if J... is a bit vector indicating which elements of args are shared parameters
 // then I... is the exclusive scan of J
 template<size_t index_of_first_user_parameter, size_t... I, class Function, class... Args>
+__AGENCY_ANNOTATION
 auto bind_agent_local_parameters_impl(index_sequence<I...>, Function f, Args&&... args)
   -> decltype(
        detail::bind(f, hold_shared_parameters_place<index_of_first_user_parameter + I>(std::forward<Args>(args))...)
@@ -81,6 +82,7 @@ using scanned_shared_argument_indices = typename scanned_shared_argument_indices
 
 
 template<size_t index_of_first_agent_local_parameter, class Function, class... Args>
+__AGENCY_ANNOTATION
 auto bind_agent_local_parameters(Function f, Args&&... args)
   -> decltype(
        bind_agent_local_parameters_impl<index_of_first_agent_local_parameter>(scanned_shared_argument_indices<Args...>{}, f, std::forward<Args>(args)...)
@@ -93,6 +95,7 @@ auto bind_agent_local_parameters(Function f, Args&&... args)
 // XXX this function worksaround nvbug 1754712
 // XXX eliminate it when that bug no longer exists
 template<size_t index_of_first_agent_local_parameter, class Function, class... Args>
+__AGENCY_ANNOTATION
 auto bind_agent_local_parameters_workaround_nvbug1754712(std::integral_constant<size_t,index_of_first_agent_local_parameter>, Function f, Args&&... args)
   -> decltype(
        bind_agent_local_parameters_impl<index_of_first_agent_local_parameter>(scanned_shared_argument_indices<Args...>{}, f, std::forward<Args>(args)...)
