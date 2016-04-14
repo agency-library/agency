@@ -21,31 +21,8 @@ namespace agency
 {
 
 
-template<class ExecutionPolicy>
-struct is_execution_policy;
-
-
 namespace detail
 {
-
-
-// detect whether the expression bulk_invoke(args...) is well-formed
-template<class... Args>
-struct has_bulk_invoke_impl
-{
-  template<class... UArgs,
-           class = decltype(bulk_invoke(std::declval<UArgs>()...))
-          >
-  static std::true_type test(int);
-
-  template<class...>
-  static std::false_type test(...);
-
-  using type = decltype(test<Args...>(0));
-};
-
-template<class... Args>
-using has_bulk_invoke = typename has_bulk_invoke_impl<Args...>::type;
 
 
 template<class Function>
@@ -183,40 +160,8 @@ template<class Executor, class Function, class... Args>
 using bulk_invoke_executor_result_t = typename bulk_invoke_executor_result<Executor,Function,Args...>::type;
 
 
-template<bool enable, class Executor, class Function, class... Args>
-struct enable_if_bulk_invoke_executor_impl {};
-
 template<class Executor, class Function, class... Args>
-struct enable_if_bulk_invoke_executor_impl<
-         true, Executor, Function, Args...
-       >
-  : enable_if_call_possible<
-      bulk_invoke_executor_result_t<Executor,Function,Args...>,
-      Function,
-      executor_index_t<Executor>,
-      decay_parameter_t<Args>...
-    >
-{};
-
-template<class Executor, class Function, class... Args>
-struct enable_if_bulk_invoke_executor
-  : enable_if_bulk_invoke_executor_impl<
-      is_executor<Executor>::value, Executor, Function, Args...
-    >
-{};
-
-
-// XXX we no longer need this has_bulk_invoke
-//     nor the enable_if
-template<class Executor, class Function, class... Args,
-         class = typename std::enable_if<
-           !has_bulk_invoke<Executor&,typename executor_traits<Executor>::shape_type,Function,Args&&...>::value
-         >::type>
-typename detail::enable_if_bulk_invoke_executor<
-  Executor,
-  Function,
-  Args...
->::type
+bulk_invoke_executor_result_t<Executor, Function, Args...>
   bulk_invoke_executor(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
@@ -420,13 +365,10 @@ struct enable_if_bulk_invoke_execution_policy
 {};
 
 
-// generic implementation of bulk_invoke() for execution policies
-// only enable it if there is not already some other implementation
-template<class ExecutionPolicy, class Function, class... Args,
-         class = typename std::enable_if<
-           !has_bulk_invoke<ExecutionPolicy&&,Function,Args&&...>::value
-         >::type
-        >
+} // end detail
+
+
+template<class ExecutionPolicy, class Function, class... Args>
 typename detail::enable_if_bulk_invoke_execution_policy<
   ExecutionPolicy, Function, Args...
 >::type
@@ -437,31 +379,6 @@ typename detail::enable_if_bulk_invoke_execution_policy<
 
   return detail::bulk_invoke_execution_policy_impl(detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
 }
-
-
-struct call_bulk_invoke_via_adl
-{
-  // XXX put enable_ifs on this?
-  template<class ExecutionPolicy, class Function, class... Args>
-  auto operator()(ExecutionPolicy&& policy, Function f, Args&&... args) const ->
-    decltype(bulk_invoke(std::forward<ExecutionPolicy>(policy), f, std::forward<Args>(args)...))
-  {
-    return bulk_invoke(std::forward<ExecutionPolicy>(policy), f, std::forward<Args>(args)...);
-  }
-};
-
-
-} // end detail
-
-
-//namespace
-//{
-
-
-constexpr const detail::call_bulk_invoke_via_adl bulk_invoke{};
-
-
-//} // end anon namespace
 
 
 } // end agency

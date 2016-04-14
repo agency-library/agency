@@ -55,9 +55,7 @@ void bulk_invoke_executor_impl(Executor& exec, Function f, typename agency::exec
 
 
 template<class Executor, class Function, class... Args>
-typename agency::detail::enable_if_bulk_invoke_executor<
-  Executor, Function, Args...
->::type
+agency::detail::bulk_invoke_executor_result_t<Executor,Function,Args...>
   bulk_invoke_executor(Executor& exec, Function f, typename agency::executor_traits<Executor>::shape_type shape, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
