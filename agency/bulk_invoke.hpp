@@ -266,6 +266,7 @@ struct execute_agent_functor
   using executor_index_type = typename ExecutorTraits::index_type;
 
   template<class OtherFunction, class Tuple, size_t... Indices>
+  __AGENCY_ANNOTATION
   static result_of_t<OtherFunction(agent_type&)>
     unpack_shared_params_and_execute(OtherFunction f, const agent_index_type& index, const agent_param_type& param, Tuple&& shared_params, detail::index_sequence<Indices...>)
   {
@@ -293,6 +294,7 @@ struct execute_agent_functor
   };
 
   template<class... Args>
+  __AGENCY_ANNOTATION
   result_of_t<Function(agent_type&, pack_element_t<UserArgIndices, Args&&...>...)>
     operator()(const executor_index_type& executor_idx, Args&&... args)
   {
