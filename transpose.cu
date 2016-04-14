@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 
   ms = time_invocation([&]
   {
-    agency::cuda::bulk_async(grid(dim_grid, dim_block), copy_shared_mem{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()), agency::share<1,tile1d_t>());
+    agency::cuda::bulk_async(grid(dim_grid, dim_block), copy_shared_mem{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()), agency::share_at_scope<1,tile1d_t>());
   });
 
   h_cdata = d_cdata;
@@ -334,7 +334,7 @@ int main(int argc, char **argv)
 
   ms = time_invocation([&]
   {
-    agency::cuda::bulk_async(grid(dim_grid, dim_block), transpose_coalesced{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()), agency::share<1,tile2d_t>());
+    agency::cuda::bulk_async(grid(dim_grid, dim_block), transpose_coalesced{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()), agency::share_at_scope<1,tile2d_t>());
   });
 
   h_tdata = d_tdata;
@@ -348,7 +348,7 @@ int main(int argc, char **argv)
 
   ms = time_invocation([&]
   {
-    agency::cuda::bulk_async(grid(dim_grid, dim_block), transpose_no_bank_conflicts{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()), agency::share<1,conflict_free_tile2d_t>());
+    agency::cuda::bulk_async(grid(dim_grid, dim_block), transpose_no_bank_conflicts{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()), agency::share_at_scope<1,conflict_free_tile2d_t>());
   });
 
   h_tdata = d_tdata;
