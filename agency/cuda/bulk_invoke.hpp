@@ -7,7 +7,6 @@
 #include <agency/executor_traits.hpp>
 #include <agency/execution_agent.hpp>
 #include <agency/bulk_invoke.hpp>
-#include <agency/cuda/detail/bind.hpp>
 #include <utility>
 #include <tuple>
 #include <type_traits>
@@ -73,7 +72,7 @@ typename agency::detail::enable_if_bulk_invoke_executor<
   bulk_invoke(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
-  auto g = detail::bind_unshared_parameters(f, detail::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::new_bind_agent_local_parameters(std::integral_constant<size_t,1>(), f, agency::detail::placeholders::_1, std::forward<Args>(args)...);
 
   // make a tuple of the shared args
   auto shared_arg_tuple = agency::detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
@@ -106,7 +105,7 @@ typename agency::detail::enable_if_bulk_async_executor<
   bulk_async(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
-  auto g = detail::bind_unshared_parameters(f, detail::placeholders::_1, std::forward<Args>(args)...);
+  auto g = detail::new_bind_agent_local_parameters(std::integral_constant<size_t,1>(), f, agency::detail::placeholders::_1, std::forward<Args>(args)...);
 
   // make a tuple of the shared args
   auto shared_arg_tuple = agency::detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);

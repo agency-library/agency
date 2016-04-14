@@ -1,7 +1,6 @@
 #pragma once
 
 #include <agency/cuda/grid_executor.hpp>
-#include <agency/cuda/detail/bind.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/functional.hpp>
 
