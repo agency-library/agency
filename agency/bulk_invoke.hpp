@@ -5,6 +5,7 @@
 #include <agency/execution_agent.hpp>
 #include <agency/functional.hpp>
 #include <agency/detail/bulk_invoke/shared_parameter.hpp>
+#include <agency/detail/bulk_invoke/bind_agent_local_parameters.hpp>
 #include <agency/detail/is_call_possible.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_cast.hpp>
@@ -269,6 +270,26 @@ struct execute_agent_functor
     return AgentTraits::execute(f, index, param, detail::get<Indices>(std::forward<Tuple>(shared_params))...);
   }
 
+  // execution_agent_traits::execute expects a function whose only parameter is agent_type
+  // so to invoke the user function with it, we have to create a function of one parameter by
+  // binding the user's function and arguments together into this functor
+  template<class Tuple, size_t... Indices>
+  struct unpack_arguments_and_invoke_with_self
+  {
+    Function& f_;
+    Tuple& args_;
+
+    template<class ExecutionAgent>
+    __AGENCY_ANNOTATION
+    auto operator()(ExecutionAgent& self) ->
+      decltype(
+        f_(self, agency::detail::get<Indices>(args_)...)
+      )
+    {
+      return f_(self, agency::detail::get<Indices>(args_)...);
+    }
+  };
+
   template<class... Args>
   result_of_t<Function(agent_type&, pack_element_t<UserArgIndices, Args&&...>...)>
     operator()(const executor_index_type& executor_idx, Args&&... args)
@@ -285,11 +306,13 @@ struct execute_agent_functor
 
     // AgentTraits::execute expects a function whose only parameter is agent_type
     // so we have to wrap f_ into a function of one parameter
-    auto invoke_f = [&user_args,this] (agent_type& self)
-    {
-      // invoke f by passing the agent, then the user's parameters
-      return f_(self, detail::get<UserArgIndices>(user_args)...);
-    };
+    //auto invoke_f = [&user_args,this] (agent_type& self)
+    //{
+    //  // invoke f by passing the agent, then the user's parameters
+    //  return f_(self, detail::get<UserArgIndices>(user_args)...);
+    //};
+    // XXX seems like we could do this with a bind() instead of introducing a named functor
+    auto invoke_f = unpack_arguments_and_invoke_with_self<decltype(user_args), UserArgIndices...>{f_,user_args};
 
     constexpr size_t num_shared_args = std::tuple_size<decltype(agent_shared_args)>::value;
     return this->unpack_shared_params_and_execute(invoke_f, agent_idx, agent_param_, agent_shared_args, detail::make_index_sequence<num_shared_args>());
