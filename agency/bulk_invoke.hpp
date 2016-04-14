@@ -214,7 +214,7 @@ typename detail::enable_if_bulk_invoke_executor<
   Function,
   Args...
 >::type
-  bulk_invoke(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Args&&... args)
+  bulk_invoke_executor(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
   auto g = detail::bind_agent_local_parameters<1>(f, detail::placeholders::_1, std::forward<Args>(args)...);
@@ -285,7 +285,7 @@ struct execute_agent_functor
 
     // AgentTraits::execute expects a function whose only parameter is agent_type
     // so we have to wrap f_ into a function of one parameter
-    auto invoke_f = [&user_args,this](agent_type& self)
+    auto invoke_f = [&user_args,this] (agent_type& self)
     {
       // invoke f by passing the agent, then the user's parameters
       return f_(self, detail::get<UserArgIndices>(user_args)...);
@@ -346,7 +346,7 @@ bulk_invoke_execution_policy_result_t<
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  return detail::bulk_invoke(policy.executor(), executor_shape, lambda, std::forward<Args>(args)..., agency::share_at_scope<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
+  return detail::bulk_invoke_executor(policy.executor(), executor_shape, lambda, std::forward<Args>(args)..., agency::share_at_scope<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
 }
 
 
