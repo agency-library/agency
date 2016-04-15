@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/experimental/array.hpp>
 #include <cstddef>
 
 namespace agency
@@ -92,6 +93,14 @@ class span : private detail::span_base<Extent>
     __AGENCY_ANNOTATION
     span(element_type (&arr)[N]) : span(arr, N) {}
 
+    template<size_t N>
+    __AGENCY_ANNOTATION
+    span(array<typename std::remove_const<element_type>::type,N>& arr) : span(arr, N) {}
+
+    template<size_t N>
+    __AGENCY_ANNOTATION
+    span(const array<typename std::remove_const<element_type>::type,N>& arr) : span(arr, N) {}
+
     // XXX should require iterator contiguity, but that requires contiguous_iterator_tag
     __agency_exec_check_disable__
     template<class Container,
@@ -171,18 +180,19 @@ class segmented_span
              class = typename std::enable_if<
                sizeof...(Spans) == num_segments
              >::type>
-    __host__ __device__
+    __AGENCY_ANNOTATION
     segmented_span(Spans... segments)
       : spans_{segments...}
     {}
 
-    __host__ __device__
+    __AGENCY_ANNOTATION
     reference operator[](size_t i) const
     {
       auto size0 = spans_[0].size();
       return i < size0 ? spans_[0][i] : spans_[1][i - size0];
     }
 
+    __AGENCY_ANNOTATION
     size_t size() const
     {
       return spans_[0].size() + spans_[1].size();
