@@ -1,5 +1,5 @@
 #include <agency/cuda/grid_executor.hpp>
-#include <agency/cuda/bulk_invoke.hpp>
+#include <agency/bulk_invoke.hpp>
 
 struct hello_world
 {
@@ -20,9 +20,8 @@ int main()
   auto num_threads = agency::uint2{2,2};
   agency::cuda::grid_executor_2d::shape_type shape = {num_blocks, num_threads};
 
-  std::cout << "Testing bulk_invoke on host" << std::endl;
-  agency::cuda::bulk_invoke(ex, shape, hello_world());
-  cudaDeviceSynchronize();
+  std::cout << "Testing execute on host" << std::endl;
+  agency::executor_traits<agency::cuda::grid_executor_2d>::execute(ex, hello_world(), shape);
 
   return 0;
 }

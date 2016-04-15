@@ -58,7 +58,7 @@ class sequential_executor
           f(idx, p.first, p.second);
         },
         n,
-        [=]
+        [=]() mutable
         {
           return std::make_pair(first, shared_factory());
         });

@@ -6,7 +6,6 @@
 #include <agency/cuda/detail/tuple.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/device.hpp>
-#include <agency/cuda/detail/bind.hpp>
 #include <agency/cuda/memory/detail/unique_ptr.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>

@@ -3,7 +3,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/shape_cast.hpp>
-#include <agency/detail/shared_parameter.hpp>
+#include <agency/detail/bulk_invoke/shared_parameter.hpp>
 #include <agency/sequential_executor.hpp>
 #include <agency/execution_policy.hpp>
 #include <agency/detail/is_call_possible.hpp>
@@ -55,13 +55,11 @@ void bulk_invoke_executor_impl(Executor& exec, Function f, typename agency::exec
 
 
 template<class Executor, class Function, class... Args>
-typename agency::detail::enable_if_bulk_invoke_executor<
-  Executor, Function, Args...
->::type
+agency::detail::bulk_invoke_executor_result_t<Executor,Function,Args...>
   bulk_invoke_executor(Executor& exec, Function f, typename agency::executor_traits<Executor>::shape_type shape, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
-  auto g = bind_unshared_parameters(f, std::placeholders::_1, std::forward<Args>(args)...);
+  auto g = agency::detail::bind_agent_local_parameters<1>(f, std::placeholders::_1, std::forward<Args>(args)...);
 
   // make a tuple of the shared args
   auto shared_arg_tuple = forward_shared_parameters_as_tuple(std::forward<Args>(args)...);

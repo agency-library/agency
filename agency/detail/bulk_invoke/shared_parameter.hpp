@@ -4,7 +4,7 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/tuple_matrix.hpp>
-#include <agency/detail/bind.hpp>
+#include <agency/detail/bulk_invoke/bind.hpp>
 #include <agency/functional.hpp>
 #include <agency/detail/factory.hpp>
 #include <type_traits>
@@ -279,30 +279,6 @@ unpack_shared_parameters_from_executor_t<tuple<Types&...>>
 }
 
 
-template<size_t I, class Arg>
-__AGENCY_ANNOTATION
-typename std::enable_if<
-  !is_shared_parameter<typename std::decay<Arg>::type>::value,
-  Arg&&
->::type
-  hold_shared_parameters_place(Arg&& arg)
-{
-  return std::forward<Arg>(arg);
-}
-
-
-template<size_t I, class T>
-__AGENCY_ANNOTATION
-typename std::enable_if<
-  is_shared_parameter<typename std::decay<T>::type>::value,
-  placeholder<I>
->::type
-  hold_shared_parameters_place(T&&)
-{
-  return placeholder<I>{};
-}
-
-
 template<class... Args>
 auto forward_shared_parameters_as_tuple(Args&&... args)
   -> decltype(
@@ -316,62 +292,6 @@ auto forward_shared_parameters_as_tuple(Args&&... args)
     detail::forward_as_tuple(std::forward<Args>(args)...),
     detail::forwarder()
   );
-}
-
-
-// if J... is a bit vector indicating which elements of args are shared parameters
-// then I... is the exclusive scan of J
-template<size_t... I, class Function, class... Args>
-auto bind_unshared_parameters_impl(index_sequence<I...>, Function f, Args&&... args)
-  -> decltype(
-       std::bind(f, hold_shared_parameters_place<1 + I>(std::forward<Args>(args))...)
-     )
-{
-  // we add 1 to I to account for the executor_idx argument which will be passed as the first parameter to f
-  return std::bind(f, hold_shared_parameters_place<1 + I>(std::forward<Args>(args))...);
-}
-
-
-template<class... Args>
-struct arg_is_shared
-{
-  using tuple_type = tuple<Args...>;
-
-  template<size_t i>
-  using map = is_shared_parameter<
-    typename std::decay<
-      typename std::tuple_element<i,tuple_type>::type
-    >::type
-  >;
-};
-
-
-// XXX nvcc 7.0 doesnt like agency::detail::scanned_shared_argument_indices
-//     so WAR it by implementing a slightly different version here
-template<class... Args>
-struct scanned_shared_argument_indices_impl
-{
-  using type = agency::detail::transform_exclusive_scan_index_sequence<
-    agency::detail::arg_is_shared<Args...>::template map,
-    0,
-    // XXX various compilers have difficulty with index_sequence_for, so WAR it
-    //index_sequence_for<Args...>
-    agency::detail::make_index_sequence<sizeof...(Args)>
-  >;
-};
-
-
-template<class... Args>
-using scanned_shared_argument_indices = typename scanned_shared_argument_indices_impl<Args...>::type;
-
-
-template<class Function, class... Args>
-auto bind_unshared_parameters(Function f, Args&&... args)
-  -> decltype(
-       bind_unshared_parameters_impl(scanned_shared_argument_indices<Args...>{}, f, std::forward<Args>(args)...)
-     )
-{
-  return bind_unshared_parameters_impl(scanned_shared_argument_indices<Args...>{}, f, std::forward<Args>(args)...);
 }
 
 

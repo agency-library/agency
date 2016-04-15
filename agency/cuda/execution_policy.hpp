@@ -8,7 +8,6 @@
 #include <agency/cuda/parallel_executor.hpp>
 #include <agency/cuda/concurrent_executor.hpp>
 #include <agency/cuda/nested_executor.hpp>
-#include <agency/cuda/bulk_invoke.hpp>
 #include <agency/detail/tuple.hpp>
 #include <type_traits>
 

@@ -52,7 +52,7 @@ void test()
   }
 
   {
-    // bulk_invoke with one shared parameter
+    // bulk_async with one shared parameter
     
     execution_policy_type policy;
 

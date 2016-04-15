@@ -1,31 +1,26 @@
 #pragma once
 
-#include <type_traits>
-#include <utility>
 #include <agency/detail/config.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/cuda/detail/tuple.hpp>
+#include <agency/detail/tuple.hpp>
 #include <functional>
-#include <thrust/functional.h>
-
+#include <type_traits>
+#include <utility>
+#include <tuple>
 
 namespace agency
 {
-namespace cuda
-{
 namespace detail
 {
+
+
 namespace bind_detail
 {
 
 
-template<class T>
-using decay_t = agency::detail::decay_t<T>;
-
-
 template<typename F, typename Tuple, size_t... I>
-__host__ __device__
+__AGENCY_ANNOTATION
 auto apply_impl(F&& f, Tuple&& t, agency::detail::index_sequence<I...>)
   -> decltype(
        std::forward<F>(f)(
@@ -40,7 +35,7 @@ auto apply_impl(F&& f, Tuple&& t, agency::detail::index_sequence<I...>)
 
 
 template<typename F, typename Tuple>
-__host__ __device__
+__AGENCY_ANNOTATION
 auto apply(F&& f, Tuple&& t)
   -> decltype(
        apply_impl(
@@ -63,7 +58,7 @@ template<class ArgTuple, class BoundArg,
          class = typename std::enable_if<
            (std::is_placeholder<decay_t<BoundArg>>::value == 0)
          >::type>
-__host__ __device__
+__AGENCY_ANNOTATION
 auto substitute_arg(ArgTuple&&, BoundArg&& bound_arg)
   -> decltype(
        std::forward<BoundArg>(bound_arg)
@@ -73,13 +68,11 @@ auto substitute_arg(ArgTuple&&, BoundArg&& bound_arg)
 }
 
 
-
-
 template<class ArgTuple, class BoundArg,
          class = typename std::enable_if<
            (std::is_placeholder<BoundArg>::value > 0)
          >::type>
-__host__ __device__
+__AGENCY_ANNOTATION
 auto substitute_arg(ArgTuple&& arg_tuple, const BoundArg&)
   -> decltype(
        detail::get<
@@ -94,7 +87,7 @@ auto substitute_arg(ArgTuple&& arg_tuple, const BoundArg&)
 
 
 template<class ArgTuple, class BoundArgTuple, size_t... I>
-__host__ __device__
+__AGENCY_ANNOTATION
 auto substitute_impl(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple, agency::detail::index_sequence<I...>)
   -> decltype(
        detail::forward_as_tuple(
@@ -115,7 +108,7 @@ auto substitute_impl(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple, agen
 
 
 template<class ArgTuple, class BoundArgTuple>
-__host__ __device__
+__AGENCY_ANNOTATION
 auto substitute(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple)
   -> decltype(
        substitute_impl(
@@ -138,14 +131,14 @@ class bind_expression
     tuple<BoundArgs...> bound_args_;
 
   public:
-    __host__ __device__
+    __AGENCY_ANNOTATION
     bind_expression(const F& f, const BoundArgs&... bound_args)
       : fun_(f),
         bound_args_(bound_args...)
     {}
 
     template<class... OtherArgs>
-    __host__ __device__
+    __AGENCY_ANNOTATION
     auto operator()(OtherArgs&&... args)
       -> decltype(
            apply(
@@ -167,7 +160,7 @@ class bind_expression
     }
 
     template<class... OtherArgs>
-    __host__ __device__
+    __AGENCY_ANNOTATION
     auto operator()(OtherArgs&&... args) const
       -> decltype(
            apply(
@@ -193,26 +186,38 @@ class bind_expression
 } // end bind_detail
 
 
-// XXX use thrust's placeholders instead of agency's
-//     because unlike thrust's placeholders, agency's
-//     placeholders are undefined in __device__ code
-namespace placeholders = thrust::placeholders;
-
-
 template<class F, class... BoundArgs>
-__host__ __device__
-detail::bind_detail::bind_expression<
-  detail::bind_detail::decay_t<F>,
-  detail::bind_detail::decay_t<BoundArgs>...
-> bind(F&& f, BoundArgs&&... bound_args)
+__AGENCY_ANNOTATION
+bind_detail::bind_expression<decay_t<F>, decay_t<BoundArgs>...>
+  bind(F&& f, BoundArgs&&... bound_args)
 {
   using namespace bind_detail;
   return bind_expression<decay_t<F>,decay_t<BoundArgs>...>(std::forward<F>(f), std::forward<BoundArgs>(bound_args)...);
 }
 
 
+template<int I>
+struct placeholder {};
+
+
+namespace placeholders
+{
+
+
+constexpr placeholder<0>   _1{};
+constexpr placeholder<1>   _2{};
+constexpr placeholder<2>   _3{};
+constexpr placeholder<3>   _4{};
+constexpr placeholder<4>   _5{};
+constexpr placeholder<5>   _6{};
+constexpr placeholder<6>   _7{};
+constexpr placeholder<7>   _8{};
+constexpr placeholder<8>   _9{};
+constexpr placeholder<9>   _10{};
+
+
+} // end placeholders
 } // end detail
-} // end cuda
 } // end agency
 
 
@@ -220,13 +225,9 @@ namespace std
 {
 
 
-template<unsigned int I>
-struct is_placeholder<
-  thrust::detail::functional::actor<
-    thrust::detail::functional::argument<I>
-  >
-> : std::integral_constant<int, I+1>
-{};
+// XXX not sure we require this specialization since we don't actually use std::bind() for anything
+template<int I>
+struct is_placeholder<agency::detail::placeholder<I>> : std::integral_constant<int,I+1> {};
 
 
 } // end std

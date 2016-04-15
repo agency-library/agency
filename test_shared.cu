@@ -62,7 +62,7 @@ int main()
 
   thrust::device_vector<int> outer_result(1);
 
-  agency::cuda::bulk_invoke(policy, functor(), thrust::raw_pointer_cast(outer_result.data()), agency::share<0>(1), agency::share<1>(2));
+  agency::bulk_invoke(policy, functor(), thrust::raw_pointer_cast(outer_result.data()), agency::share_at_scope<0>(1), agency::share_at_scope<1>(2));
 
   assert(outer_result[0] == (2 * 2 + 1));
 
