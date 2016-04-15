@@ -383,8 +383,7 @@ typename detail::enable_if_bulk_invoke_execution_policy<
 
 } // end agency
 
+// XXX move these to the top of this header
 #include <agency/detail/bulk_invoke/bulk_async.hpp>
-
-// XXX uncomment this when bulk_then is ready
-//#include <agency/detail/bulk_invoke/bulk_then.hpp>
+#include <agency/detail/bulk_invoke/bulk_then.hpp>
 

@@ -238,11 +238,27 @@ class nested_execution_policy
     using typename super_t::execution_agent_type;
     using typename super_t::executor_type;
 
-    nested_execution_policy(const outer_execution_policy_type& outer_exec,
-                            const inner_execution_policy_type& inner_exec)
-      : super_t(typename execution_agent_type::param_type(outer_exec.param(), inner_exec.param()),
-                executor_type(outer_exec.executor(), inner_exec.executor()))
+    nested_execution_policy(const outer_execution_policy_type& outer,
+                            const inner_execution_policy_type& inner)
+      : super_t(typename execution_agent_type::param_type(outer.param(), inner.param()),
+                executor_type(outer.executor(), inner.executor())),
+        outer_(outer),
+        inner_(inner)
     {}
+
+    const outer_execution_policy_type& outer() const
+    {
+      return outer_;
+    }
+
+    const inner_execution_policy_type& inner() const
+    {
+      return inner_;
+    }
+
+  private:
+    outer_execution_policy_type outer_;
+    inner_execution_policy_type inner_;
 };
 
 
