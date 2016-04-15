@@ -325,6 +325,58 @@ struct is_future
 {};
 
 
+
+template<class T>
+struct is_non_void_future_impl
+{
+  template<class U,
+           class = typename std::enable_if<
+             is_future<U>::value
+           >::type,
+           class = typename std::enable_if<
+             !std::is_void<future_value_t<U>>::value
+           >::type
+          >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<T>(0));
+};
+
+template<class T>
+struct is_non_void_future
+  : is_non_void_future_impl<T>::type
+{};
+
+
+template<class T>
+struct is_void_future_impl
+{
+  template<class U,
+           class = typename std::enable_if<
+             is_future<U>::value
+           >::type,
+           class = typename std::enable_if<
+             std::is_void<future_value_t<U>>::value
+           >::type
+          >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<T>(0));
+};
+
+template<class T>
+struct is_void_future
+  : is_void_future_impl<T>::type
+{};
+
+
+
 template<class T, template<class> class Future, class Enable = void>
 struct is_instance_of_future : std::false_type {};
 
