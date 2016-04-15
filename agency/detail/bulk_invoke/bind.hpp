@@ -204,16 +204,65 @@ namespace placeholders
 {
 
 
+#ifndef __CUDA_ARCH__
 constexpr placeholder<0>   _1{};
+#else
+static const __device__ placeholder<0>   _1{};
+#endif
+
+#ifndef __CUDA_ARCH__
 constexpr placeholder<1>   _2{};
+#else
+static const __device__ placeholder<1>   _2{};
+#endif
+
+#ifndef __CUDA_ARCH__
 constexpr placeholder<2>   _3{};
+#else
+static const __device__ placeholder<2>   _3{};
+#endif
+
+#ifndef __CUDA_ARCH__
 constexpr placeholder<3>   _4{};
+#else
+static const __device__ placeholder<3>   _4{};
+#endif
+
+#ifndef __CUDA_ARCH__
 constexpr placeholder<4>   _5{};
+#else
+static const __device__ placeholder<4>   _5{};
+#endif
+
+#ifndef __CUDA_ARCH__
 constexpr placeholder<5>   _6{};
+#else
+static const __device__ placeholder<5>   _6{};
+#endif
+
+#ifndef __CUDA_ARCH__
 constexpr placeholder<6>   _7{};
+#else
+static const __device__ placeholder<6>   _7{};
+#endif
+
+#ifndef __CUDA_ARCH__
 constexpr placeholder<7>   _8{};
+#else
+static const __device__ placeholder<7>   _8{};
+#endif
+
+#ifndef __CUDA_ARCH__
 constexpr placeholder<8>   _9{};
+#else
+static const __device__ placeholder<8>   _9{};
+#endif
+
+#ifndef __CUDA_ARCH__
 constexpr placeholder<9>   _10{};
+#else
+static const __device__ placeholder<9>   _10{};
+#endif
 
 
 } // end placeholders
