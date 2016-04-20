@@ -240,6 +240,35 @@ class event
       return event(std::move(new_stream));
     }
 
+    // this form of then() leaves this event in a valid state afterwards
+    // XXX might want to see if we can receive f by forwarding reference
+    template<class Function>
+    __host__ __device__
+    event then(Function f)
+    {
+#ifndef __CUDA_ARCH__
+      // if on host, use a stream callback
+      // if on device, use then_on()
+
+      // create a stream for the callback on the current device
+      detail::stream new_stream(stream().device());
+
+      // make the new stream wait on this event
+      stream_wait(new_stream, *this);
+
+      // launch f on the new stream
+      new_stream.add_callback(f);
+
+      // return a new event
+      return event(std::move(new_stream));
+#else
+      detail::terminate_with_message("cuda::detail::event::then(): unimplemented function called.");
+      return event();
+      // launch a single-thread kernel
+      //return then_on([=](uint3, uint3){ f(); }, dim3{1}, dim3{1}, 0, stream().device());
+#endif
+    }
+
   private:
     stream stream_;
     cudaEvent_t e_;
@@ -324,6 +353,13 @@ class event
     __host__ __device__
     friend event when_all_events_are_ready(Events&... events);
 };
+
+
+inline __host__ __device__
+event make_ready_event()
+{
+  return event(event::construct_ready);
+}
 
 
 template<class... Events>
