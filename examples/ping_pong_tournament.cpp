@@ -162,7 +162,7 @@ int main()
   size_t num_volleys = 20;
   vector<vector<string>> semifinalists = {{"ping", "pong"}, {"foo", "bar"}};
 
-  bulk_invoke(con(2, con(2)), ping_pong_tournament, semifinalists, num_volleys, share<0,movable_mutex>(), share<0,vector<string>>(2), share<1,int>());
+  bulk_invoke(con(2, con(2)), ping_pong_tournament, semifinalists, num_volleys, share<movable_mutex>(), share<vector<string>>(2), share_at_scope<1,int>());
 
   return 0;
 }
