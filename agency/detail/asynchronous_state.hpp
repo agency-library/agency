@@ -128,6 +128,12 @@ class asynchronous_state_impl
       storage_.swap(other.storage_);
     }
 
+    __AGENCY_ANNOTATION
+    storage_type& storage()
+    {
+      return storage_;
+    }
+
   private:
     template<class, class, bool>
     friend class asynchronous_state_impl;
@@ -166,6 +172,7 @@ class asynchronous_state_impl<T,Alloc,true>
   public:
     using value_type = T;
     using pointer = empty_type_ptr<T>;
+    using storage_type = void;
 
     // constructs an invalid state
     __AGENCY_ANNOTATION
