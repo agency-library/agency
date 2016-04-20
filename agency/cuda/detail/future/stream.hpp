@@ -4,6 +4,8 @@
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/device.hpp>
+#include <memory>
+
 
 namespace agency
 {
@@ -94,6 +96,29 @@ class stream
       cudaStream_t tmp2 = s_;
       s_ = other.s_;
       other.s_ = tmp2;
+    }
+
+  private:
+    static void callback(cudaStream_t, cudaError_t, void* user_data)
+    {
+      // XXX should maybe look at the CUDA error
+      
+      // convert user_data into a pointer to std::function and immediately put it inside unique_ptr
+      std::unique_ptr<std::function<void()>> f_ptr(reinterpret_cast<std::function<void()>*>(user_data));
+
+      // call f
+      (*f_ptr)();
+    }
+
+  public:
+    template<class Function>
+    void add_callback(Function f)
+    {
+      // make a copy of f and put it inside a std::unique_ptr to std::function
+      std::unique_ptr<std::function<void()>> ptr_to_fun(new std::function<void()>(f));
+
+      // release the unique_ptr's pointer into cudaStreamAddCallback()
+      detail::throw_on_error(cudaStreamAddCallback(native_handle(), callback, ptr_to_fun.release(), 0), "cudaStreamAddCallback in cuda::detail::stream::add_callback()");
     }
 
   private:
