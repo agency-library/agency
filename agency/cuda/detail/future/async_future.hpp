@@ -153,14 +153,6 @@ class async_future
       state_.swap(other.state_);
     } // end async_future()
 
-    __host__ __device__
-    async_future &operator=(async_future&& other)
-    {
-      event_.swap(other.event_);
-      state_.swap(other.state_);
-      return *this;
-    } // end operator=()
-
     template<class U,
              class = typename std::enable_if<
                std::is_constructible<
@@ -175,6 +167,25 @@ class async_future
     {
       event_.swap(other.event_);
     } // end async_future()
+
+    __host__ __device__
+    ~async_future()
+    {
+      if(state_.valid())
+      {
+        // in order to avoid blocking on our state's destruction,
+        // schedule it to be destroyed sometime in the future
+        detail::async_invalidate_and_destroy(state_);
+      }
+    } // end async_future()
+
+    __host__ __device__
+    async_future &operator=(async_future&& other)
+    {
+      event_.swap(other.event_);
+      state_.swap(other.state_);
+      return *this;
+    } // end operator=()
 
     __host__ __device__
     void wait() const
@@ -252,6 +263,9 @@ class async_future
       // launch the continuation
       detail::event next_event = event().then_and_invalidate(std::move(continuation), dim3{1}, dim3{1}, 0);
 
+      // schedule our state for destruction when the next event is complete
+      detail::invalidate_and_destroy_when(state_, next_event);
+
       // return the continuation's future
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }
@@ -286,7 +300,7 @@ class async_future
     }
 
     // this version of then() leaves the future in a valid state
-    // it's used by future
+    // it's used by cuda::future
     template<class Function>
     __host__ __device__
     async_future<
@@ -330,6 +344,7 @@ class async_future
       using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
       auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
       
+      // create a functor to implement this bulk_then()
       auto g = detail::make_bulk_then_functor(result_state.data(), f, index_function, data(), outer_arg.data(), inner_factory);
 
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
@@ -338,7 +353,11 @@ class async_future
       ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
       ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
       
+      // schedule g on our device and get a handle to the next event
       auto next_event = event().then_on_and_invalidate(g, grid_dim, block_dim, 0, device.native_handle());
+
+      // schedule our state for destruction when the next event is complete
+      detail::invalidate_and_destroy_when(state_, next_event);
       
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }
