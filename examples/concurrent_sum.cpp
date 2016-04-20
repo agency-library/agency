@@ -34,7 +34,7 @@ int sum(const std::vector<int>& data)
       // all other agents return an ignored value 
       return std::ignore;
     },
-    share<0>(data)
+    share(data)
   );
 }
 
