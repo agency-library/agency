@@ -62,6 +62,74 @@ struct execution_agent_type_list<
 };
 
 
+// derive from ExecutionAgent to get access to ExecutionAgent's constructor
+template<class ExecutionAgent>
+struct agent_access_helper : public ExecutionAgent
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  agent_access_helper(Args&&... args)
+    : ExecutionAgent(std::forward<Args>(args)...)
+  {}
+};
+
+
+// make_agent() is a helper function used by execution_agent_traits and execution_group. its job is to simplify the job of creating an
+// execution agent by calling its constructor
+// make_agent() forwards index & param and filters out ignored shared parameters when necessary
+// in other words, when shared_param is ignore_t, it doesn't pass shared_param to the agent's constructor
+// in other cases, it forwards along the shared_param
+template<class ExecutionAgent, class Index, class Param>
+__AGENCY_ANNOTATION
+ExecutionAgent make_agent(const Index& index,
+                          const Param& param)
+{
+  return agent_access_helper<ExecutionAgent>(index, param);
+}
+
+
+template<class ExecutionAgent, class Index, class Param>
+__AGENCY_ANNOTATION
+static ExecutionAgent make_flat_agent(const Index& index,
+                                      const Param& param,
+                                      agency::detail::ignore_t)
+{
+  return make_agent<ExecutionAgent>(index, param);
+}
+
+
+template<class ExecutionAgent, class Index, class Param, class SharedParam>
+__AGENCY_ANNOTATION
+static ExecutionAgent make_flat_agent(const Index& index,
+                                      const Param& param,
+                                      SharedParam& shared_param)
+{
+  return agent_access_helper<ExecutionAgent>(index, param, shared_param);
+}
+
+
+template<class ExecutionAgent, class Index, class Param, class SharedParam>
+__AGENCY_ANNOTATION
+static ExecutionAgent make_agent(const Index& index,
+                                 const Param& param,
+                                 SharedParam& shared_param)
+{
+  return make_flat_agent<ExecutionAgent>(index, param, shared_param);
+}
+
+
+template<class ExecutionAgent, class Index, class Param, class SharedParam1, class SharedParam2, class... SharedParams>
+__AGENCY_ANNOTATION
+static ExecutionAgent make_agent(const Index& index,
+                                 const Param& param,
+                                 SharedParam1&    shared_param1,
+                                 SharedParam2&    shared_param2,
+                                 SharedParams&... shared_params)
+{
+  return agent_access_helper<ExecutionAgent>(index, param, shared_param1, shared_param2, shared_params...);
+}
+
+
 } // end detail
 
 
@@ -133,45 +201,59 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
       using type = typename T::shared_param_type;
     };
 
-    template<class Function, class... Args>
+  public:
+    using shared_param_type = typename detail::lazy_conditional<
+      detail::has_shared_param_type<execution_agent_type>::value,
+      execution_agent_shared_param<execution_agent_type>,
+      detail::identity<agency::detail::ignore_t>
+    >::type;
+
+    // XXX we should ensure that the SharedParams are all the right type for each inner execution agent type
+    //     basically, they would be the element types of shared_param_tuple_type
+    template<class Function, class SharedParam1, class... SharedParams>
     __AGENCY_ANNOTATION
     static detail::result_of_t<Function(ExecutionAgent&)>
-      execute_with_shared_params_impl(std::false_type, Function f, const index_type& index, const param_type& param, Args&&...)
+      execute(Function f, const index_type& index, const param_type& param, SharedParam1& shared_param1, SharedParams&... shared_params)
     {
-      return execution_agent_traits::execute(f, index, param);
-    }
-
-
-    template<class Function, class... Args>
-    __AGENCY_ANNOTATION
-    static detail::result_of_t<Function(ExecutionAgent&)>
-      execute_with_shared_params_impl(std::true_type, Function f, const index_type& index, const param_type& param, Args&... shared_params)
-    {
-      ExecutionAgent agent(index, param, shared_params...);
+      ExecutionAgent agent = detail::make_agent<ExecutionAgent>(index, param, shared_param1, shared_params...);
       return f(agent);
     }
 
-
-  public:
-
-  using shared_param_type = typename detail::lazy_conditional<
-    detail::has_shared_param_type<execution_agent_type>::value,
-    execution_agent_shared_param<execution_agent_type>,
-    detail::identity<agency::detail::ignore_t>
-  >::type;
-
-
-  // XXX should ensure that the SharedParams are all shared_param_type &
-  template<class Function, class... SharedParams>
-  __AGENCY_ANNOTATION
-  static detail::result_of_t<Function(ExecutionAgent&)>
-    execute(Function f, const index_type& index, const param_type& param, shared_param_type& shared_param1, SharedParams&... shared_params)
-  {
-    return execute_with_shared_params_impl(typename detail::has_shared_param_type<execution_agent_type>::type(), f, index, param, shared_param1, shared_params...);
-  }
-
-
   private:
+    // this helper function creates a shared_param_type given some execution agent type's param_type
+    template<class OtherExecutionAgent>
+    __AGENCY_ANNOTATION
+    static typename OtherExecutionAgent::shared_param_type
+      make_shared_param(const typename execution_agent_traits<OtherExecutionAgent>::param_type& param,
+                        typename std::enable_if<
+                          detail::has_shared_param_type<OtherExecutionAgent>::value
+                        >::type* = 0)
+    {
+      return typename OtherExecutionAgent::shared_param_type(param);
+    }
+
+
+    // this helper function returns detail::ignore when some execution agent type has no shared_param_type
+    template<class OtherExecutionAgent>
+    __AGENCY_ANNOTATION
+    static agency::detail::ignore_t
+      make_shared_param(const typename execution_agent_traits<OtherExecutionAgent>::param_type&,
+                        typename std::enable_if<
+                          !detail::has_shared_param_type<OtherExecutionAgent>::value
+                        >::type* = 0)
+    {
+      return agency::detail::ignore;
+    }
+
+
+    template<class OtherExecutionAgent>
+    using make_shared_param_result_t = decltype(
+      execution_agent_traits::template make_shared_param<OtherExecutionAgent>(
+        std::declval<typename execution_agent_traits<OtherExecutionAgent>::param_type>()
+      )
+    );
+
+
     template<class ExecutionAgent1>
     struct test_for_make_shared_param_tuple
     {
@@ -202,7 +284,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
     struct default_execution_agent_shared_param_tuple_impl<detail::type_list<ExecutionAgents...>>
     {
       using type = detail::tuple<
-        typename execution_agent_traits<ExecutionAgents>::shared_param_type...
+        make_shared_param_result_t<ExecutionAgents>...
       >;
     };
 
@@ -222,33 +304,12 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
     };
 
 
+  public:
     using shared_param_tuple_type = typename detail::lazy_conditional<
       has_make_shared_param_tuple::value,
       result_of_make_shared_param_tuple<execution_agent_type>,
       default_execution_agent_shared_param_tuple<execution_agent_type>
     >::type;
-
-
-    template<class ExecutionAgent1>
-    __AGENCY_ANNOTATION
-    static shared_param_type make_shared_param(const param_type& param,
-                                               typename std::enable_if<
-                                                 detail::has_shared_param_type<ExecutionAgent1>::value
-                                               >::type* = 0)
-    {
-      return shared_param_type{param};
-    }
-
-
-    template<class ExecutionAgent1>
-    __AGENCY_ANNOTATION
-    static shared_param_type make_shared_param(const param_type& param,
-                                               typename std::enable_if<
-                                                 !detail::has_shared_param_type<ExecutionAgent1>::value
-                                               >::type* = 0)
-    {
-      return agency::detail::ignore;
-    }
 
 
     // default case for flat agents
@@ -272,8 +333,11 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
       // recurse to get the tail of the tuple
       auto inner_params = inner_traits::make_shared_param_tuple(param.inner());
 
+      // create the head of the tuple
+      auto outer_param = make_shared_param<ExecutionAgent1>(param);
+
       // prepend the head 
-      return __tu::tuple_prepend_invoke(inner_params, make_shared_param<ExecutionAgent1>(param), detail::agency_tuple_maker());
+      return __tu::tuple_prepend_invoke(inner_params, outer_param, detail::agency_tuple_maker());
     }
 
 
@@ -480,76 +544,6 @@ using concurrent_agent_2d = detail::basic_concurrent_agent<size2>;
 
 namespace detail
 {
-
-
-// derive from ExecutionAgent to give access to its constructor
-template<class ExecutionAgent>
-struct agent_access_helper : public ExecutionAgent
-{
-  template<class... Args>
-  __AGENCY_ANNOTATION
-  agent_access_helper(Args&&... args)
-    : ExecutionAgent(std::forward<Args>(args)...)
-  {}
-};
-
-
-// __make_agent helper function passes a noop functor to the agent's constructor and filters out shared parameters when necessary
-template<class ExecutionAgent>
-__AGENCY_ANNOTATION
-ExecutionAgent make_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
-                          const typename execution_agent_traits<ExecutionAgent>::param_type& param)
-{
-  return agent_access_helper<ExecutionAgent>(index, param);
-}
-
-
-template<class ExecutionAgent, class SharedParam>
-__AGENCY_ANNOTATION
-static ExecutionAgent make_flat_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
-                                      const typename execution_agent_traits<ExecutionAgent>::param_type& param,
-                                      SharedParam&,
-                                      typename std::enable_if<
-                                        std::is_same<SharedParam,agency::detail::ignore_t>::value
-                                      >::type* = 0)
-{
-  return make_agent<ExecutionAgent>(index, param);
-}
-
-
-template<class ExecutionAgent, class SharedParam>
-__AGENCY_ANNOTATION
-static ExecutionAgent make_flat_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
-                                      const typename execution_agent_traits<ExecutionAgent>::param_type& param,
-                                      SharedParam& shared_param,
-                                      typename std::enable_if<
-                                        !std::is_same<SharedParam,agency::detail::ignore_t>::value
-                                      >::type* = 0)
-{
-  return agent_access_helper<ExecutionAgent>(index, param, shared_param);
-}
-
-
-template<class ExecutionAgent>
-__AGENCY_ANNOTATION
-static ExecutionAgent make_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
-                                 const typename execution_agent_traits<ExecutionAgent>::param_type& param,
-                                 typename execution_agent_traits<ExecutionAgent>::shared_param_type& shared_param)
-{
-  return make_flat_agent<ExecutionAgent>(index, param, shared_param);
-}
-
-
-template<class ExecutionAgent, class SharedParam2, class... SharedParams>
-__AGENCY_ANNOTATION
-static ExecutionAgent make_agent(const typename execution_agent_traits<ExecutionAgent>::index_type& index,
-                                 const typename execution_agent_traits<ExecutionAgent>::param_type& param,
-                                 typename execution_agent_traits<ExecutionAgent>::shared_param_type& shared_param1,
-                                 SharedParam2&    shared_param2,
-                                 SharedParams&... shared_params)
-{
-  return agent_access_helper<ExecutionAgent>(index, param, shared_param1, shared_param2, shared_params...);
-}
 
 
 template<class OuterExecutionAgent, class Enable = void>
