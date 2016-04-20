@@ -92,10 +92,8 @@ agency::cuda::future<int> async_reduce(View data)
     share_at_scope<1,tile>()
   );
 
-  using partial_sums_t = typename future_traits<decltype(partial_sums_fut)>::value_type;
-
   return bulk_then(policy.inner(),
-    [] __host__ __device__ (cuda::concurrent_agent& self, partial_sums_t& partial_sums, tile& scratch) -> single_result<int>
+    [] __host__ __device__ (cuda::concurrent_agent& self, span<int> partial_sums, tile& scratch) -> single_result<int>
     {
       auto sum = concurrent_sum(self, partial_sums, scratch);
 
