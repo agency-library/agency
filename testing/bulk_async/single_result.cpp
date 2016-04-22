@@ -11,7 +11,7 @@ void test(ExecutionPolicy policy)
     auto f = agency::bulk_async(policy,
       [](agent& self) -> agency::single_result<int>
     {
-      if(self.index() == 0)
+      if(self.elect())
       {
         return 7;
       }
@@ -32,7 +32,7 @@ void test(ExecutionPolicy policy)
     auto f = agency::bulk_async(policy,
       [](agent& self, int val) -> agency::single_result<int>
     {
-      if(self.index() == 0)
+      if(self.elect())
       {
         return val;
       }
@@ -54,7 +54,7 @@ void test(ExecutionPolicy policy)
     auto f = agency::bulk_async(policy,
       [](agent& self, int& val) -> agency::single_result<int>
     {
-      if(self.index() == 0)
+      if(self.elect())
       {
         return val;
       }
@@ -76,6 +76,23 @@ int main()
   test(seq(10));
   test(con(10));
   test(par(10));
+
+  test(seq(10, seq(10)));
+  test(seq(10, par(10)));
+  test(seq(10, con(10)));
+
+  test(con(10, seq(10)));
+  test(con(10, par(10)));
+  test(con(10, con(10)));
+
+  // XXX this test fails
+  //test(par(10, seq(10)));
+
+  // XXX this test fails
+  //test(par(10, con(10)));
+
+  // XXX this test fails
+  //test(par(10, par(10)));
 
   std::cout << "OK" << std::endl;
 
