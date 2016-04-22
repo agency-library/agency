@@ -4,7 +4,7 @@
 #include <agency/execution_categories.hpp>
 #include <agency/parallel_executor.hpp>
 #include <agency/vector_executor.hpp>
-#include <agency/nested_executor.hpp>
+#include <agency/scoped_executor.hpp>
 #include <agency/flattened_executor.hpp>
 #include <agency/detail/concurrency/latch.hpp>
 #include <agency/detail/concurrency/concurrent_queue.hpp>
@@ -211,7 +211,7 @@ class thread_pool_executor
 // compose thread_pool_executor with other fancy executors
 // to yield a parallel_thread_pool_executor
 using parallel_thread_pool_executor = agency::flattened_executor<
-  agency::nested_executor<
+  agency::scoped_executor<
     thread_pool_executor,
     agency::this_thread::parallel_executor
   >
@@ -221,7 +221,7 @@ using parallel_thread_pool_executor = agency::flattened_executor<
 // compose thread_pool_executor with other fancy executors
 // to yield a parallel_vector_thread_pool_executor
 using parallel_vector_thread_pool_executor = agency::flattened_executor<
-  agency::nested_executor<
+  agency::scoped_executor<
     thread_pool_executor,
     agency::this_thread::vector_executor
   >

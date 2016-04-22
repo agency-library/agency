@@ -10,7 +10,7 @@ namespace detail
 
 
 template<typename T>
-  struct has_nested_type_impl
+  struct has_member_type_impl
 {                    
   typedef char yes_type;
   typedef int  no_type;
@@ -22,12 +22,12 @@ template<typename T>
 
 
 template<class T>
-struct has_nested_type : has_nested_type_impl<T>::type {};
+struct has_member_type : has_member_type_impl<T>::type {};
 
 
 template<class Function, class... Args>
 struct is_call_possible
-  : has_nested_type<
+  : has_member_type<
       std::result_of<Function(Args...)>
     >
 {

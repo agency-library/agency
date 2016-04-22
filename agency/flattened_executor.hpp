@@ -4,7 +4,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/executor_traits.hpp>
 #include <agency/execution_categories.hpp>
-#include <agency/nested_executor.hpp>
+#include <agency/scoped_executor.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/optional.hpp>
 #include <agency/detail/flatten_index_and_invoke.hpp>
@@ -88,17 +88,17 @@ template<class ExecutionCategory>
 struct flattened_execution_tag_impl;
 
 template<class OuterCategory, class InnerCategory>
-struct flattened_execution_tag_impl<nested_execution_tag<OuterCategory,InnerCategory>>
+struct flattened_execution_tag_impl<scoped_execution_tag<OuterCategory,InnerCategory>>
 {
   using type = parallel_execution_tag;
 };
 
 template<class OuterCategory, class InnerCategory, class InnerInnerCategory>
-struct flattened_execution_tag_impl<nested_execution_tag<OuterCategory, nested_execution_tag<InnerCategory,InnerInnerCategory>>>
+struct flattened_execution_tag_impl<scoped_execution_tag<OuterCategory, scoped_execution_tag<InnerCategory,InnerInnerCategory>>>
 {
   // OuterCategory and InnerInnerCategory merge into parallel as the outer category
   // while InnerInnerCategory is promoted to the inner category
-  using type = nested_execution_tag<
+  using type = scoped_execution_tag<
     parallel_execution_tag,
     InnerInnerCategory
   >;
@@ -114,10 +114,10 @@ using flattened_execution_tag = typename flattened_execution_tag_impl<ExecutionC
 template<class Executor>
 class flattened_executor
 {
-  // probably shouldn't insist on a nested executor
+  // probably shouldn't insist on a scoped executor
   static_assert(
-    detail::is_nested_execution_category<typename executor_traits<Executor>::execution_category>::value,
-    "Execution category of Executor must be nested."
+    detail::is_scoped_execution_category<typename executor_traits<Executor>::execution_category>::value,
+    "Execution category of Executor must be scoped."
   );
 
   private:

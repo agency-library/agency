@@ -95,9 +95,9 @@ size_t rank(agency::size3 shape, agency::size3 idx)
 
 void test1()
 {
-  using executor_type1 = agency::nested_executor<agency::sequential_executor,agency::sequential_executor>;
+  using executor_type1 = agency::scoped_executor<agency::sequential_executor,agency::sequential_executor>;
 
-  using executor_type2 = agency::nested_executor<agency::sequential_executor,executor_type1>;
+  using executor_type2 = agency::scoped_executor<agency::sequential_executor,executor_type1>;
 
   executor_type2 exec;
   executor_type2::shape_type shape{2,2,2};

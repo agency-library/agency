@@ -7,7 +7,7 @@
 #include <agency/cuda/grid_executor.hpp>
 #include <agency/cuda/parallel_executor.hpp>
 #include <agency/cuda/concurrent_executor.hpp>
-#include <agency/cuda/nested_executor.hpp>
+#include <agency/cuda/scoped_executor.hpp>
 #include <agency/detail/tuple.hpp>
 #include <type_traits>
 
@@ -81,7 +81,7 @@ class parallel_execution_policy : public detail::basic_execution_policy<cuda::pa
 
     // XXX consider whether we really want this functionality a member of parallel_execution_policy
     template<class ExecutionPolicy>
-    agency::detail::nested_execution_policy<
+    agency::detail::scoped_execution_policy<
       par2d_t,
       agency::detail::decay_t<ExecutionPolicy>
     >
@@ -119,7 +119,7 @@ class concurrent_execution_policy : public detail::basic_execution_policy<cuda::
 
     // XXX consider whether we really want this functionality a member of concurrent_execution_policy
     template<class ExecutionPolicy>
-    agency::detail::nested_execution_policy<
+    agency::detail::scoped_execution_policy<
       con2d_t,
       agency::detail::decay_t<ExecutionPolicy>
     >

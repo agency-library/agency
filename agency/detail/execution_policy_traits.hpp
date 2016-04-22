@@ -1,6 +1,8 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
 #include <agency/executor_traits.hpp>
+#include <agency/detail/has_member.hpp>
 
 namespace agency
 {
@@ -8,7 +10,7 @@ namespace detail
 {
 
 
-__DEFINE_HAS_NESTED_TYPE(has_executor_type, executor_type);
+__DEFINE_HAS_MEMBER_TYPE(has_executor_type, executor_type);
 
 
 template<class ExecutionPolicy, class Enable = void>
@@ -37,7 +39,7 @@ template<class ExecutionPolicy, class T>
 using policy_future_t = typename policy_future<ExecutionPolicy,T>::type;
 
 
-__DEFINE_HAS_NESTED_TYPE(has_execution_agent_type, execution_agent_type);
+__DEFINE_HAS_MEMBER_TYPE(has_execution_agent_type, execution_agent_type);
 
 
 template<class ExecutionPolicy, class Enable = void>

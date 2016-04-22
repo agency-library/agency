@@ -15,7 +15,7 @@ struct vector_execution_tag {};
 
 
 template<class ExecutionCategory1, class ExecutionCategory2>
-struct nested_execution_tag
+struct scoped_execution_tag
 {
   using outer_execution_category = ExecutionCategory1;
   using inner_execution_category = ExecutionCategory2;
@@ -38,7 +38,7 @@ struct nested_execution_tag
 //
 // XXX figure out how sequential is related to concurrent
 //
-// XXX figure out how nested_execution_tag sorts
+// XXX figure out how scoped_execution_tag sorts
 
 
 namespace detail
@@ -46,11 +46,11 @@ namespace detail
 
 
 template<class ExecutionCategory>
-struct is_nested_execution_category : std::false_type {};
+struct is_scoped_execution_category : std::false_type {};
 
 
 template<class ExecutionCategory1, class ExecutionCategory2>
-struct is_nested_execution_category<nested_execution_tag<ExecutionCategory1,ExecutionCategory2>> : std::true_type {};
+struct is_scoped_execution_category<scoped_execution_tag<ExecutionCategory1,ExecutionCategory2>> : std::true_type {};
 
 
 template<class ExecutionCategory>
@@ -58,7 +58,7 @@ struct execution_depth : std::integral_constant<size_t, 1> {};
 
 
 template<class ExecutionCategory1, class ExecutionCategory2>
-struct execution_depth<nested_execution_tag<ExecutionCategory1,ExecutionCategory2>>
+struct execution_depth<scoped_execution_tag<ExecutionCategory1,ExecutionCategory2>>
   : std::integral_constant<
       size_t,
       1 + execution_depth<ExecutionCategory2>::value

@@ -9,7 +9,7 @@ namespace agency
 
 
 template<>
-class nested_executor<cuda::parallel_executor, cuda::block_executor>
+class scoped_executor<cuda::parallel_executor, cuda::block_executor>
   : public cuda::grid_executor
 {
   public:
@@ -18,9 +18,9 @@ class nested_executor<cuda::parallel_executor, cuda::block_executor>
     using outer_executor_type = cuda::parallel_executor;
     using inner_executor_type = cuda::block_executor;
 
-    nested_executor() = default;
+    scoped_executor() = default;
 
-    nested_executor(const outer_executor_type& outer_ex,
+    scoped_executor(const outer_executor_type& outer_ex,
                     const inner_executor_type& inner_ex)
       : outer_ex_(outer_ex),
         inner_ex_(inner_ex)
@@ -49,7 +49,7 @@ class nested_executor<cuda::parallel_executor, cuda::block_executor>
   private:
     outer_executor_type outer_ex_;
     inner_executor_type inner_ex_;
-}; // end nested_executor
+}; // end scoped_executor
 
 
 } // end agency

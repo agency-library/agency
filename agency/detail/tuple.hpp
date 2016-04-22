@@ -11,7 +11,7 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/host_device_cast.hpp>
-#include <agency/detail/has_nested.hpp>
+#include <agency/detail/has_member.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <utility>
 #include <type_traits>
@@ -52,7 +52,7 @@ using ignore_t = decltype(__tu::ignore);
 constexpr ignore_t ignore{};
 
 
-__DEFINE_HAS_NESTED_MEMBER(has_value, value);
+__DEFINE_HAS_MEMBER(has_value, value);
 
 
 template<class T>
