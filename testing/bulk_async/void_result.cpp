@@ -2,40 +2,37 @@
 #include <atomic>
 
 template<class ExecutionPolicy>
-void test()
+void test(ExecutionPolicy policy)
 {
-  using execution_policy_type = ExecutionPolicy;
+  using agent = typename ExecutionPolicy::execution_agent_type;
+  using agent_traits = agency::execution_agent_traits<agent>;
 
   {
     // bulk_invoke with no parameters
 
-    execution_policy_type policy;
-    auto exec = policy.executor();
-
     std::atomic<int> counter{0};
 
-    auto f = agency::bulk_async(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self)
+    auto f = agency::bulk_async(policy, [&](agent& self)
     {
       ++counter;
     });
 
     f.wait();
 
-    assert(counter == 10);
+    size_t num_agents = agent_traits::domain(policy.param()).size();
+
+    assert(counter == num_agents);
   }
 
   {
     // bulk_invoke with one parameter
-    
-    execution_policy_type policy;
 
     int val = 13;
 
     std::atomic<int> counter{0};
 
-    auto f = agency::bulk_async(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self, int val)
+    auto f = agency::bulk_async(policy,
+      [&](agent& self, int val)
       {
         counter += val;
       },
@@ -44,20 +41,20 @@ void test()
 
     f.wait();
 
-    assert(counter == 10 * 13);
+    size_t num_agents = agent_traits::domain(policy.param()).size();
+
+    assert(counter == num_agents * 13);
   }
 
   {
     // bulk_invoke with one shared parameter
-    
-    execution_policy_type policy;
 
     int val = 13;
 
     std::atomic<int> counter{0};
 
-    auto f = agency::bulk_async(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self, int& val)
+    auto f = agency::bulk_async(policy,
+      [&](agent& self, int& val)
       {
         counter += val;
       },
@@ -66,15 +63,31 @@ void test()
 
     f.wait();
 
-    assert(counter == 10 * 13);
+    size_t num_agents = agent_traits::domain(policy.param()).size();
+
+    assert(counter == num_agents * 13);
   }
 }
 
 int main()
 {
-  test<agency::sequential_execution_policy>();
-  test<agency::concurrent_execution_policy>();
-  test<agency::parallel_execution_policy>();
+  using namespace agency;
+
+  test(seq(10));
+  test(con(10));
+  test(par(10));
+
+  test(seq(10, seq(10)));
+  test(seq(10, par(10)));
+  test(seq(10, con(10)));
+
+  test(con(10, seq(10)));
+  test(con(10, par(10)));
+  test(con(10, con(10)));
+
+  test(par(10, seq(10)));
+  test(par(10, con(10)));
+  test(par(10, par(10)));
 
   std::cout << "OK" << std::endl;
 
