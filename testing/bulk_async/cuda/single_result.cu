@@ -3,20 +3,17 @@
 #include <iostream>
 
 template<class ExecutionPolicy>
-void test()
+void test(ExecutionPolicy policy)
 {
-  using execution_policy_type = ExecutionPolicy;
+  using agent = typename ExecutionPolicy::execution_agent_type;
 
   {
     // bulk_async with no parameters
 
-    execution_policy_type policy;
-    auto exec = policy.executor();
-
-    auto f = agency::bulk_async(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self) -> agency::single_result<int>
+    auto f = agency::bulk_async(policy,
+      [] __host__ __device__ (agent& self) -> agency::single_result<int>
     {
-      if(self.index() == 0)
+      if(self.elect())
       {
         return 7;
       }
@@ -31,15 +28,13 @@ void test()
 
   {
     // bulk_async with one parameter
-    
-    execution_policy_type policy;
 
     int val = 13;
 
-    auto f = agency::bulk_async(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int val) -> agency::single_result<int>
+    auto f = agency::bulk_async(policy,
+      [] __host__ __device__ (agent& self, int val) -> agency::single_result<int>
     {
-      if(self.index() == 0)
+      if(self.elect())
       {
         return val;
       }
@@ -55,15 +50,13 @@ void test()
 
   {
     // bulk_async with one shared parameter
-    
-    execution_policy_type policy;
 
     int val = 13;
 
-    auto f = agency::bulk_async(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& val) -> agency::single_result<int>
+    auto f = agency::bulk_async(policy,
+      [] __host__ __device__ (agent& self, int& val) -> agency::single_result<int>
     {
-      if(self.index() == 0)
+      if(self.elect())
       {
         return val;
       }
@@ -80,7 +73,12 @@ void test()
 
 int main()
 {
-  test<agency::cuda::parallel_execution_policy>();
+  using namespace agency::cuda;
+
+  test(par(10));
+  test(con(10));
+
+  test(par(10, con(10)));
 
   std::cout << "OK" << std::endl;
 

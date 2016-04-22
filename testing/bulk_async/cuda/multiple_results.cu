@@ -3,17 +3,16 @@
 #include <iostream>
 
 template<class ExecutionPolicy>
-void test()
+void test(ExecutionPolicy policy)
 {
-  using execution_policy_type = ExecutionPolicy;
+  using agent = typename ExecutionPolicy::execution_agent_type;
+  using agent_traits = agency::execution_agent_traits<agent>;
 
   {
     // bulk_async with no parameters
-    
-    execution_policy_type policy;
 
-    auto f = agency::bulk_async(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self)
+    auto f = agency::bulk_async(policy,
+      [] __host__ __device__ (agent& self)
     {
       return 7;
     });
@@ -23,18 +22,21 @@ void test()
     using executor_type = typename ExecutionPolicy::executor_type;
     using container_type = typename agency::executor_traits<executor_type>::template container<int>;
 
-    assert(container_type(10,7) == result);
+    auto shape = agent_traits::domain(policy.param()).shape();
+
+    using container_shape_t = typename container_type::shape_type;
+    auto container_shape = agency::detail::shape_cast<container_shape_t>(shape);
+
+    assert(container_type(container_shape,7) == result);
   }
 
   {
     // bulk_async with one parameter
-    
-    execution_policy_type policy;
 
     int val = 13;
 
-    auto f = agency::bulk_async(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int val)
+    auto f = agency::bulk_async(policy,
+      [] __host__ __device__ (agent& self, int val)
     {
       return val;
     },
@@ -45,18 +47,21 @@ void test()
     using executor_type = typename ExecutionPolicy::executor_type;
     using container_type = typename agency::executor_traits<executor_type>::template container<int>;
 
-    assert(container_type(10,val) == result);
+    auto shape = agent_traits::domain(policy.param()).shape();
+
+    using container_shape_t = typename container_type::shape_type;
+    auto container_shape = agency::detail::shape_cast<container_shape_t>(shape);
+
+    assert(container_type(container_shape,val) == result);
   }
 
   {
     // bulk_async with one shared parameter
-    
-    execution_policy_type policy;
 
     int val = 13;
 
-    auto f = agency::bulk_async(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& val)
+    auto f = agency::bulk_async(policy,
+      [] __host__ __device__ (agent& self, int& val)
     {
       return val;
     },
@@ -67,13 +72,23 @@ void test()
     using executor_type = typename ExecutionPolicy::executor_type;
     using container_type = typename agency::executor_traits<executor_type>::template container<int>;
 
-    assert(container_type(10,val) == result);
+    auto shape = agent_traits::domain(policy.param()).shape();
+
+    using container_shape_t = typename container_type::shape_type;
+    auto container_shape = agency::detail::shape_cast<container_shape_t>(shape);
+
+    assert(container_type(container_shape,val) == result);
   }
 }
 
 int main()
 {
-  test<agency::cuda::parallel_execution_policy>();
+  using namespace agency::cuda;
+
+  test(par(10));
+  test(con(10));
+
+  test(par(10, con(10)));
 
   std::cout << "OK" << std::endl;
 
