@@ -5,6 +5,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/index_tuple.hpp>
+#include <agency/detail/index_cast.hpp>
 #include <agency/detail/unwrap_tuple_if_not_scoped.hpp>
 #include <agency/detail/make_tuple_if_not_scoped.hpp>
 #include <agency/coordinate.hpp>
@@ -409,6 +410,12 @@ class basic_execution_agent
       return domain().shape();
     }
 
+    __AGENCY_ANNOTATION
+    bool elect() const
+    {
+      return agency::detail::index_cast<size_t>(index(), group_shape(), 0) == 0;
+    }
+
     class param_type
     {
       public:
@@ -702,6 +709,12 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
     size_t group_size() const
     {
       return outer().group_size();
+    }
+
+    __AGENCY_ANNOTATION
+    bool elect() const
+    {
+      return outer().elect() && inner().elect();
     }
 
   protected:
