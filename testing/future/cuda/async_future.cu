@@ -70,6 +70,42 @@ int main()
     assert(!f4.valid());
   }
 
+  {
+    // then void -> void
+    auto f1 = agency::cuda::make_ready_async_future();
+    auto f2 = f1.then([] __host__ __device__ { return ;} );
+
+    assert(!f1.valid());
+    f2.wait();
+  }
+
+  {
+    // then int -> void
+    auto f1 = agency::cuda::make_ready_async_future(7);
+    auto f2 = f1.then([] __host__ __device__ (int) { return ;} );
+
+    assert(!f1.valid());
+    f2.wait();
+  }
+
+  {
+    // then void -> int
+    auto f1 = agency::cuda::make_ready_async_future();
+    auto f2 = f1.then([] __host__ __device__ () { return 13; });
+
+    assert(!f1.valid());
+    assert(f2.get() == 13);
+  }
+
+  {
+    // then int -> int
+    auto f1 = agency::cuda::make_ready_async_future(7);
+    auto f2 = f1.then([] __host__ __device__ (int arg) { return arg + 6; });
+
+    assert(!f1.valid());
+    assert(f2.get() == 13);
+  }
+
   std::cout << "OK" << std::endl;
 
   return 0;
