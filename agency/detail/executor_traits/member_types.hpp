@@ -12,10 +12,10 @@ namespace executor_traits_detail
 {
 
 
-__DEFINE_HAS_NESTED_TYPE(has_execution_category, execution_category);
-__DEFINE_HAS_NESTED_TYPE(has_index_type, index_type);
-__DEFINE_HAS_NESTED_TYPE(has_shape_type, shape_type);
-__DEFINE_HAS_NESTED_CLASS_TEMPLATE(has_container_template, container);
+__DEFINE_HAS_MEMBER_TYPE(has_execution_category, execution_category);
+__DEFINE_HAS_MEMBER_TYPE(has_index_type, index_type);
+__DEFINE_HAS_MEMBER_TYPE(has_shape_type, shape_type);
+__DEFINE_HAS_MEMBER_CLASS_TEMPLATE(has_container_template, container);
 
 
 template<class T, class Index>
@@ -45,51 +45,51 @@ using is_container = typename is_container_impl<T,Index>::type;
 
 
 template<class T>
-struct nested_execution_category
+struct member_execution_category
 {
   using type = typename T::execution_category;
 };
 
 
 template<class T, class Default = parallel_execution_tag>
-struct nested_execution_category_with_default
+struct member_execution_category_with_default
   : agency::detail::lazy_conditional<
       has_execution_category<T>::value,
-      nested_execution_category<T>,
+      member_execution_category<T>,
       agency::detail::identity<Default>
     >
 {};
 
 
 template<class T>
-struct nested_index_type
+struct member_index_type
 {
   using type = typename T::index_type;
 };
 
 
 template<class T, class Default = size_t>
-struct nested_index_type_with_default
+struct member_index_type_with_default
   : agency::detail::lazy_conditional<
       has_index_type<T>::value,
-      nested_index_type<T>,
+      member_index_type<T>,
       agency::detail::identity<Default>
     >
 {};
 
 
 template<class T>
-struct nested_shape_type
+struct member_shape_type
 {
   using type = typename T::shape_type;
 };
 
 
 template<class T, class Default = size_t>
-struct nested_shape_type_with_default
+struct member_shape_type_with_default
   : agency::detail::lazy_conditional<
       has_shape_type<T>::value,
-      nested_shape_type<T>,
+      member_shape_type<T>,
       agency::detail::identity<Default>
     >
 {};
@@ -248,7 +248,7 @@ struct identity_template
 
 
 template<class Executor>
-using executor_execution_category_t = typename nested_execution_category_with_default<
+using executor_execution_category_t = typename member_execution_category_with_default<
   Executor,
   parallel_execution_tag
 >::type;
@@ -275,7 +275,7 @@ using executor_shape_t = typename executor_shape<Executor>::type;
 
 
 template<class Executor>
-using executor_index_t = typename nested_index_type_with_default<
+using executor_index_t = typename member_index_type_with_default<
   Executor,
   executor_shape_t<Executor>
 >::type;

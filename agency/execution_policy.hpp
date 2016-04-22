@@ -13,7 +13,7 @@
 #include <agency/concurrent_executor.hpp>
 #include <agency/parallel_executor.hpp>
 #include <agency/vector_executor.hpp>
-#include <agency/nested_executor.hpp>
+#include <agency/scoped_executor.hpp>
 #include <agency/detail/tuple.hpp>
 
 // none of the functionality below actually depends on bulk_invoke.hpp
@@ -65,7 +65,7 @@ using last_type = typename last_type_impl<Types...>::type;
 
 
 template<class ParamType, class... Args>
-struct is_nested_call
+struct is_scoped_call
   : std::integral_constant<
       bool,
       is_execution_policy<last_type<Args...>>::value &&
@@ -88,9 +88,9 @@ struct is_flat_call
 {};
 
 
-// declare nested_execution_policy for basic_execution_policy's use below
+// declare scoped_execution_policy for basic_execution_policy's use below
 template<class ExecutionPolicy1, class ExecutionPolicy2>
-class nested_execution_policy;
+class scoped_execution_policy;
 
 
 // XXX we should assert that ExecutionCategory is stronger than the category of ExecutionAgent
@@ -153,11 +153,11 @@ class basic_execution_policy
       return derived_type{param_type{std::forward<Arg1>(arg1), std::forward<Args>(args)...}, executor()};
     }
 
-    // this is the nested form of operator()
+    // this is the scoped form of operator()
     template<class Arg1, class... Args>
     typename std::enable_if<
-      detail::is_nested_call<param_type, Arg1, Args...>::value,
-      detail::nested_execution_policy<
+      detail::is_scoped_call<param_type, Arg1, Args...>::value,
+      detail::scoped_execution_policy<
         derived_type,
         decay_t<last_type<Arg1,Args...>>
       >
@@ -176,8 +176,8 @@ class basic_execution_policy
       // get the inner execution policy
       auto inner = __tu::tuple_last(arg_tuple);
 
-      // return the nesting of the two policies
-      return detail::nested_execution_policy<derived_type,decltype(inner)>(outer, inner);
+      // return the composition of the two policies
+      return detail::scoped_execution_policy<derived_type,decltype(inner)>(outer, inner);
     }
 
     template<class Arg1, class... Args>
@@ -197,21 +197,21 @@ class basic_execution_policy
 
 
 template<class ExecutionPolicy1, class ExecutionPolicy2>
-class nested_execution_policy
+class scoped_execution_policy
   : public basic_execution_policy<
       execution_group<
         typename ExecutionPolicy1::execution_agent_type,
         typename ExecutionPolicy2::execution_agent_type
       >,
-      nested_executor<
+      scoped_executor<
         typename ExecutionPolicy1::executor_type,
         typename ExecutionPolicy2::executor_type
       >,
-      nested_execution_tag<
+      scoped_execution_tag<
         typename ExecutionPolicy1::execution_category,
         typename ExecutionPolicy2::execution_category
       >,
-      nested_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
+      scoped_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
     >
 {
   private:
@@ -220,15 +220,15 @@ class nested_execution_policy
         typename ExecutionPolicy1::execution_agent_type,
         typename ExecutionPolicy2::execution_agent_type
       >,
-      nested_executor<
+      scoped_executor<
         typename ExecutionPolicy1::executor_type,
         typename ExecutionPolicy2::executor_type
       >,
-      nested_execution_tag<
+      scoped_execution_tag<
         typename ExecutionPolicy1::execution_category,
         typename ExecutionPolicy2::execution_category
       >,
-      nested_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
+      scoped_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
     >;
 
 
@@ -238,7 +238,7 @@ class nested_execution_policy
     using typename super_t::execution_agent_type;
     using typename super_t::executor_type;
 
-    nested_execution_policy(const outer_execution_policy_type& outer,
+    scoped_execution_policy(const outer_execution_policy_type& outer,
                             const inner_execution_policy_type& inner)
       : super_t(typename execution_agent_type::param_type(outer.param(), inner.param()),
                 executor_type(outer.executor(), inner.executor())),
@@ -271,7 +271,7 @@ struct is_execution_policy<detail::basic_execution_policy<ExecutionAgent,BulkExe
 
 
 template<class T1, class T2>
-struct is_execution_policy<detail::nested_execution_policy<T1,T2>>
+struct is_execution_policy<detail::scoped_execution_policy<T1,T2>>
   : std::integral_constant<
       bool,
       is_execution_policy<T1>::value && is_execution_policy<T2>::value

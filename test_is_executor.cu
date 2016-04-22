@@ -3,7 +3,7 @@
 #include <agency/flattened_executor.hpp>
 #include <agency/cuda/parallel_executor.hpp>
 #include <agency/cuda/concurrent_executor.hpp>
-#include <agency/nested_executor.hpp>
+#include <agency/scoped_executor.hpp>
 #include <agency/concurrent_executor.hpp>
 #include <agency/sequential_executor.hpp>
 #include <agency/parallel_executor.hpp>
@@ -23,8 +23,8 @@ int main()
   std::cout << "is_executor<agency::parallel_executor>: " << agency::is_executor<agency::parallel_executor>::value << std::endl;
   std::cout << "has_then_execute<agency::parallel_executor>: " << has_any_multi_agent_then_execute<agency::parallel_executor>::value << std::endl;
 
-  std::cout << "is_executor<agency::nested_executor<agency::concurrent_executor,agency::sequential_executor>>: " << agency::is_executor<agency::nested_executor<agency::concurrent_executor,agency::sequential_executor>>::value << std::endl;
-  std::cout << "has_then_execute<agency::nested_executor<agency::concurrent_executor,agency::sequential_executor>>: " << has_any_multi_agent_then_execute<agency::nested_executor<agency::concurrent_executor,agency::sequential_executor>>::value << std::endl;
+  std::cout << "is_executor<agency::scoped_executor<agency::concurrent_executor,agency::sequential_executor>>: " << agency::is_executor<agency::scoped_executor<agency::concurrent_executor,agency::sequential_executor>>::value << std::endl;
+  std::cout << "has_then_execute<agency::scoped_executor<agency::concurrent_executor,agency::sequential_executor>>: " << has_any_multi_agent_then_execute<agency::scoped_executor<agency::concurrent_executor,agency::sequential_executor>>::value << std::endl;
 
 
   std::cout << "is_executor<grid_executor>: " << agency::is_executor<agency::cuda::grid_executor>::value << std::endl;

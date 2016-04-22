@@ -260,10 +260,10 @@ template<class ScopeResult, class Executor, bool Enable = is_scope_result<ScopeR
 struct scope_result_to_scope_result_container
 {
   template<class T>
-  using nested_result_type = typename T::result_type;
+  using member_result_type = typename T::result_type;
 
   // the type returned by the user function
-  using user_result_type = nested_result_type<ScopeResult>;
+  using user_result_type = member_result_type<ScopeResult>;
 
   // the scope at which the result is returned
   static constexpr size_t scope = ScopeResult::scope;

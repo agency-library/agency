@@ -8,7 +8,7 @@ struct my_executor {};
 
 struct my_scoped_executor
 {
-  using execution_category = agency::nested_execution_tag<
+  using execution_category = agency::scoped_execution_tag<
     agency::sequential_execution_tag,
     agency::sequential_execution_tag
   >;

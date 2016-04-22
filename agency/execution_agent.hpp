@@ -5,8 +5,8 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/index_tuple.hpp>
-#include <agency/detail/unwrap_tuple_if_not_nested.hpp>
-#include <agency/detail/make_tuple_if_not_nested.hpp>
+#include <agency/detail/unwrap_tuple_if_not_scoped.hpp>
+#include <agency/detail/make_tuple_if_not_scoped.hpp>
 #include <agency/coordinate.hpp>
 #include <type_traits>
 
@@ -16,9 +16,9 @@ namespace detail
 {
 
 
-__DEFINE_HAS_NESTED_TYPE(has_param_type, param_type);
-__DEFINE_HAS_NESTED_TYPE(has_shared_param_type, shared_param_type);
-__DEFINE_HAS_NESTED_TYPE(has_inner_execution_agent_type, inner_execution_agent_type);
+__DEFINE_HAS_MEMBER_TYPE(has_param_type, param_type);
+__DEFINE_HAS_MEMBER_TYPE(has_shared_param_type, shared_param_type);
+__DEFINE_HAS_MEMBER_TYPE(has_inner_execution_agent_type, inner_execution_agent_type);
 
 
 template<class ExecutionAgent, class Enable = void>
@@ -321,7 +321,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
     }
 
 
-    // default case for nested agents
+    // default case for scoped agents
     template<class ExecutionAgent1>
     __AGENCY_ANNOTATION
     static shared_param_tuple_type make_shared_param_tuple_default_impl(const param_type& param, std::true_type)
@@ -584,8 +584,8 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
     using index_type = decltype(
       __tu::tuple_cat_apply(
         agency::detail::index_tuple_maker{},
-        agency::detail::make_tuple_if_not_nested<outer_execution_category>(std::declval<outer_index_type>()),
-        agency::detail::make_tuple_if_not_nested<inner_execution_category>(std::declval<inner_index_type>())
+        agency::detail::make_tuple_if_not_scoped<outer_execution_category>(std::declval<outer_index_type>()),
+        agency::detail::make_tuple_if_not_scoped<inner_execution_category>(std::declval<inner_index_type>())
       )
     );
 
@@ -598,13 +598,13 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
     {
       return __tu::tuple_cat_apply(
         agency::detail::index_tuple_maker{},
-        agency::detail::make_tuple_if_not_nested<outer_execution_category>(outer_idx),
-        agency::detail::make_tuple_if_not_nested<inner_execution_category>(inner_idx)
+        agency::detail::make_tuple_if_not_scoped<outer_execution_category>(outer_idx),
+        agency::detail::make_tuple_if_not_scoped<inner_execution_category>(inner_idx)
       );
     }
 
   public:
-    using execution_category = nested_execution_tag<
+    using execution_category = scoped_execution_tag<
       outer_execution_category,
       inner_execution_category
     >;
@@ -733,7 +733,7 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
     __AGENCY_ANNOTATION
     static inner_index_type inner_index(const index_type& index)
     {
-      return detail::unwrap_tuple_if_not_nested<inner_execution_category>(detail::forward_tail(index));
+      return detail::unwrap_tuple_if_not_scoped<inner_execution_category>(detail::forward_tail(index));
     }
 
     outer_execution_agent_type outer_agent_;

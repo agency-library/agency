@@ -155,7 +155,7 @@ class basic_grid_executor
 
   public:
     using execution_category =
-      nested_execution_tag<
+      scoped_execution_tag<
         parallel_execution_tag,
         concurrent_execution_tag
       >;

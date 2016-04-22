@@ -4,7 +4,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/arithmetic_tuple_facade.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/make_tuple_if_not_nested.hpp>
+#include <agency/detail/make_tuple_if_not_scoped.hpp>
 
 namespace agency
 {
@@ -27,12 +27,12 @@ template<class ExecutionCategory1,
          class ExecutionCategory2,
          class Shape1,
          class Shape2>
-struct nested_shape
+struct scoped_shape
 {
   using type = decltype(
     detail::tuple_cat(
-      detail::make_tuple_if_not_nested<ExecutionCategory1>(std::declval<Shape1>()),
-      detail::make_tuple_if_not_nested<ExecutionCategory2>(std::declval<Shape2>())
+      detail::make_tuple_if_not_scoped<ExecutionCategory1>(std::declval<Shape1>()),
+      detail::make_tuple_if_not_scoped<ExecutionCategory2>(std::declval<Shape2>())
     )
   );
 };
@@ -42,7 +42,7 @@ template<class ExecutionCategory1,
          class ExecutionCategory2,
          class Shape1,
          class Shape2>
-using nested_shape_t = typename nested_shape<
+using scoped_shape_t = typename scoped_shape<
   ExecutionCategory1,
   ExecutionCategory2,
   Shape1,
@@ -55,11 +55,11 @@ template<class ExecutionCategory1,
          class Shape1,
          class Shape2>
 __AGENCY_ANNOTATION
-nested_shape_t<ExecutionCategory1,ExecutionCategory2,Shape1,Shape2> make_nested_shape(const Shape1& outer_shape, const Shape2& inner_shape)
+scoped_shape_t<ExecutionCategory1,ExecutionCategory2,Shape1,Shape2> make_scoped_shape(const Shape1& outer_shape, const Shape2& inner_shape)
 {
   return detail::tuple_cat(
-    detail::make_tuple_if_not_nested<ExecutionCategory1>(outer_shape),
-    detail::make_tuple_if_not_nested<ExecutionCategory2>(inner_shape)
+    detail::make_tuple_if_not_scoped<ExecutionCategory1>(outer_shape),
+    detail::make_tuple_if_not_scoped<ExecutionCategory2>(inner_shape)
   );
 }
 

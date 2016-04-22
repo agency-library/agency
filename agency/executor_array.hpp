@@ -29,7 +29,7 @@ class executor_array
     constexpr static size_t inner_depth = inner_traits::execution_depth;
 
   public:
-    using execution_category = nested_execution_tag<outer_execution_category,inner_execution_category>;
+    using execution_category = scoped_execution_tag<outer_execution_category,inner_execution_category>;
 
     using outer_shape_type = typename outer_traits::shape_type;
     using inner_shape_type = typename inner_traits::shape_type;
@@ -37,13 +37,13 @@ class executor_array
     using outer_index_type = typename outer_traits::index_type;
     using inner_index_type = typename inner_traits::index_type;
 
-    using shape_type = detail::nested_shape_t<outer_execution_category,inner_execution_category,outer_shape_type,inner_shape_type>;
-    using index_type = detail::nested_index_t<outer_execution_category,inner_execution_category,outer_index_type,inner_index_type>;
+    using shape_type = detail::scoped_shape_t<outer_execution_category,inner_execution_category,outer_shape_type,inner_shape_type>;
+    using index_type = detail::scoped_index_t<outer_execution_category,inner_execution_category,outer_index_type,inner_index_type>;
 
     __AGENCY_ANNOTATION
     static shape_type make_shape(const outer_shape_type& outer_shape, const inner_shape_type& inner_shape)
     {
-      return detail::make_nested_shape<outer_execution_category,inner_execution_category>(outer_shape, inner_shape);
+      return detail::make_scoped_shape<outer_execution_category,inner_execution_category>(outer_shape, inner_shape);
     }
 
     __agency_exec_check_disable__
@@ -121,7 +121,7 @@ class executor_array
     __AGENCY_ANNOTATION
     static index_type make_index(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
     {
-      return detail::make_nested_index<outer_execution_category,inner_execution_category>(outer_idx, inner_idx);
+      return detail::make_scoped_index<outer_execution_category,inner_execution_category>(outer_idx, inner_idx);
     }
 
     __AGENCY_ANNOTATION

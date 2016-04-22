@@ -250,7 +250,7 @@ struct rebind_future_value<Future<FromType>,ToType>
 };
 
 
-__DEFINE_HAS_NESTED_TYPE(has_value_type, value_type);
+__DEFINE_HAS_MEMBER_TYPE(has_value_type, value_type);
 
 
 template<class Future>

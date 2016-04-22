@@ -4,7 +4,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/arithmetic_tuple_facade.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/make_tuple_if_not_nested.hpp>
+#include <agency/detail/make_tuple_if_not_scoped.hpp>
 
 namespace agency
 {
@@ -57,13 +57,13 @@ template<class ExecutionCategory1,
          class ExecutionCategory2,
          class Index1,
          class Index2>
-struct nested_index
+struct scoped_index
 {
   using type = decltype(
     __tu::tuple_cat_apply(
       detail::index_tuple_maker{},
-      detail::make_tuple_if_not_nested<ExecutionCategory1>(std::declval<Index1>()),
-      detail::make_tuple_if_not_nested<ExecutionCategory2>(std::declval<Index2>())
+      detail::make_tuple_if_not_scoped<ExecutionCategory1>(std::declval<Index1>()),
+      detail::make_tuple_if_not_scoped<ExecutionCategory2>(std::declval<Index2>())
     )
   );
 };
@@ -73,7 +73,7 @@ template<class ExecutionCategory1,
          class ExecutionCategory2,
          class Index1,
          class Index2>
-using nested_index_t = typename nested_index<
+using scoped_index_t = typename scoped_index<
   ExecutionCategory1,
   ExecutionCategory2,
   Index1,
@@ -86,12 +86,12 @@ template<class ExecutionCategory1,
          class Index1,
          class Index2>
 __AGENCY_ANNOTATION
-nested_index_t<ExecutionCategory1,ExecutionCategory2,Index1,Index2> make_nested_index(const Index1& outer_idx, const Index2& inner_idx)
+scoped_index_t<ExecutionCategory1,ExecutionCategory2,Index1,Index2> make_scoped_index(const Index1& outer_idx, const Index2& inner_idx)
 {
   return __tu::tuple_cat_apply(
     detail::index_tuple_maker{},
-    detail::make_tuple_if_not_nested<ExecutionCategory1>(outer_idx),
-    detail::make_tuple_if_not_nested<ExecutionCategory2>(inner_idx)
+    detail::make_tuple_if_not_scoped<ExecutionCategory1>(outer_idx),
+    detail::make_tuple_if_not_scoped<ExecutionCategory2>(inner_idx)
   );
 }
 
