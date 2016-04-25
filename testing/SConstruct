@@ -1,0 +1,61 @@
+import os
+import SCons
+
+def ProgramPerSourceInCurrentDirectory(env):
+  """Collects all source files in the current directory and creates a program from each of them.
+  Returns the list of all such programs created.
+  """
+  sources = []
+  directories = ['.']
+  extensions = ['.cpp']
+  
+  for dir in directories:
+    for ext in extensions:
+      regex = os.path.join(dir, '*' + ext)
+      sources.extend(env.Glob(regex))
+
+  programs = []
+  for src in sources:
+    programs.append(env.Program(src))
+
+  return programs
+
+def RunProgram(env, program, run_program_command):
+  """Creates a unit test by running the given program after it is built."""
+  relative_path_from_root = env.Dir('.').path
+  # elide '.'
+  if relative_path_from_root == '.':
+    relative_path_from_root = ''
+  alias = env.Alias(os.path.join(relative_path_from_root, run_program_command), [program], program[0].abspath)
+  env.AlwaysBuild(alias)
+  return alias
+
+def RunPrograms(env, programs, run_programs_command):
+  """Creates a unit test for each program in the given list of programs.
+  Returns a list of aliases where each alias corresponds to a unit test.
+  """
+  aliases = []
+  for p in programs:
+    aliases.append(RunProgram(env, p, run_programs_command))
+  return aliases
+
+vars = Variables()
+vars.Add('CXX', 'C++ compiler', 'clang')
+vars.Add('CPPPATH', 'Agency include path', Dir('..'))
+
+env = Environment(variables = vars)
+
+env.MergeFlags(['-std=c++11', '-lstdc++', '-lpthread'])
+
+# add our special shorthand methods
+env.AddMethod(ProgramPerSourceInCurrentDirectory)
+env.AddMethod(RunPrograms)
+
+# recurse into all SConscripts in immediate child directories
+programs = []
+children = env.Glob('*/SConscript')
+for child in children:
+  programs.extend(env.SConscript(child, exports='env'))
+
+env.RunPrograms(programs, 'run_tests')
+
