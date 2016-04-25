@@ -57,9 +57,10 @@ typename std::result_of<Function()>::type
                             >::type* = 0)
 {
   using value_type = typename std::result_of<Function()>::type;
-  using container_type = single_element_container<value_type>;
-
   using shape_type = typename executor_traits<Executor>::shape_type;
+
+  using container_type = single_element_container<value_type,shape_type>;
+
   using index_type = typename executor_traits<Executor>::index_type;
 
   return executor_traits<Executor>::execute(ex, [&](const index_type&)
