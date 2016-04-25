@@ -89,14 +89,9 @@ int main()
   test(con(10, par(10)));
   test(con(10, con(10)));
 
-  // XXX this test crashes
-  //test(par(10, seq(10)));
-
-  // XXX this test fails
-  //test(par(10, con(10)));
-  
-  // XXX this test fails
-  //test(par(10, par(10)));
+  test(par(10, seq(10)));
+  test(par(10, con(10)));
+  test(par(10, par(10)));
 
   std::cout << "OK" << std::endl;
 

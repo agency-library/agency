@@ -10,14 +10,14 @@ namespace executor_traits_detail
 {
 
 
-template<class T>
+template<class T, class Shape>
 struct single_element_container
 {
+  __agency_exec_check_disable__
   __AGENCY_ANNOTATION
-  single_element_container() {}
+  single_element_container() : element{} {}
 
   __agency_exec_check_disable__
-  template<class Shape>
   __AGENCY_ANNOTATION
   single_element_container(const Shape&) : element{} {}
 
