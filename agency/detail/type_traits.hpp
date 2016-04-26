@@ -167,6 +167,17 @@ template<class Default, template<class...> class Op, class... Args>
 using detected_or_t = typename detected_or<Default,Op,Args...>::type; 
 
 
+template<class T>
+struct is_cuda_extended_device_lambda
+  : 
+#if __CUDACC_EXTENDED_LAMBDA__
+    std::integral_constant<bool, __nv_is_extended_device_lambda_closure_type(T)>
+#else
+    std::false_type
+#endif
+{};
+
+
 } // end detail
 } // end agency
 
