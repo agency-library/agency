@@ -6,7 +6,7 @@ Each test program is built from a single source file. To build a test program by
 
     $ clang -I.. -std=c++11 -lstdc++ -pthread bulk_invoke/multiple_results.cpp
 
-CUDA source (`.cu` files) should be built with the NVIDIA compiler (`nvcc`). Include the `--expt-extended-lambda` option:
+CUDA C++ source (`.cu` files) should be built with the NVIDIA compiler (`nvcc`). Include the `--expt-extended-lambda` option:
 
     $ nvcc -I.. -std=c++11 --expt-extended-lambda bulk_invoke/cuda/multiple_results.cu
 
