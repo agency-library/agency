@@ -4,6 +4,7 @@
 #include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/cuda/detail/future/deferred_future.hpp>
 #include <agency/detail/variant.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <utility>
 
 
@@ -437,7 +438,7 @@ class future
 
       template<class Future>
       future<
-        typename std::result_of<Factory(Shape)>::type
+        agency::detail::result_of_t<Factory(Shape)>
       >
         operator()(Future& fut)
       {
@@ -447,7 +448,7 @@ class future
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __AGENCY_ANNOTATION
-    future<typename std::result_of<Factory(Shape)>::type>
+    future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
     {
       auto visitor = bulk_then_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
@@ -469,7 +470,7 @@ class future
       template<class Future>
       __AGENCY_ANNOTATION
       future<
-        typename std::result_of<Factory(Shape)>::type
+        agency::detail::result_of_t<Factory(Shape)>
       >
         operator()(Future& fut)
       {
@@ -479,7 +480,7 @@ class future
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __AGENCY_ANNOTATION
-    future<typename std::result_of<Factory(Shape)>::type>
+    future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
     {
       auto visitor = bulk_then_and_leave_valid_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,device};

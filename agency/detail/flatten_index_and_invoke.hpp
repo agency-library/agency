@@ -10,6 +10,7 @@
 #include <agency/detail/shape.hpp>
 #include <agency/detail/index.hpp>
 #include <agency/detail/integer_sequence.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -81,7 +82,7 @@ struct flatten_index_and_invoke_base
 
   // this is the type of result returned by f_
   template<class... Args>
-  using result_of_function_t = typename std::result_of<Function(flattened_index_type,Args...)>::type;
+  using result_of_function_t = result_of_t<Function(flattened_index_type,Args...)>;
 
   template<class T>
   using void_or_optionally_value_and_index_t = typename std::conditional<

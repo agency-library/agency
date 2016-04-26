@@ -113,7 +113,7 @@ std::future<void> when_all(ForwardIterator first, ForwardIterator last)
 
 // then() with launch policy for std::future
 template<class T, class Function>
-std::future<typename std::result_of<Function(std::future<T>&)>::type>
+std::future<detail::result_of_t<Function(std::future<T>&)>>
   then(std::future<T>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::future<T>&& fut, Function&& f)
@@ -128,7 +128,7 @@ std::future<typename std::result_of<Function(std::future<T>&)>::type>
 
 
 template<class T, class Function>
-std::future<typename std::result_of<Function(T&)>::type>
+std::future<detail::result_of_t<Function(T&)>>
   monadic_then(std::future<T>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::future<T>&& fut, Function&& f)
@@ -143,7 +143,7 @@ std::future<typename std::result_of<Function(T&)>::type>
 
 
 template<class Function>
-std::future<typename std::result_of<Function()>::type>
+std::future<detail::result_of_t<Function()>>
   monadic_then(std::future<void>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::future<void>&& fut, Function&& f)
@@ -159,7 +159,7 @@ std::future<typename std::result_of<Function()>::type>
 
 // then() for std::future
 template<class T, class Function>
-std::future<typename std::result_of<Function(std::future<T>&)>::type>
+std::future<detail::result_of_t<Function(std::future<T>&)>>
   then(std::future<T>& fut, Function&& f)
 {
   return detail::then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
@@ -176,7 +176,7 @@ auto monadic_then(std::future<T>& fut, Function&& f) ->
 
 // then() with launch policy for std::shared_future
 template<class T, class Function>
-std::future<typename std::result_of<Function(std::shared_future<T>&)>::type>
+std::future<detail::result_of_t<Function(std::shared_future<T>&)>>
   then(std::shared_future<T>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::shared_future<T>&& fut, Function&& f)
@@ -192,7 +192,7 @@ std::future<typename std::result_of<Function(std::shared_future<T>&)>::type>
 
 // then() for std::shared_future
 template<class T, class Function>
-std::future<typename std::result_of<Function(std::shared_future<T>&)>::type>
+std::future<detail::result_of_t<Function(std::shared_future<T>&)>>
   then(std::shared_future<T>& fut, Function&& f)
 {
   return detail::then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
@@ -201,7 +201,7 @@ std::future<typename std::result_of<Function(std::shared_future<T>&)>::type>
 
 // monadic_then() for std::shared_future
 template<class T, class Function>
-std::future<typename std::result_of<Function(T&)>::type>
+std::future<detail::result_of_t<Function(T&)>>
   monadic_then(std::shared_future<T>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::shared_future<T>&& fut, Function&& f)
@@ -216,7 +216,7 @@ std::future<typename std::result_of<Function(T&)>::type>
 
 
 template<class Function>
-std::future<typename std::result_of<Function()>::type>
+std::future<detail::result_of_t<Function()>>
   monadic_then(std::shared_future<void>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::shared_future<void>&& fut, Function&& f)

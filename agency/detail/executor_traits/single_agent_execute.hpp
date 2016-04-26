@@ -7,6 +7,7 @@
 #include <agency/detail/executor_traits/container_factory.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/functional.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 
 namespace agency
@@ -18,7 +19,7 @@ namespace executor_traits_detail
 
 
 template<class Executor, class Function>
-typename std::result_of<Function()>::type
+result_of_t<Function()>
   single_agent_execute(std::true_type, Executor& ex, Function&& f)
 {
   return ex.execute(std::forward<Function>(f));
@@ -27,11 +28,11 @@ typename std::result_of<Function()>::type
 
 template<class Executor, class Function>
 __AGENCY_ANNOTATION
-typename std::result_of<Function()>::type
+result_of_t<Function()>
   single_agent_execute_impl(Executor& ex, Function&& f,
                             typename std::enable_if<
                               std::is_void<
-                                typename std::result_of<Function()>::type
+                                result_of_t<Function()>
                               >::value
                             >::type* = 0)
 {
@@ -48,15 +49,15 @@ typename std::result_of<Function()>::type
 
 template<class Executor, class Function>
 __AGENCY_ANNOTATION
-typename std::result_of<Function()>::type
+result_of_t<Function()>
   single_agent_execute_impl(Executor& ex, Function&& f,
                             typename std::enable_if<
                               !std::is_void<
-                                typename std::result_of<Function()>::type
+                                result_of_t<Function()>
                               >::value
                             >::type* = 0)
 {
-  using value_type = typename std::result_of<Function()>::type;
+  using value_type = result_of_t<Function()>;
   using shape_type = typename executor_traits<Executor>::shape_type;
 
   using container_type = single_element_container<value_type,shape_type>;
@@ -74,7 +75,7 @@ typename std::result_of<Function()>::type
 
 template<class Executor, class Function>
 __AGENCY_ANNOTATION
-typename std::result_of<Function()>::type
+result_of_t<Function()>
   single_agent_execute(std::false_type, Executor& ex, Function&& f)
 {
   return executor_traits_detail::single_agent_execute_impl(ex, std::forward<Function>(f));
@@ -88,7 +89,7 @@ typename std::result_of<Function()>::type
 template<class Executor>
   template<class Function>
 __AGENCY_ANNOTATION
-typename std::result_of<Function()>::type
+detail::result_of_t<Function()>
   executor_traits<Executor>
     ::execute(typename executor_traits<Executor>::executor_type& ex,
               Function&& f)

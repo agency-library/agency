@@ -5,6 +5,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/coordinate.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -59,8 +60,8 @@ typename tuple_of_shared_parameter_containers_war_nvbug1665680<Executor,Types...
 
 template<class Executor, class... Factories>
 // XXX WAR nvbug 1665680
-//tuple_of_shared_parameter_containers<Executor, typename std::result_of<Factories()>::type...>
-typename tuple_of_shared_parameter_containers_war_nvbug1665680<Executor,typename std::result_of<Factories()>::type...>::type
+//tuple_of_shared_parameter_containers<Executor, detail::result_of_t<Factories()>...>
+typename tuple_of_shared_parameter_containers_war_nvbug1665680<Executor,detail::result_of_t<Factories()>...>::type
   make_tuple_of_shared_parameter_containers(Executor& ex, typename executor_traits<Executor>::shape_type shape, Factories... shared_factories)
 {
   return make_tuple_of_shared_parameter_containers(detail::make_index_sequence<sizeof...(shared_factories)>(), ex, shape, shared_factories()...);

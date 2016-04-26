@@ -5,6 +5,7 @@
 #include <agency/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/functional.hpp>
+#include <agency/detail/type_traits.hpp>
 
 namespace agency
 {
@@ -21,7 +22,7 @@ struct ignore_tail_parameters_and_invoke
 
   template<class Index, class... Args>
   __AGENCY_ANNOTATION
-  typename std::result_of<Function(Index)>::type
+  result_of_t<Function(Index)>
   operator()(const Index& idx, Args&&...) const
   {
     return agency::invoke(f, idx);

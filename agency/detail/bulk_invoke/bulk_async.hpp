@@ -12,7 +12,7 @@ namespace detail
 
 // this overload handles the general case where the user function returns a normal result
 template<class Executor, class Function, class Factory, class Tuple, size_t... TupleIndices>
-executor_future_t<Executor, typename std::result_of<Factory(executor_shape_t<Executor>)>::type>
+executor_future_t<Executor, result_of_t<Factory(executor_shape_t<Executor>)>>
   bulk_async_executor_impl(Executor& exec,
                            Function f,
                            Factory result_factory,
@@ -89,7 +89,7 @@ bulk_async_executor_result_t<Executor, Function, Args...>
   auto h = detail::make_unpack_shared_parameters_from_executor_and_invoke(g);
 
   // compute the type of f's result
-  using result_of_f = typename std::result_of<Function(executor_index_t<Executor>,decay_parameter_t<Args>...)>::type;
+  using result_of_f = result_of_t<Function(executor_index_t<Executor>,decay_parameter_t<Args>...)>;
 
   // based on the type of f's result, make a factory that will create the appropriate type of container to store f's results
   auto result_factory = detail::make_result_factory<result_of_f>(exec);

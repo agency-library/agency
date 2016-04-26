@@ -18,6 +18,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/future/future.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 #include <memory>
 
@@ -100,7 +101,7 @@ class shared_future
     }
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
-    agency::cuda::future<typename std::result_of<Factory(Shape)>::type>
+    agency::cuda::future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
     {
       return underlying_future_->bulk_then_and_leave_valid(f, result_factory, shape, index_function, outer_factory, inner_factory, device);

@@ -21,6 +21,7 @@
 #include <agency/cuda/detail/array.hpp>
 #include <agency/detail/optional.hpp>
 #include <agency/detail/flatten_index_and_invoke.hpp>
+#include <agency/detail/type_traits.hpp>
 
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
@@ -229,7 +230,7 @@ class basic_grid_executor
              >
             >
     __host__ __device__
-    async_future<typename std::result_of<Factory1(shape_type)>::type>
+    async_future<agency::detail::result_of_t<Factory1(shape_type)>>
       then_execute(Function f, Factory1 result_factory, shape_type shape, async_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
     {
       return fut.bulk_then(f, result_factory, shape, this_index_function_type(), outer_factory, inner_factory, device());
@@ -245,10 +246,10 @@ class basic_grid_executor
                agency::detail::result_of_factory_t<Factory3>&
              >
             >
-    async_future<typename std::result_of<Factory1(shape_type)>::type>
+    async_future<agency::detail::result_of_t<Factory1(shape_type)>>
       then_execute(Function f, Factory1 result_factory, shape_type shape, shared_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
     {
-      using result_type = async_future<typename std::result_of<Factory1(shape_type)>::type>;
+      using result_type = async_future<agency::detail::result_of_t<Factory1(shape_type)>>;
       auto intermediate_future = fut.bulk_then(f, result_factory, shape, this_index_function_type(), outer_factory, inner_factory, device());
       return std::move(intermediate_future.template get<result_type>());
     }

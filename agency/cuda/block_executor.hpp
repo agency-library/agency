@@ -3,6 +3,7 @@
 #include <agency/cuda/grid_executor.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/functional.hpp>
+#include <agency/detail/type_traits.hpp>
 
 namespace agency
 {
@@ -73,7 +74,7 @@ struct block_executor_helper_container_factory
   Factory factory_;
 
   using factory_arg_type = typename std::tuple_element<1,grid_executor::shape_type>::type;
-  using block_executor_container_type = typename std::result_of<Factory(factory_arg_type)>::type;
+  using block_executor_container_type = agency::detail::result_of_t<Factory(factory_arg_type)>;
 
   __host__ __device__
   block_executor_helper_container<block_executor_container_type> operator()(grid_executor::shape_type shape)
@@ -128,7 +129,7 @@ class block_executor : private grid_executor
                agency::detail::result_of_factory_t<Factory2>&
              >
             >
-    async_future<typename std::result_of<Factory1(shape_type)>::type>
+    async_future<agency::detail::result_of_t<Factory1(shape_type)>>
       then_execute(Function f, Factory1 result_factory, shape_type shape, async_future<T>& fut, Factory2 shared_factory)
     {
       // wrap f with a functor which accepts indices which grid_executor produces

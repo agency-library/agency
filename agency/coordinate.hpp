@@ -1,11 +1,14 @@
 #pragma once
 
+#include <agency/detail/small_vector_facade.hpp>
+#include <agency/detail/tuple.hpp>
+#include <agency/detail/type_traits.hpp>
+
 #include <array>
 #include <initializer_list>
 #include <type_traits>
-#include <agency/detail/small_vector_facade.hpp>
 #include <array>
-#include <agency/detail/tuple.hpp>
+
 
 namespace agency
 {
@@ -284,9 +287,9 @@ class lattice
     }
 
     // XXX WAR cudafe perf issue
-    //using index_type = typename std::result_of<
+    //using index_type = typename detail::result_of_t<
     //  decltype(&lattice::shape)(lattice)
-    //>::type;
+    //>;
     using index_type = decltype(value_type{} - value_type{});
 
     // XXX should create a grid empty of points

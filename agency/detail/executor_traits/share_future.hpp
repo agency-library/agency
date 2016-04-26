@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/executor_traits.hpp>
 #include <agency/detail/executor_traits/container_factory.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -76,7 +77,7 @@ template<class Executor, class Future, class Factory>
 __AGENCY_ANNOTATION
 typename std::enable_if<
   !has_multi_future_share_future_with_factory<Executor,Future,Factory>::value,
-  typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
+  result_of_t<Factory(typename executor_traits<Executor>::shape_type)>
 >::type
   multi_future_share_future_with_factory(Executor& ex, Future& fut, Factory result_factory, typename executor_traits<Executor>::shape_type shape)
 {
@@ -104,7 +105,7 @@ template<class Executor, class Future, class Factory>
 __AGENCY_ANNOTATION
 typename std::enable_if<
   has_multi_future_share_future_with_factory<Executor,Future,Factory>::value,
-  typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
+  result_of_t<Factory(typename executor_traits<Executor>::shape_type)>
 >::type
   multi_future_share_future_with_factory(Executor& ex, Future& fut, Factory result_factory, typename executor_traits<Executor>::shape_type shape)
 {
@@ -185,7 +186,7 @@ typename executor_traits<Executor>::template shared_future<typename future_trait
 template<class Executor>
   template<class Future, class Factory>
 __AGENCY_ANNOTATION
-typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
+detail::result_of_t<Factory(typename executor_traits<Executor>::shape_type)>
   executor_traits<Executor>
     ::share_future(typename executor_traits<Executor>::executor_type& ex, Future& fut, Factory result_factory, typename executor_traits<Executor>::shape_type shape)
 {

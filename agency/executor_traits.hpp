@@ -66,7 +66,7 @@ struct executor_traits
 
     template<class Future, class Factory>
     __AGENCY_ANNOTATION
-    static typename std::result_of<Factory(shape_type)>::type
+    static typename detail::result_of_t<Factory(shape_type)>
       share_future(executor_type& ex, Future& fut, Factory result_factory, shape_type shape);
 
     template<class Future>
@@ -136,7 +136,7 @@ struct executor_traits
              >
             >
     __AGENCY_ANNOTATION
-    static future<typename std::result_of<Factory(shape_type)>::type> then_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Future& fut);
+    static future<detail::result_of_t<Factory(shape_type)>> then_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Future& fut);
 
     // multi-agent then_execute() with shared inits returning user-specified Container
     template<class Function, class Factory, class Future, class... Factories,
@@ -150,10 +150,10 @@ struct executor_traits
                Function,
                index_type,
                Future,
-               typename std::result_of<Factories()>::type&...
+               detail::result_of_t<Factories()>&...
              >>
     __AGENCY_ANNOTATION
-    static future<typename std::result_of<Factory(shape_type)>::type> then_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Future& fut, Factories... shared_factories);
+    static future<detail::result_of_t<Factory(shape_type)>> then_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Future& fut, Factories... shared_factories);
 
     // multi-agent then_execute() returning default container
     template<class Function, class Future,
@@ -184,16 +184,16 @@ struct executor_traits
                sizeof...(Factories) == execution_depth
              >::type,
              class = typename std::enable_if<
-               detail::is_callable_continuation<Function,index_type,Future,typename std::result_of<Factories()>::type&...>::value
+               detail::is_callable_continuation<Function,index_type,Future,detail::result_of_t<Factories()>&...>::value
              >::type,
              class = typename std::enable_if<
                !std::is_void<
-                 detail::result_of_continuation_t<Function,index_type,Future,typename std::result_of<Factories()>::type&...>
+                 detail::result_of_continuation_t<Function,index_type,Future,detail::result_of_t<Factories()>&...>
                >::value
              >::type>
     static future<
       container<
-        detail::result_of_continuation_t<Function,index_type,Future,typename std::result_of<Factories()>::type&...>
+        detail::result_of_continuation_t<Function,index_type,Future,detail::result_of_t<Factories()>&...>
       >
     >
       then_execute(executor_type& ex, Function f, shape_type shape, Future& fut, Factories... shared_factories);
@@ -224,11 +224,11 @@ struct executor_traits
                sizeof...(Factories) == execution_depth
              >::type,
              class = typename std::enable_if<
-               detail::is_callable_continuation<Function,index_type,Future,typename std::result_of<Factories()>::type&...>::value
+               detail::is_callable_continuation<Function,index_type,Future,detail::result_of_t<Factories()>&...>::value
              >::type,
              class = typename std::enable_if<
                std::is_void<
-                 detail::result_of_continuation_t<Function,index_type,Future,typename std::result_of<Factories()>::type&...>
+                 detail::result_of_continuation_t<Function,index_type,Future,detail::result_of_t<Factories()>&...>
                >::value
              >::type>
     __AGENCY_ANNOTATION
@@ -238,13 +238,13 @@ struct executor_traits
     // single-agent async_execute()
     template<class Function>
     static future<
-      typename std::result_of<Function()>::type
+      detail::result_of_t<Function()>
     >
       async_execute(executor_type& ex, Function&& f);
 
     // multi-agent async_execute() returning user-specified Container
     template<class Function, class Factory>
-    static future<typename std::result_of<Factory(shape_type)>::type> async_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape);
+    static future<detail::result_of_t<Factory(shape_type)>> async_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape);
 
     // multi-agent async_execute() with shared inits returning user-specified Container
     template<class Function, class Factory, class... Factories,
@@ -252,18 +252,18 @@ struct executor_traits
                sizeof...(Factories) == execution_depth
              >::type>
     __AGENCY_ANNOTATION
-    static future<typename std::result_of<Factory(shape_type)>::type> async_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Factories... shared_factories);
+    static future<detail::result_of_t<Factory(shape_type)>> async_execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Factories... shared_factories);
 
     // multi-agent async_execute() returning default container
     template<class Function,
              class = typename std::enable_if<
                !std::is_void<
-                typename std::result_of<Function(index_type)>::type
+                detail::result_of_t<Function(index_type)>
                >::value
              >::type>
     static future<
       container<
-        typename std::result_of<Function(index_type)>::type
+        detail::result_of_t<Function(index_type)>
       >
     >
       async_execute(executor_type& ex, Function f, shape_type shape);
@@ -276,12 +276,12 @@ struct executor_traits
              >::type,
              class = typename std::enable_if<
                !std::is_void<
-                 typename std::result_of<Function(index_type, typename std::result_of<Factories()>::type&...)>::type
+                 detail::result_of_t<Function(index_type, detail::result_of_t<Factories()>&...)>
                >::value
              >::type>
     static future<
       container<
-        typename std::result_of<Function(index_type, typename std::result_of<Factories()>::type&...)>::type
+        detail::result_of_t<Function(index_type, detail::result_of_t<Factories()>&...)>
       >
     >
       async_execute(executor_type& ex, Function f, shape_type shape, Factories... shared_factories);
@@ -290,7 +290,7 @@ struct executor_traits
     template<class Function,
              class = typename std::enable_if<
               std::is_void<
-                typename std::result_of<Function(index_type)>::type
+                detail::result_of_t<Function(index_type)>
               >::value
              >::type>
     static future<void> async_execute(executor_type& ex, Function f, shape_type shape);
@@ -303,7 +303,7 @@ struct executor_traits
              >::type,
              class = typename std::enable_if<
                std::is_void<
-                 typename std::result_of<Function(index_type, typename std::result_of<Factories()>::type&...)>::type
+                 detail::result_of_t<Function(index_type, detail::result_of_t<Factories()>&...)>
                >::value
              >::type>
     __AGENCY_ANNOTATION
@@ -312,13 +312,13 @@ struct executor_traits
     // single-agent execute()
     template<class Function>
     __AGENCY_ANNOTATION
-    static typename std::result_of<Function()>::type
+    static detail::result_of_t<Function()>
       execute(executor_type& ex, Function&& f);
 
     // multi-agent execute returning user-specified Container
     template<class Function, class Factory>
     __AGENCY_ANNOTATION
-    static typename std::result_of<Factory(shape_type)>::type execute(executor_type& ex, Function f, Factory result_factory, shape_type shape);
+    static detail::result_of_t<Factory(shape_type)> execute(executor_type& ex, Function f, Factory result_factory, shape_type shape);
 
     // multi-agent execute with shared inits returning user-specified Container
     template<class Function, class Factory, class... Factories,
@@ -326,19 +326,19 @@ struct executor_traits
                execution_depth == sizeof...(Factories)
              >::type>
     __AGENCY_ANNOTATION
-    static typename std::result_of<Factory(shape_type)>::type execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Factories... shared_factories);
+    static detail::result_of_t<Factory(shape_type)> execute(executor_type& ex, Function f, Factory result_factory, shape_type shape, Factories... shared_factories);
 
     // multi-agent execute returning default container
     template<class Function,
              class = typename std::enable_if<
                !std::is_void<
-                 typename std::result_of<
+                 detail::result_of_t<
                    Function(index_type)
-                 >::type
+                 >
                >::value
              >::type>
     static container<
-      typename std::result_of<Function(index_type)>::type
+      detail::result_of_t<Function(index_type)>
     >
       execute(executor_type& ex, Function f, shape_type shape);
 
@@ -346,21 +346,21 @@ struct executor_traits
     template<class Function, class... Factories,
              class = typename std::enable_if<
                !std::is_void<
-                 typename std::result_of<
-                   Function(index_type, typename std::result_of<Factories()>::type&...)
-                 >::type
+                 detail::result_of_t<
+                   Function(index_type, detail::result_of_t<Factories()>&...)
+                 >
                >::value
              >::type,
              class = typename std::enable_if<
                execution_depth == sizeof...(Factories)
              >::type>
     static container<
-      typename std::result_of<
+      detail::result_of_t<
         Function(
           index_type,
-          typename std::result_of<Factories()>::type&...
+          detail::result_of_t<Factories()>&...
         )
-      >::type
+      >
     >
       execute(executor_type& ex, Function f, shape_type shape, Factories... shared_factories);
 
@@ -368,9 +368,9 @@ struct executor_traits
     template<class Function,
              class = typename std::enable_if<
                std::is_void<
-                 typename std::result_of<
+                 detail::result_of_t<
                    Function(index_type)
-                 >::type
+                 >
                >::value
              >::type>
     __AGENCY_ANNOTATION
@@ -380,9 +380,9 @@ struct executor_traits
     template<class Function, class... Factories,
              class = typename std::enable_if<
                std::is_void<
-                 typename std::result_of<
-                   Function(index_type, typename std::result_of<Factories()>::type&...)
-                 >::type
+                 detail::result_of_t<
+                   Function(index_type, detail::result_of_t<Factories()>&...)
+                 >
                >::value
              >::type,
              class = typename std::enable_if<

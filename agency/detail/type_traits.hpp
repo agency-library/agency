@@ -34,10 +34,6 @@ template<class T>
 using decay_t = typename std::decay<T>::type;
 
 
-template<class T>
-using result_of_t = typename std::result_of<T>::type;
-
-
 template<class... Conditions>
 struct conjunction;
 
@@ -176,6 +172,10 @@ struct is_cuda_extended_device_lambda
     std::false_type
 #endif
 {};
+
+
+template<class T>
+using result_of_t = typename std::result_of<T>::type;
 
 
 } // end detail

@@ -4,6 +4,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/type_list.hpp>
 #include <agency/future.hpp>
+#include <agency/detail/type_traits.hpp>
 
 namespace agency
 {
@@ -13,7 +14,7 @@ namespace detail
 
 // this overload handles the general case where the user function returns a normal result
 template<class Executor, class Function, class Factory, class Future, class Tuple, size_t... TupleIndices>
-executor_future_t<Executor, typename std::result_of<Factory(executor_shape_t<Executor>)>::type>
+executor_future_t<Executor, result_of_t<Factory(executor_shape_t<Executor>)>>
   bulk_then_executor_impl(Executor& exec,
                           Function f,
                           Factory result_factory,

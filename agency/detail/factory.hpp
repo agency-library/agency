@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/unit.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -13,11 +14,7 @@ namespace detail
 
 
 template<class Factory>
-struct result_of_factory : std::result_of<Factory()> {};
-
-
-template<class Factory>
-using result_of_factory_t = typename result_of_factory<Factory>::type;
+using result_of_factory_t = result_of_t<Factory()>;
 
 
 template<class T, class... Args>
@@ -94,7 +91,7 @@ struct zip_factory
   template<size_t... Indices>
   __AGENCY_ANNOTATION
   agency::detail::tuple<
-    typename std::result_of<Factories()>::type...
+    result_of_factory_t<Factories>...
   >
     impl(agency::detail::index_sequence<Indices...>)
   {
@@ -103,7 +100,7 @@ struct zip_factory
 
   __AGENCY_ANNOTATION
   agency::detail::tuple<
-    typename std::result_of<Factories()>::type...
+    result_of_factory_t<Factories>...
   >
     operator()()
   {
