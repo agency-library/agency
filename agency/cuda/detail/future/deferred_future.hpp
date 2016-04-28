@@ -10,6 +10,7 @@
 #include <agency/functional.hpp>
 #include <agency/detail/unique_function.hpp>
 #include <agency/detail/memory/malloc_allocator.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 
 
@@ -99,7 +100,7 @@ class deferred_function<Result(Args...)>
     deferred_function(Function&& f,
                       typename std::enable_if<
                         !deferred_state_requires_storage<
-                          typename std::result_of<Function(Args...)>::type
+                          agency::detail::result_of_t<Function(Args...)>
                         >::value
                       >::type* = 0)
       : function_(std::allocator_arg, allocator_type(), make_invoke_and_return_unit(std::forward<Function>(f)))
@@ -110,7 +111,7 @@ class deferred_function<Result(Args...)>
     deferred_function(Function&& f,
                       typename std::enable_if<
                         deferred_state_requires_storage<
-                          typename std::result_of<Function(Args...)>::type
+                          agency::detail::result_of_t<Function(Args...)>
                         >::value
                       >::type* = 0)
       : function_(std::allocator_arg, allocator_type(), std::forward<Function>(f))
@@ -752,7 +753,7 @@ class deferred_future
       // operator() for non-void past_arg
       template<class U>
       __host__ __device__
-      typename std::result_of<Factory(Shape)>::type
+      agency::detail::result_of_t<Factory(Shape)>
         operator()(U& past_arg)
       {
         auto ready = async_future<U>::make_ready(std::move(past_arg));
@@ -762,7 +763,7 @@ class deferred_future
 
       // operator() for void past_arg
       __host__ __device__
-      typename std::result_of<Factory(Shape)>::type
+      agency::detail::result_of_t<Factory(Shape)>
         operator()()
       {
         auto ready = async_future<void>::make_ready();
@@ -773,7 +774,7 @@ class deferred_future
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
-    deferred_future<typename std::result_of<Factory(Shape)>::type>
+    deferred_future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       bulk_then_functor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory> continuation{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
@@ -815,12 +816,12 @@ class deferred_future
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
-    deferred_future<typename std::result_of<Factory(Shape)>::type>
+    deferred_future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       printf("deferred_future::bulk_then_and_leave_valid(): Unimplemented.\n");
 
-      return deferred_future<typename std::result_of<Factory(Shape)>::type>();
+      return deferred_future<agency::detail::result_of_t<Factory(Shape)>>();
     }
 };
 

@@ -13,6 +13,7 @@
 #include <agency/detail/execution_policy_traits.hpp>
 #include <agency/detail/bulk_invoke/single_result.hpp>
 #include <agency/detail/bulk_invoke/result_factory.hpp>
+#include <agency/detail/type_traits.hpp>
 
 
 // XXX this has gotten complicated, so we should reorganize the implementation of bulk_invoke()
@@ -65,7 +66,7 @@ unpack_shared_parameters_from_executor_and_invoke<Function> make_unpack_shared_p
 
 // this overload handles the general case where the user function returns a normal result
 template<class Executor, class Function, class Factory, class Tuple, size_t... TupleIndices>
-typename std::result_of<Factory(executor_shape_t<Executor>)>::type
+result_of_t<Factory(executor_shape_t<Executor>)>
   bulk_invoke_executor_impl(Executor& exec,
                             Function f,
                             Factory result_factory,
@@ -182,7 +183,7 @@ bulk_invoke_executor_result_t<Executor, Function, Args...>
   auto h = detail::make_unpack_shared_parameters_from_executor_and_invoke(g);
 
   // compute the type of f's result
-  using result_of_f = typename std::result_of<Function(executor_index_t<Executor>,decay_parameter_t<Args>...)>::type;
+  using result_of_f = result_of_t<Function(executor_index_t<Executor>,decay_parameter_t<Args>...)>;
 
   // based on the type of f's result, make a factory that will create the appropriate type of container to store f's results
   auto result_factory = detail::make_result_factory<result_of_f>(exec);
@@ -229,12 +230,15 @@ struct execute_agent_functor
 
     template<class ExecutionAgent>
     __AGENCY_ANNOTATION
-    auto operator()(ExecutionAgent& self) ->
-      decltype(
-        f_(self, agency::detail::get<Indices>(args_)...)
-      )
+    result_of_t<Function(ExecutionAgent&,typename std::tuple_element<Indices,Tuple>::type...)>
+      operator()(ExecutionAgent& self)
     {
-      return f_(self, agency::detail::get<Indices>(args_)...);
+      using result_type = result_of_t<Function(ExecutionAgent&,typename std::tuple_element<Indices,Tuple>::type...)>;
+
+      // XXX we explicitly cast the result of f_ to result_type
+      //     this is due to our special implementation of result_of,
+      //     coerces the return type of a CUDA extended device lambda to be void
+      return static_cast<result_type>(f_(self, agency::detail::get<Indices>(args_)...));
     }
   };
 

@@ -2,6 +2,7 @@
 
 #include <type_traits>
 #include <agency/detail/integer_sequence.hpp>
+#include <agency/detail/type_traits.hpp>
 
 namespace agency
 {
@@ -246,7 +247,7 @@ struct type_list_result_of;
 template<class Function, class... Types>
 struct type_list_result_of<Function, type_list<Types...>>
 {
-  using type = typename std::result_of<Function(Types...)>::type;
+  using type = result_of_t<Function(Types...)>;
 };
 
 template<class Function, class TypeList>

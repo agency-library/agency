@@ -10,6 +10,7 @@
 #include <agency/detail/flatten_index_and_invoke.hpp>
 #include <agency/detail/array.hpp>
 #include <agency/detail/shape.hpp>
+#include <agency/detail/type_traits.hpp>
 
 namespace agency
 {
@@ -72,7 +73,7 @@ struct guarded_container_factory
   Factory factory_;
   Shape shape_;
 
-  using container_type = typename std::result_of<Factory(Shape)>::type;
+  using container_type = detail::result_of_t<Factory(Shape)>;
 
   __agency_exec_check_disable__
   template<class Arg>
@@ -153,7 +154,7 @@ class flattened_executor
              class = typename std::enable_if<
                sizeof...(Factories) == execution_depth - 1
              >::type>
-    future<typename std::result_of<Factory1(shape_type)>::type>
+    future<detail::result_of_t<Factory1(shape_type)>>
       then_execute(Function f, Factory1 result_factory, shape_type shape, Future& dependency, Factory2 outer_factory, Factories... inner_factories)
     {
       base_shape_type base_shape = partition_into_base_shape(shape);
@@ -178,7 +179,7 @@ class flattened_executor
       );
 
       // cast the intermediate result to the type of result expected by the caller
-      using result_type = typename std::result_of<Factory1(shape_type)>::type;
+      using result_type = detail::result_of_t<Factory1(shape_type)>;
       return executor_traits<base_executor_type>::template future_cast<result_type>(base_executor(), intermediate_fut);
     }
 

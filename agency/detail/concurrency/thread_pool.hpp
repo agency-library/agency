@@ -8,6 +8,7 @@
 #include <agency/flattened_executor.hpp>
 #include <agency/detail/concurrency/latch.hpp>
 #include <agency/detail/concurrency/concurrent_queue.hpp>
+#include <agency/detail/type_traits.hpp>
 
 #include <thread>
 #include <vector>
@@ -54,7 +55,7 @@ class thread_pool
     }
 
     template<class Function,
-             class = typename std::result_of<Function()>::type>
+             class = result_of_t<Function()>>
     inline void submit(Function&& f)
     {
       auto is_this_thread = [=](const joining_thread& t)
@@ -109,7 +110,7 @@ class thread_pool_executor
   public:
     // XXX should really implement then_execute(), but we'll start with execute() for now
     template<class Factory1, class Function, class Factory2>
-    typename std::result_of<Factory1(size_t)>::type
+    result_of_t<Factory1(size_t)>
       execute(Function f, Factory1 result_factory, size_t n, Factory2 shared_factory)
     {
       auto result = result_factory(n);
@@ -144,7 +145,7 @@ class thread_pool_executor
     template<class Function, class Factory,
              class = typename std::enable_if<
                std::is_void<
-                 typename std::result_of<Function(size_t, typename std::result_of<Factory()>::type&)>::type
+                 result_of_t<Function(size_t, result_of_t<Factory()>&)>
                >::value
              >::type>
     void execute(Function f, size_t n, Factory shared_factory)

@@ -335,10 +335,10 @@ class async_future
     //     and require grid_dim & block_dim
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
-    async_future<typename std::result_of<Factory(Shape)>::type>
+    async_future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
-      using result_type = typename std::result_of<Factory(Shape)>::type;
+      using result_type = agency::detail::result_of_t<Factory(Shape)>;
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory(shape));
       
       using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
@@ -364,7 +364,7 @@ class async_future
 
     template<class Function, class Factory, class Shape, class IndexFunction>
     __host__ __device__
-    async_future<typename std::result_of<Factory(Shape)>::type>
+    async_future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, device_id device)
     {
       auto outer_factory = agency::detail::unit_factory{};
@@ -380,7 +380,7 @@ class async_future
     __host__ __device__
     static void* bulk_then_kernel(const Function& f, const Factory& result_factory, const Shape& s, const IndexFunction& index_function, const OuterFactory&, const InnerFactory& inner_factory, const device_id&)
     {
-      using result_type = typename std::result_of<Factory(Shape)>::type;
+      using result_type = agency::detail::result_of_t<Factory(Shape)>;
       using result_state_type = detail::asynchronous_state<result_type>;
       using outer_future_type = async_future<agency::detail::result_of_factory_t<OuterFactory>>;
 
@@ -402,10 +402,10 @@ class async_future
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
-    async_future<typename std::result_of<Factory(Shape)>::type>
+    async_future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
-      using result_type = typename std::result_of<Factory(Shape)>::type;
+      using result_type = agency::detail::result_of_t<Factory(Shape)>;
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory(shape));
       
       using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;

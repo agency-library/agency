@@ -6,6 +6,7 @@
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/ignore_tail_parameters_and_invoke.hpp>
 #include <agency/functional.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -37,7 +38,7 @@ __agency_exec_check_disable__
 template<class Executor, class Function, class Factory, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
-  typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
+  result_of_t<Factory(typename executor_traits<Executor>::shape_type)>
 >
   multi_agent_then_execute_returning_user_specified_container(use_multi_agent_then_execute_returning_user_specified_container_member_function,
                                                               Executor& ex, Function f, Factory result_factory, typename executor_traits<Executor>::shape_type shape, Future& fut)
@@ -53,7 +54,7 @@ struct ignore_tail_parameters_and_invoke
 
   template<class Index, class... Args>
   __AGENCY_ANNOTATION
-  typename std::result_of<Function(Index,T&)>::type
+  result_of_t<Function(Index,T&)>
   operator()(const Index& idx, T& past_arg, Args&&...) const
   {
     return agency::invoke(f, idx, past_arg);
@@ -69,7 +70,7 @@ struct ignore_tail_parameters_and_invoke<Function,void>
   __agency_exec_check_disable__
   template<class Index, class... Args>
   __AGENCY_ANNOTATION
-  typename std::result_of<Function(Index)>::type
+  result_of_t<Function(Index)>
   operator()(const Index& idx, Args&&...) const
   {
     return agency::invoke(f, idx);
@@ -80,7 +81,7 @@ struct ignore_tail_parameters_and_invoke<Function,void>
 template<size_t... Indices, class Executor, class Function, class Factory, class Future, class Tuple>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
-  typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
+  result_of_t<Factory(typename executor_traits<Executor>::shape_type)>
 >
   multi_agent_then_execute_returning_user_specified_container_impl(detail::index_sequence<Indices...>,
                                                                    Executor& ex, Function f, Factory result_factory, typename executor_traits<Executor>::shape_type shape, Future& fut,
@@ -95,7 +96,7 @@ typename executor_traits<Executor>::template future<
 template<class Executor, class Function, class Factory, class Future>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
-  typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
+  result_of_t<Factory(typename executor_traits<Executor>::shape_type)>
 >
   multi_agent_then_execute_returning_user_specified_container(use_multi_agent_then_execute_with_shared_inits_returning_user_specified_container,
                                                               Executor& ex, Function f, Factory result_factory, typename executor_traits<Executor>::shape_type shape, Future& fut)
@@ -118,7 +119,7 @@ template<class Executor>
            >
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
-  typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
+  detail::result_of_t<Factory(typename executor_traits<Executor>::shape_type)>
 >
   executor_traits<Executor>
     ::then_execute(typename executor_traits<Executor>::executor_type& ex,

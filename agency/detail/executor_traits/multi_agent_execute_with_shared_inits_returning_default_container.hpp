@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 
 namespace agency
@@ -33,12 +34,12 @@ using select_multi_agent_execute_with_shared_inits_returning_default_container_i
 
 template<class Executor, class Function, class... Factories>
 typename executor_traits<Executor>::template container<
-  typename std::result_of<
+  result_of_t<
     Function(
       typename executor_traits<Executor>::index_type,
-      typename std::result_of<Factories()>::type&...
+      result_of_t<Factories()>&...
     )
-  >::type
+  >
 >
   multi_agent_execute_with_shared_inits_returning_default_container(use_multi_agent_execute_with_shared_inits_returning_default_container_member_function,
                                                                     Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape,
@@ -62,24 +63,24 @@ struct factory
 
 template<class Executor, class Function, class... Factories>
 typename executor_traits<Executor>::template container<
-  typename std::result_of<
+  result_of_t<
     Function(
       typename executor_traits<Executor>::index_type,
-      typename std::result_of<Factories()>::type&...
+      result_of_t<Factories()>&...
     )
-  >::type
+  >
 >
   multi_agent_execute_with_shared_inits_returning_default_container(use_multi_agent_execute_with_shared_inits_returning_user_specified_container,
                                                                     Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape,
                                                                     Factories... shared_factories)
 {
   using container_type = typename executor_traits<Executor>::template container<
-    typename std::result_of<
+    result_of_t<
       Function(
         typename executor_traits<Executor>::index_type,
-        typename std::result_of<Factories()>::type&...
+        result_of_t<Factories()>&...
       )
-    >::type
+    >
   >;
 
   return executor_traits<Executor>::execute(ex, f, factory<container_type>{}, shape, shared_factories...);
@@ -96,9 +97,9 @@ template<class Executor>
            class Enable1,
            class Enable2>
 typename executor_traits<Executor>::template container<
-  typename std::result_of<
-    Function(typename executor_traits<Executor>::index_type, typename std::result_of<Factories()>::type&...)
-  >::type
+  detail::result_of_t<
+    Function(typename executor_traits<Executor>::index_type, detail::result_of_t<Factories()>&...)
+  >
 >
   executor_traits<Executor>
     ::execute(typename executor_traits<Executor>::executor_type& ex,

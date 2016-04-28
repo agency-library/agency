@@ -7,6 +7,7 @@
 #include <agency/detail/index_tuple.hpp>
 #include <agency/functional.hpp>
 #include <agency/executor_traits.hpp>
+#include <agency/detail/type_traits.hpp>
 
 namespace agency
 {
@@ -223,7 +224,7 @@ class executor_array
              class = typename std::enable_if<
                sizeof...(Factories) == inner_depth
              >::type>
-    future<typename std::result_of<Factory1(shape_type)>::type>
+    future<detail::result_of_t<Factory1(shape_type)>>
       then_execute_impl(lazy_strategy, Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
     {
       // separate the shape into inner and outer portions
@@ -359,7 +360,7 @@ class executor_array
              class = typename std::enable_if<
                sizeof...(Factories) == inner_depth
              >::type>
-    future<typename std::result_of<Factory1(shape_type)>::type>
+    future<detail::result_of_t<Factory1(shape_type)>>
       then_execute_impl(eager_strategy, Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
     {
       // this implementation legal when the outer_category is not sequential
@@ -418,7 +419,7 @@ class executor_array
              class = typename std::enable_if<
                sizeof...(Factories) == inner_depth
              >::type>
-    future<typename std::result_of<Factory1(shape_type)>::type>
+    future<detail::result_of_t<Factory1(shape_type)>>
       then_execute(Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
     {
       return then_execute_impl(then_execute_implementation_strategy(), f, result_factory, shape, fut, outer_factory, inner_factories...);

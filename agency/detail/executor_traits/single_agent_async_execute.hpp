@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -17,7 +18,7 @@ namespace executor_traits_detail
 
 template<class Executor, class Function>
 typename executor_traits<Executor>::template future<
-  typename std::result_of<Function()>::type
+  result_of_t<Function()>
 >
   single_agent_async_execute(std::true_type, Executor& ex, Function&& f)
 {
@@ -27,7 +28,7 @@ typename executor_traits<Executor>::template future<
 
 template<class Executor, class Function>
 typename executor_traits<Executor>::template future<
-  typename std::result_of<Function()>::type
+  result_of_t<Function()>
 >
   single_agent_async_execute(std::false_type, Executor& ex, Function&& f)
 {
@@ -43,7 +44,7 @@ typename executor_traits<Executor>::template future<
 template<class Executor>
   template<class Function>
 typename executor_traits<Executor>::template future<
-  typename std::result_of<Function()>::type
+  detail::result_of_t<Function()>
 >
   executor_traits<Executor>
     ::async_execute(typename executor_traits<Executor>::executor_type& ex,

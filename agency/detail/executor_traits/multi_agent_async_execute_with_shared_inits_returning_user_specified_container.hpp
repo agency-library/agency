@@ -4,6 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 
 namespace agency
@@ -18,7 +19,7 @@ namespace multi_agent_async_execute_with_shared_inits_returning_user_specified_c
 
 template<class Executor, class Function, class Factory, class... Factories>
 typename executor_traits<Executor>::template future<
-  typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
+  result_of_t<Factory(typename executor_traits<Executor>::shape_type)>
 >
   multi_agent_async_execute_with_shared_inits_returning_user_specified_container(std::true_type, Executor& ex, Function f, Factory result_factory, typename executor_traits<Executor>::shape_type shape, Factories... shared_factories)
 {
@@ -29,7 +30,7 @@ typename executor_traits<Executor>::template future<
 template<class Executor, class Function, class Factory, class... Factories>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
-  typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
+  result_of_t<Factory(typename executor_traits<Executor>::shape_type)>
 >
   multi_agent_async_execute_with_shared_inits_returning_user_specified_container(std::false_type, Executor& ex, Function f, Factory result_factory, typename executor_traits<Executor>::shape_type shape, Factories... shared_factories)
 {
@@ -48,7 +49,7 @@ template<class Executor>
            class Enable>
 __AGENCY_ANNOTATION
 typename executor_traits<Executor>::template future<
-  typename std::result_of<Factory(typename executor_traits<Executor>::shape_type)>::type
+  detail::result_of_t<Factory(typename executor_traits<Executor>::shape_type)>
 >
   executor_traits<Executor>
     ::async_execute(typename executor_traits<Executor>::executor_type& ex,

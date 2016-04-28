@@ -5,6 +5,7 @@
 #include <agency/executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/container_factory.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 
 namespace agency
@@ -18,9 +19,9 @@ namespace executor_traits_detail
 template<class Executor, class Function>
 typename executor_traits<Executor>::template future<
   typename executor_traits<Executor>::template container<
-    typename std::result_of<
+    result_of_t<
       Function(typename executor_traits<Executor>::index_type)
-    >::type
+    >
   >
 >
   multi_agent_async_execute_returning_default_container(std::true_type, Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape)
@@ -32,17 +33,17 @@ typename executor_traits<Executor>::template future<
 template<class Executor, class Function>
 typename executor_traits<Executor>::template future<
   typename executor_traits<Executor>::template container<
-    typename std::result_of<
+    result_of_t<
       Function(typename executor_traits<Executor>::index_type)
-    >::type
+    >
   >
 >
   multi_agent_async_execute_returning_default_container(std::false_type, Executor& ex, Function f, typename executor_traits<Executor>::shape_type shape)
 {
   using container_type = typename executor_traits<Executor>::template container<
-    typename std::result_of<
+    result_of_t<
       Function(typename executor_traits<Executor>::index_type)
-    >::type
+    >
   >;
 
   return executor_traits<Executor>::async_execute(ex, f, container_factory<container_type>{}, shape);
@@ -58,9 +59,9 @@ template<class Executor>
            class Enable>
 typename executor_traits<Executor>::template future<
   typename executor_traits<Executor>::template container<
-    typename std::result_of<
+    detail::result_of_t<
       Function(typename executor_traits<Executor>::index_type)
-    >::type
+    >
   >
 >
   executor_traits<Executor>

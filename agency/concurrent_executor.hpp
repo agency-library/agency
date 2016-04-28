@@ -1,11 +1,13 @@
 #pragma once
 
-#include <thread>
-#include <vector>
-#include <memory>
 #include <agency/future.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/functional.hpp>
+#include <agency/detail/type_traits.hpp>
+
+#include <thread>
+#include <vector>
+#include <memory>
 #include <algorithm>
 #include <utility>
 
@@ -20,14 +22,14 @@ class concurrent_executor
     using execution_category = concurrent_execution_tag;
 
     template<class Function, class Factory1, class T, class Factory2>
-    std::future<typename std::result_of<Factory1(size_t)>::type>
+    std::future<detail::result_of_t<Factory1(size_t)>>
       then_execute(Function f, Factory1 result_factory, size_t n, std::future<T>& fut, Factory2 shared_factory)
     {
       return this->then_execute_impl(f, result_factory, n, fut, shared_factory);
     }
 
     template<class Function, class Factory1, class T, class Factory2>
-    std::future<typename std::result_of<Factory1(size_t)>::type>
+    std::future<agency::detail::result_of_t<Factory1(size_t)>>
       then_execute(Function f, Factory1 result_factory, size_t n, std::shared_future<T>& fut, Factory2 shared_factory)
     {
       return this->then_execute_impl(f, result_factory, n, fut, shared_factory);
@@ -44,7 +46,7 @@ class concurrent_executor
 
   private:
     template<class Function, class Factory1, class Future, class Factory2>
-    std::future<typename std::result_of<Factory1(size_t)>::type>
+    std::future<agency::detail::result_of_t<Factory1(size_t)>>
       then_execute_impl(Function f, Factory1 result_factory, size_t n, Future& fut, Factory2 shared_factory,
                         typename std::enable_if<
                           !std::is_void<
@@ -95,7 +97,7 @@ class concurrent_executor
     }
 
     template<class Function, class Factory1, class Future, class Factory2>
-    std::future<typename std::result_of<Factory1(size_t)>::type>
+    std::future<agency::detail::result_of_t<Factory1(size_t)>>
       then_execute_impl(Function f, Factory1 result_factory, size_t n, Future& fut, Factory2 shared_factory,
                         typename std::enable_if<
                           std::is_void<

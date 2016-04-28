@@ -5,6 +5,7 @@
 #include <agency/executor_traits.hpp>
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/container_factory.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -24,7 +25,7 @@ typename executor_traits<Executor>::template future<
       Function,
       typename executor_traits<Executor>::shape_type,
       Future,
-      typename std::result_of<Factories()>::type&...
+      detail::result_of_t<Factories()>&...
     >
   >
 >
@@ -41,7 +42,7 @@ typename executor_traits<Executor>::template future<
       Function,
       typename executor_traits<Executor>::shape_type,
       Future,
-      typename std::result_of<Factories()>::type&...
+      detail::result_of_t<Factories()>&...
     >
   >
 >
@@ -52,7 +53,7 @@ typename executor_traits<Executor>::template future<
       Function,
       typename executor_traits<Executor>::shape_type,
       Future,
-      typename std::result_of<Factories()>::type&...
+      detail::result_of_t<Factories()>&...
     >
   >;
 
@@ -77,7 +78,7 @@ typename executor_traits<Executor>::template future<
       Function,
       typename executor_traits<Executor>::index_type,
       Future,
-      typename std::result_of<Factories()>::type&...
+      detail::result_of_t<Factories()>&...
     >
   >
 >

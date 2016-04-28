@@ -8,6 +8,7 @@
 #include <agency/detail/type_list.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/factory.hpp>
+#include <agency/detail/type_traits.hpp>
 
 namespace agency
 {
@@ -126,7 +127,7 @@ struct has_multi_agent_async_execute_returning_default_container_impl
 {
   using index_type           = executor_index_t<Executor>;
   using shape_type           = executor_shape_t<Executor>;
-  using container_value_type = typename std::result_of<Function(index_type)>::type;
+  using container_value_type = result_of_t<Function(index_type)>;
   using container_type       = executor_container_t<Executor,container_value_type>;
   using expected_return_type = executor_future_t<Executor, container_type>;
 
@@ -156,7 +157,7 @@ template<class Executor, class Function, class Factory>
 struct has_multi_agent_async_execute_returning_user_specified_container_impl
 {
   using shape_type = executor_shape_t<Executor>;
-  using container_type = typename std::result_of<Factory(shape_type)>::type;
+  using container_type = result_of_t<Factory(shape_type)>;
   using expected_return_type = executor_future_t<Executor,container_type>;
 
   template<class Executor1,
@@ -215,7 +216,7 @@ struct has_multi_agent_async_execute_with_shared_inits_returning_default_contain
 {
   using index_type           = executor_index_t<Executor>;
   using shape_type           = executor_shape_t<Executor>;
-  using container_value_type = typename std::result_of<Function(index_type, typename std::result_of<Factories()>::type&...)>::type;
+  using container_value_type = result_of_t<Function(index_type, result_of_t<Factories()>&...)>;
   using container_type       = executor_container_t<Executor,container_value_type>;
   using expected_return_type = executor_future_t<Executor,container_type>;
 
@@ -246,7 +247,7 @@ template<class Executor, class Function, class Factory, class... Factories>
 struct has_multi_agent_async_execute_with_shared_inits_returning_user_specified_container_impl
 {
   using shape_type = executor_shape_t<Executor>;
-  using container_type = typename std::result_of<Factory(shape_type)>::type;
+  using container_type = result_of_t<Factory(shape_type)>;
   using expected_return_type = executor_future_t<Executor,container_type>;
 
   template<class Executor1,
@@ -308,7 +309,7 @@ struct has_multi_agent_execute_returning_default_container_impl
 {
   using shape_type = executor_shape_t<Executor>;
   using index_type = executor_index_t<Executor>;
-  using container_value_type = typename std::result_of<Function(index_type)>::type;
+  using container_value_type = result_of_t<Function(index_type)>;
   using expected_return_type = executor_container_t<Executor,container_value_type>;
 
   template<class Executor1,
@@ -337,7 +338,7 @@ template<class Executor, class Function, class Factory>
 struct has_multi_agent_execute_returning_user_specified_container_impl
 {
   using shape_type = executor_shape_t<Executor>;
-  using expected_return_type = typename std::result_of<Factory(shape_type)>::type;
+  using expected_return_type = result_of_t<Factory(shape_type)>;
 
   template<class Executor1,
            class ReturnType = decltype(
@@ -393,7 +394,7 @@ template<class Executor, class Function, class Factory, class... Factories>
 struct has_multi_agent_execute_with_shared_inits_returning_user_specified_container_impl
 {
   using shape_type = executor_shape_t<Executor>;
-  using expected_return_type = typename std::result_of<Factory(shape_type)>::type;
+  using expected_return_type = result_of_t<Factory(shape_type)>;
 
   template<class Executor1,
            class ReturnType = decltype(
@@ -424,7 +425,7 @@ struct has_multi_agent_execute_with_shared_inits_returning_default_container_imp
 {
   using shape_type = executor_shape_t<Executor>;
   using index_type = executor_index_t<Executor>;
-  using container_value_type = typename std::result_of<Function(index_type, typename std::result_of<Factories()>::type&...)>::type;
+  using container_value_type = result_of_t<Function(index_type, result_of_t<Factories()>&...)>;
   using expected_return_type = executor_container_t<Executor,container_value_type>;
 
   template<class Executor1,
@@ -561,7 +562,7 @@ template<class Executor, class Function, class Factory, class Future>
 struct has_multi_agent_then_execute_returning_user_specified_container_impl
 {
   using shape_type = executor_shape_t<Executor>;
-  using container_type = typename std::result_of<Factory(shape_type)>::type;
+  using container_type = result_of_t<Factory(shape_type)>;
   using expected_return_type = executor_future_t<Executor,container_type>;
 
   template<class Executor1,
@@ -622,7 +623,7 @@ struct has_multi_agent_then_execute_with_shared_inits_returning_default_containe
 {
   using shape_type           = executor_shape_t<Executor>;
   using index_type           = executor_index_t<Executor>;
-  using container_value_type = typename detail::result_of_continuation<Function,index_type,Future,typename std::result_of<Factories()>::type&...>::type;
+  using container_value_type = typename detail::result_of_continuation<Function,index_type,Future,result_of_t<Factories()>&...>::type;
   using container_type       = executor_container_t<Executor,container_value_type>;
   using expected_return_type = executor_future_t<Executor,container_type>;
 
@@ -654,7 +655,7 @@ template<class Executor, class Function, class Factory, class Future, class... F
 struct has_multi_agent_then_execute_with_shared_inits_returning_user_specified_container_impl
 {
   using shape_type = executor_shape_t<Executor>;
-  using container_type = typename std::result_of<Factory(shape_type)>::type;
+  using container_type = result_of_t<Factory(shape_type)>;
   using expected_return_type = executor_future_t<Executor,container_type>;
 
   template<class Executor1,

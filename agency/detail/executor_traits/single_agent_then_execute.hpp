@@ -6,6 +6,7 @@
 #include <agency/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/executor_traits/copy_constructible_function.hpp>
 #include <agency/functional.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -219,7 +220,7 @@ struct future_traits_then_with_nested_single_agent_execute_functor
   // sizeof...(Args) may only be 0 or 1
   template<class... Args>
   __AGENCY_ANNOTATION
-  typename std::result_of<Function(Args&...)>::type operator()(Args&... args)
+  result_of_t<Function(Args&...)> operator()(Args&... args)
   {
     // XXX maybe should use invoke() inside
     auto g = [&]{ return f(args...); };
