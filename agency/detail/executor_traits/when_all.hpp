@@ -154,8 +154,8 @@ struct when_all_functor;
 template<size_t... Indices, class Executor, class HeadFuture, class... TailFutures>
 struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFutures...>
 {
-  Executor& exec;
-  mutable tuple<TailFutures...> tail_futures;
+  Executor& exec_;
+  mutable tuple<TailFutures...> tail_futures_;
 
   // this functor is so complicated because it needs to return:
   // void, when HeadFuture & TailFutures all have void value_type
@@ -177,13 +177,32 @@ struct when_all_functor<index_sequence<Indices...>, Executor, HeadFuture, TailFu
 
   using num_tail_values = type_list_size<non_void_tail_value_types>;
 
+  __agency_exec_check_disable__
+  __AGENCY_ANNOTATION
+  when_all_functor(Executor& exec, tuple<TailFutures...>&& tail_futures)
+    : exec_(exec),
+      tail_futures_(std::move(tail_futures))
+  {}
+
+  __agency_exec_check_disable__
+  __AGENCY_ANNOTATION
+  when_all_functor(when_all_functor&& other)
+    : exec_(other.exec_),
+      tail_futures_(std::move(other.tail_futures_))
+  {}
+
+  __agency_exec_check_disable__
+  __AGENCY_ANNOTATION
+  ~when_all_functor() = default;
+
   // this function returns the result of the collection of tail futures
   // it can be void, a single T, or a tuple with size > 1
+  __agency_exec_check_disable__
   __AGENCY_ANNOTATION
   detail::when_all_result_t<TailFutures...>
     get_tail() const
   {
-    return executor_traits<Executor>::when_all(exec, std::get<Indices>(tail_futures)...).get();
+    return executor_traits<Executor>::when_all(exec_, std::get<Indices>(tail_futures_)...).get();
   }
 
   // get_tail_as_tuple() wraps result of get_tail() to ensure a tuple is returned

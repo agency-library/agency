@@ -13,6 +13,7 @@ namespace executor_traits_detail
 template<class Container>
 struct container_factory
 {
+  __agency_exec_check_disable__
   template<class Shape>
   __AGENCY_ANNOTATION
   Container operator()(const Shape& shape) const
