@@ -2,7 +2,17 @@ This is the top-level directory of Agency's test programs.
 
 # Building and Running Test Programs
 
-To build the test programs, run the following command from this directory:
+Each test program is built from a single source file. To build a test program by hand, compile a source file with a C++11 or better compiler. For example, the following command builds the `bulk_invoke/multiple_results.cpp` source file from the `testing` directory:
+
+    $ clang -I.. -std=c++11 -lstdc++ -pthread bulk_invoke/multiple_results.cpp
+
+CUDA C++ source (`.cu` files) should be built with the NVIDIA compiler (`nvcc`). Include the `--expt-extended-lambda` option:
+
+    $ nvcc -I.. -std=c++11 --expt-extended-lambda bulk_invoke/cuda/multiple_results.cu
+
+## Automated Builds
+
+To build the test programs automatically, run the following command from this directory:
 
     $ scons
 
