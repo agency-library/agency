@@ -181,6 +181,10 @@ class tuple_leaf_base
     __TUPLE_ANNOTATION
     tuple_leaf_base(U&& arg) : val_(std::forward<U>(arg)) {}
 
+    __TUPLE_EXEC_CHECK_DISABLE
+    __TUPLE_ANNOTATION
+    ~tuple_leaf_base() = default;
+
     __TUPLE_ANNOTATION
     const T& const_get() const
     {
