@@ -81,7 +81,7 @@ void use_device_lambda_with_result()
 
 
 // This function demonstrates how to use a CUDA extended host device lambda with Agency.
-void use_host_device_lambdas()
+void use_host_device_lambda()
 {
   // CUDA host device lambdas do not share device lambdas' limitations
   // they interoperate with Agency normally
@@ -123,7 +123,7 @@ int main()
 
   std::cout << std::endl;
 
-  use_host_device_lambdas();
+  use_host_device_lambda();
 
   return 0;
 }
