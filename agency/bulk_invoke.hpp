@@ -230,12 +230,15 @@ struct execute_agent_functor
 
     template<class ExecutionAgent>
     __AGENCY_ANNOTATION
-    auto operator()(ExecutionAgent& self) ->
-      decltype(
-        f_(self, agency::detail::get<Indices>(args_)...)
-      )
+    result_of_t<Function(ExecutionAgent&,typename std::tuple_element<Indices,Tuple>::type...)>
+      operator()(ExecutionAgent& self)
     {
-      return f_(self, agency::detail::get<Indices>(args_)...);
+      using result_type = result_of_t<Function(ExecutionAgent&,typename std::tuple_element<Indices,Tuple>::type...)>;
+
+      // XXX we explicitly cast the result of f_ to result_type
+      //     this is due to our special implementation of result_of,
+      //     coerces the return type of a CUDA extended device lambda to be void
+      return static_cast<result_type>(f_(self, agency::detail::get<Indices>(args_)...));
     }
   };
 
@@ -375,8 +378,6 @@ typename detail::enable_if_bulk_invoke_execution_policy<
 >::type
   bulk_invoke(ExecutionPolicy&& policy, Function f, Args&&... args)
 {
-  static_assert(!detail::is_cuda_extended_device_lambda<Function>::value, "CUDA extended device lambdas are not supported by bulk_invoke().");
-
   using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
   const size_t num_shared_params = detail::execution_depth<typename agent_traits::execution_category>::value;
 

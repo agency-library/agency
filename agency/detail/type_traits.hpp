@@ -174,8 +174,29 @@ struct is_cuda_extended_device_lambda
 {};
 
 
+template<class T, class Enable = void>
+struct result_of_impl : std::result_of<T> {};
+
+template<class Function, class... Args>
+struct result_of_impl<
+  Function(Args...),
+  typename std::enable_if<
+    is_cuda_extended_device_lambda<Function>::value
+  >::type
+>
+{
+  // XXX we should actually test that Function is callable with Args...
+  //     and then only include this using declaration if it is callable
+  using type = void;
+};
+
+
 template<class T>
-using result_of_t = typename std::result_of<T>::type;
+struct result_of : result_of_impl<T> {};
+
+
+template<class T>
+using result_of_t = typename result_of<T>::type;
 
 
 } // end detail

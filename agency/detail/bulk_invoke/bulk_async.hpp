@@ -172,8 +172,6 @@ typename detail::enable_if_bulk_async_execution_policy<
 >::type
   bulk_async(ExecutionPolicy&& policy, Function f, Args&&... args)
 {
-  static_assert(!detail::is_cuda_extended_device_lambda<Function>::value, "CUDA extended device lambdas are not supported by bulk_async().");
-
   using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
   const size_t num_shared_params = detail::execution_depth<typename agent_traits::execution_category>::value;
 
