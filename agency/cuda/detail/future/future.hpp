@@ -384,8 +384,7 @@ class future
         //     or find a way to attach a deferred continuation onto an asynchronous CUDA future
         //     there ought to be a way to do it by implementing a deferred_continuation which waits on fut
         // XXX when Function is copyable, we ought to just use fut.then()
-        printf("future::then_and_leave_valid_visitor::operator()(cuda::future): unimplemented\n");
-        assert(0);
+        detail::throw_runtime_error("future::then_and_leave_valid_visitor::operator()(cuda::future): unimplemented");
 
         using result_type = agency::detail::result_of_continuation_t<
           Function,

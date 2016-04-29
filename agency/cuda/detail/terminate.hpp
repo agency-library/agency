@@ -1,6 +1,7 @@
 #pragma once
 
 #include <exception>
+#include <stdexcept>
 #include <cstdio>
 #include <agency/cuda/detail/feature_test.hpp>
 #include <thrust/system_error.h>
@@ -64,6 +65,17 @@ void throw_on_error(cudaError_t e, const char* message)
     terminate();
 #endif
   }
+}
+
+
+inline __host__ __device__
+void throw_runtime_error(const char* message)
+{
+#ifndef __CUDA_ARCH__
+  throw std::runtime_error(message);
+#else
+  detail::terminate_with_message(message);
+#endif
 }
 
 
