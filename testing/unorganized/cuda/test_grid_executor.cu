@@ -93,21 +93,24 @@ int main()
   using traits = agency::executor_traits<agency::cuda::grid_executor>;
 
   std::cout << "Testing execute on host" << std::endl;
-  
   traits::execute(ex, hello_world(), agency::uint2{2,2});
+  std::cout << std::endl;
 
-  // XXX the following executes correctly but leads to an exception at shutdown
-  //     when it is followed with either of the kernel launches below
-  //std::cout << "Testing execute with shared arg on host" << std::endl;
-  //traits::execute(ex, with_shared_arg(), agency::uint2{2,2}, [] __host__ __device__ { return 7; }, [] __host__ __device__ { return 13; });
+  std::cout << "Testing execute with shared arg on host" << std::endl;
+  traits::execute(ex, with_shared_arg(), agency::uint2{2,2}, [] __host__ __device__ { return 7; }, [] __host__ __device__ { return 13; });
+  std::cout << std::endl;
 
   std::cout << "Testing bulk_invoke() on device" << std::endl;
   kernel<<<1,1>>>();
   cudaDeviceSynchronize();
+  std::cout << std::endl;
 
   std::cout << "Testing bulk_invoke() on device from kernel template" << std::endl;
   kernel_template<int><<<1,1>>>();
   cudaDeviceSynchronize();
+  std::cout << std::endl;
+
+  std::cout << "OK" << std::endl;
 
   return 0;
 }

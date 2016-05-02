@@ -118,7 +118,18 @@ struct caching_memory_resource
 
       for(auto b : free_blocks_)
       {
-        allocator_type::deallocate(b.second, b.first);
+        // since this is only called from the destructor,
+        // swallow any exceptions thrown by this call to
+        // deallocate in order to avoid propagating exceptions
+        // out of destructors
+        try
+        {
+          allocator_type::deallocate(b.second, b.first);
+        }
+        catch(...)
+        {
+          // just swallow any exceptions we encounter
+        }
       }
       free_blocks_.clear();
 
