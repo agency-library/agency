@@ -31,12 +31,20 @@
 #include <utility> // <utility> declares std::tuple_element et al. for us
 
 // allow the user to define an annotation to apply to these functions
-// by default, it attempts to be constexpr
+// by default, it attempts to be constexpr and __host__ __device__ for CUDA
 #ifndef __TUPLE_ANNOTATION
 #  if __cplusplus <= 201103L
-#    define __TUPLE_ANNOTATION
+#    if defined(__CUDACC__) && !(defined(__CUDA__) && defined(__clang__))
+#      define __TUPLE_ANNOTATION __host__ __device__
+#    else
+#      define __TUPLE_ANNOTATION
+#    endif // c++ <= 2011
 #  else
-#    define __TUPLE_ANNOTATION constexpr
+#    if defined(__CUDACC__) && !(defined(__CUDA__) && defined(__clang__))
+#      define __TUPLE_ANNOTATION constexpr __host__ __device__
+#    else
+#      define __TUPLE_ANNOTATION constexpr
+#    endif // c++ > 2011
 #  endif
 #  define __TUPLE_ANNOTATION_NEEDS_UNDEF
 #endif
