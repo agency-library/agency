@@ -73,7 +73,7 @@ class condition_variable_latch
 
       counter_ -= n;
 
-      if(is_ready())
+      if(unsafe_is_ready())
       {
         // unblock all blocking threads
         cv_.notify_all();
@@ -88,21 +88,28 @@ class condition_variable_latch
 
     inline void wait()
     {
-      if(!is_ready())
+      std::unique_lock<std::mutex> lock(mutex_);
+
+      if(!unsafe_is_ready())
       {
-        std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [=]{ return this->is_ready(); });
+        cv_.wait(lock, [=]{ return this->unsafe_is_ready(); });
       }
     }
 
     inline bool is_ready() const
     {
-      return counter_ == 0;
+      std::unique_lock<std::mutex> lock(mutex_);
+      return unsafe_is_ready();
     }
 
   private:
+    inline bool unsafe_is_ready() const
+    {
+      return counter_ == 0;
+    }
+
     size_t                  counter_;
-    std::mutex              mutex_;
+    mutable std::mutex      mutex_;
     std::condition_variable cv_;
 };
 
