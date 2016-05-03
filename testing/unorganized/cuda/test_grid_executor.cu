@@ -100,15 +100,18 @@ int main()
   traits::execute(ex, with_shared_arg(), agency::uint2{2,2}, [] __host__ __device__ { return 7; }, [] __host__ __device__ { return 13; });
   std::cout << std::endl;
 
+#if defined(__CUDACC_RDC__)
   std::cout << "Testing bulk_invoke() on device" << std::endl;
   kernel<<<1,1>>>();
   cudaDeviceSynchronize();
+
   std::cout << std::endl;
 
   std::cout << "Testing bulk_invoke() on device from kernel template" << std::endl;
   kernel_template<int><<<1,1>>>();
   cudaDeviceSynchronize();
   std::cout << std::endl;
+#endif
 
   std::cout << "OK" << std::endl;
 

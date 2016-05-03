@@ -37,13 +37,33 @@ inline void terminate_with_message(const char* message)
 
 
 __host__ __device__
+inline void print_error_message(cudaError_t e, const char* message)
+{
+#if (__cuda_lib_has_printf && __cuda_lib_has_cudart)
+  printf("Error after %s: %s\n", message, cudaGetErrorString(e));
+#elif __cuda_lib_has_printf
+  printf("Error: %s\n", message);
+#endif
+}
+
+
+__host__ __device__
+inline void print_error_message_if(cudaError_t e, const char* message)
+{
+  if(e)
+  {
+    agency::cuda::detail::print_error_message(e, message);
+  }
+}
+
+
+__host__ __device__
 inline void terminate_on_error(cudaError_t e, const char* message)
 {
   if(e)
   {
-#if __cuda_lib_has_cudart
-    printf("Error after: %s: %s\n", message, cudaGetErrorString(e));
-#endif
+    agency::cuda::detail::print_error_message(e, message);
+
     terminate();
   }
 }
@@ -57,11 +77,8 @@ void throw_on_error(cudaError_t e, const char* message)
 #ifndef __CUDA_ARCH__
     throw thrust::system_error(e, thrust::cuda_category(), message);
 #else
-#  if (__cuda_lib_has_printf && __cuda_lib_has_cudart)
-    printf("Error after %s: %s\n", message, cudaGetErrorString(e));
-#  elif __cuda_lib_has_printf
-    printf("Error: %s\n", message);
-#  endif
+    agency::cuda::detail::print_error_message(e, message);
+
     terminate();
 #endif
   }

@@ -67,7 +67,8 @@ class stream
 #if __cuda_lib_has_cudart
       if(s_ != 0)
       {
-        detail::terminate_on_error(cudaStreamDestroy(s_), "cudaStreamDestroy in cuda::detail::stream dtor");
+        // avoid propagating an exception but report the error if one exists
+        detail::print_error_message_if(cudaStreamDestroy(s_), "cudaStreamDestroy in cuda::detail::stream dtor");
       }
 #else
       detail::terminate_with_message("cuda::detail::stream dtor requires CUDART");
