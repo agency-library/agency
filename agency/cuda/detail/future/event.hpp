@@ -113,21 +113,25 @@ class event
     }
 
     __host__ __device__
+    cudaError_t wait_and_return_cuda_error() const
+    {
+#if __cuda_lib_has_cudart
+#  ifndef __CUDA_ARCH__
+      return cudaEventSynchronize(e_);
+#  else
+      return cudaDeviceSynchronize();
+#  endif // __CUDA_ARCH__
+#else
+      return cudaErrorNotSupported;
+#endif // __cuda_lib_has_cudart
+    }
+
+    __host__ __device__
     void wait() const
     {
       // XXX should probably check for valid() here
 
-#if __cuda_lib_has_cudart
-
-#ifndef __CUDA_ARCH__
-      detail::throw_on_error(cudaEventSynchronize(e_), "cudaEventSynchronize in cuda::detail::event::wait");
-#else
-      detail::throw_on_error(cudaDeviceSynchronize(), "cudaDeviceSynchronize in cuda::detail::event::wait");
-#endif // __CUDA_ARCH__
-
-#else
-      detail::terminate_with_message("cuda::detail::event::wait requires CUDART");
-#endif // __cuda_lib_has_cudart
+      detail::throw_on_error(wait_and_return_cuda_error(), "wait_and_return_cuda_error in cuda::detail::event::wait");
     }
 
     __host__ __device__
@@ -282,12 +286,7 @@ class event
       cudaError_t error = cudaEventDestroy(e_);
       e_ = 0;
 
-#if __cuda_lib_has_printf
-      if(error)
-      {
-        printf("CUDA error after cudaEventDestroy in cuda::detail::event::destroy_event: %s", cudaGetErrorString(error));
-      } // end if
-#endif // __cuda_lib_has_printf
+      detail::print_error_message_if(error, "CUDA error after cudaEventDestroy in cuda::detail::event::destroy_event");
 #endif // __cuda_lib_has_cudart
 
       return 0;
@@ -384,6 +383,33 @@ event when_all_events_are_ready(Events&... events)
   // XXX we might prefer the device associated with the first event
   return agency::cuda::detail::when_all_events_are_ready(current_device(), events...);
 }
+
+
+// a blocking_event is an event whose destructor calls .wait() when the blocking_event is valid
+class blocking_event : public event
+{
+  public:
+    inline __host__ __device__
+    blocking_event(blocking_event&& other)
+      : event(std::move(other))
+    {}
+
+    inline __host__ __device__
+    blocking_event(event&& other)
+      : event(std::move(other))
+    {}
+
+    inline __host__ __device__
+    ~blocking_event()
+    {
+      if(valid())
+      {
+        // since we're in a destructor, let's avoid
+        // propagating exceptions out of a destructor
+        detail::print_error_message_if(wait_and_return_cuda_error(), "wait_and_return_cuda_error in cuda::detail::blocking_event() dtor");
+      }
+    }
+};
 
 
 } // end detail
