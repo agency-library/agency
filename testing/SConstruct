@@ -56,16 +56,6 @@ def apply_compiler_flags(env):
   env.MergeFlags(['--expt-extended-lambda', '-arch=sm_52'])
 
 
-# this function takes a SCons environment and applies patches to workaround known problems
-# with build tools
-def apply_workarounds(env):
-  # XXX many example programs hang at shutdown at higher optimization levels with clang
-  if 'clang' in env['CXX']:
-    print 'Lowering optimization level to workaround possible clang bug.'
-    env['CCFLAGS'] = [flag.replace('-O3', '-O1') for flag in env['CCFLAGS']]
-    env['CCFLAGS'] = [flag.replace('-O2', '-O1') for flag in env['CCFLAGS']]
-
-
 # script execution begins here
 
 # first set up some variables we can control from the command line
@@ -77,8 +67,6 @@ vars.Add('CPPPATH', 'Agency include path', Dir('..'))
 env = Environment(variables = vars, tools = ['default', 'nvcc'])
 
 apply_compiler_flags(env)
-
-apply_workarounds(env)
 
 # add our custom shorthand methods for subsidiary SConscripts' use
 env.AddMethod(ProgramPerSourceInCurrentDirectory)
