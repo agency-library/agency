@@ -62,7 +62,6 @@ void maybe_launch_nested_kernel()
 template<typename T>
 __global__ void kernel_template()
 {
-  printf("kernel_template\n");
   maybe_launch_nested_kernel<T>();
 }
 
