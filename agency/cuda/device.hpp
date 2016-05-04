@@ -31,7 +31,10 @@ device_id current_device();
 class scoped_current_device
 {
   public:
+    __host__ __device__
     scoped_current_device(const device_id& new_device);
+
+    __host__ __device__
     ~scoped_current_device();
 
   private:
@@ -128,8 +131,15 @@ __host__ __device__
 void set_current_device(const device_id& d)
 {
 #if __cuda_lib_has_cudart
+#ifndef __CUDA_ARCH__
   throw_on_error(cudaSetDevice(d.native_handle()), "cuda::detail::set_current_device(): cudaSetDevice()");
-#endif
+#else
+  if(d != current_device())
+  {
+    detail::throw_on_error(cudaErrorNotSupported, "cuda::detail::set_current_device(): Unable to set a different device in __device__ code.");
+  }
+#endif // __CUDA_ARCH__
+#endif // __cuda_lib_has_cudart
 }
 
 
@@ -146,6 +156,7 @@ device_id current_device()
 }
     
 
+__host__ __device__
 scoped_current_device::scoped_current_device(const device_id& new_device)
   : old_device(detail::current_device().native_handle())
 {
@@ -153,6 +164,7 @@ scoped_current_device::scoped_current_device(const device_id& new_device)
 }
 
 
+__host__ __device__
 scoped_current_device::~scoped_current_device()
 {
   detail::set_current_device(device_id(old_device));
