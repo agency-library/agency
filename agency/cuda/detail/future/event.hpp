@@ -30,6 +30,9 @@ class event
       : stream_(std::move(s))
     {
 #if __cuda_lib_has_cudart
+      // switch to the stream's device when creating the event
+      scoped_current_device scope(stream().device());
+
       detail::throw_on_error(cudaEventCreateWithFlags(&e_, event_create_flags), "cudaEventCreateWithFlags in cuda::detail::event ctor");
 #else
       detail::terminate_with_message("cuda::detail::event ctor requires CUDART");
@@ -271,6 +274,12 @@ class event
       // launch a single-thread kernel
       //return then_on([=](uint3, uint3){ f(); }, dim3{1}, dim3{1}, 0, stream().device());
 #endif
+    }
+
+    __host__ __device__
+    cudaEvent_t native_handle() const
+    {
+      return e_;
     }
 
   private:

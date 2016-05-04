@@ -18,40 +18,29 @@ namespace detail
 class stream
 {
   public:
-    // creates a new stream associated with the current device
-    inline __host__ __device__
-    stream()
-      : device_(current_device())
-    {
-#if __cuda_lib_has_cudart
-      detail::throw_on_error(cudaStreamCreate(&s_), "cudaStreamCreate in cuda::detail::stream ctor");
-#else
-      detail::terminate_with_message("cuda::detail::stream ctor requires CUDART");
-#endif
-    }
-
     // creates a new stream associated with the given device
     inline __host__ __device__
-    stream(device_id g)
-      : device_(g)
+    stream(device_id d)
+      : device_(d)
     {
-      auto old_device = current_device();
-
 #if __cuda_lib_has_cudart
-#  ifdef __CUDA_ARCH__
-      assert(g == old_device);
-#  else
-      detail::throw_on_error(cudaSetDevice(device().native_handle()), "cudaSetDevice in cuda::detail::stream ctor");
-#  endif
+      // temporarily switch to our device while creating the stream
+      scoped_current_device scope(device());
 
-      detail::throw_on_error(cudaStreamCreate(&s_), "cudaStreamCreate in cuda::detail::stream ctor");
-#  ifdef __CUDA_ARCH__
-      detail::throw_on_error(cudaSetDevice(old_device.native_handle()), "cudaSetDevice in cuda::detail::stream ctor");
-#  endif
+      detail::throw_on_error(cudaStreamCreateWithFlags(&s_, cudaStreamNonBlocking), "cudaStreamCreateWithFlags in cuda::detail::stream ctor");
 #else
       detail::terminate_with_message("cuda::detail::stream ctor requires CUDART");
 #endif
     }
+
+    // creates a new stream associated with the current device
+    // XXX do we actually want to make this depend on the current state of the CUDA runtime?
+    // XXX it might be a better idea to associate the stream with device 0
+    // XXX alternatively, maybe it would be better if a default-constructed stream was not associated with a device
+    inline __host__ __device__
+    stream()
+      : stream(current_device())
+    {}
 
     inline __host__ __device__
     stream(stream&& other)
