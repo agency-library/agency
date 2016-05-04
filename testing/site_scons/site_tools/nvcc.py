@@ -118,35 +118,70 @@ def CUDANVCCSharedObjectEmitter(target, source, env):
     return tgt, src
 
 
-def separate_nvcc_flags(flags):
+def parse_nvcc_flags(flags):
     """
     Separates flags into a list of flags specific to nvcc and other flags.
+    Parses the flags specific to nvcc.
+
+    Returns (nvcc_dict, other_flags) where nvcc_dict is a dictionary
+    containing flags recognized by nvcc keyed on a scons variable.
+    other_flags is a list of other flags not specific to nvcc.
     """
 
-    nvcc_flag_patterns = {
-     'extended-lambda' : '--expt-extended-lambda',
-     'arch'            : '-arch=.+'
+    # make a regular expression for each nvcc flag we want to recognize
+    # all flags which match these will be appended to the NVCCFLAGS variable
+    nvcc_flag_patterns = [
+      '--expt-extended-lambda',
+      '(--relocatable-device-code|-rdc)=(true|false)'
+    ]
+
+    # join the individual patterns for nvcc flags and name the composite pattern NVCCFLAGS
+    composite_nvcc_pattern = '(?P<NVCCFLAGS>' + '|'.join(nvcc_flag_patterns) + ')'
+    re.compile(composite_nvcc_pattern)
+
+    # make a regular expression for the -arch= flag
+    # all flags which match this will be appended to the CUDA_ARCH variable
+    #
+    # XXX we probably want to recognize the argument to -arch so that we can reason about it later
+    #     for example, it would be nice to be able to do the following from the command line:
+    #
+    #         $ scons CUDA_ARCH=sm_52
+    cuda_arch_pattern = '(?P<CUDA_ARCH>-arch=.+)'
+    re.compile(cuda_arch_pattern)
+
+    # make a single composite pattern
+    composite_pattern = '|'.join([composite_nvcc_pattern, cuda_arch_pattern])
+    re.compile(composite_pattern)
+
+    nvcc_flags_dict = {
+      'NVCCFLAGS' : [],
+      'CUDA_ARCH' : []
     }
 
-    composite_pattern = '|'.join(nvcc_flag_patterns.values())
-
-    nvcc_flags = []
     other_flags = []
 
     for flag in flags:
-        if re.match(composite_pattern, flag):
-            nvcc_flags.append(flag)
+        # find which regular expression our flag matches
+        # in order to discover which variable to merge the flag into 
+        m = re.match(composite_pattern, flag)
+        if m:
+            # there should only be one matching environment variable per match
+            # but this seems like the most straightforward way to merge into nvcc_flags
+            for (envvar,flag) in m.groupdict().iteritems():
+                if flag:
+                    nvcc_flags_dict[envvar].append(flag)
         else:
+            # the flag doesn't go with nvcc, so append it to the list
+            # of other flags we don't recognize
             other_flags.append(flag)
 
-    return (nvcc_flags, other_flags)
+    return (nvcc_flags_dict, other_flags)
 
 
 def monkey_patch_parse_flags_to_recognize_nvcc_flags(env):
     oldParseFlags = env.ParseFlags
     def NewParseFlags(self, flags):
-        (nvcc_flags, other_flags) = separate_nvcc_flags(flags)
-        nvcc_dict = {'NVCCFLAGS' : nvcc_flags}
+        (nvcc_dict, other_flags) = parse_nvcc_flags(flags)
         other_dict = oldParseFlags(other_flags)
         merged_dict = nvcc_dict.copy()
         merged_dict.update(other_dict)
@@ -245,7 +280,8 @@ def teach_linker_about_cuda(env):
     global nvcc_link
 
     # to link with nvcc, copy the regular link command and substitute LINK with nvcc
-    env['NVCCLINKCOM'] = env['LINKCOM'].replace('$LINK ', 'nvcc ')
+    # also incorporate CUDA_ARCH as a command line argument
+    env['NVCCLINKCOM'] = env['LINKCOM'].replace('$LINK ', 'nvcc $CUDA_ARCH ')
 
     linkcom = env.get('LINKCOM')
     try:
@@ -283,7 +319,8 @@ def generate(env):
         env['NVCC'] = 'nvcc'
     
     # default flags for the NVCC compiler
-    env['NVCCFLAGS'] = ''
+    env['CUDA_ARCH'] = ''
+    env['NVCCFLAGS'] = '$CUDA_ARCH'
     env['STATICNVCCFLAGS'] = ''
     env['SHAREDNVCCFLAGS'] = ''
     
