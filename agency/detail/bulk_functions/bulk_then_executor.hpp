@@ -10,6 +10,7 @@
 #include <agency/detail/bulk_functions/decay_parameter.hpp>
 #include <agency/detail/bulk_functions/shared_parameter.hpp>
 #include <agency/detail/bulk_functions/unpack_shared_parameters_from_executor_and_invoke.hpp>
+#include <agency/detail/bulk_functions/bulk_async_executor.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <type_traits>
 

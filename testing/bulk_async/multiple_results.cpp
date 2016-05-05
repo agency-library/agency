@@ -1,5 +1,5 @@
+#include <agency/bulk_async.hpp>
 #include <agency/execution_policy.hpp>
-#include <agency/sequential_executor.hpp>
 #include <iostream>
 
 template<class ExecutionPolicy>

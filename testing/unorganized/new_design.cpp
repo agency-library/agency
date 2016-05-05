@@ -1,6 +1,7 @@
+#include <agency/bulk_async.hpp>
+#include <agency/execution_policy.hpp>
 #include <iostream>
 #include <mutex>
-#include <agency/execution_policy.hpp>
 
 int main()
 {
