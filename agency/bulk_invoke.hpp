@@ -54,5 +54,5 @@ typename detail::enable_if_bulk_invoke_execution_policy<
 
 // XXX separate these from this header
 #include <agency/detail/bulk_functions/bulk_async_execution_policy.hpp>
-#include <agency/detail/bulk_functions/bulk_then.hpp>
+#include <agency/detail/bulk_functions/bulk_then_execution_policy.hpp>
 
