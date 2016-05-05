@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/bulk_functions/unpack_shared_parameters_from_executor_and_invoke.hpp>
 #include <utility>
 
 namespace agency

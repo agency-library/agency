@@ -5,6 +5,7 @@
 #include <agency/detail/type_list.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/bulk_functions/unpack_shared_parameters_from_executor_and_invoke.hpp>
 
 namespace agency
 {

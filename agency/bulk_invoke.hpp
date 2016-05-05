@@ -24,44 +24,6 @@ namespace detail
 {
 
 
-template<class Function>
-struct unpack_shared_parameters_from_executor_and_invoke
-{
-  mutable Function g;
-
-  template<class Index, class... Types>
-  __AGENCY_ANNOTATION
-  auto operator()(const Index& idx, Types&... packaged_shared_params) const
-    -> decltype(
-         __tu::tuple_apply(
-           g,
-           __tu::tuple_prepend_invoke(
-             agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params...),
-             idx,
-             agency::detail::forwarder{})
-         )
-       )
-  {
-    auto shared_params = agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params...);
-
-    // XXX the following is the moral equivalent of:
-    // g(idx, shared_params...);
-
-    // create one big tuple of the arguments so we can just call tuple_apply
-    auto idx_and_shared_params = __tu::tuple_prepend_invoke(shared_params, idx, agency::detail::forwarder{});
-
-    return __tu::tuple_apply(g, idx_and_shared_params);
-  }
-};
-
-template<class Function>
-__AGENCY_ANNOTATION
-unpack_shared_parameters_from_executor_and_invoke<Function> make_unpack_shared_parameters_from_executor_and_invoke(Function f)
-{
-  return unpack_shared_parameters_from_executor_and_invoke<Function>{f};
-}
-
-
 // this metafunction computes the type of the parameter passed to a user function
 // given then type of parameter passed to bulk_invoke/bulk_async/etc.
 template<class T>
