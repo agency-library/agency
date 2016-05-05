@@ -4,15 +4,15 @@
 #include <agency/executor_traits.hpp>
 #include <agency/execution_agent.hpp>
 #include <agency/functional.hpp>
-#include <agency/detail/bulk_invoke/shared_parameter.hpp>
-#include <agency/detail/bulk_invoke/bind_agent_local_parameters.hpp>
+#include <agency/detail/bulk_functions/shared_parameter.hpp>
+#include <agency/detail/bulk_functions/bind_agent_local_parameters.hpp>
 #include <agency/detail/is_call_possible.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
-#include <agency/detail/bulk_invoke/single_result.hpp>
-#include <agency/detail/bulk_invoke/result_factory.hpp>
+#include <agency/detail/bulk_functions/single_result.hpp>
+#include <agency/detail/bulk_functions/result_factory.hpp>
 #include <agency/detail/type_traits.hpp>
 
 
@@ -388,6 +388,6 @@ typename detail::enable_if_bulk_invoke_execution_policy<
 } // end agency
 
 // XXX move these to the top of this header
-#include <agency/detail/bulk_invoke/bulk_async.hpp>
-#include <agency/detail/bulk_invoke/bulk_then.hpp>
+#include <agency/detail/bulk_functions/bulk_async.hpp>
+#include <agency/detail/bulk_functions/bulk_then.hpp>
 
