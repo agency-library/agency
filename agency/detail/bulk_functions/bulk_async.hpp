@@ -9,7 +9,6 @@
 #include <agency/detail/bulk_functions/single_result.hpp>
 #include <agency/detail/bulk_functions/result_factory.hpp>
 #include <agency/detail/bulk_functions/bind_agent_local_parameters.hpp>
-#include <agency/detail/bulk_functions/is_call_possible_via_execution_policy.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
 #include <agency/execution_agent.hpp>
 #include <agency/executor_traits.hpp>
