@@ -7,6 +7,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/bulk_functions/decay_parameter.hpp>
 #include <agency/detail/bulk_functions/unpack_shared_parameters_from_executor_and_invoke.hpp>
+#include <agency/detail/bulk_functions/execute_agent_functor.hpp>
 
 namespace agency
 {
