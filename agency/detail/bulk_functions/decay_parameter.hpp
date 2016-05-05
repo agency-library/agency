@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/future.hpp>
+#include <agency/functional.hpp>
 #include <type_traits>
 
 namespace agency

@@ -16,6 +16,7 @@ namespace detail
 {
 
 
+// XXX shared_parameter should really go underneath detail/bulk_functions/
 template<size_t scope, class T, class... Args>
 struct shared_parameter : public factory<T,Args...>
 {

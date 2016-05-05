@@ -5,6 +5,14 @@
 #include <agency/detail/bulk_functions/decay_parameter.hpp>
 #include <agency/detail/bulk_functions/unpack_shared_parameters_from_executor_and_invoke.hpp>
 #include <agency/detail/bulk_functions/execute_agent_functor.hpp>
+#include <agency/detail/bulk_functions/scope_result.hpp>
+#include <agency/detail/bulk_functions/single_result.hpp>
+#include <agency/detail/bulk_functions/result_factory.hpp>
+#include <agency/detail/bulk_functions/bind_agent_local_parameters.hpp>
+#include <agency/detail/bulk_functions/is_call_possible_via_execution_policy.hpp>
+#include <agency/detail/execution_policy_traits.hpp>
+#include <agency/execution_agent.hpp>
+#include <agency/executor_traits.hpp>
 #include <utility>
 
 namespace agency
