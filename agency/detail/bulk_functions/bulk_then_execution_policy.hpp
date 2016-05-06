@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/bulk_functions/bulk_then_executor.hpp>
+#include <agency/detail/bulk_functions/executor_functions/bulk_then_executor.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/bulk_functions/decay_parameter.hpp>
