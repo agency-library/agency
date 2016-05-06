@@ -6,7 +6,7 @@
 #include <agency/executor/detail/executor_traits/single_element_container.hpp>
 #include <agency/executor/detail/executor_traits/container_factory.hpp>
 #include <agency/detail/shape_cast.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <type_traits>
 

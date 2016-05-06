@@ -23,7 +23,7 @@
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
 #include <agency/cuda/device.hpp>
 #include <agency/detail/unit.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/tuple.hpp>

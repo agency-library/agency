@@ -5,7 +5,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/tuple_matrix.hpp>
 #include <agency/detail/bulk_functions/bind.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/bulk_functions/shared_parameter.hpp>
 #include <agency/detail/factory.hpp>
 #include <type_traits>
 #include <utility>

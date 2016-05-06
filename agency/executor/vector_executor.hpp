@@ -2,8 +2,8 @@
 
 #include <future>
 #include <agency/execution_categories.hpp>
-#include <agency/functional.hpp>
-#include <functional>
+#include <agency/future.hpp>
+#include <utility>
 
 
 namespace agency
