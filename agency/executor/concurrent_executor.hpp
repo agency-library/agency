@@ -2,7 +2,7 @@
 
 #include <agency/future.hpp>
 #include <agency/execution_categories.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 
 #include <thread>
@@ -67,7 +67,7 @@ class concurrent_executor
           // create a lambda to handle parameter passing
           auto g = [&,f](size_t idx)
           {
-            result[idx] = agency::invoke(f, idx, past_parameter, shared_parameter);
+            result[idx] = agency::detail::invoke(f, idx, past_parameter, shared_parameter);
           };
 
           size_t mid = n / 2;
@@ -116,7 +116,7 @@ class concurrent_executor
           // create a lambda to handle parameter passing
           auto g = [&,f](size_t idx) mutable
           {
-            result[idx] = agency::invoke(f, idx, shared_parameter);
+            result[idx] = agency::detail::invoke(f, idx, shared_parameter);
           };
 
           size_t mid = n / 2;
@@ -166,7 +166,7 @@ class concurrent_executor
           right = this->async_execute(f, mid + 1, last);
         }
 
-        agency::invoke(f,mid);
+        agency::detail::invoke(f,mid);
 
         left.wait();
         right.wait();

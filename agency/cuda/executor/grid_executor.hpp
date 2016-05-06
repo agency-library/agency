@@ -12,7 +12,7 @@
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/cuda/detail/when_all_execute_and_select.hpp>
 #include <agency/coordinate.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/index_tuple.hpp>
 #include <agency/detail/index_cast.hpp>

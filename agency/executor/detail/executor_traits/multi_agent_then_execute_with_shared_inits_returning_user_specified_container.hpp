@@ -4,7 +4,7 @@
 #include <agency/future.hpp>
 #include <agency/executor/executor_traits.hpp>
 #include <agency/executor/detail/executor_traits/check_for_member_functions.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <type_traits>
 #include <utility>
@@ -118,7 +118,7 @@ struct strategy_2_functor
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Container& c, Args&&... args) const
   {
-    c[idx] = agency::invoke(f, idx, std::forward<Args>(args)...);
+    c[idx] = agency::detail::invoke(f, idx, std::forward<Args>(args)...);
   }
 };
 
@@ -166,7 +166,7 @@ struct strategy_3_functor
     >
     operator()(const Index& idx, Args&&... args) const
     {
-      return agency::invoke(f, idx, arg2, std::forward<Args>(args)...);
+      return agency::detail::invoke(f, idx, arg2, std::forward<Args>(args)...);
     }
   };
 
@@ -207,7 +207,7 @@ struct strategy_3_functor<Executor,Function,Factory,void,Tuple>
     >
     operator()(Arg1&& arg1, Args&&... args) const
     {
-      return agency::invoke(f, std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+      return agency::detail::invoke(f, std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
   };
 

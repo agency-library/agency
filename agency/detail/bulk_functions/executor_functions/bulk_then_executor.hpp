@@ -9,7 +9,6 @@
 #include <agency/detail/bulk_functions/scope_result.hpp>
 #include <agency/detail/bulk_functions/result_factory.hpp>
 #include <agency/detail/bulk_functions/decay_parameter.hpp>
-#include <agency/detail/bulk_functions/shared_parameter.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <type_traits>
 

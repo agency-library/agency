@@ -6,7 +6,7 @@
 #include <agency/detail/shape_cast.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/select.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <type_traits>
 #include <iostream>
 
@@ -78,7 +78,7 @@ struct single_agent_when_all_execute_and_select_functor
   __AGENCY_ANNOTATION
   void operator()(const Index&, Args&&... args) const
   {
-    agency::invoke(f, std::forward<Args>(args)...);
+    agency::detail::invoke(f, std::forward<Args>(args)...);
   }
 };
 
@@ -273,7 +273,7 @@ struct invoke_and_select<1, Function, index_sequence<SelectedIndices...>>
     operator()(Arg& arg) const
   {
     // invoke f
-    agency::invoke(f, arg);
+    agency::detail::invoke(f, arg);
 
     // return a selection from the argument (either ignore it, or move it along)
     return detail::select<SelectedIndices...>(std::move(arg));

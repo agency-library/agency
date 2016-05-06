@@ -4,9 +4,9 @@
 #include <agency/future.hpp>
 #include <agency/executor/executor_traits.hpp>
 #include <agency/executor/detail/executor_traits/check_for_member_functions.hpp>
-#include <agency/executor/detail/executor_traits/invoke_and_return_empty.hpp>
 #include <agency/executor/detail/executor_traits/discarding_container.hpp>
 #include <agency/executor/detail/executor_traits/container_factory.hpp>
+#include <agency/detail/invoke.hpp>
 #include <type_traits>
 
 namespace agency

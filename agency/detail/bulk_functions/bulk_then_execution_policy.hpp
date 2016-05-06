@@ -7,6 +7,7 @@
 #include <agency/detail/bulk_functions/decay_parameter.hpp>
 #include <agency/detail/bulk_functions/single_result.hpp>
 #include <agency/detail/bulk_functions/result_factory.hpp>
+#include <agency/detail/bulk_functions/shared_parameter.hpp>
 #include <agency/detail/bulk_functions/bulk_invoke_execution_policy.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
 #include <agency/detail/is_call_possible.hpp>

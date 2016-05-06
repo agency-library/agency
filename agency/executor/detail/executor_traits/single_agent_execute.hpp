@@ -6,7 +6,7 @@
 #include <agency/executor/detail/executor_traits/single_element_container.hpp>
 #include <agency/executor/detail/executor_traits/container_factory.hpp>
 #include <agency/detail/shape_cast.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <type_traits>
 
@@ -41,7 +41,7 @@ result_of_t<Function()>
 
   executor_traits<Executor>::execute(ex, [&](const index_type&)
   {
-    agency::invoke(std::forward<Function>(f));
+    agency::detail::invoke(std::forward<Function>(f));
   },
   detail::shape_cast<shape_type>(1));
 }
@@ -66,7 +66,7 @@ result_of_t<Function()>
 
   return executor_traits<Executor>::execute(ex, [&](const index_type&)
   {
-    return agency::invoke(std::forward<Function>(f));
+    return agency::detail::invoke(std::forward<Function>(f));
   },
   container_factory<container_type>{},
   detail::shape_cast<shape_type>(1)).element;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/invoke.hpp>
 #include <utility>
 
 namespace agency
@@ -14,17 +15,15 @@ struct host_device_function
 {
   FunctionReference f_;
 
-  // XXX this should use agency::invoke(), but there's a circular dependency
-  // between this header and functional.hpp
   __agency_exec_check_disable__
   template<class... Args>
   __AGENCY_ANNOTATION
   auto operator()(Args&&... args) const
     -> decltype(
-         std::forward<FunctionReference>(f_)(std::forward<Args>(args)...)
+         agency::detail::invoke(std::forward<FunctionReference>(f_), std::forward<Args>(args)...)
        )
   {
-    return std::forward<FunctionReference>(f_)(std::forward<Args>(args)...);
+    return agency::detail::invoke(std::forward<FunctionReference>(f_), std::forward<Args>(args)...);
   }
 };
 

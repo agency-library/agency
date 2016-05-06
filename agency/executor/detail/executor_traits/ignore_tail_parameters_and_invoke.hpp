@@ -4,7 +4,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/executor/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 
 namespace agency
@@ -25,7 +25,7 @@ struct ignore_tail_parameters_and_invoke
   result_of_t<Function(Index)>
   operator()(const Index& idx, Args&&...) const
   {
-    return agency::invoke(f, idx);
+    return agency::detail::invoke(f, idx);
   }
 };
 

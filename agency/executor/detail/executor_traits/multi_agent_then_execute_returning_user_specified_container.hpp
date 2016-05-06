@@ -5,7 +5,7 @@
 #include <agency/executor/executor_traits.hpp>
 #include <agency/executor/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/executor/detail/executor_traits/ignore_tail_parameters_and_invoke.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <type_traits>
 #include <utility>
@@ -57,7 +57,7 @@ struct ignore_tail_parameters_and_invoke
   result_of_t<Function(Index,T&)>
   operator()(const Index& idx, T& past_arg, Args&&...) const
   {
-    return agency::invoke(f, idx, past_arg);
+    return agency::detail::invoke(f, idx, past_arg);
   }
 };
 
@@ -73,7 +73,7 @@ struct ignore_tail_parameters_and_invoke<Function,void>
   result_of_t<Function(Index)>
   operator()(const Index& idx, Args&&...) const
   {
-    return agency::invoke(f, idx);
+    return agency::detail::invoke(f, idx);
   }
 };
 

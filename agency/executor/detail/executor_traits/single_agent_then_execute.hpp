@@ -5,7 +5,7 @@
 #include <agency/executor/executor_traits.hpp>
 #include <agency/executor/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/executor/detail/executor_traits/copy_constructible_function.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <type_traits>
 #include <utility>
@@ -81,7 +81,7 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
   __AGENCY_ANNOTATION
   void operator()() const
   {
-    agency::invoke(f);
+    agency::detail::invoke(f);
   }
 
   // neither f's argument nor result are void
@@ -90,7 +90,7 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
   __AGENCY_ANNOTATION
   void operator()(Arg1& arg1, Arg2& arg2) const
   {
-    arg1 = agency::invoke(f, arg2);
+    arg1 = agency::detail::invoke(f, arg2);
   }
 
   // when the functor receives only a single argument,
@@ -103,7 +103,7 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
                     std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    arg = agency::invoke(f);
+    arg = agency::detail::invoke(f);
   }
 
   template<class Arg>
@@ -113,7 +113,7 @@ struct single_agent_then_execute_using_single_agent_when_all_execute_and_select_
                     !std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    agency::invoke(f, arg);
+    agency::detail::invoke(f, arg);
   }
 };
 
@@ -150,7 +150,7 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
   __AGENCY_ANNOTATION
   void operator()(const Index&) const
   {
-    agency::invoke(f);
+    agency::detail::invoke(f);
   }
 
   // neither f's argument nor result are void
@@ -159,7 +159,7 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Arg1& arg1, Arg2& arg2) const
   {
-    arg1 = agency::invoke(f,arg2);
+    arg1 = agency::detail::invoke(f,arg2);
   }
 
   // when the functor receives only a single argument,
@@ -172,7 +172,7 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
                     std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    arg = agency::invoke(f);
+    arg = agency::detail::invoke(f);
   }
 
   template<class Index, class Arg>
@@ -182,7 +182,7 @@ struct single_agent_then_execute_using_multi_agent_when_all_execute_and_select_f
                     !std::is_same<Result,Arg>::value
                   >::type* = 0) const
   {
-    agency::invoke(f, arg);
+    agency::detail::invoke(f, arg);
   }
 };
 

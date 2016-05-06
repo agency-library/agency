@@ -6,7 +6,7 @@
 #include <agency/executor/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/executor/detail/executor_traits/discarding_container.hpp>
 #include <agency/executor/detail/executor_traits/container_factory.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -84,7 +84,7 @@ struct invoke_and_return_empty
   __AGENCY_ANNOTATION
   empty operator()(const Index& idx, Args&... args) const
   {
-    agency::invoke(f, idx, args...);
+    agency::detail::invoke(f, idx, args...);
 
     // return something which can be cheaply discarded
     return empty();

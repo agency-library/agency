@@ -6,6 +6,7 @@
 #include <agency/detail/bulk_functions/execute_agent_functor.hpp>
 #include <agency/detail/bulk_functions/single_result.hpp>
 #include <agency/detail/bulk_functions/bulk_invoke_execution_policy.hpp>
+#include <agency/detail/bulk_functions/shared_parameter.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
 #include <agency/execution_agent.hpp>
 #include <agency/executor/executor_traits.hpp>

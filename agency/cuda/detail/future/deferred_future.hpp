@@ -7,7 +7,7 @@
 #include <agency/detail/factory.hpp>
 #include <agency/future.hpp>
 #include <agency/cuda/detail/future/async_future.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/unique_function.hpp>
 #include <agency/detail/memory/malloc_allocator.hpp>
 #include <agency/detail/type_traits.hpp>
@@ -73,7 +73,7 @@ class deferred_function<Result(Args...)>
       __AGENCY_ANNOTATION
       agency::detail::unit operator()(Args&&... args) const
       {
-        agency::invoke(function_, std::forward<Args>(args)...);
+        agency::detail::invoke(function_, std::forward<Args>(args)...);
         return agency::detail::unit{};
       }
     };
@@ -218,9 +218,9 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
     template<class Function>
     __AGENCY_ANNOTATION
     auto fmap(Function&& f) ->
-      decltype(agency::invoke(std::forward<Function>(f), this->ref()))
+      decltype(agency::detail::invoke(std::forward<Function>(f), this->ref()))
     {
-      return agency::invoke(std::forward<Function>(f), ref());
+      return agency::detail::invoke(std::forward<Function>(f), ref());
     }
 
     // calls f on the object contained within this deferred_result
@@ -376,9 +376,9 @@ class deferred_result<T,false>
              >::type>
     __AGENCY_ANNOTATION
     auto fmap_impl(Function&& f) ->
-      decltype(agency::invoke(std::forward<Function>(f)))
+      decltype(agency::detail::invoke(std::forward<Function>(f)))
     {
-      return agency::invoke(std::forward<Function>(f));
+      return agency::detail::invoke(std::forward<Function>(f));
     }
 
     template<class U, class Function,
@@ -387,9 +387,9 @@ class deferred_result<T,false>
              >::type>
     __AGENCY_ANNOTATION
     auto fmap_impl(Function&& f) ->
-      decltype(agency::invoke(std::forward<Function>(f), this->ref()))
+      decltype(agency::detail::invoke(std::forward<Function>(f), this->ref()))
     {
-      return agency::invoke(std::forward<Function>(f), this->ref());
+      return agency::detail::invoke(std::forward<Function>(f), this->ref());
     }
 
 

@@ -5,7 +5,7 @@
 #include <agency/detail/array.hpp>
 #include <agency/detail/shape_tuple.hpp>
 #include <agency/detail/index_tuple.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/executor/executor_traits.hpp>
 #include <agency/detail/type_traits.hpp>
 
@@ -160,7 +160,7 @@ class executor_array
         void operator()(const inner_index_type& inner_idx, Args&... inner_shared_args)
         {
           auto idx = make_index(outer_idx, inner_idx);
-          results[idx] = agency::invoke(f, idx, past_arg, outer_shared_arg, inner_shared_args...);
+          results[idx] = agency::detail::invoke(f, idx, past_arg, outer_shared_arg, inner_shared_args...);
         }
       };
 
@@ -176,7 +176,7 @@ class executor_array
         void operator()(const inner_index_type& inner_idx, Args&... inner_shared_args)
         {
           auto idx = make_index(outer_idx, inner_idx);
-          results[idx] = agency::invoke(f, idx, outer_shared_arg, inner_shared_args...);
+          results[idx] = agency::detail::invoke(f, idx, outer_shared_arg, inner_shared_args...);
         }
       };
 
@@ -248,7 +248,7 @@ class executor_array
       //  inner_traits::execute(inner_executor(inner_executor_idx), [=,&outer_shared_arg,&results](const inner_index_type& inner_idx, decltype(inner_factories())&... inner_shared_args) mutable
       //  {
       //    auto idx = make_index(outer_idx, inner_idx);
-      //    results[idx] = agency::invoke(f, idx, past_arg, outer_shared_arg, inner_shared_args...);
+      //    results[idx] = agency::detail::invoke(f, idx, past_arg, outer_shared_arg, inner_shared_args...);
       //  },
       //  inner_shape,
       //  inner_factories...);
@@ -302,7 +302,7 @@ class executor_array
           auto idx = make_index(outer_idx, inner_idx);
 
           // when PastArg is void, there's no past_arg to pass to invoke()
-          results[idx] = agency::invoke(f, idx, outer_arg, inner_shared_args...);
+          results[idx] = agency::detail::invoke(f, idx, outer_arg, inner_shared_args...);
         }
 
         // this overload is chosen when the future is not void
@@ -320,7 +320,7 @@ class executor_array
           auto idx = make_index(outer_idx, inner_idx);
 
           // when PastArg is not void, we pass it to invoke in the slot before outer_arg
-          results[idx] = agency::invoke(f, idx, past_arg, outer_arg, inner_shared_args...);
+          results[idx] = agency::detail::invoke(f, idx, past_arg, outer_arg, inner_shared_args...);
         }
       };
 
@@ -396,7 +396,7 @@ class executor_array
       //  return inner_traits::then_execute(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx, past_arg_type& past_arg, decltype(inner_factories())&... inner_shared_args) mutable
       //  {
       //    auto idx = make_index(outer_idx, inner_idx);
-      //    (*results_raw_ptr)[idx] = agency::invoke(f, idx, past_arg, *outer_shared_arg_raw_ptr, inner_shared_args...);
+      //    (*results_raw_ptr)[idx] = agency::detail::invoke(f, idx, past_arg, *outer_shared_arg_raw_ptr, inner_shared_args...);
       //  },
       //  inner_shape,
       //  past_futures[outer_idx],
