@@ -52,6 +52,3 @@ typename detail::enable_if_bulk_invoke_execution_policy<
 
 } // end agency
 
-// XXX separate this from this header
-#include <agency/detail/bulk_functions/bulk_then_execution_policy.hpp>
-
