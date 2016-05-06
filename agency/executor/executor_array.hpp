@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/this_thread_parallel_executor.hpp>
+#include <agency/executor/detail/this_thread_parallel_executor.hpp>
 #include <agency/detail/array.hpp>
 #include <agency/detail/shape_tuple.hpp>
 #include <agency/detail/index_tuple.hpp>

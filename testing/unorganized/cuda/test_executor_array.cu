@@ -3,8 +3,8 @@
 #include <iostream>
 #include <mutex>
 #include <thread>
-#include <agency/executor_array.hpp>
-#include <agency/cuda/parallel_executor.hpp>
+#include <agency/executor/executor_array.hpp>
+#include <agency/cuda/executor/parallel_executor.hpp>
 
 __managed__ int result;
 

@@ -1,8 +1,11 @@
 #pragma once
 
-#include <agency/cuda/grid_executor.hpp>
-#include <agency/cuda/parallel_executor.hpp>
-#include <agency/cuda/block_executor.hpp>
+// XXX seems like this should not be a public header and instead be automatically
+//     included by grid_executor.hpp, parallel_executor.hpp, and block_executor.hpp
+//     to be sure we catch the specialization
+#include <agency/cuda/executor/grid_executor.hpp>
+#include <agency/cuda/executor/parallel_executor.hpp>
+#include <agency/cuda/executor/block_executor.hpp>
 
 namespace agency
 {

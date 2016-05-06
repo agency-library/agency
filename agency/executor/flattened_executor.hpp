@@ -4,10 +4,10 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/executor/executor_traits.hpp>
 #include <agency/execution_categories.hpp>
-#include <agency/scoped_executor.hpp>
+#include <agency/executor/scoped_executor.hpp>
+#include <agency/executor/detail/flatten_index_and_invoke.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/optional.hpp>
-#include <agency/detail/flatten_index_and_invoke.hpp>
 #include <agency/detail/array.hpp>
 #include <agency/detail/shape.hpp>
 #include <agency/detail/type_traits.hpp>

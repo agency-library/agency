@@ -1,6 +1,6 @@
 #include <agency/bulk_invoke.hpp>
 #include <agency/cuda/execution_policy.hpp>
-#include <agency/cuda/grid_executor.hpp>
+#include <agency/cuda/executor/grid_executor.hpp>
 #include <thrust/device_vector.h>
 #include <cstdio>
 #include <cassert>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/this_thread_parallel_executor.hpp>
+#include <agency/executor/detail/this_thread_parallel_executor.hpp>
 #include <agency/detail/concurrency/thread_pool.hpp>
 
 namespace agency

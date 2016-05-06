@@ -20,7 +20,6 @@
 #include <agency/cuda/future.hpp>
 #include <agency/cuda/detail/array.hpp>
 #include <agency/detail/optional.hpp>
-#include <agency/detail/flatten_index_and_invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 
 #include <thrust/system_error.h>

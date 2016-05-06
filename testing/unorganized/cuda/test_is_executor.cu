@@ -1,13 +1,5 @@
-#include <agency/cuda/grid_executor.hpp>
-#include <agency/cuda/block_executor.hpp>
-#include <agency/flattened_executor.hpp>
-#include <agency/cuda/parallel_executor.hpp>
-#include <agency/cuda/concurrent_executor.hpp>
-#include <agency/scoped_executor.hpp>
-#include <agency/concurrent_executor.hpp>
-#include <agency/sequential_executor.hpp>
-#include <agency/parallel_executor.hpp>
-#include <agency/executor/executor_traits.hpp>
+#include <agency/executor.hpp>
+#include <agency/cuda/executor.hpp>
 #include <iostream>
 
 int main()

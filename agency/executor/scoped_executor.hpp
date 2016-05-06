@@ -1,7 +1,7 @@
 #pragma once
 
 #include <utility>
-#include <agency/executor_array.hpp>
+#include <agency/executor/executor_array.hpp>
 
 namespace agency
 {

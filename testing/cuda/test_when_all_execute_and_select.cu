@@ -1,4 +1,4 @@
-#include <agency/cuda/grid_executor.hpp>
+#include <agency/cuda/executor/grid_executor.hpp>
 #include <agency/cuda/detail/when_all_execute_and_select.hpp>
 #include <memory>
 

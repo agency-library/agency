@@ -3,9 +3,9 @@
 #include <iostream>
 #include <mutex>
 #include <thread>
-#include <agency/executor_array.hpp>
-#include <agency/concurrent_executor.hpp>
-#include <agency/flattened_executor.hpp>
+#include <agency/executor/executor_array.hpp>
+#include <agency/executor/concurrent_executor.hpp>
+#include <agency/executor/flattened_executor.hpp>
 
 int main()
 {

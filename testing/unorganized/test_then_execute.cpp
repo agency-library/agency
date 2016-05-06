@@ -1,8 +1,8 @@
 #include <agency/executor/executor_traits.hpp>
-#include <agency/sequential_executor.hpp>
-#include <agency/concurrent_executor.hpp>
-#include <agency/parallel_executor.hpp>
-#include <agency/scoped_executor.hpp>
+#include <agency/executor/sequential_executor.hpp>
+#include <agency/executor/concurrent_executor.hpp>
+#include <agency/executor/parallel_executor.hpp>
+#include <agency/executor/scoped_executor.hpp>
 #include <atomic>
 #include <algorithm>
 #include <cassert>

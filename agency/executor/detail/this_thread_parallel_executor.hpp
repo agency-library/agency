@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/sequential_executor.hpp>
+#include <agency/executor/sequential_executor.hpp>
 
 namespace agency
 {

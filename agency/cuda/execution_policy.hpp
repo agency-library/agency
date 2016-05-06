@@ -2,12 +2,11 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution_policy.hpp>
-#include <agency/flattened_executor.hpp>
 #include <agency/cuda/execution_agent.hpp>
-#include <agency/cuda/grid_executor.hpp>
-#include <agency/cuda/parallel_executor.hpp>
-#include <agency/cuda/concurrent_executor.hpp>
-#include <agency/cuda/scoped_executor.hpp>
+#include <agency/cuda/executor/grid_executor.hpp>
+#include <agency/cuda/executor/parallel_executor.hpp>
+#include <agency/cuda/executor/concurrent_executor.hpp>
+#include <agency/cuda/executor/scoped_executor.hpp>
 #include <agency/detail/tuple.hpp>
 #include <type_traits>
 

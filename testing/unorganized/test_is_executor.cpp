@@ -1,9 +1,4 @@
-#include <agency/sequential_executor.hpp>
-#include <agency/concurrent_executor.hpp>
-#include <agency/parallel_executor.hpp>
-#include <agency/vector_executor.hpp>
-#include <agency/scoped_executor.hpp>
-#include <agency/executor/executor_traits.hpp>
+#include <agency/executor.hpp>
 #include <iostream>
 
 int main()

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <agency/cuda/grid_executor.hpp>
-#include <agency/flattened_executor.hpp>
+#include <agency/cuda/executor/grid_executor.hpp>
+#include <agency/executor/flattened_executor.hpp>
 #include <agency/cuda/memory/allocator.hpp>
 #include <agency/cuda/memory/pinned_allocator.hpp>
 #include <agency/cuda/detail/array.hpp>

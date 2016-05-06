@@ -1,10 +1,10 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/grid_executor.hpp>
-#include <agency/cuda/parallel_executor.hpp>
-#include <agency/executor_array.hpp>
-#include <agency/flattened_executor.hpp>
+#include <agency/cuda/executor/grid_executor.hpp>
+#include <agency/cuda/executor/parallel_executor.hpp>
+#include <agency/executor/executor_array.hpp>
+#include <agency/executor/flattened_executor.hpp>
 #include <numeric>
 
 namespace agency
