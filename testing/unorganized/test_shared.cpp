@@ -1,4 +1,4 @@
-#include <agency/executor_traits.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <agency/execution_agent.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/index_cast.hpp>

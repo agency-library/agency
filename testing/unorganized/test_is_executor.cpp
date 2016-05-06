@@ -3,7 +3,7 @@
 #include <agency/parallel_executor.hpp>
 #include <agency/vector_executor.hpp>
 #include <agency/scoped_executor.hpp>
-#include <agency/executor_traits.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <iostream>
 
 int main()

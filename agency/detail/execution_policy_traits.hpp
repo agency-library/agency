@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/executor_traits.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <agency/detail/has_member.hpp>
 
 namespace agency

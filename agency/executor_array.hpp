@@ -6,7 +6,7 @@
 #include <agency/detail/shape_tuple.hpp>
 #include <agency/detail/index_tuple.hpp>
 #include <agency/functional.hpp>
-#include <agency/executor_traits.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <agency/detail/type_traits.hpp>
 
 namespace agency

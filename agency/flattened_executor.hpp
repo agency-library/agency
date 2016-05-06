@@ -2,7 +2,7 @@
 
 #include <type_traits>
 #include <agency/detail/tuple.hpp>
-#include <agency/executor_traits.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/scoped_executor.hpp>
 #include <agency/detail/factory.hpp>

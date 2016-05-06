@@ -9,7 +9,7 @@
 #include <agency/detail/bulk_functions/single_result.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
 #include <agency/execution_agent.hpp>
-#include <agency/executor_traits.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <utility>
 
 namespace agency

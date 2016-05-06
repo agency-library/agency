@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/executor_traits/container_factory.hpp>
+#include <agency/executor/detail/executor_traits/container_factory.hpp>
 #include <type_traits>
 
 namespace agency

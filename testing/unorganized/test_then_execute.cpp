@@ -1,4 +1,4 @@
-#include <agency/executor_traits.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <agency/sequential_executor.hpp>
 #include <agency/concurrent_executor.hpp>
 #include <agency/parallel_executor.hpp>
