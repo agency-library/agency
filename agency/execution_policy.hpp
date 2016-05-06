@@ -16,10 +16,6 @@
 #include <agency/scoped_executor.hpp>
 #include <agency/detail/tuple.hpp>
 
-// none of the functionality below actually depends on bulk_invoke.hpp
-// but make bulk_invoke & bulk_async available by including this header
-#include <agency/bulk_invoke.hpp>
-
 namespace agency
 {
 

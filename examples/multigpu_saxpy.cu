@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include <chrono>
-#include <agency/execution_policy.hpp>
+#include <agency/bulk_invoke.hpp>
 #include <agency/cuda/execution_policy.hpp>
 #include <agency/cuda/multidevice_executor.hpp>
 #include <agency/cuda/experimental/multidevice_array.hpp>
