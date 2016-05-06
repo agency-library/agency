@@ -1,5 +1,7 @@
 #include <iostream>
 #include <mutex>
+#include <agency/bulk_invoke.hpp>
+#include <agency/bulk_async.hpp>
 #include <agency/execution_policy.hpp>
 
 int main()

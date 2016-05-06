@@ -4,6 +4,7 @@
 #include <iostream>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
+#include <agency/bulk_async.hpp>
 #include <agency/cuda/execution_policy.hpp>
 
 // XXX need to figure out how to make this par(con) select grid_executor_2d automatically

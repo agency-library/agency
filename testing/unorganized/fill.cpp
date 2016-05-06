@@ -1,7 +1,8 @@
+#include <agency/bulk_async.hpp>
+#include <agency/execution_policy.hpp>
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <agency/execution_policy.hpp>
 
 int main()
 {

@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/functional.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/bulk_invoke/bind.hpp>
+#include <agency/detail/bulk_functions/bind.hpp>
 #include <type_traits>
 
 namespace agency

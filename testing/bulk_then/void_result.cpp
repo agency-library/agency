@@ -1,3 +1,4 @@
+#include <agency/bulk_then.hpp>
 #include <agency/execution_policy.hpp>
 #include <atomic>
 

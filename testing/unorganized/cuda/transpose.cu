@@ -4,6 +4,7 @@
 #include <numeric>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
+#include <agency/bulk_async.hpp>
 #include <agency/cuda/execution_policy.hpp>
 
 const int TILE_DIM = 32;

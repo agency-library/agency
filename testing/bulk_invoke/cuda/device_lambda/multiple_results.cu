@@ -1,4 +1,4 @@
-#include <agency/execution_policy.hpp>
+#include <agency/bulk_invoke.hpp>
 #include <agency/cuda/execution_policy.hpp>
 #include <iostream>
 

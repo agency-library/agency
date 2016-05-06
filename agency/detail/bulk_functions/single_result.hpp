@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/bulk_invoke/scope_result.hpp>
+#include <agency/detail/bulk_functions/scope_result.hpp>
 
 
 namespace agency

@@ -1,5 +1,7 @@
+#include <agency/bulk_invoke.hpp>
 #include <agency/execution_policy.hpp>
 #include <atomic>
+#include <cassert>
 
 template<class ExecutionPolicy>
 void test()
