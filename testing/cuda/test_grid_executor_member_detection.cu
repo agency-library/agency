@@ -1,5 +1,5 @@
-#include <agency/cuda/grid_executor.hpp>
-#include <agency/executor_traits.hpp>
+#include <agency/cuda/executor/grid_executor.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <iostream>
 
 struct functor_returning_int

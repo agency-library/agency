@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/executor_traits.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/bulk_functions/executor_functions/bind_agent_local_parameters.hpp>

@@ -1,10 +1,10 @@
-#include <agency/executor_traits.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <agency/execution_agent.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/bulk_functions/shared_parameter.hpp>
-#include <agency/sequential_executor.hpp>
+#include <agency/executor/sequential_executor.hpp>
 #include <agency/bulk_invoke.hpp>
 #include <agency/execution_policy.hpp>
 #include <agency/detail/is_call_possible.hpp>

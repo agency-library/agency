@@ -1,5 +1,5 @@
 #include <agency/cuda/future.hpp>
-#include <agency/cuda/grid_executor.hpp>
+#include <agency/cuda/executor/grid_executor.hpp>
 #include <agency/future.hpp>
 #include <iostream>
 #include <cassert>

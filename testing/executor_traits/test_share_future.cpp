@@ -1,6 +1,6 @@
 #include <agency/future.hpp>
-#include <agency/concurrent_executor.hpp>
-#include <agency/executor_traits.hpp>
+#include <agency/executor/concurrent_executor.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <iostream>
 
 int main()

@@ -1,5 +1,5 @@
 #include <agency/future.hpp>
-#include <agency/executor_traits.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <iostream>
 #include <cassert>
 #include <algorithm>

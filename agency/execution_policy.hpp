@@ -9,11 +9,11 @@
 #include <initializer_list>
 
 #include <agency/execution_agent.hpp>
-#include <agency/sequential_executor.hpp>
-#include <agency/concurrent_executor.hpp>
-#include <agency/parallel_executor.hpp>
-#include <agency/vector_executor.hpp>
-#include <agency/scoped_executor.hpp>
+#include <agency/executor/sequential_executor.hpp>
+#include <agency/executor/concurrent_executor.hpp>
+#include <agency/executor/parallel_executor.hpp>
+#include <agency/executor/vector_executor.hpp>
+#include <agency/executor/scoped_executor.hpp>
 #include <agency/detail/tuple.hpp>
 
 namespace agency

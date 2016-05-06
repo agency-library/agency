@@ -5,7 +5,7 @@
 #include <agency/detail/array.hpp>
 #include <agency/detail/index.hpp>
 #include <agency/detail/shape.hpp>
-#include <agency/executor_traits.hpp>
+#include <agency/executor/executor_traits.hpp>
 #include <utility>
 #include <tuple>
 #include <type_traits>
