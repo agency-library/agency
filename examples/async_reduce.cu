@@ -2,6 +2,8 @@
 #include <agency/experimental/view.hpp>
 #include <agency/experimental/strided_view.hpp>
 #include <agency/cuda/memory.hpp>
+#include <agency/bulk_async.hpp>
+#include <agency/bulk_then.hpp>
 #include <agency/cuda/execution_policy.hpp>
 #include <vector>
 #include <cassert>
