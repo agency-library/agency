@@ -1,10 +1,8 @@
 #include <agency/experimental/array.hpp>
 #include <agency/experimental/view.hpp>
 #include <agency/experimental/strided_view.hpp>
-#include <agency/cuda/memory.hpp>
-#include <agency/bulk_async.hpp>
-#include <agency/bulk_then.hpp>
-#include <agency/cuda/execution_policy.hpp>
+#include <agency/agency.hpp>
+#include <agency/cuda.hpp>
 #include <vector>
 #include <cassert>
 #include <iostream>

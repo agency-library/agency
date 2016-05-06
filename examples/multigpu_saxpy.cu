@@ -2,8 +2,7 @@
 #include <iostream>
 #include <chrono>
 #include <agency/bulk_invoke.hpp>
-#include <agency/cuda/execution_policy.hpp>
-#include <agency/cuda/executor/multidevice_executor.hpp>
+#include <agency/cuda.hpp>
 #include <agency/cuda/experimental/multidevice_array.hpp>
 #include <agency/experimental/view.hpp>
 
