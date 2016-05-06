@@ -6,7 +6,7 @@
 #include <agency/executor/detail/executor_traits/shared_parameter_container.hpp>
 #include <agency/executor/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/detail/index_cast.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <type_traits>
 #include <utility>
 #include <cassert>
@@ -56,7 +56,7 @@ struct multi_agent_when_all_execute_and_select_with_shared_inits_functor
   __AGENCY_ANNOTATION
   void impl(detail::index_sequence<ContainerIndices...>, AgentIndex&& agent_idx, TupleOfContainers&& shared_arg_containers, Types&... past_args) const
   {
-    agency::invoke(
+    agency::detail::invoke(
       f,
       std::forward<AgentIndex>(agent_idx),                                                                // pass the agent index
       past_args...,                                                                                       // pass the arguments coming in from futures
@@ -162,7 +162,7 @@ struct terminal_execute_with_shared_inits_functor
     __AGENCY_ANNOTATION
     void impl(detail::index_sequence<TupleIndices...>, const Index& idx, Args&... shared_args) const
     {
-      agency::invoke(f, idx, std::get<TupleIndices>(args_from_futures)..., shared_args...);
+      agency::detail::invoke(f, idx, std::get<TupleIndices>(args_from_futures)..., shared_args...);
     }
 
     template<class Index, class... Args>

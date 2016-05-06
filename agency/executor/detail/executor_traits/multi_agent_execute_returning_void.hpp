@@ -5,7 +5,7 @@
 #include <agency/executor/detail/executor_traits/check_for_member_functions.hpp>
 #include <agency/executor/detail/executor_traits/discarding_container.hpp>
 #include <agency/executor/detail/executor_traits/container_factory.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <type_traits>
 
 namespace agency
@@ -31,7 +31,7 @@ void multi_agent_execute_returning_void(std::false_type, Executor& ex, Function 
 {
   auto g = [=](const typename executor_traits<Executor>::index_type& idx) mutable
   {
-    agency::invoke(f, idx);
+    agency::detail::invoke(f, idx);
 
     // return something which can be cheaply discarded
     return 0;

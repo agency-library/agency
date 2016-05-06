@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/executor/executor_traits.hpp>
 #include <agency/executor/detail/executor_traits/check_for_member_functions.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/boxed_value.hpp>
 #include <agency/detail/type_traits.hpp>
 
@@ -494,7 +494,7 @@ struct multi_agent_execute_with_shared_inits_functor
   __AGENCY_ANNOTATION
   Result impl(detail::index_sequence<ContainerIndices...>, AgentIndex&& agent_idx) const
   {
-    return agency::invoke(
+    return agency::detail::invoke(
       f,
       std::forward<AgentIndex>(agent_idx),                                                             // pass the agent index
       std::get<ContainerIndices>(shared_arg_containers)[rank_in_group<ContainerIndices>(agent_idx)]... // pass the arguments coming in from shared parameters
@@ -563,7 +563,7 @@ struct invoke_and_store_result_to_container
   __AGENCY_ANNOTATION
   Result operator()(const Index& idx, Args&... shared_args) const
   {
-    c[idx] = agency::invoke(f, idx, shared_args...);
+    c[idx] = agency::detail::invoke(f, idx, shared_args...);
 
     // return something easily discardable
     return Result();
@@ -679,7 +679,7 @@ struct strategy_7_functor
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Container& results, Args&... shared_args) const
   {
-    results[idx] = agency::invoke(f, idx, shared_args...);
+    results[idx] = agency::detail::invoke(f, idx, shared_args...);
   }
 };
 
@@ -777,7 +777,7 @@ struct invoke_and_store_to_second_parameter
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Container& c) const
   {
-    c[idx] = agency::invoke(f, idx);
+    c[idx] = agency::detail::invoke(f, idx);
   }
 };
 
@@ -1163,7 +1163,7 @@ struct execute_in_for_loop
     // XXX generalize to multidimensions
     for(size_t idx = 0; idx < shape; ++idx)
     {
-      results[idx] = agency::invoke(f, idx, shared_arg.value());
+      results[idx] = agency::detail::invoke(f, idx, shared_arg.value());
     }
 
     return std::move(results);
@@ -1253,7 +1253,7 @@ struct single_agent_when_all_execute_and_select_functor
     // XXX generalize to multidimensions
     for(size_t idx = 0; idx < shape; ++idx)
     {
-      results[idx] = agency::invoke(f, idx, shared_arg);
+      results[idx] = agency::detail::invoke(f, idx, shared_arg);
     }
   }
 };

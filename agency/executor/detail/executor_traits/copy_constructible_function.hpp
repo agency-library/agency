@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <utility>
 #include <memory>
 #include <type_traits>
@@ -31,16 +31,16 @@ struct shared_function
 
   template<class... Args>
   auto operator()(Args&&... args) ->
-    decltype(agency::invoke(*f_ptr, std::forward<Args>(args)...))
+    decltype(agency::detail::invoke(*f_ptr, std::forward<Args>(args)...))
   {
-    return agency::invoke(*f_ptr, std::forward<Args>(args)...);
+    return agency::detail::invoke(*f_ptr, std::forward<Args>(args)...);
   }
 
   template<class... Args>
   auto operator()(Args&&... args) const ->
-    decltype(agency::invoke(*f_ptr, std::forward<Args>(args)...))
+    decltype(agency::detail::invoke(*f_ptr, std::forward<Args>(args)...))
   {
-    return agency::invoke(*f_ptr, std::forward<Args>(args)...);
+    return agency::detail::invoke(*f_ptr, std::forward<Args>(args)...);
   }
 };
 

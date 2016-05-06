@@ -2,7 +2,7 @@
 
 #include <agency/cuda/executor/grid_executor.hpp>
 #include <agency/detail/tuple.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 
 namespace agency
@@ -22,18 +22,18 @@ struct block_executor_helper_functor
   template<class Arg1, class Arg2>
   __device__
   auto operator()(grid_executor::index_type idx, Arg1& past_arg, agency::detail::unit, Arg2& inner_shared_param) const ->
-    decltype(agency::invoke(f_, agency::detail::get<1>(idx), past_arg, inner_shared_param))
+    decltype(agency::detail::invoke(f_, agency::detail::get<1>(idx), past_arg, inner_shared_param))
   {
-    return agency::invoke(f_, agency::detail::get<1>(idx), past_arg, inner_shared_param);
+    return agency::detail::invoke(f_, agency::detail::get<1>(idx), past_arg, inner_shared_param);
   }
 
   // this is the form of operator() for then_execute() with a void future and a shared parameter
   template<class Arg>
   __device__
   auto operator()(grid_executor::index_type idx, agency::detail::unit, Arg& inner_shared_param) const ->
-    decltype(agency::invoke(f_, agency::detail::get<1>(idx), inner_shared_param))
+    decltype(agency::detail::invoke(f_, agency::detail::get<1>(idx), inner_shared_param))
   {
-    return agency::invoke(f_, agency::detail::get<1>(idx), inner_shared_param);
+    return agency::detail::invoke(f_, agency::detail::get<1>(idx), inner_shared_param);
   }
 };
 

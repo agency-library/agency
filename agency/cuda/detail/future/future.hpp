@@ -5,6 +5,7 @@
 #include <agency/cuda/detail/future/deferred_future.hpp>
 #include <agency/detail/variant.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/invoke.hpp>
 #include <utility>
 
 
@@ -252,7 +253,7 @@ class future
         __AGENCY_ANNOTATION
         result_type impl(agency::cuda::async_future<void>&)
         {
-          return agency::invoke(f_); 
+          return agency::detail::invoke(f_); 
         }
 
         template<class U>
@@ -260,7 +261,7 @@ class future
         result_type impl(agency::cuda::async_future<U>& fut)
         {
           U arg = fut.get();
-          return agency::invoke(f_, arg);
+          return agency::detail::invoke(f_, arg);
         }
 
         __AGENCY_ANNOTATION
