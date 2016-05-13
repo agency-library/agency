@@ -181,12 +181,12 @@ template<class Range, class Difference>
 __AGENCY_ANNOTATION
 auto strided(Range&& rng, Difference stride) ->
   strided_view<
-    decltype(experimental::view(std::forward<Range>(rng))),
+    decltype(experimental::all(std::forward<Range>(rng))),
     Difference
   >
 {
-  auto view = experimental::view(std::forward<Range>(rng));
-  return strided_view<decltype(view), Difference>(view, stride);
+  auto view_of_rng = experimental::all(std::forward<Range>(rng));
+  return strided_view<decltype(view_of_rng), Difference>(view_of_rng, stride);
 }
 
 

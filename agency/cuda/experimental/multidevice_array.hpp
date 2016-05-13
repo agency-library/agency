@@ -29,10 +29,10 @@ class multidevice_array
 
     agency::experimental::span<value_type> span(size_t i)
     {
-      return agency::experimental::view(containers_[i]);
+      return agency::experimental::all(containers_[i]);
     }
 
-    agency::experimental::segmented_span<value_type,2> view()
+    agency::experimental::segmented_span<value_type,2> all()
     {
       return agency::experimental::segmented_span<value_type,2>(span(0), span(1));
     }
@@ -61,9 +61,9 @@ class multidevice_array
 
 
 template<class T>
-agency::experimental::segmented_span<T,2> view(multidevice_array<T>& a)
+agency::experimental::segmented_span<T,2> all(multidevice_array<T>& a)
 {
-  return a.view();
+  return a.all();
 }
 
 
