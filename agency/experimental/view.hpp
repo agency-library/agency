@@ -15,7 +15,7 @@ namespace experimental
 // XXX this is only valid for contiguous containers
 template<class Container>
 __AGENCY_ANNOTATION
-span<typename Container::value_type> view(Container& c)
+span<typename Container::value_type> all(Container& c)
 {
   return span<typename Container::value_type>(c);
 }
@@ -23,7 +23,7 @@ span<typename Container::value_type> view(Container& c)
 // XXX this is only valid for contiguous containers
 template<class Container>
 __AGENCY_ANNOTATION
-span<const typename Container::value_type> view(const Container& c)
+span<const typename Container::value_type> all(const Container& c)
 {
   return span<const typename Container::value_type>(c);
 }
@@ -31,7 +31,7 @@ span<const typename Container::value_type> view(const Container& c)
 
 template<class T, std::size_t N>
 __AGENCY_ANNOTATION
-span<T,N> view(array<T,N>& a)
+span<T,N> all(array<T,N>& a)
 {
   return span<T,N>(a);
 }
@@ -39,17 +39,17 @@ span<T,N> view(array<T,N>& a)
 
 template<class T, std::size_t N>
 __AGENCY_ANNOTATION
-span<const T,N> view(const array<T,N>& a)
+span<const T,N> all(const array<T,N>& a)
 {
   return span<const T,N>(a);
 }
 
 
-// spans are their own views, so don't wrap them
+// spans are already views, so don't wrap them
 // XXX maybe should put this in span.hpp
 template<class ElementType, std::ptrdiff_t Extent>
 __AGENCY_ANNOTATION
-span<ElementType,Extent> view(span<ElementType,Extent> s)
+span<ElementType,Extent> all(span<ElementType,Extent> s)
 {
   return s;
 }
@@ -91,9 +91,10 @@ class range_view
     Iterator end_;
 };
 
+// range_views are already views, so don't wrap them
 template<class Iterator>
 __AGENCY_ANNOTATION
-range_view<Iterator> view(range_view<Iterator> v)
+range_view<Iterator> all(range_view<Iterator> v)
 {
   return v;
 }

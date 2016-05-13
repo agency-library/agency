@@ -118,7 +118,7 @@ int main()
 
   std::vector<int, agency::cuda::allocator<int>> data(n, 1);
 
-  auto result = async_reduce(agency::experimental::view(data)).get();
+  auto result = async_reduce(agency::experimental::all(data)).get();
 
   assert(result == n);
 
