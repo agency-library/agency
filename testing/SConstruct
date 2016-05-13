@@ -64,7 +64,7 @@ vars.Add('CXX', 'C++ compiler', 'clang')
 vars.Add('CPPPATH', 'Agency include path', Dir('..'))
 
 # create a SCons build environment
-env = Environment(variables = vars, tools = ['default', 'nvcc'])
+env = Environment(variables = vars, tools = ['default', 'nvcc-scons/nvcc'])
 
 apply_compiler_flags(env)
 
