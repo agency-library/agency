@@ -200,16 +200,6 @@ auto strided(Range&& rng, Difference stride) ->
 }
 
 
-// XXX we should eliminate this specialization in favor of a generic form
-//     put it in drop.hpp I guess
-template<class Range, class Difference>
-__AGENCY_ANNOTATION
-strided_view<Range,Difference> drop(detail::range_difference_t<strided_view<Range,Difference>> n, const strided_view<Range,Difference>& rng)
-{
-  return strided_view<Range,Difference>(rng.begin() + n, rng.end());
-}
-
-
 } // end experimental
 } // end agency
 

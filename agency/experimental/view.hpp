@@ -55,14 +55,15 @@ span<ElementType,Extent> all(span<ElementType,Extent> s)
 }
 
 
-template<class Iterator>
+template<class Iterator, class Sentinel = Iterator>
 class range_view
 {
   public:
     using iterator = Iterator;
+    using sentinel = Sentinel;
 
     __AGENCY_ANNOTATION
-    range_view(iterator begin, iterator end)
+    range_view(iterator begin, sentinel end)
       : begin_(begin),
         end_(end)
     {}
@@ -74,7 +75,7 @@ class range_view
     }
 
     __AGENCY_ANNOTATION
-    iterator end() const
+    sentinel end() const
     {
       return end_;
     }
@@ -87,14 +88,14 @@ class range_view
     }
 
   private:
-    Iterator begin_;
-    Iterator end_;
+    iterator begin_;
+    sentinel end_;
 };
 
 // range_views are already views, so don't wrap them
-template<class Iterator>
+template<class Iterator, class Sentinel>
 __AGENCY_ANNOTATION
-range_view<Iterator> all(range_view<Iterator> v)
+range_view<Iterator,Sentinel> all(range_view<Iterator,Sentinel> v)
 {
   return v;
 }
@@ -107,9 +108,15 @@ namespace detail
 template<class Range>
 using range_iterator_t = decltype(std::declval<Range*>()->begin());
 
+template<class Range>
+using range_sentinel_t = decltype(std::declval<Range*>()->end());
+
 
 template<class Range>
 using decay_range_iterator_t = range_iterator_t<typename std::decay<Range>::type>;
+
+template<class Range>
+using decay_range_sentinel_t = range_sentinel_t<typename std::decay<Range>::type>;
 
 
 template<class Range>
@@ -121,17 +128,18 @@ using range_difference_t = typename std::iterator_traits<range_iterator_t<Range>
 
 template<class Range>
 __AGENCY_ANNOTATION
-range_view<detail::decay_range_iterator_t<Range>> make_range_view(Range&& rng)
+range_view<detail::decay_range_iterator_t<Range>, detail::decay_range_sentinel_t<Range>>
+  make_range_view(Range&& rng)
 {
-  return range_view<detail::decay_range_iterator_t<Range>>(rng.begin(), rng.end());
+  return range_view<detail::decay_range_iterator_t<Range>, detail::decay_range_sentinel_t<Range>>(rng.begin(), rng.end());
 }
 
 
 // create a view of the given range and drop the first n elements from the view
 template<class Range>
 __AGENCY_ANNOTATION
-range_view<detail::range_iterator_t<typename std::decay<Range>::type>>
-  drop(detail::range_difference_t<typename std::decay<Range>::type> n, Range&& rng)
+range_view<detail::decay_range_iterator_t<Range>, detail::decay_range_iterator_t<Range>>
+  drop(Range&& rng, detail::range_difference_t<typename std::decay<Range>::type> n)
 {
   auto result = make_range_view(rng);
   result.drop(n);
