@@ -148,9 +148,13 @@ class strided_view
     using sentinel = detail::strided_sentinel<base_iterator>;
 
     __AGENCY_ANNOTATION
+    strided_view(iterator begin, sentinel end)
+      : begin_(begin), end_(end)
+    {}
+
+    __AGENCY_ANNOTATION
     strided_view(View v, index_type stride)
-      : begin_(v.begin(), stride),
-        end_(v.end())
+      : strided_view(iterator(v.begin(), stride), sentinel(v.end()))
     {}
 
     __AGENCY_ANNOTATION
@@ -171,6 +175,12 @@ class strided_view
       return begin()[idx];
     }
 
+    __AGENCY_ANNOTATION
+    bool empty() const
+    {
+      return begin() == end();
+    }
+
   private:
     iterator begin_;
     sentinel end_;
@@ -187,6 +197,16 @@ auto strided(Range&& rng, Difference stride) ->
 {
   auto view_of_rng = experimental::all(std::forward<Range>(rng));
   return strided_view<decltype(view_of_rng), Difference>(view_of_rng, stride);
+}
+
+
+// XXX we should eliminate this specialization in favor of a generic form
+//     put it in drop.hpp I guess
+template<class Range, class Difference>
+__AGENCY_ANNOTATION
+strided_view<Range,Difference> drop(detail::range_difference_t<strided_view<Range,Difference>> n, const strided_view<Range,Difference>& rng)
+{
+  return strided_view<Range,Difference>(rng.begin() + n, rng.end());
 }
 
 
