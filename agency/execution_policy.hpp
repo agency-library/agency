@@ -298,7 +298,7 @@ class sequential_execution_policy : public detail::basic_execution_policy<sequen
 template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
 
 
-const sequential_execution_policy seq{};
+constexpr sequential_execution_policy seq{};
 
 
 class concurrent_execution_policy : public detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>
@@ -314,7 +314,7 @@ class concurrent_execution_policy : public detail::basic_execution_policy<concur
 template<> struct is_execution_policy<concurrent_execution_policy> : std::true_type {};
 
 
-const concurrent_execution_policy con{};
+constexpr concurrent_execution_policy con{};
 
 
 class parallel_execution_policy : public detail::basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_tag, parallel_execution_policy>
@@ -346,7 +346,7 @@ class vector_execution_policy : public detail::basic_execution_policy<vector_age
 template<> struct is_execution_policy<vector_execution_policy> : std::true_type {};
 
 
-const vector_execution_policy vec{};
+constexpr vector_execution_policy vec{};
 
 
 } // end agency
