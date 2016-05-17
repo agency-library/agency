@@ -309,17 +309,17 @@ class lattice
       : min_(min), max_(max)
     {}
 
-    template<class... Size,
+    template<class Size1, class... Sizes,
              typename = typename std::enable_if<
                agency::detail::all_of<
-                 std::is_convertible<Size,size_t>::value...
+                 std::is_convertible<Size1,size_t>::value, std::is_convertible<Sizes,size_t>::value...
                >::value &&
-               sizeof...(Size) == rank
+               sizeof...(Sizes) == (rank - 1)
              >::type 
             >
     __AGENCY_ANNOTATION
-    lattice(const Size&... dimensions)
-      : lattice(index_type{static_cast<size_t>(dimensions)...})
+    lattice(const Size1& dimension1, const Sizes&... dimensions)
+      : lattice(index_type{static_cast<size_t>(dimension1), static_cast<size_t>(dimensions)...})
     {}
 
     __AGENCY_ANNOTATION
