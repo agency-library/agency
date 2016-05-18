@@ -423,9 +423,7 @@ class basic_execution_agent
         param_type() = default;
 
         __AGENCY_ANNOTATION
-        param_type(const param_type& other)
-          : domain_(other.domain_)
-        {}
+        param_type(const param_type& other) = default;
 
         __AGENCY_ANNOTATION
         param_type(const domain_type& d)
