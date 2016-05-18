@@ -15,6 +15,7 @@ class sequential_executor
     using execution_category = sequential_execution_tag;
 
     template<class Function, class Factory>
+    __AGENCY_ANNOTATION
     void execute(Function f, size_t n, Factory shared_factory)
     {
       auto shared_parm = shared_factory();
