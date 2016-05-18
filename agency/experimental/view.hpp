@@ -122,6 +122,9 @@ using decay_range_sentinel_t = range_sentinel_t<typename std::decay<Range>::type
 template<class Range>
 using range_difference_t = typename std::iterator_traits<range_iterator_t<Range>>::difference_type;
 
+template<class Range>
+using range_value_t = typename std::iterator_traits<range_iterator_t<Range>>::value_type;
+
 
 } // end detail
 
