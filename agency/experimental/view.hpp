@@ -138,7 +138,7 @@ range_view<detail::decay_range_iterator_t<Range>, detail::decay_range_sentinel_t
 // create a view of the given range and drop the first n elements from the view
 template<class Range>
 __AGENCY_ANNOTATION
-range_view<detail::decay_range_iterator_t<Range>, detail::decay_range_iterator_t<Range>>
+range_view<detail::decay_range_iterator_t<Range>, detail::decay_range_sentinel_t<Range>>
   drop(Range&& rng, detail::range_difference_t<typename std::decay<Range>::type> n)
 {
   auto result = make_range_view(rng);
