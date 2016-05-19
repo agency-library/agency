@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/optional.hpp>
+#include <agency/experimental/optional.hpp>
 #include <agency/cuda/detail/boxed_value.hpp>
 #include <agency/detail/unit.hpp>
 #include <agency/detail/factory.hpp>
@@ -149,10 +149,10 @@ constexpr ready_made_t ready_made{};
 
 
 template<class T, bool = deferred_state_requires_storage<T>::value>
-class deferred_result : detail::boxed_value<agency::detail::optional<T>>
+class deferred_result : detail::boxed_value<agency::experimental::optional<T>>
 {
   public:
-    using super_t = detail::boxed_value<agency::detail::optional<T>>;
+    using super_t = detail::boxed_value<agency::experimental::optional<T>>;
     using super_t::super_t;
     using super_t::operator=;
 
@@ -163,7 +163,7 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
       : super_t(std::move(static_cast<super_t&>(other)))
     {
       // empty other
-      other.value() = agency::detail::nullopt;
+      other.value() = agency::experimental::nullopt;
     }
 
     template<class... Args,
@@ -183,7 +183,7 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
       super_t::operator=(std::move(other));
 
       // empty other
-      other.value() = agency::detail::nullopt;
+      other.value() = agency::experimental::nullopt;
 
       return *this;
     }
@@ -208,7 +208,7 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
       __AGENCY_ANNOTATION
       ~invalidate_at_scope_exit()
       {
-        self.value() = agency::detail::nullopt;
+        self.value() = agency::experimental::nullopt;
       }
     };
 
@@ -239,7 +239,7 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
 
 template<class T>
 class deferred_result<T,false>
-  : agency::detail::optional<
+  : agency::experimental::optional<
       typename std::conditional<
         std::is_void<T>::value,
         agency::detail::unit,
@@ -257,7 +257,7 @@ class deferred_result<T,false>
       T
     >::type;
 
-    using super_t = agency::detail::optional<value_type>;
+    using super_t = agency::experimental::optional<value_type>;
 
     using super_t::super_t;
     using super_t::operator=;
@@ -272,7 +272,7 @@ class deferred_result<T,false>
       : super_t(std::move(other))
     {
       // empty other
-      other = agency::detail::nullopt;
+      other = agency::experimental::nullopt;
     }
 
     template<class U,
@@ -290,7 +290,7 @@ class deferred_result<T,false>
       }
 
       // empty other
-      other = agency::detail::nullopt;
+      other = agency::experimental::nullopt;
     }
 
     template<class... Args,
@@ -311,7 +311,7 @@ class deferred_result<T,false>
       super_t::operator=(std::move(other));
 
       // empty other
-      other = agency::detail::nullopt;
+      other = agency::experimental::nullopt;
 
       return *this;
     }
@@ -366,7 +366,7 @@ class deferred_result<T,false>
       __AGENCY_ANNOTATION
       ~invalidate_at_scope_exit()
       {
-        self = agency::detail::nullopt;
+        self = agency::experimental::nullopt;
       }
     };
 

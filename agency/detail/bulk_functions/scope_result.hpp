@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/optional.hpp>
+#include <agency/experimental/optional.hpp>
 #include <agency/detail/array.hpp>
 #include <agency/detail/index.hpp>
 #include <agency/detail/shape.hpp>
@@ -47,10 +47,10 @@ detail::no_result_t<T> no_result();
 
 
 template<size_t N, class T>
-class scope_result : public detail::optional<T>
+class scope_result : public experimental::optional<T>
 {
   private:
-    using super_t = detail::optional<T>;
+    using super_t = experimental::optional<T>;
 
   public:
     using result_type = T;
@@ -85,7 +85,7 @@ class scope_result : public detail::optional<T>
   private:
     __AGENCY_ANNOTATION
     scope_result()
-      : super_t(detail::nullopt)
+      : super_t(experimental::nullopt)
     {}
 
     template<class U>

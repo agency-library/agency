@@ -7,7 +7,6 @@
 #include <agency/executor/scoped_executor.hpp>
 #include <agency/executor/detail/flatten_index_and_invoke.hpp>
 #include <agency/detail/factory.hpp>
-#include <agency/detail/optional.hpp>
 #include <agency/detail/array.hpp>
 #include <agency/detail/shape.hpp>
 #include <agency/detail/type_traits.hpp>
