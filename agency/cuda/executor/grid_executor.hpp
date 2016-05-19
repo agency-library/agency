@@ -19,7 +19,6 @@
 #include <agency/detail/factory.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/cuda/detail/array.hpp>
-#include <agency/detail/optional.hpp>
 #include <agency/detail/type_traits.hpp>
 
 #include <thrust/system_error.h>

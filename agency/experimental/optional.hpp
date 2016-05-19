@@ -35,7 +35,7 @@
 
 namespace agency
 {
-namespace detail
+namespace experimental
 {
 
 
@@ -54,7 +54,7 @@ class bad_optional_access : public std::logic_error
 };
 
 
-namespace optional_detail
+namespace detail
 {
 
 
@@ -107,7 +107,7 @@ struct optional_base<T,true> : T {};
 
 
 template<class T>
-class optional : public optional_detail::optional_base<T>
+class optional : public detail::optional_base<T>
 {
   public:
     __AGENCY_ANNOTATION
@@ -261,7 +261,7 @@ class optional : public optional_detail::optional_base<T>
     {
       if(!*this)
       {
-        optional_detail::throw_bad_optional_access("optional::value(): optional does not contain a value");
+        detail::throw_bad_optional_access("optional::value(): optional does not contain a value");
       }
 
       return **this;
@@ -272,7 +272,7 @@ class optional : public optional_detail::optional_base<T>
     {
       if(!*this)
       {
-        optional_detail::throw_bad_optional_access("optional::value(): optional does not contain a value");
+        detail::throw_bad_optional_access("optional::value(): optional does not contain a value");
       }
 
       return **this;
@@ -283,7 +283,7 @@ class optional : public optional_detail::optional_base<T>
     {
       if(!*this)
       {
-        optional_detail::throw_bad_optional_access("optional::value(): optional does not contain a value");
+        detail::throw_bad_optional_access("optional::value(): optional does not contain a value");
       }
 
       return std::move(**this);
@@ -294,7 +294,7 @@ class optional : public optional_detail::optional_base<T>
     {
       if(!*this)
       {
-        optional_detail::throw_bad_optional_access("optional::value(): optional does not contain a value");
+        detail::throw_bad_optional_access("optional::value(): optional does not contain a value");
       }
 
       return std::move(**this);
@@ -321,7 +321,7 @@ class optional : public optional_detail::optional_base<T>
       {
         if(*this)
         {
-          optional_detail::optional_swap(**this, *other);
+          detail::optional_swap(**this, *other);
         }
         else
         {
@@ -514,6 +514,6 @@ optional<typename std::decay<T>::type> make_optional(T&& value)
 }
 
 
-} // end detail
+} // end experimental
 } // end agency
 

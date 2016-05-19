@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/factory.hpp>
-#include <agency/detail/optional.hpp>
+#include <agency/experimental/optional.hpp>
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/index_tuple.hpp>
 #include <agency/detail/shape_cast.hpp>
@@ -88,7 +88,7 @@ struct flatten_index_and_invoke_base
   using void_or_optionally_value_and_index_t = typename std::conditional<
     std::is_void<T>::value,
     void,
-    optional<value_and_index<T>>
+    experimental::optional<value_and_index<T>>
   >::type;
 
   // this is the type of result returned by this functor
@@ -151,7 +151,7 @@ struct flatten_index_and_invoke_base
       return make_value_and_index(f_(flattened_idx, std::forward<Args>(args)...), flattened_idx);
     }
 
-    return nullopt;
+    return experimental::nullopt;
   }
 };
 
