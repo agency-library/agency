@@ -113,17 +113,20 @@ using range_sentinel_t = decltype(std::declval<Range*>()->end());
 
 
 template<class Range>
+using range_difference_t = typename std::iterator_traits<range_iterator_t<Range>>::difference_type;
+
+template<class Range>
+using range_value_t = typename std::iterator_traits<range_iterator_t<Range>>::value_type;
+
+
+template<class Range>
 using decay_range_iterator_t = range_iterator_t<typename std::decay<Range>::type>;
 
 template<class Range>
 using decay_range_sentinel_t = range_sentinel_t<typename std::decay<Range>::type>;
 
-
 template<class Range>
-using range_difference_t = typename std::iterator_traits<range_iterator_t<Range>>::difference_type;
-
-template<class Range>
-using range_value_t = typename std::iterator_traits<range_iterator_t<Range>>::value_type;
+using decay_range_difference_t = range_difference_t<typename std::decay<Range>::type>;
 
 
 } // end detail
