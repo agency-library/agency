@@ -35,15 +35,21 @@ class strided_iterator
     {}
 
     __AGENCY_ANNOTATION
+    difference_type stride() const
+    {
+      return stride_;
+    }
+
+    __AGENCY_ANNOTATION
     void operator++()
     {
-      current_position_ += stride_;
+      current_position_ += stride();
     }
 
     __AGENCY_ANNOTATION
     void operator+=(difference_type n)
     {
-      current_position_ += n * stride_;
+      current_position_ += n * stride();
     }
 
     __AGENCY_ANNOTATION
@@ -72,13 +78,24 @@ class strided_iterator
 };
 
 
+template<class Iterator1, class Difference1, class Iterator2, class Difference2>
+__AGENCY_ANNOTATION
+auto operator==(const strided_iterator<Iterator1,Difference1>& lhs, const strided_iterator<Iterator2,Difference2>& rhs) ->
+  decltype((lhs.base() == rhs.base()) && (lhs.stride() == rhs.stride()))
+{
+  return (lhs.base() == rhs.base()) && (lhs.stride() == rhs.stride());
+}
+
+
 template<class Iterator>
 class strided_sentinel
 {
   public:
+    using base_iterator_type = Iterator;
+
     template<class OtherIterator,
              class = typename std::enable_if<
-               std::is_constructible<Iterator,OtherIterator>::value
+               std::is_constructible<base_iterator_type,OtherIterator>::value
              >::type>
     __AGENCY_ANNOTATION
     strided_sentinel(OtherIterator end)
@@ -95,8 +112,14 @@ class strided_sentinel
       return end_ <= iter.base();
     }
 
+    __AGENCY_ANNOTATION
+    const base_iterator_type& base() const
+    {
+      return end_;
+    }
+
   private:
-    Iterator end_;
+    base_iterator_type end_;
 };
 
 template<class Iterator1, class Difference, class Iterator2>
