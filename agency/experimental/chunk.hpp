@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/experimental/view.hpp>
+#include <agency/experimental/counted.hpp>
 #include <agency/experimental/strided_view.hpp>
 
 namespace agency
@@ -19,7 +19,7 @@ class chunk_iterator
     using base_iterator_type = strided_iterator<range_iterator_t<View>>;
     using base_sentinel_type = strided_sentinel<range_sentinel_t<View>>;
 
-    using value_type = range_view<range_iterator_t<View>, range_sentinel_t<View>>;
+    using value_type = counted_view<range_iterator_t<View>>;
     using reference = value_type;
     using difference_type = range_difference_t<View>;
 
@@ -75,10 +75,11 @@ class chunk_iterator
 
       if(end_of_current_chunk == end())
       {
-        return value_type(base().base(), end().base());
+        auto size_of_last_chunk = end().base() - base().base();
+        return value_type(base().base(), size_of_last_chunk);
       }
 
-      return value_type(base().base(), end_of_current_chunk.base());
+      return value_type(base().base(), chunk_size());
     }
 
     __AGENCY_ANNOTATION
