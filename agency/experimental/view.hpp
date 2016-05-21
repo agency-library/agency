@@ -87,6 +87,18 @@ class range_view
       begin_ += n;
     }
 
+    __AGENCY_ANNOTATION
+    typename std::iterator_traits<iterator>::reference operator[](typename std::iterator_traits<iterator>::difference_type i)
+    {
+      return begin()[i];
+    }
+
+    __AGENCY_ANNOTATION
+    typename std::iterator_traits<iterator>::difference_type size() const
+    {
+      return end() - begin();
+    }
+
   private:
     iterator begin_;
     sentinel end_;
