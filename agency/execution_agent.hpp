@@ -396,9 +396,10 @@ class basic_execution_agent
       return domain_;
     }
 
+    using size_type = decltype(std::declval<domain_type>().size());
+
     __AGENCY_ANNOTATION
-    auto group_size() const
-      -> decltype(this->domain().size())
+    size_type group_size() const
     {
       return domain().size();
     }
@@ -411,9 +412,15 @@ class basic_execution_agent
     }
 
     __AGENCY_ANNOTATION
+    size_type rank() const
+    {
+      return index_cast<size_type>(index(), group_shape(), group_size());
+    }
+
+    __AGENCY_ANNOTATION
     bool elect() const
     {
-      return agency::detail::index_cast<size_t>(index(), group_shape(), 0) == 0;
+      return rank() == 0;
     }
 
     class param_type
