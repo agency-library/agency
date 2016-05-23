@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/experimental/counted.hpp>
-#include <agency/experimental/strided_view.hpp>
+#include <agency/experimental/stride.hpp>
 
 namespace agency
 {
@@ -16,8 +16,8 @@ template<class View>
 class chunk_iterator
 {
   public:
-    using base_iterator_type = strided_iterator<range_iterator_t<View>>;
-    using base_sentinel_type = strided_sentinel<range_sentinel_t<View>>;
+    using base_iterator_type = stride_iterator<range_iterator_t<View>>;
+    using base_sentinel_type = stride_sentinel<range_sentinel_t<View>>;
 
     using value_type = counted_view<range_iterator_t<View>>;
     using reference = value_type;
