@@ -709,11 +709,27 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
 
       return domain_type{min,max};
     }
+    
+    __AGENCY_ANNOTATION
+    auto group_shape() const
+      -> decltype(this->domain().shape())
+    {
+      return domain().shape();
+    }
 
     __AGENCY_ANNOTATION
-    size_t group_size() const
+    auto group_size() const
+      -> decltype(this->outer().group_size() * inner().group_size())
     {
-      return outer().group_size();
+      return outer().group_size() * inner().group_size();
+    }
+
+    __AGENCY_ANNOTATION
+    auto rank() const
+      -> decltype(this->group_size())
+    {
+      using size_type = decltype(this->group_size());
+      return index_cast<size_type>(index(), group_shape(), group_size());
     }
 
     __AGENCY_ANNOTATION
