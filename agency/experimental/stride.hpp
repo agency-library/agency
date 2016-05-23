@@ -14,7 +14,7 @@ namespace detail
 
 
 template<class Iterator, class Difference = typename std::iterator_traits<Iterator>::difference_type>
-class strided_iterator
+class stride_iterator
 {
   public:
     using base_iterator_type = Iterator;
@@ -29,7 +29,7 @@ class strided_iterator
                std::is_constructible<base_iterator_type,OtherIterator>::value
              >::type>
     __AGENCY_ANNOTATION
-    strided_iterator(OtherIterator iter, size_t stride)
+    stride_iterator(OtherIterator iter, size_t stride)
       : current_position_(iter),
         stride_(stride)
     {}
@@ -80,7 +80,7 @@ class strided_iterator
 
 template<class Iterator1, class Difference1, class Iterator2, class Difference2>
 __AGENCY_ANNOTATION
-auto operator==(const strided_iterator<Iterator1,Difference1>& lhs, const strided_iterator<Iterator2,Difference2>& rhs) ->
+auto operator==(const stride_iterator<Iterator1,Difference1>& lhs, const stride_iterator<Iterator2,Difference2>& rhs) ->
   decltype((lhs.base() == rhs.base()) && (lhs.stride() == rhs.stride()))
 {
   return (lhs.base() == rhs.base()) && (lhs.stride() == rhs.stride());
@@ -88,7 +88,7 @@ auto operator==(const strided_iterator<Iterator1,Difference1>& lhs, const stride
 
 
 template<class Iterator>
-class strided_sentinel
+class stride_sentinel
 {
   public:
     using base_iterator_type = Iterator;
@@ -98,16 +98,16 @@ class strided_sentinel
                std::is_constructible<base_iterator_type,OtherIterator>::value
              >::type>
     __AGENCY_ANNOTATION
-    strided_sentinel(OtherIterator end)
+    stride_sentinel(OtherIterator end)
       : end_(end)
     {}
 
     template<class OtherIterator, class Difference>
     __AGENCY_ANNOTATION
-    auto operator==(const strided_iterator<OtherIterator,Difference>& iter) const ->
+    auto operator==(const stride_iterator<OtherIterator,Difference>& iter) const ->
       decltype(std::declval<Iterator>() <= iter.base())
     {
-      // the strided_iterator has reached the end when it is equal to or past
+      // the stride_iterator has reached the end when it is equal to or past
       // the end of the range
       return end_ <= iter.base();
     }
@@ -124,7 +124,7 @@ class strided_sentinel
 
 template<class Iterator1, class Difference, class Iterator2>
 __AGENCY_ANNOTATION
-auto operator==(const strided_iterator<Iterator1,Difference>& lhs, const strided_sentinel<Iterator2>& rhs) ->
+auto operator==(const stride_iterator<Iterator1,Difference>& lhs, const stride_sentinel<Iterator2>& rhs) ->
   decltype(rhs == lhs)
 {
   return rhs == lhs;
@@ -133,7 +133,7 @@ auto operator==(const strided_iterator<Iterator1,Difference>& lhs, const strided
 
 template<class Iterator1, class Difference, class Iterator2>
 __AGENCY_ANNOTATION
-auto operator!=(const strided_iterator<Iterator1,Difference>& lhs, const strided_sentinel<Iterator2>& rhs) ->
+auto operator!=(const stride_iterator<Iterator1,Difference>& lhs, const stride_sentinel<Iterator2>& rhs) ->
   decltype(!(lhs == rhs))
 {
   return !(lhs == rhs);
@@ -142,7 +142,7 @@ auto operator!=(const strided_iterator<Iterator1,Difference>& lhs, const strided
 
 template<class Iterator1, class Iterator2, class Difference>
 __AGENCY_ANNOTATION
-auto operator!=(const strided_sentinel<Iterator1> &lhs, const strided_iterator<Iterator2,Difference>& rhs) ->
+auto operator!=(const stride_sentinel<Iterator1> &lhs, const stride_iterator<Iterator2,Difference>& rhs) ->
   decltype(rhs != lhs)
 {
   return rhs != lhs;
@@ -157,27 +157,27 @@ template<class View,
            decltype(std::declval<View*>()->begin())
          >::difference_type
         >
-class strided_view
+class stride_view
 {
   private:
     using base_iterator = decltype(std::declval<View*>()->begin());
     using base_const_iterator = decltype(std::declval<const View*>()->begin());
 
   public:
-    using iterator = detail::strided_iterator<base_iterator,Difference>;
+    using iterator = detail::stride_iterator<base_iterator,Difference>;
     using index_type = Difference;
     using reference = typename std::iterator_traits<iterator>::reference;
 
-    using sentinel = detail::strided_sentinel<base_iterator>;
+    using sentinel = detail::stride_sentinel<base_iterator>;
 
     __AGENCY_ANNOTATION
-    strided_view(iterator begin, sentinel end)
+    stride_view(iterator begin, sentinel end)
       : begin_(begin), end_(end)
     {}
 
     __AGENCY_ANNOTATION
-    strided_view(View v, index_type stride)
-      : strided_view(iterator(v.begin(), stride), sentinel(v.end()))
+    stride_view(View v, index_type stride)
+      : stride_view(iterator(v.begin(), stride), sentinel(v.end()))
     {}
 
     __AGENCY_ANNOTATION
@@ -212,14 +212,14 @@ class strided_view
 
 template<class Range, class Difference>
 __AGENCY_ANNOTATION
-auto strided(Range&& rng, Difference stride) ->
-  strided_view<
+auto stride(Range&& rng, Difference stride) ->
+  stride_view<
     decltype(experimental::all(std::forward<Range>(rng))),
     Difference
   >
 {
   auto view_of_rng = experimental::all(std::forward<Range>(rng));
-  return strided_view<decltype(view_of_rng), Difference>(view_of_rng, stride);
+  return stride_view<decltype(view_of_rng), Difference>(view_of_rng, stride);
 }
 
 
