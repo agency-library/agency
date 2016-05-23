@@ -1,6 +1,6 @@
 #include <agency/experimental/array.hpp>
 #include <agency/experimental/view.hpp>
-#include <agency/experimental/strided_view.hpp>
+#include <agency/experimental/stride.hpp>
 #include <agency/agency.hpp>
 #include <agency/cuda.hpp>
 #include <vector>
@@ -32,7 +32,7 @@ int concurrent_sum(ConcurrentAgent& self, Range1&& rng, Range2&& scratch)
   auto i = self.index();
 
   // each agent strides through the range sequentially and sums up a partial sum into scratch
-  scratch[i] = sequential_sum(strided(drop(rng, i), self.group_size()));
+  scratch[i] = sequential_sum(stride(drop(rng, i), self.group_size()));
 
   self.wait();
 
