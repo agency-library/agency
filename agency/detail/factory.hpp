@@ -62,19 +62,19 @@ class construct
 };
 
 
-template<class T>
-__AGENCY_ANNOTATION
-construct<T,T> make_construct(const T& arg)
-{
-  return construct<T,T>{detail::make_tuple(arg)};
-}
-
-
 template<class T, class... Args>
 __AGENCY_ANNOTATION
 construct<T,typename std::decay<Args>::type...> make_construct(Args&&... args)
 {
   return construct<T,typename std::decay<Args>::type...>(agency::detail::make_tuple(std::forward<Args>(args)...));
+}
+
+
+template<class T>
+__AGENCY_ANNOTATION
+construct<T,T> make_copy_construct(const T& arg)
+{
+  return make_construct<T>(arg);
 }
 
 

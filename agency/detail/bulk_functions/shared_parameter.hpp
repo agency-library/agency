@@ -53,25 +53,42 @@ struct is_shared_parameter_ref
 } // end detail
 
 
+template<size_t scope, class Factory>
+__AGENCY_ANNOTATION
+detail::shared_parameter<scope,Factory>
+  share_at_scope_from_factory(const Factory& factory)
+{
+  return detail::shared_parameter<scope,Factory>(factory);
+}
+
+
 template<size_t scope, class T, class... Args>
 __AGENCY_ANNOTATION
-detail::shared_parameter<scope,detail::construct<T,Args...>>
-  share_at_scope(Args&&... args)
+auto share_at_scope(Args&&... args) ->
+  decltype(
+    agency::share_at_scope_from_factory<scope>(
+      detail::make_construct<T>(std::forward<Args>(args)...)
+    )
+  )
 {
-  using factory_t = detail::construct<T,Args...>;
-  factory_t factory(detail::make_tuple(std::forward<Args>(args)...));
-  return detail::shared_parameter<scope,factory_t>(factory);
+  return agency::share_at_scope_from_factory<scope>(
+    detail::make_construct<T>(std::forward<Args>(args)...)
+  );
 }
 
 
 template<size_t scope, class T>
 __AGENCY_ANNOTATION
-detail::shared_parameter<scope,detail::construct<T,T>>
-  share_at_scope(const T& val)
+auto share_at_scope(const T& val) ->
+  decltype(
+    agency::share_at_scope_from_factory<scope>(
+      detail::make_copy_construct(val)
+    )
+  )
 {
-  using factory_t = detail::construct<T,T>;
-  factory_t factory(detail::make_tuple(val));
-  return detail::shared_parameter<scope,factory_t>(factory);
+  return agency::share_at_scope_from_factory<scope>(
+    detail::make_copy_construct(val)
+  );
 }
 
 
