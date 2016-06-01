@@ -173,6 +173,7 @@ class executor_array
         OuterSharedArgType& outer_shared_arg;
 
         template<class... Args>
+        __AGENCY_ANNOTATION
         void operator()(const inner_index_type& inner_idx, Args&... inner_shared_args)
         {
           auto idx = make_index(outer_idx, inner_idx);
