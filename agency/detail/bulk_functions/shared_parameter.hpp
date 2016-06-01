@@ -13,29 +13,32 @@ namespace detail
 {
 
 
-template<size_t scope, class T, class... Args>
+template<size_t scope, class Factory>
 class shared_parameter
 {
   public:
+    using factory_type = Factory;
+    using value_type = detail::result_of_factory_t<factory_type>;
+
     __AGENCY_ANNOTATION
-    shared_parameter(const call_constructor_factory<T,Args...>& factory)
+    shared_parameter(const factory_type& factory)
       : factory_(factory)
     {}
 
     __AGENCY_ANNOTATION
-    const call_constructor_factory<T,Args...>& factory() const
+    const factory_type& factory() const
     {
       return factory_;
     }
 
   private:
-    call_constructor_factory<T,Args...> factory_;
+    factory_type factory_;
 };
 
 
 template<class T> struct is_shared_parameter : std::false_type {};
-template<size_t scope, class T, class... Args>
-struct is_shared_parameter<shared_parameter<scope,T,Args...>> : std::true_type {};
+template<size_t scope, class Factory>
+struct is_shared_parameter<shared_parameter<scope,Factory>> : std::true_type {};
 
 
 template<class T>
@@ -52,17 +55,23 @@ struct is_shared_parameter_ref
 
 template<size_t scope, class T, class... Args>
 __AGENCY_ANNOTATION
-detail::shared_parameter<scope,T,Args...> share_at_scope(Args&&... args)
+detail::shared_parameter<scope,detail::call_constructor_factory<T,Args...>>
+  share_at_scope(Args&&... args)
 {
-  return detail::shared_parameter<scope,T,Args...>{detail::make_tuple(std::forward<Args>(args)...)};
+  using factory_t = detail::call_constructor_factory<T,Args...>;
+  factory_t factory(detail::make_tuple(std::forward<Args>(args)...));
+  return detail::shared_parameter<scope,factory_t>(factory);
 }
 
 
 template<size_t scope, class T>
 __AGENCY_ANNOTATION
-detail::shared_parameter<scope,T,T> share_at_scope(const T& val)
+detail::shared_parameter<scope,detail::call_constructor_factory<T,T>>
+  share_at_scope(const T& val)
 {
-  return detail::shared_parameter<scope,T,T>{detail::make_tuple(val)};
+  using factory_t = detail::call_constructor_factory<T,T>;
+  factory_t factory(detail::make_tuple(val));
+  return detail::shared_parameter<scope,factory_t>(factory);
 }
 
 

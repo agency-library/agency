@@ -41,11 +41,11 @@ template<class T>
 using decay_parameter_t = typename decay_parameter<T>::type;
 
 
-template<size_t level, class T, class... Args>
-struct decay_parameter<shared_parameter<level,T,Args...>>
+template<size_t level, class Factory>
+struct decay_parameter<shared_parameter<level,Factory>>
 {
   // shared_parameters are passed to the user function by reference
-  using type = T&;
+  using type = typename shared_parameter<level,Factory>::value_type &;
 };
 
 
