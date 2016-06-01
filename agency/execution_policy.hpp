@@ -29,14 +29,28 @@ struct is_execution_policy : detail::conjunction<
 > {};
 
 
-// customization point -- allow users to specialize this
-// to change the type of execution policy based on the type of an executor
-template<class ExecutionPolicy, class Executor>
-struct rebind_executor;
+namespace detail
+{
 
 
+// declare basic_execution_policy for replace_executor()'s signature below 
+template<class ExecutionAgent,
+         class BulkExecutor,
+         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category,
+         class DerivedExecutionPolicy = void>
+class basic_execution_policy;
+
+
+} // end detail
+
+
+// declare replace_executor() so basic_execution_policy.on() can use it below
 template<class ExecutionPolicy, class Executor>
-using rebind_executor_t = typename rebind_executor<ExecutionPolicy,Executor>::type;
+detail::basic_execution_policy<
+  typename ExecutionPolicy::execution_agent_type,
+  Executor,
+  typename ExecutionPolicy::execution_category>
+replace_executor(const ExecutionPolicy& policy, const Executor& exec);
 
 
 namespace detail
@@ -95,8 +109,8 @@ class scoped_execution_policy;
 // ExecutionCategory, BulkExecutor, ExecutionAgent = __default_execution_agent<ExecutionAgent>, DerivedExecutionPolicy
 template<class ExecutionAgent,
          class BulkExecutor,
-         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category,
-         class DerivedExecutionPolicy = void>
+         class ExecutionCategory,
+         class DerivedExecutionPolicy>
 class basic_execution_policy
 {
   public:
@@ -133,10 +147,13 @@ class basic_execution_policy
       return executor_;
     }
 
+    // .on() is just sugar for replace_executor(*this, executor())
     template<class OtherExecutor>
-    rebind_executor_t<derived_type,OtherExecutor> on(const OtherExecutor& executor) const
+    auto on(const OtherExecutor& exec) const ->
+      decltype(replace_executor(*this, exec))
     {
-      return rebind_executor_t<derived_type,OtherExecutor>(param(), executor);
+      // note the intentional use of ADL to call replace_executor()
+      return replace_executor(*this, exec);
     }
 
     // this is the flat form of operator()
@@ -262,15 +279,22 @@ class scoped_execution_policy
 } // end detail
 
 
-
 template<class ExecutionPolicy, class Executor>
-struct rebind_executor
+detail::basic_execution_policy<
+  typename ExecutionPolicy::execution_agent_type,
+  Executor,
+  typename ExecutionPolicy::execution_category
+>
+replace_executor(const ExecutionPolicy& policy, const Executor& exec)
 {
-  using type = detail::basic_execution_policy<
+  using result_type = detail::basic_execution_policy<
     typename ExecutionPolicy::execution_agent_type,
-    Executor
+    Executor,
+    typename ExecutionPolicy::execution_category
   >;
-};
+
+  return result_type(policy.param(), exec);
+}
 
 
 class sequential_execution_policy : public detail::basic_execution_policy<sequential_agent, sequential_executor, sequential_execution_tag, sequential_execution_policy>
