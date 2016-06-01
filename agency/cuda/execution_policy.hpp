@@ -22,6 +22,7 @@ namespace detail
 
 
 // add basic_execution_policy to allow us to catch its derivations as overloads of bulk_invoke, etc.
+// XXX do we even need this anymore?
 template<class ExecutionAgent,
          class BulkExecutor,
          class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category,
@@ -134,65 +135,48 @@ class concurrent_execution_policy : public detail::basic_execution_policy<cuda::
 const concurrent_execution_policy con{};
 
 
-namespace detail
+template<class ExecutionPolicy>
+typename std::enable_if<
+  std::is_same<
+    typename ExecutionPolicy::execution_category,
+    concurrent_execution_tag
+  >::value,
+  cuda::concurrent_execution_policy
+>::type
+  replace_executor(const ExecutionPolicy& policy, const cuda::concurrent_executor& exec)
 {
-
-
-// specialize rebind_executor for cuda's executor types
-template<class ExecutionPolicy, class Enable = void>
-struct rebind_executor_impl;
+  return cuda::concurrent_execution_policy(policy.param(), exec);
+}
 
 
 template<class ExecutionPolicy>
-struct rebind_executor_impl<
-  ExecutionPolicy,
-  typename std::enable_if<
-    std::is_same<
-      typename ExecutionPolicy::execution_category,
-      parallel_execution_tag
-    >::value
-  >::type
->
+typename std::enable_if<
+  std::is_same<
+    typename ExecutionPolicy::execution_category,
+    parallel_execution_tag
+  >::value,
+  cuda::parallel_execution_policy
+>::type
+  replace_executor(const ExecutionPolicy& policy, const cuda::parallel_executor& exec)
 {
-  using type = cuda::parallel_execution_policy;
-};
+  return cuda::parallel_execution_policy(policy.param(), exec);
+}
 
 
-// specialize rebind_executor for cuda::concurrent_executor
 template<class ExecutionPolicy>
-struct rebind_executor_impl<
-  ExecutionPolicy,
-  typename std::enable_if<
-    std::is_same<
-      typename ExecutionPolicy::execution_category,
-      concurrent_execution_tag
-    >::value
-  >::type
->
+typename std::enable_if<
+  std::is_same<
+    typename ExecutionPolicy::execution_category,
+    parallel_execution_tag
+  >::value,
+  cuda::parallel_execution_policy
+>::type
+  replace_executor(const ExecutionPolicy& policy, const cuda::grid_executor& exec)
 {
-  using type = cuda::concurrent_execution_policy;
-};
+  return cuda::parallel_execution_policy(policy.param(), exec);
+}
 
 
-} // end detail
 } // end cuda
-
-
-template<class ExecutionPolicy>
-struct rebind_executor<ExecutionPolicy, cuda::grid_executor>
-{
-  // this rebind makes sense because cuda::parallel_execution_policy
-  // has a constructor that takes cuda::grid_executor
-  using type = cuda::parallel_execution_policy;
-};
-
-
-template<class ExecutionPolicy>
-struct rebind_executor<ExecutionPolicy, cuda::concurrent_executor>
-{
-  using type = typename cuda::detail::rebind_executor_impl<ExecutionPolicy>::type;
-};
-
-
 } // end agency
 
