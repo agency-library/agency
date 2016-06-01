@@ -121,7 +121,7 @@ struct make_factory_tuple_element
 {
   template<class T, class... Args>
   __AGENCY_ANNOTATION
-  factory<T,Args...> operator()(const agency::detail::shared_parameter<level,T,Args...>& parm) const
+  call_constructor_factory<T,Args...> operator()(const agency::detail::shared_parameter<level,T,Args...>& parm) const
   {
     // because shared_parameter derives from factory, we can just do a conversion
     return parm;

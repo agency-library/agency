@@ -58,8 +58,8 @@ int main()
       },
       shape,
       ready,
-      agency::detail::make_factory(7),
-      agency::detail::make_factory(13)
+      agency::detail::make_call_constructor_factory(7),
+      agency::detail::make_call_constructor_factory(13)
     );
 
     auto result = f.get();
@@ -86,7 +86,7 @@ int main()
       },
       shape,
       ready,
-      agency::detail::make_factory(7)
+      agency::detail::make_call_constructor_factory(7)
     );
 
     auto result = f.get();
@@ -113,7 +113,7 @@ int main()
       },
       shape,
       ready,
-      agency::detail::make_factory(7)
+      agency::detail::make_call_constructor_factory(7)
     );
 
     auto result = f.get();

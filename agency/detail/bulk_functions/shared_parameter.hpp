@@ -14,9 +14,9 @@ namespace detail
 
 
 template<size_t scope, class T, class... Args>
-struct shared_parameter : public factory<T,Args...>
+struct shared_parameter : public call_constructor_factory<T,Args...>
 {
-  using factory<T,Args...>::factory;
+  using call_constructor_factory<T,Args...>::call_constructor_factory;
 };
 
 
