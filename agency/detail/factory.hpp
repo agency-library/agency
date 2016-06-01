@@ -17,17 +17,17 @@ template<class Factory>
 using result_of_factory_t = result_of_t<Factory()>;
 
 
-// call_constructor_factory is a type of Factory
+// construct is a type of Factory
 // which creates a T by calling T's constructor with the given Args...
 template<class T, class... Args>
-class call_constructor_factory
+class construct
 {
   public:
     __AGENCY_ANNOTATION
-    call_constructor_factory() : args_() {}
+    construct() : args_() {}
 
     __AGENCY_ANNOTATION
-    call_constructor_factory(const tuple<Args...>& args)
+    construct(const tuple<Args...>& args)
       : args_(args)
     {}
 
@@ -64,21 +64,21 @@ class call_constructor_factory
 
 template<class T>
 __AGENCY_ANNOTATION
-call_constructor_factory<T,T> make_call_constructor_factory(const T& arg)
+construct<T,T> make_construct(const T& arg)
 {
-  return call_constructor_factory<T,T>{detail::make_tuple(arg)};
+  return construct<T,T>{detail::make_tuple(arg)};
 }
 
 
 template<class T, class... Args>
 __AGENCY_ANNOTATION
-call_constructor_factory<T,typename std::decay<Args>::type...> make_call_constructor_factory(Args&&... args)
+construct<T,typename std::decay<Args>::type...> make_construct(Args&&... args)
 {
-  return call_constructor_factory<T,typename std::decay<Args>::type...>(agency::detail::make_tuple(std::forward<Args>(args)...));
+  return construct<T,typename std::decay<Args>::type...>(agency::detail::make_tuple(std::forward<Args>(args)...));
 }
 
 
-struct unit_factory : call_constructor_factory<unit> {};
+struct unit_factory : construct<unit> {};
 
 
 // a zip_factory is a type of Factory which takes a list of Factories

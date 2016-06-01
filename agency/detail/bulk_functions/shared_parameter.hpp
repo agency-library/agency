@@ -55,10 +55,10 @@ struct is_shared_parameter_ref
 
 template<size_t scope, class T, class... Args>
 __AGENCY_ANNOTATION
-detail::shared_parameter<scope,detail::call_constructor_factory<T,Args...>>
+detail::shared_parameter<scope,detail::construct<T,Args...>>
   share_at_scope(Args&&... args)
 {
-  using factory_t = detail::call_constructor_factory<T,Args...>;
+  using factory_t = detail::construct<T,Args...>;
   factory_t factory(detail::make_tuple(std::forward<Args>(args)...));
   return detail::shared_parameter<scope,factory_t>(factory);
 }
@@ -66,10 +66,10 @@ detail::shared_parameter<scope,detail::call_constructor_factory<T,Args...>>
 
 template<size_t scope, class T>
 __AGENCY_ANNOTATION
-detail::shared_parameter<scope,detail::call_constructor_factory<T,T>>
+detail::shared_parameter<scope,detail::construct<T,T>>
   share_at_scope(const T& val)
 {
-  using factory_t = detail::call_constructor_factory<T,T>;
+  using factory_t = detail::construct<T,T>;
   factory_t factory(detail::make_tuple(val));
   return detail::shared_parameter<scope,factory_t>(factory);
 }
