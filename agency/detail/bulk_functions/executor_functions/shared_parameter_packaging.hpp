@@ -119,17 +119,16 @@ struct null_factory
 template<size_t level>
 struct make_factory_tuple_element
 {
-  template<class T, class... Args>
+  template<class Factory>
   __AGENCY_ANNOTATION
-  factory<T,Args...> operator()(const agency::detail::shared_parameter<level,T,Args...>& parm) const
+  Factory operator()(const agency::detail::shared_parameter<level,Factory>& parm) const
   {
-    // because shared_parameter derives from factory, we can just do a conversion
-    return parm;
+    return parm.factory();
   }
 
-  template<size_t other_level, class T, class... Args>
+  template<size_t other_level, class Factory>
   __AGENCY_ANNOTATION
-  null_factory operator()(const agency::detail::shared_parameter<other_level,T,Args...>&) const
+  null_factory operator()(const agency::detail::shared_parameter<other_level,Factory>&) const
   {
     return null_factory{};
   }

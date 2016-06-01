@@ -17,15 +17,17 @@ template<class Factory>
 using result_of_factory_t = result_of_t<Factory()>;
 
 
+// construct is a type of Factory
+// which creates a T by calling T's constructor with the given Args...
 template<class T, class... Args>
-class factory
+class construct
 {
   public:
     __AGENCY_ANNOTATION
-    factory() : args_() {}
+    construct() : args_() {}
 
     __AGENCY_ANNOTATION
-    factory(const tuple<Args...>& args)
+    construct(const tuple<Args...>& args)
       : args_(args)
     {}
 
@@ -62,23 +64,25 @@ class factory
 
 template<class T>
 __AGENCY_ANNOTATION
-factory<T,T> make_factory(const T& arg)
+construct<T,T> make_construct(const T& arg)
 {
-  return factory<T,T>{detail::make_tuple(arg)};
+  return construct<T,T>{detail::make_tuple(arg)};
 }
 
 
 template<class T, class... Args>
 __AGENCY_ANNOTATION
-factory<T,typename std::decay<Args>::type...> make_factory(Args&&... args)
+construct<T,typename std::decay<Args>::type...> make_construct(Args&&... args)
 {
-  return factory<T,typename std::decay<Args>::type...>(agency::detail::make_tuple(std::forward<Args>(args)...));
+  return construct<T,typename std::decay<Args>::type...>(agency::detail::make_tuple(std::forward<Args>(args)...));
 }
 
 
-struct unit_factory : factory<unit> {};
+struct unit_factory : construct<unit> {};
 
 
+// a zip_factory is a type of Factory which takes a list of Factories
+// and creates a tuple whose elements are the results of the given Factories
 template<class... Factories>
 struct zip_factory
 {

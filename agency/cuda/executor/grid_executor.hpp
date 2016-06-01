@@ -268,7 +268,7 @@ class basic_grid_executor
     __host__ __device__
     void* then_execute_kernel(const Function& f, const async_future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
     {
-      agency::detail::factory<Container> result_factory;
+      agency::detail::construct<Container> result_factory;
       return then_execute_kernel(f, result_factory, fut, outer_factory, inner_factory);
     }
 
