@@ -14,9 +14,22 @@ namespace detail
 
 
 template<size_t scope, class T, class... Args>
-struct shared_parameter : public call_constructor_factory<T,Args...>
+class shared_parameter
 {
-  using call_constructor_factory<T,Args...>::call_constructor_factory;
+  public:
+    __AGENCY_ANNOTATION
+    shared_parameter(const call_constructor_factory<T,Args...>& factory)
+      : factory_(factory)
+    {}
+
+    __AGENCY_ANNOTATION
+    const call_constructor_factory<T,Args...>& factory() const
+    {
+      return factory_;
+    }
+
+  private:
+    call_constructor_factory<T,Args...> factory_;
 };
 
 
