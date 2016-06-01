@@ -14,18 +14,19 @@
 #include <agency/executor/parallel_executor.hpp>
 #include <agency/executor/vector_executor.hpp>
 #include <agency/executor/scoped_executor.hpp>
+#include <agency/detail/execution_policy_traits.hpp>
 #include <agency/detail/tuple.hpp>
 
 namespace agency
 {
 
 
-// XXX add is_execution_policy_v
-// XXX maybe this should simply check for the existence of the
-//     nested type T::execution_category?
-// XXX the problem is that execution agent as well as execution_agent_traits
-//     also define this typedef
-template<class T> struct is_execution_policy : std::false_type {};
+template<class T>
+struct is_execution_policy : detail::conjunction<
+  detail::has_execution_agent_type<T>,
+  detail::has_executor<T>,
+  detail::has_param<T>
+> {};
 
 
 // customization point -- allow users to specialize this
@@ -262,19 +263,6 @@ class scoped_execution_policy
 
 
 
-template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory, class DerivedExecutionPolicy>
-struct is_execution_policy<detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>> : std::true_type {};
-
-
-template<class T1, class T2>
-struct is_execution_policy<detail::scoped_execution_policy<T1,T2>>
-  : std::integral_constant<
-      bool,
-      is_execution_policy<T1>::value && is_execution_policy<T2>::value
-    >
-{};
-
-
 template<class ExecutionPolicy, class Executor>
 struct rebind_executor
 {
@@ -295,9 +283,6 @@ class sequential_execution_policy : public detail::basic_execution_policy<sequen
 };
 
 
-template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
-
-
 constexpr sequential_execution_policy seq{};
 
 
@@ -309,9 +294,6 @@ class concurrent_execution_policy : public detail::basic_execution_policy<concur
   public:
     using super_t::basic_execution_policy;
 };
-
-
-template<> struct is_execution_policy<concurrent_execution_policy> : std::true_type {};
 
 
 constexpr concurrent_execution_policy con{};
@@ -327,9 +309,6 @@ class parallel_execution_policy : public detail::basic_execution_policy<parallel
 };
 
 
-template<> struct is_execution_policy<parallel_execution_policy> : std::true_type {};
-
-
 const parallel_execution_policy par{};
 
 
@@ -341,9 +320,6 @@ class vector_execution_policy : public detail::basic_execution_policy<vector_age
   public:
     using super_t::basic_execution_policy;
 };
-
-
-template<> struct is_execution_policy<vector_execution_policy> : std::true_type {};
 
 
 constexpr vector_execution_policy vec{};

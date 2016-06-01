@@ -178,22 +178,6 @@ struct rebind_executor_impl<
 } // end cuda
 
 
-// specialize is_execution_policy
-template<class ExecutionAgent,
-         class BulkExecutor,
-         class ExecutionCategory,
-         class DerivedExecutionPolicy>
-struct is_execution_policy<cuda::detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>> : std::true_type {};
-
-
-template<>
-struct is_execution_policy<cuda::parallel_execution_policy> : std::true_type {};
-
-
-template<>
-struct is_execution_policy<cuda::concurrent_execution_policy> : std::true_type {};
-
-
 template<class ExecutionPolicy>
 struct rebind_executor<ExecutionPolicy, cuda::grid_executor>
 {
