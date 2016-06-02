@@ -18,7 +18,7 @@ auto grid(agency::size2 num_blocks, agency::size2 num_threads)
   return agency::cuda::par(num_blocks, agency::cuda::con(num_threads)).on(agency::cuda::grid_executor_2d{});
 }
 
-using cuda_thread_2d = agency::parallel_group_2d<agency::cuda::concurrent_agent_2d>;
+using cuda_thread_2d = agency::parallel_group_2d<agency::concurrent_agent_2d>;
 
 
 // Check errors and print GB/s

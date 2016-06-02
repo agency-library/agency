@@ -353,7 +353,37 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
   private:
     using super_t = detail::basic_execution_agent<concurrent_execution_tag, Index>;
 
+    // this class hides agency::detail::barrier & __syncthreads()
+    // behind a uniform interface so that we can use basic_concurrent_agent
+    // in both C++ and CUDA C++
+    class barrier
+    {
+      public:
+        __AGENCY_ANNOTATION
+        barrier(size_t num_threads)
+#ifndef __CUDA_ARCH__
+         : barrier_(num_threads)
+#endif
+        {}
+
+        __AGENCY_ANNOTATION
+        void arrive_and_wait()
+        {
+#ifndef __CUDA_ARCH__
+          barrier_.arrive_and_wait();
+#else
+          __syncthreads();
+#endif
+        }
+
+#ifndef __CUDA_ARCH__
+      private:
+        agency::detail::barrier barrier_;
+#endif
+    };
+
   public:
+    __AGENCY_ANNOTATION
     void wait() const
     {
       barrier_.arrive_and_wait();
@@ -361,24 +391,27 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
 
     struct shared_param_type
     {
+      __AGENCY_ANNOTATION
       shared_param_type(const typename super_t::param_type& param)
         : count_(param.domain().size()),
           barrier_(count_)
       {}
 
+      __AGENCY_ANNOTATION
       shared_param_type(const shared_param_type& other)
         : count_(other.count_),
           barrier_(count_)
       {}
 
       int count_;
-      agency::detail::barrier barrier_;
+      barrier barrier_;
     };
 
   private:
-    agency::detail::barrier &barrier_;
+    barrier &barrier_;
 
   protected:
+    __AGENCY_ANNOTATION
     basic_concurrent_agent(const typename super_t::index_type& index, const typename super_t::param_type& param, shared_param_type& shared_param)
       : super_t(index, param),
         barrier_(shared_param.barrier_)

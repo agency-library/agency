@@ -2,7 +2,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution_policy.hpp>
-#include <agency/cuda/execution_agent.hpp>
 #include <agency/cuda/executor/grid_executor.hpp>
 #include <agency/cuda/executor/parallel_executor.hpp>
 #include <agency/cuda/executor/concurrent_executor.hpp>
@@ -59,12 +58,12 @@ class basic_execution_policy :
 
 
 
-class parallel_execution_policy : public detail::basic_execution_policy<cuda::parallel_agent, cuda::parallel_executor, parallel_execution_tag, parallel_execution_policy>
+class parallel_execution_policy : public detail::basic_execution_policy<parallel_agent, cuda::parallel_executor, parallel_execution_tag, parallel_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<cuda::parallel_agent, cuda::parallel_executor, parallel_execution_tag, parallel_execution_policy>;
+    using super_t = detail::basic_execution_policy<parallel_agent, cuda::parallel_executor, parallel_execution_tag, parallel_execution_policy>;
 
-    using par2d_t = detail::basic_execution_policy<cuda::parallel_agent_2d, cuda::parallel_executor, parallel_execution_tag>;
+    using par2d_t = detail::basic_execution_policy<parallel_agent_2d, cuda::parallel_executor, parallel_execution_tag>;
 
   public:
     using super_t::basic_execution_policy;
@@ -97,12 +96,12 @@ class parallel_execution_policy : public detail::basic_execution_policy<cuda::pa
 const parallel_execution_policy par{};
 
 
-class concurrent_execution_policy : public detail::basic_execution_policy<cuda::concurrent_agent, cuda::concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>
+class concurrent_execution_policy : public detail::basic_execution_policy<concurrent_agent, cuda::concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<cuda::concurrent_agent, cuda::concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>;
+    using super_t = detail::basic_execution_policy<concurrent_agent, cuda::concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>;
 
-    using con2d_t = detail::basic_execution_policy<cuda::concurrent_agent_2d, cuda::concurrent_executor, concurrent_execution_tag>;
+    using con2d_t = detail::basic_execution_policy<concurrent_agent_2d, cuda::concurrent_executor, concurrent_execution_tag>;
 
   public:
     using super_t::basic_execution_policy;

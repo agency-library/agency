@@ -6,13 +6,13 @@
 struct kernel
 {
   __device__
-  void operator()(agency::parallel_group<agency::cuda::concurrent_agent>& self)
+  void operator()(agency::parallel_group<agency::concurrent_agent>& self)
   {
     printf("hello from {%d, %d}\n", (int)self.outer().index(), (int)self.inner().index());
   }
 
 //  __device__
-//  void operator()(agency::parallel_group_2d<agency::cuda::concurrent_agent_2d>& self)
+//  void operator()(agency::parallel_group_2d<agency::concurrent_agent_2d>& self)
 //  {
 //    auto outer_idx = self.outer().index();
 //    auto inner_idx = self.inner().index();

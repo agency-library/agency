@@ -5,7 +5,7 @@
 struct functor
 {
   __device__
-  void operator()(agency::cuda::concurrent_agent& self)
+  void operator()(agency::concurrent_agent& self)
   {
     printf("agent %d arriving at barrier\n", (int)self.index());
 
