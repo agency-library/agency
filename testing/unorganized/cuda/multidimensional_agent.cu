@@ -3,12 +3,12 @@
 #include <agency/coordinate.hpp>
 #include <agency/cuda/execution_policy.hpp>
 
-const agency::cuda::detail::basic_execution_policy<agency::cuda::parallel_agent_2d, agency::cuda::parallel_executor> par2d{};
+const agency::detail::basic_execution_policy<agency::parallel_agent_2d, agency::cuda::parallel_executor> par2d{};
 
 struct functor
 {
   __device__
-  void operator()(agency::cuda::parallel_agent_2d& self)
+  void operator()(agency::parallel_agent_2d& self)
   {
     printf("Hello world from agent {%d, %d}\n", agency::get<0>(self.index()), agency::get<1>(self.index()));
   }

@@ -48,7 +48,7 @@ using __tu::tie;
 using __tu::forward_as_tuple;
 
 
-using ignore_t = decltype(__tu::ignore);
+using ignore_t = __tu::detail::tuple_ignore_t;
 constexpr ignore_t ignore{};
 
 

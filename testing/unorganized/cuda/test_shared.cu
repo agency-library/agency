@@ -18,7 +18,7 @@ T fetch_and_add(T* ptr, T value)
 }
 
 
-using cuda_thread = agency::parallel_group<agency::cuda::concurrent_agent>;
+using cuda_thread = agency::parallel_group<agency::concurrent_agent>;
 
 
 struct functor
@@ -57,7 +57,7 @@ struct functor
 
 int main()
 {
-  using cuda_thread = agency::parallel_group<agency::cuda::concurrent_agent>;
+  using cuda_thread = agency::parallel_group<agency::concurrent_agent>;
 
   auto policy = agency::cuda::par(2, agency::cuda::con(2));
 

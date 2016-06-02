@@ -16,7 +16,7 @@ struct fill_functor
   {}
 
   __device__
-  void operator()(agency::cuda::parallel_agent& self)
+  void operator()(agency::parallel_agent& self)
   {
     int i = self.index();
     x[i] = 13;

@@ -7,6 +7,7 @@
 #include <agency/detail/bulk_functions/single_result.hpp>
 #include <agency/detail/bulk_functions/bulk_invoke_execution_policy.hpp>
 #include <agency/detail/bulk_functions/shared_parameter.hpp>
+#include <agency/detail/bulk_functions/agent_shared_parameter_factory_tuple.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
 #include <agency/execution_agent.hpp>
 #include <agency/executor/executor_traits.hpp>
@@ -47,7 +48,9 @@ bulk_async_execution_policy_result_t<
   auto param = policy.param();
   auto agent_shape = agent_traits::domain(param).shape();
 
-  auto agent_shared_param_tuple = agent_traits::make_shared_param_tuple(param);
+  // this is a tuple of factories
+  // each factory in the tuple creates the execution agent's shared parameter at the corresponding hierarchy level
+  auto agent_shared_parameter_factory_tuple = detail::make_agent_shared_parameter_factory_tuple<agent_type>(param);
 
   using executor_type = typename ExecutionPolicy::executor_type;
   using executor_traits = agency::executor_traits<executor_type>;
@@ -59,12 +62,16 @@ bulk_async_execution_policy_result_t<
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  return detail::bulk_async_executor(policy.executor(), executor_shape, lambda, std::forward<Args>(args)..., agency::share_at_scope<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_param_tuple))...);
+  return detail::bulk_async_executor(
+    policy.executor(),
+    executor_shape,
+    lambda,
+    std::forward<Args>(args)...,
+    agency::share_at_scope_from_factory<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_parameter_factory_tuple))...
+  );
 }
 
 
 } // end detail
-
-
 } // end agency
 
