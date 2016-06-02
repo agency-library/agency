@@ -165,34 +165,34 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
 
   public:
 
-  using param_type = typename detail::lazy_conditional<
-    detail::has_param_type<execution_agent_type>::value,
-    execution_agent_param<execution_agent_type>,
-    detail::identity<size_type>
-  >::type;
+    using param_type = typename detail::lazy_conditional<
+      detail::has_param_type<execution_agent_type>::value,
+      execution_agent_param<execution_agent_type>,
+      detail::identity<size_type>
+    >::type;
 
-  // XXX what should we do if ExecutionAgent::domain(param) does not exist?
-  //     default should be lattice<index_type>, but by what process should we eventually
-  //     arrive at that default?
-  // XXX yank the general implementation from execution_group now that param_type::inner() exists
-  __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
-  static auto domain(const param_type& param)
-    -> decltype(ExecutionAgent::domain(param))
-  {
-    return ExecutionAgent::domain(param);
-  }
+    // XXX what should we do if ExecutionAgent::domain(param) does not exist?
+    //     default should be lattice<index_type>, but by what process should we eventually
+    //     arrive at that default?
+    // XXX yank the general implementation from execution_group now that param_type::inner() exists
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    static auto domain(const param_type& param)
+      -> decltype(ExecutionAgent::domain(param))
+    {
+      return ExecutionAgent::domain(param);
+    }
 
-  using domain_type = decltype(domain(std::declval<param_type>()));
+    using domain_type = decltype(domain(std::declval<param_type>()));
 
-  template<class Function>
-  __AGENCY_ANNOTATION
-  static detail::result_of_t<Function(ExecutionAgent&)>
-    execute(Function f, const index_type& index, const param_type& param)
-  {
-    ExecutionAgent agent(index, param);
-    return f(agent);
-  }
+    template<class Function>
+    __AGENCY_ANNOTATION
+    static detail::result_of_t<Function(ExecutionAgent&)>
+      execute(Function f, const index_type& index, const param_type& param)
+    {
+      ExecutionAgent agent(index, param);
+      return f(agent);
+    }
 
 
   private:
@@ -218,154 +218,6 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
     {
       ExecutionAgent agent = detail::make_agent<ExecutionAgent>(index, param, shared_param1, shared_params...);
       return f(agent);
-    }
-
-  private:
-    // this helper function creates a shared_param_type given some execution agent type's param_type
-    template<class OtherExecutionAgent>
-    __AGENCY_ANNOTATION
-    static typename OtherExecutionAgent::shared_param_type
-      make_shared_param(const typename execution_agent_traits<OtherExecutionAgent>::param_type& param,
-                        typename std::enable_if<
-                          detail::has_shared_param_type<OtherExecutionAgent>::value
-                        >::type* = 0)
-    {
-      return typename OtherExecutionAgent::shared_param_type(param);
-    }
-
-
-    // this helper function returns detail::ignore when some execution agent type has no shared_param_type
-    template<class OtherExecutionAgent>
-    __AGENCY_ANNOTATION
-    static agency::detail::ignore_t
-      make_shared_param(const typename execution_agent_traits<OtherExecutionAgent>::param_type&,
-                        typename std::enable_if<
-                          !detail::has_shared_param_type<OtherExecutionAgent>::value
-                        >::type* = 0)
-    {
-      return agency::detail::ignore;
-    }
-
-
-    template<class OtherExecutionAgent>
-    using make_shared_param_result_t = decltype(
-      execution_agent_traits::template make_shared_param<OtherExecutionAgent>(
-        std::declval<typename execution_agent_traits<OtherExecutionAgent>::param_type>()
-      )
-    );
-
-
-    template<class ExecutionAgent1>
-    struct test_for_make_shared_param_tuple
-    {
-      template<
-        class ExecutionAgent2,
-        typename = decltype(
-          ExecutionAgent2::make_shared_param_tuple(
-            std::declval<param_type>()
-          )
-        )
-      >
-      static std::true_type test(int);
-
-      template<class>
-      static std::false_type test(...);
-
-      using type = decltype(test<ExecutionAgent1>(0));
-    };
-
-    using has_make_shared_param_tuple = typename test_for_make_shared_param_tuple<execution_agent_type>::type;
-
-
-    template<class TypeList>
-    struct default_execution_agent_shared_param_tuple_impl;
-
-
-    template<class... ExecutionAgents>
-    struct default_execution_agent_shared_param_tuple_impl<detail::type_list<ExecutionAgents...>>
-    {
-      using type = detail::tuple<
-        make_shared_param_result_t<ExecutionAgents>...
-      >;
-    };
-
-
-    template<class ExecutionAgent1>
-    struct default_execution_agent_shared_param_tuple : default_execution_agent_shared_param_tuple_impl<
-      typename detail::execution_agent_type_list<ExecutionAgent1>::type
-    >
-    {};
-
-
-    template<class ExecutionAgent1>
-    struct result_of_make_shared_param_tuple
-    {
-      using param_type = typename execution_agent_traits<ExecutionAgent1>::param_type;
-      using type = decltype(ExecutionAgent1::make_shared_param_tuple(std::declval<param_type>()));
-    };
-
-
-  public:
-    using shared_param_tuple_type = typename detail::lazy_conditional<
-      has_make_shared_param_tuple::value,
-      result_of_make_shared_param_tuple<execution_agent_type>,
-      default_execution_agent_shared_param_tuple<execution_agent_type>
-    >::type;
-
-
-    // default case for flat agents
-    template<class ExecutionAgent1>
-    __AGENCY_ANNOTATION
-    static shared_param_tuple_type make_shared_param_tuple_default_impl(const param_type& param, std::false_type)
-    {
-      return detail::make_tuple(make_shared_param<ExecutionAgent1>(param));
-    }
-
-
-    // default case for scoped agents
-    template<class ExecutionAgent1>
-    __AGENCY_ANNOTATION
-    static shared_param_tuple_type make_shared_param_tuple_default_impl(const param_type& param, std::true_type)
-    {
-      using inner_traits = execution_agent_traits<
-        typename ExecutionAgent1::inner_execution_agent_type
-      >;
-
-      // recurse to get the tail of the tuple
-      auto inner_params = inner_traits::make_shared_param_tuple(param.inner());
-
-      // create the head of the tuple
-      auto outer_param = make_shared_param<ExecutionAgent1>(param);
-
-      // prepend the head 
-      return __tu::tuple_prepend_invoke(inner_params, outer_param, detail::agency_tuple_maker());
-    }
-
-
-    template<class ExecutionAgent1>
-    __AGENCY_ANNOTATION
-    static shared_param_tuple_type make_shared_param_tuple_impl(const param_type& param, std::false_type)
-    {
-      // the execution agent does not have the function, so use the default implementation
-      return make_shared_param_tuple_default_impl<ExecutionAgent1>(param, typename detail::has_inner_execution_agent_type<ExecutionAgent1>::type());
-    }
-
-
-    __agency_exec_check_disable__
-    template<class ExecutionAgent1>
-    __AGENCY_ANNOTATION
-    static shared_param_tuple_type make_shared_param_tuple_impl(const param_type& param, std::true_type)
-    {
-      // the execution agent has the function, so just call it
-      return ExecutionAgent1::make_shared_param_tuple(param);
-    }
-
-
-  public:
-    __AGENCY_ANNOTATION
-    static shared_param_tuple_type make_shared_param_tuple(const param_type& param)
-    {
-      return make_shared_param_tuple_impl<execution_agent_type>(param, has_make_shared_param_tuple());
     }
 };
 
@@ -522,15 +374,6 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       int count_;
       agency::detail::barrier barrier_;
     };
-
-    // XXX seems like we either need shared_param_type or make_shared_initializer()
-    //     but not both
-    //     if execution_agent_traits checks for the existence of shared_param_type,
-    //     can't it just call its constructor?
-    static shared_param_type make_shared_initializer(const typename super_t::param_type& param)
-    {
-      return shared_param_type(param);
-    }
 
   private:
     agency::detail::barrier &barrier_;
