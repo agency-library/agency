@@ -167,16 +167,15 @@ class basic_execution_policy
       return derived_type{param_type{std::forward<Arg1>(arg1), std::forward<Args>(args)...}, executor()};
     }
 
-    // this is the scoped form of operator()
+    // XXX maybe .scope() should just take OuterPolicy & InnerPolicy?
+    //     instead of a bunch of args?
+    // XXX seems like scope() should require at least two arguments
     template<class Arg1, class... Args>
-    typename std::enable_if<
-      detail::is_scoped_call<param_type, Arg1, Args...>::value,
-      detail::scoped_execution_policy<
-        derived_type,
-        decay_t<last_type<Arg1,Args...>>
-      >
-    >::type
-      operator()(Arg1&& arg1, Args&&... args) const
+    detail::scoped_execution_policy<
+      derived_type,
+      decay_t<last_type<Arg1,Args...>>
+    >
+      scope(Arg1&& arg1, Args&&... args) const
     {
       // wrap the args in a tuple so we can manipulate them easier
       auto arg_tuple = detail::forward_as_tuple(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
@@ -194,6 +193,21 @@ class basic_execution_policy
       return detail::scoped_execution_policy<derived_type,decltype(inner)>(outer, inner);
     }
 
+    // this is the scoped form of operator()
+    // it is just sugar for .scope()
+    template<class Arg1, class... Args>
+    typename std::enable_if<
+      detail::is_scoped_call<param_type, Arg1, Args...>::value,
+      detail::scoped_execution_policy<
+        derived_type,
+        decay_t<last_type<Arg1,Args...>>
+      >
+    >::type
+      operator()(Arg1&& arg1, Args&&... args) const
+    {
+      return scope(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+    }
+
     template<class Arg1, class... Args>
     derived_type operator()(std::initializer_list<Arg1> arg1, std::initializer_list<Args>... args) const
     {
@@ -205,7 +219,7 @@ class basic_execution_policy
 
     // executor_ needs to be mutable, because:
     // * the global execution policy objects are constexpr
-    // * executor.bulk_add() is a non-const member function
+    // * executor's member functions are not const
     mutable executor_type executor_;
 };
 
