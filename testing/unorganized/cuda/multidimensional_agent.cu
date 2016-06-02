@@ -3,7 +3,7 @@
 #include <agency/coordinate.hpp>
 #include <agency/cuda/execution_policy.hpp>
 
-const agency::cuda::detail::basic_execution_policy<agency::parallel_agent_2d, agency::cuda::parallel_executor> par2d{};
+const agency::detail::basic_execution_policy<agency::parallel_agent_2d, agency::cuda::parallel_executor> par2d{};
 
 struct functor
 {
