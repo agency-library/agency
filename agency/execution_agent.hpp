@@ -752,7 +752,8 @@ using static_parallel_agent = detail::basic_static_execution_agent<agency::paral
 template<std::size_t group_size, std::size_t grain_size = 1>
 using static_concurrent_agent = detail::basic_static_execution_agent<
   agency::detail::basic_concurrent_agent<
-    std::size_t
+    std::size_t,
+    agency::detail::arena_resource<group_size * sizeof(int)>
   >,
   group_size,
   grain_size

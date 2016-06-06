@@ -371,10 +371,14 @@ namespace detail
 
 template<class ExecutionPolicy, std::size_t group_size,
          std::size_t grain_size = 1,
-         class ExecutionAgent = agency::detail::execution_policy_agent_t<ExecutionPolicy>,
+         class ExecutionAgent = basic_static_execution_agent<
+           agency::detail::execution_policy_agent_t<ExecutionPolicy>,
+           group_size,
+           grain_size
+         >,
          class Executor       = agency::detail::execution_policy_executor_t<ExecutionPolicy>>
 using basic_static_execution_policy = agency::detail::basic_execution_policy<
-  basic_static_execution_agent<ExecutionAgent, group_size, grain_size>,
+  ExecutionAgent,
   Executor
 >;
 
@@ -394,10 +398,20 @@ class static_sequential_execution_policy : public detail::basic_static_execution
 
 
 template<size_t group_size, size_t grain_size = 1>
-class static_concurrent_execution_policy : public detail::basic_static_execution_policy<agency::concurrent_execution_policy, group_size, grain_size>
+class static_concurrent_execution_policy : public detail::basic_static_execution_policy<
+  agency::concurrent_execution_policy,
+  group_size,
+  grain_size,
+  static_concurrent_agent<group_size, grain_size>
+>
 {
   private:
-    using super_t = detail::basic_static_execution_policy<agency::concurrent_execution_policy, group_size, grain_size>;
+    using super_t = detail::basic_static_execution_policy<
+      agency::concurrent_execution_policy,
+      group_size,
+      grain_size,
+      static_concurrent_agent<group_size, grain_size>
+    >;
 
   public:
     using super_t::super_t;
