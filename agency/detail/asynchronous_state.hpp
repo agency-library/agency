@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/unit.hpp>
-#include <agency/detail/unique_ptr.hpp>
+#include <agency/detail/memory/unique_ptr.hpp>
 #include <agency/detail/tuple.hpp>
 #include <type_traits>
 

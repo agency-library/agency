@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/unique_ptr.hpp>
+#include <agency/detail/memory/unique_ptr.hpp>
 #include <agency/cuda/memory/allocator.hpp>
 #include <stdexcept>
 #include <cassert>
