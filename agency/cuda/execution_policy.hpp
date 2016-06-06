@@ -134,6 +134,22 @@ typename std::enable_if<
 }
 
 
+namespace experimental
+{
+
+
+template<size_t group_size, size_t grain_size = 1>
+class static_concurrent_execution_policy : public agency::experimental::detail::basic_static_execution_policy<concurrent_agent, cuda::concurrent_executor, group_size, grain_size>
+{
+  private:
+    using super_t = agency::experimental::detail::basic_static_execution_policy<concurrent_agent, cuda::concurrent_executor, group_size, grain_size>;
+
+  public:
+    using super_t::super_t;
+};
+
+
+} // end experimental
 } // end cuda
 } // end agency
 
