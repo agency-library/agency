@@ -369,6 +369,15 @@ namespace detail
 {
 
 
+// XXX maybe instead of taking ExecutionAgent and Executor we should take
+//     ExecutionPolicy and adapt its types automatically
+// XXX ExecutionAgent and Executor could receive default values:
+//
+//     template<class ExecutionPolicy, std::size_t group_size,
+//              std::size_t grain_size = 1,
+//              class ExecutionAgent = typename ExecutionPolicy::execution_agent_type,
+//              class Executor       = typename ExecutionPolicy::executor_type>
+//     using basic_static_execution_policy = ...
 template<class ExecutionAgent, class Executor, std::size_t group_size, std::size_t grain_size>
 using basic_static_execution_policy = agency::detail::basic_execution_policy<
   basic_static_execution_agent<ExecutionAgent, group_size, grain_size>,
@@ -391,10 +400,10 @@ class static_sequential_execution_policy : public detail::basic_static_execution
 
 
 template<size_t group_size, size_t grain_size = 1>
-class static_concurrent_execution_policy : public detail::basic_static_execution_policy<agency::concurrent_agent, agency::cuda::concurrent_executor, group_size, grain_size>
+class static_concurrent_execution_policy : public detail::basic_static_execution_policy<agency::concurrent_agent, agency::concurrent_executor, group_size, grain_size>
 {
   private:
-    using super_t = detail::basic_static_execution_policy<agency::concurrent_agent, agency::cuda::concurrent_executor, group_size, grain_size>;
+    using super_t = detail::basic_static_execution_policy<agency::concurrent_agent, agency::concurrent_executor, group_size, grain_size>;
 
   public:
     using super_t::super_t;
