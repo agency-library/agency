@@ -167,16 +167,15 @@ class basic_execution_policy
       return derived_type{param_type{std::forward<Arg1>(arg1), std::forward<Args>(args)...}, executor()};
     }
 
-    // this is the scoped form of operator()
+    // XXX maybe .scope() should just take OuterPolicy & InnerPolicy?
+    //     instead of a bunch of args?
+    // XXX seems like scope() should require at least two arguments
     template<class Arg1, class... Args>
-    typename std::enable_if<
-      detail::is_scoped_call<param_type, Arg1, Args...>::value,
-      detail::scoped_execution_policy<
-        derived_type,
-        decay_t<last_type<Arg1,Args...>>
-      >
-    >::type
-      operator()(Arg1&& arg1, Args&&... args) const
+    detail::scoped_execution_policy<
+      derived_type,
+      decay_t<last_type<Arg1,Args...>>
+    >
+      scope(Arg1&& arg1, Args&&... args) const
     {
       // wrap the args in a tuple so we can manipulate them easier
       auto arg_tuple = detail::forward_as_tuple(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
@@ -194,6 +193,21 @@ class basic_execution_policy
       return detail::scoped_execution_policy<derived_type,decltype(inner)>(outer, inner);
     }
 
+    // this is the scoped form of operator()
+    // it is just sugar for .scope()
+    template<class Arg1, class... Args>
+    typename std::enable_if<
+      detail::is_scoped_call<param_type, Arg1, Args...>::value,
+      detail::scoped_execution_policy<
+        derived_type,
+        decay_t<last_type<Arg1,Args...>>
+      >
+    >::type
+      operator()(Arg1&& arg1, Args&&... args) const
+    {
+      return scope(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+    }
+
     template<class Arg1, class... Args>
     derived_type operator()(std::initializer_list<Arg1> arg1, std::initializer_list<Args>... args) const
     {
@@ -205,7 +219,7 @@ class basic_execution_policy
 
     // executor_ needs to be mutable, because:
     // * the global execution policy objects are constexpr
-    // * executor.bulk_add() is a non-const member function
+    // * executor's member functions are not const
     mutable executor_type executor_;
 };
 
@@ -349,5 +363,44 @@ class vector_execution_policy : public detail::basic_execution_policy<vector_age
 constexpr vector_execution_policy vec{};
 
 
+namespace experimental
+{
+namespace detail
+{
+
+
+template<class ExecutionAgent, class Executor, std::size_t group_size, std::size_t grain_size>
+using basic_static_execution_policy = agency::detail::basic_execution_policy<
+  basic_static_execution_agent<ExecutionAgent, group_size, grain_size>,
+  Executor
+>;
+
+
+} // end detail
+
+
+template<size_t group_size, size_t grain_size = 1>
+class static_sequential_execution_policy : public detail::basic_static_execution_policy<agency::sequential_agent, agency::sequential_executor, group_size, grain_size>
+{
+  private:
+    using super_t = detail::basic_static_execution_policy<agency::sequential_agent, agency::sequential_executor, group_size, grain_size>;
+
+  public:
+    using super_t::super_t;
+};
+
+
+template<size_t group_size, size_t grain_size = 1>
+class static_concurrent_execution_policy : public detail::basic_static_execution_policy<agency::concurrent_agent, agency::cuda::concurrent_executor, group_size, grain_size>
+{
+  private:
+    using super_t = detail::basic_static_execution_policy<agency::concurrent_agent, agency::cuda::concurrent_executor, group_size, grain_size>;
+
+  public:
+    using super_t::super_t;
+};
+
+
+} // end experimental
 } // end agency
 
