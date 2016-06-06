@@ -8,6 +8,7 @@
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/unwrap_tuple_if_not_scoped.hpp>
 #include <agency/detail/make_tuple_if_not_scoped.hpp>
+#include <agency/detail/memory/arena_resource.hpp>
 #include <agency/coordinate.hpp>
 #include <type_traits>
 
@@ -347,7 +348,7 @@ namespace detail
 
 
 
-template<class Index>
+template<class Index, class MemoryResource = detail::arena_resource<128 * sizeof(int)>>
 class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_execution_tag, Index>
 {
   private:
@@ -389,32 +390,45 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       barrier_.arrive_and_wait();
     }
 
+    using memory_resource_type = MemoryResource;
+
+    __AGENCY_ANNOTATION
+    memory_resource_type& memory_resource()
+    {
+      return memory_resource_;
+    }
+
     struct shared_param_type
     {
       __AGENCY_ANNOTATION
       shared_param_type(const typename super_t::param_type& param)
         : count_(param.domain().size()),
-          barrier_(count_)
+          barrier_(count_),
+          memory_resource_()
       {}
 
       __AGENCY_ANNOTATION
       shared_param_type(const shared_param_type& other)
         : count_(other.count_),
-          barrier_(count_)
+          barrier_(count_),
+          memory_resource_()
       {}
 
       int count_;
       barrier barrier_;
+      memory_resource_type memory_resource_;
     };
 
   private:
-    barrier &barrier_;
+    barrier& barrier_;
+    memory_resource_type& memory_resource_;
 
   protected:
     __AGENCY_ANNOTATION
     basic_concurrent_agent(const typename super_t::index_type& index, const typename super_t::param_type& param, shared_param_type& shared_param)
       : super_t(index, param),
-        barrier_(shared_param.barrier_)
+        barrier_(shared_param.barrier_),
+        memory_resource_(shared_param.memory_resource_)
     {}
 
     // friend execution_agent_traits to give it access to the constructor
