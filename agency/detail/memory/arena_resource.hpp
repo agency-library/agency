@@ -23,13 +23,32 @@
 // SOFTWARE.
 
 #include <agency/detail/config.hpp>
+#include <new>
 #include <cassert>
 #include <cstddef>
+#include <cstdio>
 
 namespace agency
 {
 namespace detail
 {
+namespace arena_resource_detail
+{
+
+
+__AGENCY_ANNOTATION
+inline void throw_bad_alloc()
+{
+#ifdef __CUDA_ARCH__
+  printf("bad_alloc\n");
+  assert(0);
+#else
+  throw std::bad_alloc();
+#endif
+}
+
+
+} // end arena_resource_detail
 
 
 // arena_resource is a C++ "memory resource" which
@@ -55,48 +74,31 @@ class arena_resource
     __AGENCY_ANNOTATION
     arena_resource& operator=(const arena_resource&) = delete;
 
-    template<std::size_t ReqAlign>
     __AGENCY_ANNOTATION
     void* allocate(std::size_t n)
     {
-      static_assert(ReqAlign <= alignment, "alignment is too small for this arena");
-      //assert(pointer_in_buffer(ptr_) && "short_alloc has outlived arena");
-      
       auto const aligned_n = align_up(n);
-      if(static_cast<decltype(aligned_n)>(buf_ + N - ptr_) >= aligned_n)
+      if(aligned_n > static_cast<decltype(aligned_n)>(buf_ + N - ptr_))
       {
-        char* r = ptr_;
-        ptr_ += aligned_n;
-        return r;
+        // XXX should we throw? we might want to fail and return 0
+        //     maybe we could introduce a separate allocate_or_fail() function
+        arena_resource_detail::throw_bad_alloc();
       }
 
-      assert(0);
-
-      return 0;
-
-      //static_assert(alignment <= alignof(std::max_align_t), "you've chosen an "
-      //              "alignment that is larger than alignof(std::max_align_t), and "
-      //              "cannot be guaranteed by normal operator new");
-      //return static_cast<char*>(::operator new(n));
+      char* r = ptr_;
+      ptr_ += aligned_n;
+      return r;
     }
 
     __AGENCY_ANNOTATION
     void deallocate(void* p_, std::size_t n) noexcept
     {
       char* p = reinterpret_cast<char*>(p_);
-      assert(pointer_in_buffer(ptr_) && "short_alloc has outlived arena");
-      if(pointer_in_buffer(p))
+
+      n = align_up(n);
+      if(p + n == ptr_)
       {
-        n = align_up(n);
-        if(p + n == ptr_)
-        {
-          ptr_ = p;
-        }
-      }
-      else
-      {
-        assert(0);
-        //::operator delete(p);
+        ptr_ = p;
       }
     }
 
@@ -123,13 +125,6 @@ class arena_resource
     static std::size_t align_up(std::size_t n) noexcept
     {
       return (n + (alignment-1)) & ~(alignment-1);
-    }
-
-    __AGENCY_ANNOTATION
-    bool pointer_in_buffer(void* p) noexcept
-    {
-      //return buf_ <= p && p <= buf_ + N;
-      return true;
     }
 };
 
