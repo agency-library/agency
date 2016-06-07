@@ -451,7 +451,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       //     what if a subsequent call to broadcast() happens?
       //     will the subsequent call collide with this one?
       // XXX should we just decline to synchronize the group before returning?
-      wait_and_destroy_if(shared_temporary_object, value);
+      wait_and_destroy_if(shared_temporary_object, bool(value));
 
       return result;
     }
@@ -534,9 +534,9 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     {
       __AGENCY_ANNOTATION
       shared_param_type(const typename super_t::param_type& param)
-        : count_(param.domain().size()),
-          barrier_(count_),
-          memory_resource_()
+        : barrier_(count_),
+          memory_resource_(),
+          count_(param.domain().size())
       {
         // note we specifically avoid default constructing broadcast_channel_
       }
@@ -545,15 +545,17 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       //     i'm not certain it's necessary to copy shared_param_type anymore
       __AGENCY_ANNOTATION
       shared_param_type(const shared_param_type& other)
-        : count_(other.count_),
-          barrier_(count_),
-          memory_resource_()
+        : barrier_(other.count_),
+          memory_resource_(),
+          count_(other.count_)
       {}
 
-      int count_;
-      barrier barrier_;
+      // broadcast_channel_ needs to be the first member to ensure proper alignment because we reinterpret it to arbitrary T*
+      // XXX is there a more comprehensive way to ensure that this member falls on the right address?
       broadcast_channel_type broadcast_channel_;
+      barrier barrier_;
       memory_resource_type memory_resource_;
+      int count_;
     };
 
   private:
