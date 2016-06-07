@@ -10,6 +10,8 @@
 #include <agency/detail/make_tuple_if_not_scoped.hpp>
 #include <agency/detail/memory/arena_resource.hpp>
 #include <agency/coordinate.hpp>
+#include <agency/experimental/array.hpp>
+#include <agency/experimental/optional.hpp>
 #include <type_traits>
 
 namespace agency
@@ -354,6 +356,9 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
   private:
     using super_t = detail::basic_execution_agent<concurrent_execution_tag, Index>;
 
+    static constexpr size_t broadcast_channel_size = sizeof(void*);
+    using broadcast_channel_type = agency::experimental::array<char, broadcast_channel_size>;
+
     // this class hides agency::detail::barrier & __syncthreads()
     // behind a uniform interface so that we can use basic_concurrent_agent
     // in both C++ and CUDA C++
@@ -383,11 +388,138 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
 #endif
     };
 
+    template<class T>
+    __AGENCY_ANNOTATION
+    typename std::enable_if<
+      std::is_trivially_destructible<T>::value
+    >::type
+      wait_and_destroy_if(T*, bool)
+    {
+      // no op: T has a trivial destructor, so there's no need to synchronize
+      // and call T's destructor
+    }
+
+    template<class T>
+    __AGENCY_ANNOTATION
+    typename std::enable_if<
+      !std::is_trivially_destructible<T>::value
+    >::type
+      wait_and_destroy_if(T* ptr, bool only_this_agent_should_call_the_destructor)
+    {
+      // first, synchronize
+      wait();
+
+      if(only_this_agent_should_call_the_destructor)
+      {
+        ptr->~T();
+      }
+    }
+
+
+    template<class T>
+    using enable_if_small_enough_to_broadcast_directly_t = typename std::enable_if<
+      sizeof(T) <= broadcast_channel_size, T
+    >::type;
+
+    // this overload of broadcast_impl() is for small T
+    template<class T>
+    __AGENCY_ANNOTATION
+    enable_if_small_enough_to_broadcast_directly_t<T>
+      broadcast_impl(const experimental::optional<T>& value)
+    {
+      // value is small enough to fit inside broadcast_channel_, so we can
+      // send it through directly without needing to dynamically allocating storage
+      
+      // reinterpret the broadcast channel into the right kind of type
+      T* shared_temporary_object = reinterpret_cast<T*>(broadcast_channel_.data());
+
+      // the thread with the value copies it into a shared temporary
+      if(value)
+      {
+        // copy construct the shared temporary
+        ::new(shared_temporary_object) T(*value);
+      }
+
+      // all agents wait for the object to be ready
+      wait();
+
+      // copy the shared temporary to a local variable
+      T result = *shared_temporary_object;
+
+      // synchronize and destroy the object if necessary
+      // XXX do we need to unconditionally wait here?
+      //     what if a subsequent call to broadcast() happens?
+      //     will the subsequent call collide with this one?
+      // XXX should we just decline to synchronize the group before returning?
+      wait_and_destroy_if(shared_temporary_object, value);
+
+      return result;
+    }
+
+
+    template<class T>
+    using enable_if_too_large_to_broadcast_directly_t = typename std::enable_if<
+      (sizeof(T) > broadcast_channel_size), T
+    >::type;
+
+    // this overload of broadcast_impl() is for large T
+    template<class T>
+    __AGENCY_ANNOTATION
+    enable_if_too_large_to_broadcast_directly_t<T>
+      broadcast_impl(const experimental::optional<T>& value)
+    {
+      // value is too large to fit through broadcast_channel_, so
+      // we need to dynamically allocate storage
+
+      // reinterpret the broadcast channel into a pointer
+      static_assert(sizeof(broadcast_channel_) >= sizeof(T*), "broadcast channel is too small to accomodate T*");
+      T* shared_temporary_object = reinterpret_cast<T*>(&broadcast_channel_);
+
+      if(value)
+      {
+        // dynamically allocate the shared temporary object
+        shared_temporary_object = memory_resource().allocate<alignof(T)>(sizeof(T));
+
+        // copy construct the shared temporary
+        ::new(shared_temporary_object) T(*value);
+      }
+
+      // all agents wait for the object to be ready
+      wait();
+
+      // copy the shared temporary to a local variable
+      T result = *shared_temporary_object;
+
+      // all agents wait for other agents to finish copying the shared temporary
+      wait();
+
+      if(value)
+      {
+        // destroy the shared temporary
+        shared_temporary_object->~T();
+
+        // deallocate the temporary storage
+        memory_resource().deallocate(shared_temporary_object);
+      }
+
+      // all agents wait for the broadcast channel and memory resource to become ready again
+      wait();
+
+      return result;
+    }
+
   public:
     __AGENCY_ANNOTATION
     void wait() const
     {
       barrier_.arrive_and_wait();
+    }
+
+    template<class T>
+    __AGENCY_ANNOTATION
+    T broadcast(const experimental::optional<T>& value)
+    {
+      return broadcast_impl(value);
     }
 
     using memory_resource_type = MemoryResource;
@@ -405,8 +537,12 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
         : count_(param.domain().size()),
           barrier_(count_),
           memory_resource_()
-      {}
+      {
+        // note we specifically avoid default constructing broadcast_channel_
+      }
 
+      // XXX see if we can eliminate this copy constructor
+      //     i'm not certain it's necessary to copy shared_param_type anymore
       __AGENCY_ANNOTATION
       shared_param_type(const shared_param_type& other)
         : count_(other.count_),
@@ -416,11 +552,13 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
 
       int count_;
       barrier barrier_;
+      broadcast_channel_type broadcast_channel_;
       memory_resource_type memory_resource_;
     };
 
   private:
     barrier& barrier_;
+    broadcast_channel_type& broadcast_channel_;
     memory_resource_type& memory_resource_;
 
   protected:
@@ -428,6 +566,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     basic_concurrent_agent(const typename super_t::index_type& index, const typename super_t::param_type& param, shared_param_type& shared_param)
       : super_t(index, param),
         barrier_(shared_param.barrier_),
+        broadcast_channel_(shared_param.broadcast_channel_),
         memory_resource_(shared_param.memory_resource_)
     {}
 
