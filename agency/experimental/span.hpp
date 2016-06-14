@@ -163,6 +163,21 @@ class span : private detail::span_base<Extent>
 };
 
 
+template<class T, std::ptrdiff_t Extent>
+__AGENCY_ANNOTATION
+bool operator==(const span<T,Extent>& lhs, const span<T,Extent>& rhs)
+{
+  if(lhs.size() != rhs.size()) return false;
+
+  for(auto i = 0; i < lhs.size(); ++i)
+  {
+    if(lhs[i] != rhs[i]) return false;
+  }
+
+  return true;
+}
+
+
 // XXX segmented_span might be a bad name because "span" probably implies contiguous
 template<class T, std::ptrdiff_t NumSegments = dynamic_extent>
 class segmented_span
