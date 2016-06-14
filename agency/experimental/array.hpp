@@ -162,7 +162,19 @@ struct array
 };
 
 
-// XXX relational operators here
+template<class T, std::size_t N>
+__AGENCY_ANNOTATION
+bool operator==(const array<T,N>& lhs,  const array<T,N>& rhs)
+{
+  for(std::size_t i = 0; i < N; ++i)
+  {
+    if(lhs[i] != rhs[i]) return false;
+  }
+
+  return true;
+}
+
+// XXX other relational operators here
 // XXX get() here?
 // XXX tuple specializations here?
 
