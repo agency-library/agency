@@ -43,12 +43,25 @@ void test()
 
   {
     // test iterator inequality
-    assert(z.begin() != z.end());
-
     auto z1 = zip(v0,v1);
     auto z2 = zip(v1,v2);
 
     assert(z1.begin() != z2.begin());
+  }
+
+  {
+    // test sentinel equality
+    assert(z.end() == z.end());
+  }
+
+  {
+    // test iterator/sentinel inequality
+    assert(z.begin() != z.end());
+  }
+
+  {
+    // test iterator/sentinel difference
+    assert(z.end() - z.begin() == 4);
   }
 
   {
