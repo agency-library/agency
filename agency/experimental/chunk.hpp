@@ -186,6 +186,14 @@ class chunk_view
     }
 
     __AGENCY_ANNOTATION
+    value_type empty_chunk() const
+    {
+      // XXX value_type happens to be an instantiation of counted_view
+      value_type first_chunk = *begin();
+      return value_type(first_chunk.begin(), 0);
+    }
+
+    __AGENCY_ANNOTATION
     iterator begin() const
     {
       return begin_;
