@@ -142,10 +142,18 @@ auto operator!=(const stride_iterator<Iterator1,Difference>& lhs, const stride_s
 
 template<class Iterator1, class Iterator2, class Difference>
 __AGENCY_ANNOTATION
-auto operator!=(const stride_sentinel<Iterator1> &lhs, const stride_iterator<Iterator2,Difference>& rhs) ->
+auto operator!=(const stride_sentinel<Iterator1>& lhs, const stride_iterator<Iterator2,Difference>& rhs) ->
   decltype(rhs != lhs)
 {
   return rhs != lhs;
+}
+
+
+template<class Iterator1, class Iterator2, class Difference>
+__AGENCY_ANNOTATION
+Difference operator-(const stride_sentinel<Iterator1>& lhs, const stride_iterator<Iterator2,Difference>& rhs)
+{
+  return (lhs.base() - rhs.base() + rhs.stride() - 1) / rhs.stride();
 }
 
 
@@ -202,6 +210,12 @@ class stride_view
     bool empty() const
     {
       return begin() == end();
+    }
+
+    __AGENCY_ANNOTATION
+    Difference size() const
+    {
+      return end() - begin();
     }
 
   private:
