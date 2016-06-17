@@ -75,6 +75,14 @@ counted_view<detail::decay_range_iterator_t<Range>,detail::decay_range_differenc
   return counted_view<detail::decay_range_iterator_t<Range>,detail::decay_range_difference_t<Range>>(rng.begin(), n);
 }
 
+template<class Difference, class Range>
+__AGENCY_ANNOTATION
+counted_view<detail::decay_range_iterator_t<Range>,Difference>
+  counted(Range&& rng, Difference n)
+{
+  return counted_view<detail::decay_range_iterator_t<Range>,Difference>(rng.begin(), n);
+}
+
 
 } // end experimental
 } // end agency
