@@ -42,6 +42,12 @@ class counted_view
     }
 
     __AGENCY_ANNOTATION
+    bool empty() const
+    {
+      return size_ == 0;
+    }
+
+    __AGENCY_ANNOTATION
     typename std::iterator_traits<iterator>::reference operator[](difference_type i) const
     {
       return begin()[i];
