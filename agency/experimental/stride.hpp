@@ -171,12 +171,14 @@ class stride_view
     using base_iterator = decltype(std::declval<View*>()->begin());
     using base_const_iterator = decltype(std::declval<const View*>()->begin());
 
+    using base_sentinel = decltype(std::declval<View&>().end());
+
   public:
     using iterator = detail::stride_iterator<base_iterator,Difference>;
     using index_type = Difference;
     using reference = typename std::iterator_traits<iterator>::reference;
 
-    using sentinel = detail::stride_sentinel<base_iterator>;
+    using sentinel = detail::stride_sentinel<base_sentinel>;
 
     __AGENCY_ANNOTATION
     stride_view(iterator begin, sentinel end)
