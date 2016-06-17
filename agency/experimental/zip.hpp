@@ -64,6 +64,12 @@ class zip_iterator
       return iterator_tuple_;
     }
 
+    __AGENCY_ANNOTATION
+    Iterator first_iterator() const
+    {
+      return agency::detail::get<0>(iterator_tuple());
+    }
+
   private:
     struct increment_functor
     {
@@ -133,6 +139,14 @@ class zip_iterator
     }
 
     __AGENCY_ANNOTATION
+    zip_iterator operator+(difference_type n) const
+    {
+      zip_iterator result = *this;
+      result += n;
+      return result;
+    }
+
+    __AGENCY_ANNOTATION
     reference operator[](difference_type i) const
     {
       auto tmp = *this;
@@ -140,6 +154,8 @@ class zip_iterator
       return *tmp;
     }
 
+    // XXX should probably only check the first iterator
+    //     or simply check that *this - rhs == zero
     __AGENCY_ANNOTATION
     bool operator==(const zip_iterator& rhs) const
     {
@@ -156,12 +172,125 @@ class zip_iterator
     __AGENCY_ANNOTATION
     difference_type operator-(const zip_iterator<OtherIterator,OtherIterators...>& rhs) const
     {
-      return agency::detail::get<0>(iterator_tuple()) - agency::detail::get<0>(rhs.iterator_tuple());
+      return first_iterator() - rhs.first_iterator();
     }
 
   private:
     iterator_tuple_type iterator_tuple_;
 };
+
+
+template<class Iterator, class... Iterators>
+__AGENCY_ANNOTATION
+zip_iterator<Iterator,Iterators...> make_zip_iterator(Iterator iter, Iterators... iters)
+{
+  return zip_iterator<Iterator,Iterators...>(iter,iters...);
+}
+
+
+// because the only iterator we use when testing a zip_iterator for equality
+// or arithmetic is the first iterator in the tuple, its wasteful to use
+// a full zip_iterator to represent the end of a zip_range
+// So, introduce a zip_sentinel that only stores a single iterator
+template<class Iterator, class... Iterators>
+class zip_sentinel
+{
+  public:
+    using base_iterator_type = Iterator;
+
+    template<class OtherIterator,
+             class = typename std::enable_if<
+               std::is_constructible<base_iterator_type,OtherIterator>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    zip_sentinel(OtherIterator end)
+      : end_(end)
+    {}
+
+    template<class OtherIterator, class... OtherIterators,
+             class = typename std::enable_if<
+               std::is_constructible<base_iterator_type,OtherIterator>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    zip_sentinel(const zip_iterator<OtherIterator,OtherIterators...>& end)
+      : zip_sentinel(end.first_iterator())
+    {}
+
+    // XXX should probably also check that Iterator... and OtherIterators... are equality comparable
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    auto operator==(const zip_iterator<OtherIterator,OtherIterators...>& iter) const ->
+      decltype(std::declval<Iterator>() == iter.first_iterator())
+    {
+      return base() == iter.first_iterator();
+    }
+
+    // XXX should probably also check that Iterator... and OtherIterators... are equality comparable
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    auto operator==(const zip_sentinel<OtherIterator,OtherIterators...>& sentinel) const ->
+      decltype(std::declval<Iterator>() == sentinel.base())
+    {
+      return base() == sentinel.base();
+    }
+
+
+    __AGENCY_ANNOTATION
+    const base_iterator_type& base() const
+    {
+      return end_;
+    }
+
+  private:
+    base_iterator_type end_;
+};
+
+
+// XXX in order to make these general, we need something like
+//
+//     template<class Iterator1, class... Iterators1, class Iterator2, class... Iterators2>
+//
+// But we're not allowed multiple parameter packs
+//
+// Instead, we could do something like
+//
+//     template<class ZipIterator, class ZipSentinel>
+//
+// And use enable_if_zip_iterator & enable_if_zip_sentinel
+template<class Iterator, class... Iterators>
+__AGENCY_ANNOTATION
+auto operator==(const zip_iterator<Iterator,Iterators...>& lhs, const zip_sentinel<Iterator,Iterators...>& rhs) ->
+  decltype(rhs == lhs)
+{
+  return rhs == lhs;
+}
+
+
+template<class Iterator, class... Iterators>
+__AGENCY_ANNOTATION
+auto operator!=(const zip_iterator<Iterator,Iterators...>& lhs, const zip_sentinel<Iterator,Iterators...>& rhs) ->
+  decltype(!(lhs == rhs))
+{
+  return !(lhs == rhs);
+}
+
+
+template<class Iterator, class... Iterators>
+__AGENCY_ANNOTATION
+auto operator!=(const zip_sentinel<Iterator,Iterators...>& lhs, const zip_iterator<Iterator,Iterators...>& rhs) ->
+  decltype(rhs != lhs)
+{
+  return rhs != lhs;
+}
+
+
+template<class Iterator, class... Iterators>
+__AGENCY_ANNOTATION
+auto operator-(const zip_sentinel<Iterator,Iterators...>& lhs, const zip_iterator<Iterator,Iterators...>& rhs) ->
+  decltype(lhs.base() - rhs.first_iterator())
+{
+  return lhs.base() - rhs.first_iterator();
+}
 
 
 } // end detail
@@ -176,7 +305,7 @@ class zip_view
       detail::decay_range_iterator_t<Ranges>...
     >;
 
-    using sentinel = detail::zip_iterator<
+    using sentinel = detail::zip_sentinel<
       detail::decay_range_sentinel_t<Range>,
       detail::decay_range_sentinel_t<Ranges>...
     >;
@@ -185,7 +314,7 @@ class zip_view
     __AGENCY_ANNOTATION
     zip_view(OtherRange&& rng, OtherRanges&&... rngs)
       : begin_(rng.begin(), rngs.begin()...),
-        end_(rng.end(), rngs.end()...)
+        end_(rng.end())
     {}
 
     __AGENCY_ANNOTATION
