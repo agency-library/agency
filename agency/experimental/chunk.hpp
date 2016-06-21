@@ -194,6 +194,12 @@ class chunk_view
     }
 
     __AGENCY_ANNOTATION
+    value_type chunk_or_empty(difference_type i) const
+    {
+      return i < size() ? operator[](i) : empty_chunk();
+    }
+
+    __AGENCY_ANNOTATION
     iterator begin() const
     {
       return begin_;
