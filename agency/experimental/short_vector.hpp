@@ -4,6 +4,7 @@
 #include <agency/detail/utility.hpp>
 #include <agency/experimental/array.hpp>
 #include <agency/experimental/optional.hpp>
+#include <agency/experimental/bounded_integer.hpp>
 #include <cstddef>
 #include <utility>
 
@@ -154,8 +155,13 @@ class short_vector
     }
 
   public:
+    static const std::size_t static_max_size = N;
+
     using value_type = T;
-    using size_type = std::size_t;
+
+    // encode the maximum size of this short_vector in its size_type
+    using size_type = bounded_size_t<static_max_size>;
+
     using difference_type = std::ptrdiff_t;
     using reference = value_type&;
     using const_reference = const value_type&;
@@ -163,8 +169,6 @@ class short_vector
     using const_pointer = const value_type*;
     using iterator = pointer;
     using const_iterator = const_pointer;
-
-    static const size_type static_max_size = N;
 
     __AGENCY_ANNOTATION
     short_vector()
