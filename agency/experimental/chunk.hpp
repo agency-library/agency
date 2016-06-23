@@ -12,16 +12,17 @@ namespace detail
 {
 
 
-template<class View>
+template<class View, class Difference = detail::range_difference_t<View>>
 class chunk_iterator
 {
   public:
-    using base_iterator_type = stride_iterator<range_iterator_t<View>>;
+    using difference_type = Difference;
+
+    using base_iterator_type = stride_iterator<range_iterator_t<View>,Difference>;
     using base_sentinel_type = stride_sentinel<range_sentinel_t<View>>;
 
-    using value_type = counted_view<range_iterator_t<View>>;
+    using value_type = counted_view<range_iterator_t<View>,Difference>;
     using reference = value_type;
-    using difference_type = range_difference_t<View>;
 
     template<class Iterator,
              class Sentinel,
@@ -157,15 +158,17 @@ typename chunk_iterator<View>::difference_type operator-(const chunk_sentinel<Vi
 } // end detail
 
 
-template<class Range>
+template<class Range, class Difference = detail::range_difference_t<Range>>
 class chunk_view
 {
   public:
+    using difference_type = Difference;
+
     __AGENCY_ANNOTATION
     chunk_view() = default;
 
     __AGENCY_ANNOTATION
-    chunk_view(Range rng, detail::range_difference_t<Range> n)
+    chunk_view(Range rng, difference_type n)
       : begin_(agency::experimental::all(rng), n)
     {}
 
@@ -175,8 +178,7 @@ class chunk_view
     );
 
   public:
-    using iterator = detail::chunk_iterator<all_t>;
-    using difference_type = typename iterator::difference_type;
+    using iterator = detail::chunk_iterator<all_t, difference_type>;
     using value_type = typename iterator::value_type;
 
     __AGENCY_ANNOTATION
@@ -190,7 +192,7 @@ class chunk_view
     {
       // XXX value_type happens to be an instantiation of counted_view
       value_type first_chunk = *begin();
-      return value_type(first_chunk.begin(), 0);
+      return value_type(first_chunk.begin(), difference_type(0));
     }
 
     __AGENCY_ANNOTATION
@@ -230,15 +232,16 @@ class chunk_view
 }; // end chunk_view
 
 
-template<class Range>
+template<class Range, class Difference>
 __AGENCY_ANNOTATION
-auto chunk(Range&& rng, detail::decay_range_difference_t<Range> chunk_size) ->
+auto chunk(Range&& rng, Difference chunk_size) ->
   chunk_view<
-    decltype(experimental::all(std::forward<Range>(rng)))
+    decltype(experimental::all(std::forward<Range>(rng))),
+    Difference
   >
 {
   auto view_of_rng = experimental::all(std::forward<Range>(rng));
-  return chunk_view<decltype(view_of_rng)>(view_of_rng, chunk_size);
+  return chunk_view<decltype(view_of_rng),Difference>(view_of_rng, chunk_size);
 }
 
 
