@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/experimental/array.hpp>
 #include <agency/experimental/span.hpp>
-#include <agency/experimental/range_traits.hpp>
+#include <agency/experimental/ranges/range_traits.hpp>
 #include <type_traits>
 #include <iterator>
 
