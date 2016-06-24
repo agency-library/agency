@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/experimental/array.hpp>
 #include <agency/experimental/span.hpp>
+#include <agency/experimental/range_traits.hpp>
 #include <type_traits>
 #include <iterator>
 
@@ -113,51 +114,20 @@ range_view<Iterator,Sentinel> all(range_view<Iterator,Sentinel> v)
 }
 
 
-namespace detail
-{
-
-
-template<class Range>
-using range_iterator_t = decltype(std::declval<Range*>()->begin());
-
-template<class Range>
-using range_sentinel_t = decltype(std::declval<Range*>()->end());
-
-
-template<class Range>
-using range_difference_t = typename std::iterator_traits<range_iterator_t<Range>>::difference_type;
-
-template<class Range>
-using range_value_t = typename std::iterator_traits<range_iterator_t<Range>>::value_type;
-
-
-template<class Range>
-using decay_range_iterator_t = range_iterator_t<typename std::decay<Range>::type>;
-
-template<class Range>
-using decay_range_sentinel_t = range_sentinel_t<typename std::decay<Range>::type>;
-
-template<class Range>
-using decay_range_difference_t = range_difference_t<typename std::decay<Range>::type>;
-
-
-} // end detail
-
-
 template<class Range>
 __AGENCY_ANNOTATION
-range_view<detail::decay_range_iterator_t<Range>, detail::decay_range_sentinel_t<Range>>
+range_view<range_iterator_t<Range>, range_sentinel_t<Range>>
   make_range_view(Range&& rng)
 {
-  return range_view<detail::decay_range_iterator_t<Range>, detail::decay_range_sentinel_t<Range>>(rng.begin(), rng.end());
+  return range_view<range_iterator_t<Range>, range_sentinel_t<Range>>(rng.begin(), rng.end());
 }
 
 
 // create a view of the given range and drop the first n elements from the view
 template<class Range>
 __AGENCY_ANNOTATION
-range_view<detail::decay_range_iterator_t<Range>, detail::decay_range_sentinel_t<Range>>
-  drop(Range&& rng, detail::range_difference_t<typename std::decay<Range>::type> n)
+range_view<range_iterator_t<Range>, range_sentinel_t<Range>>
+  drop(Range&& rng, range_difference_t<Range> n)
 {
   auto result = make_range_view(rng);
   result.drop(n);

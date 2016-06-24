@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/experimental/view.hpp>
+#include <agency/experimental/range_traits.hpp>
 #include <agency/detail/tuple.hpp>
 #include <type_traits>
 #include <iterator>
@@ -301,13 +301,13 @@ class zip_view
 {
   public:
     using iterator = detail::zip_iterator<
-      detail::decay_range_iterator_t<Range>,
-      detail::decay_range_iterator_t<Ranges>...
+      range_iterator_t<Range>,
+      range_iterator_t<Ranges>...
     >;
 
     using sentinel = detail::zip_sentinel<
-      detail::decay_range_sentinel_t<Range>,
-      detail::decay_range_sentinel_t<Ranges>...
+      range_sentinel_t<Range>,
+      range_sentinel_t<Ranges>...
     >;
 
     template<class OtherRange, class... OtherRanges>

@@ -123,33 +123,34 @@ class chunk_sentinel
 };
 
 
-template<class View>
+template<class View, class Difference>
 __AGENCY_ANNOTATION
-bool operator==(const chunk_iterator<View>& lhs, const chunk_sentinel<View>& rhs)
+bool operator==(const chunk_iterator<View,Difference>& lhs, const chunk_sentinel<View>& rhs)
 {
   return lhs.base() == rhs.base();
 }
 
 
-template<class View>
+template<class View, class Difference>
 __AGENCY_ANNOTATION
-bool operator!=(const chunk_iterator<View>& lhs, const chunk_sentinel<View>& rhs)
+bool operator!=(const chunk_iterator<View,Difference>& lhs, const chunk_sentinel<View>& rhs)
 {
   return !(lhs == rhs);
 }
 
 
-template<class View>
+template<class View, class Difference>
 __AGENCY_ANNOTATION
-bool operator!=(const chunk_sentinel<View> &lhs, const chunk_iterator<View>& rhs)
+bool operator!=(const chunk_sentinel<View> &lhs, const chunk_iterator<View,Difference>& rhs)
 {
   return rhs != lhs;
 }
 
 
-template<class View>
+template<class View, class Difference>
 __AGENCY_ANNOTATION
-typename chunk_iterator<View>::difference_type operator-(const chunk_sentinel<View>& lhs, const chunk_iterator<View>& rhs)
+typename chunk_iterator<View,Difference>::difference_type
+  operator-(const chunk_sentinel<View>& lhs, const chunk_iterator<View,Difference>& rhs)
 {
   return lhs.base() - rhs.base();
 }

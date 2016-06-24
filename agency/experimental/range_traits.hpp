@@ -2,12 +2,44 @@
 
 #include <cstddef>
 #include <limits>
+#include <iterator>
+#include <utility>
 #include <agency/detail/config.hpp>
 
 namespace agency
 {
 namespace experimental
 {
+
+
+template<class Range>
+struct range_iterator
+{
+  using type = decltype(std::declval<Range&>().begin());
+};
+
+template<class Range>
+using range_iterator_t = typename range_iterator<Range>::type;
+
+
+template<class Range>
+struct range_sentinel
+{
+  using type = decltype(std::declval<Range&>().end());
+};
+
+template<class Range>
+using range_sentinel_t = typename range_sentinel<Range>::type;
+
+
+template<class Range>
+struct range_difference
+{
+  using type = typename std::iterator_traits<range_iterator_t<Range>>::difference_type;
+};
+
+template<class Range>
+using range_difference_t = typename range_difference<Range>::type;
 
 
 template<class Range>

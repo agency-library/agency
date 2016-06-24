@@ -69,18 +69,27 @@ counted_view<Iterator,Difference> all(const counted_view<Iterator,Difference>& v
 
 template<class Range>
 __AGENCY_ANNOTATION
-counted_view<detail::decay_range_iterator_t<Range>,detail::decay_range_difference_t<Range>>
-  counted(Range&& rng, detail::decay_range_difference_t<Range> n)
+counted_view<range_iterator_t<Range>,range_difference_t<Range>>
+  counted(Range&& rng, range_difference_t<Range> n)
 {
-  return counted_view<detail::decay_range_iterator_t<Range>,detail::decay_range_difference_t<Range>>(rng.begin(), n);
+  return counted_view<range_iterator_t<Range>,range_difference_t<Range>>(rng.begin(), n);
 }
 
 template<class Difference, class Range>
 __AGENCY_ANNOTATION
-counted_view<detail::decay_range_iterator_t<Range>,Difference>
+counted_view<range_iterator_t<Range>,Difference>
   counted(Range&& rng, Difference n)
 {
-  return counted_view<detail::decay_range_iterator_t<Range>,Difference>(rng.begin(), n);
+  return counted_view<range_iterator_t<Range>,Difference>(rng.begin(), n);
+}
+
+
+template<class Difference, class Range>
+__AGENCY_ANNOTATION
+counted_view<range_iterator_t<Range>,Difference>
+  counted(Range&& rng, range_difference_t<Range> from, Difference n)
+{
+  return counted_view<range_iterator_t<Range>,Difference>(rng.begin() + from, n);
 }
 
 
