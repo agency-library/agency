@@ -534,7 +534,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     {
       __AGENCY_ANNOTATION
       shared_param_type(const typename super_t::param_type& param)
-        : barrier_(count_),
+        : barrier_(param.domain().size()),
           memory_resource_(),
           count_(param.domain().size())
       {
