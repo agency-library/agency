@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/experimental/view.hpp>
+#include <agency/experimental/ranges/range_traits.hpp>
 #include <iterator>
 
 namespace agency

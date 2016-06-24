@@ -3,7 +3,7 @@
 #include <numeric>
 #include <typeinfo>
 
-#include <agency/experimental/zip.hpp>
+#include <agency/experimental/ranges/zip.hpp>
 
 template<class Tuple>
 void assign_second_to_first(const Tuple& t)

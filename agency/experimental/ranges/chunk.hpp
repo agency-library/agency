@@ -1,9 +1,9 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/experimental/range_traits.hpp>
-#include <agency/experimental/counted.hpp>
-#include <agency/experimental/stride.hpp>
+#include <agency/experimental/ranges/range_traits.hpp>
+#include <agency/experimental/ranges/counted.hpp>
+#include <agency/experimental/ranges/stride.hpp>
 
 namespace agency
 {

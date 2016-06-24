@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/experimental/view.hpp>
+#include <agency/experimental/ranges/range_traits.hpp>
 #include <type_traits>
 #include <iterator>
 
@@ -161,17 +161,15 @@ Difference operator-(const stride_sentinel<Iterator1>& lhs, const stride_iterato
 
 
 template<class View,
-         class Difference = typename std::iterator_traits<
-           decltype(std::declval<View*>()->begin())
-         >::difference_type
+         class Difference = range_difference_t<View>
         >
 class stride_view
 {
   private:
-    using base_iterator = decltype(std::declval<View*>()->begin());
+    using base_iterator = range_iterator_t<View>;
     using base_const_iterator = decltype(std::declval<const View*>()->begin());
 
-    using base_sentinel = decltype(std::declval<View&>().end());
+    using base_sentinel = range_sentinel_t<View>;
 
   public:
     using iterator = detail::stride_iterator<base_iterator,Difference>;
