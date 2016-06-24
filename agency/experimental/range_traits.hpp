@@ -33,6 +33,16 @@ using range_sentinel_t = typename range_sentinel<Range>::type;
 
 
 template<class Range>
+struct range_value
+{
+  using type = typename std::iterator_traits<range_iterator_t<Range>>::value_type;
+};
+
+template<class Range>
+using range_value_t = typename range_value<Range>::type;
+
+
+template<class Range>
 struct range_difference
 {
   using type = typename std::iterator_traits<range_iterator_t<Range>>::difference_type;
