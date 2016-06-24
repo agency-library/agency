@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/experimental/range_traits.hpp>
 #include <agency/experimental/counted.hpp>
 #include <agency/experimental/stride.hpp>
 
@@ -12,7 +13,7 @@ namespace detail
 {
 
 
-template<class View, class Difference = detail::range_difference_t<View>>
+template<class View, class Difference = range_difference_t<View>>
 class chunk_iterator
 {
   public:
@@ -159,7 +160,7 @@ typename chunk_iterator<View,Difference>::difference_type
 } // end detail
 
 
-template<class Range, class Difference = detail::range_difference_t<Range>>
+template<class Range, class Difference = range_difference_t<Range>>
 class chunk_view
 {
   public:
