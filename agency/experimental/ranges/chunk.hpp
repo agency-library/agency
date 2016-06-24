@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
+#include <agency/experimental/ranges/view.hpp>
 #include <agency/experimental/ranges/counted.hpp>
 #include <agency/experimental/ranges/stride.hpp>
 
