@@ -12,7 +12,7 @@ void saxpy(Executor& exec, size_t n, float a, View x, View y, View z)
 {
   using namespace agency;
 
-  bulk_invoke(cuda::par(n).on(exec), [=] __host__ __device__ (agency::parallel_agent& self)
+  bulk_invoke(par(n).on(exec), [=] __host__ __device__ (agency::parallel_agent& self)
   {
     int i = self.index();
     z[i] = a * x[i] + y[i];
