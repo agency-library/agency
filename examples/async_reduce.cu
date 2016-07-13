@@ -1,7 +1,5 @@
-#include <agency/experimental/array.hpp>
-#include <agency/experimental/view.hpp>
-#include <agency/experimental/stride.hpp>
 #include <agency/agency.hpp>
+#include <agency/experimental.hpp>
 #include <agency/cuda.hpp>
 #include <vector>
 #include <cassert>
@@ -72,7 +70,7 @@ agency::cuda::future<int> async_reduce(View data)
   auto policy = cuda::par(num_tiles, cuda::con(tile_size));
 
   auto partial_sums_fut = bulk_async(policy,
-    [=] __host__ __device__ (parallel_group<cuda::concurrent_agent>& self, tile& scratch) -> scope_result<1,int>
+    [=] __host__ __device__ (parallel_group<concurrent_agent>& self, tile& scratch) -> scope_result<1,int>
     {
       // find this group's partition
       auto partition = data.subspan(tile_size * self.outer().index(), tile_size);
@@ -93,7 +91,7 @@ agency::cuda::future<int> async_reduce(View data)
   );
 
   return bulk_then(policy.inner(),
-    [] __host__ __device__ (cuda::concurrent_agent& self, span<int> partial_sums, tile& scratch) -> single_result<int>
+    [] __host__ __device__ (concurrent_agent& self, span<int> partial_sums, tile& scratch) -> single_result<int>
     {
       auto sum = concurrent_sum(self, partial_sums, scratch);
 

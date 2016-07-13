@@ -4,7 +4,7 @@
 #include <agency/bulk_invoke.hpp>
 #include <agency/cuda.hpp>
 #include <agency/cuda/experimental/multidevice_array.hpp>
-#include <agency/experimental/view.hpp>
+#include <agency/experimental.hpp>
 
 
 template<class Executor, class View>
