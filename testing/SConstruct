@@ -53,7 +53,7 @@ def apply_compiler_flags(env):
   env.MergeFlags(['-O3', '-std=c++11', '-lstdc++', '-lpthread'])
   
   # next, flags for nvcc
-  env.MergeFlags(['--expt-extended-lambda', '-arch=sm_61'])
+  env.MergeFlags(['--expt-extended-lambda', '-arch=sm_52'])
 
 
 # script execution begins here
