@@ -5,7 +5,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <agency/bulk_async.hpp>
-#include <agency/cuda/execution_policy.hpp>
+#include <agency/cuda.hpp>
 
 // XXX need to figure out how to make this par(con) select grid_executor_2d automatically
 auto grid(agency::size2 outer_shape, agency::size2 inner_shape)
@@ -26,7 +26,7 @@ agency::cuda::future<void> async_square_transpose(size_t matrix_dim, float* tran
   size2 inner_shape{tile_dim, num_rows_per_block};
 
   return bulk_async(grid(outer_shape, inner_shape), 
-    [=] __host__ __device__ (parallel_group_2d<cuda::concurrent_agent_2d>& self)
+    [=] __host__ __device__ (parallel_group_2d<concurrent_agent_2d>& self)
     {
       auto idx = tile_dim * self.outer().index() + self.inner().index();
 
