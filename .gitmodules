@@ -1,3 +1,6 @@
 [submodule "testing/site_scons/site_tools/nvcc-scons"]
 	path = testing/site_scons/site_tools/nvcc-scons
 	url = git://github.com/jaredhoberock/nvcc-scons.git
+[submodule "examples/site_scons/site_tools/nvcc-scons"]
+	path = examples/site_scons/site_tools/nvcc-scons
+	url = git@github.com:jaredhoberock/nvcc-scons

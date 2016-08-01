@@ -1,0 +1,80 @@
+# this python/scons script implements Agency's build logic
+# it may make the most sense to read this file beginning
+# at the bottom and proceeding towards the top
+
+import os
+
+
+def ProgramPerSourceInCurrentDirectory(env):
+  """Collects all source files in the current directory and creates a program from each of them.
+  Returns the list of all such programs created.
+  """
+  sources = []
+  directories = ['.']
+  extensions = ['.cpp', '.cu']
+  
+  for dir in directories:
+    for ext in extensions:
+      regex = os.path.join(dir, '*' + ext)
+      sources.extend(env.Glob(regex))
+
+  programs = []
+  for src in sources:
+    programs.append(env.Program(src))
+
+  return programs
+
+
+def RunProgram(env, program, run_program_command):
+  """Creates a unit test by running the given program after it is built."""
+  relative_path_from_root = env.Dir('.').path
+  # elide '.'
+  if relative_path_from_root == '.':
+    relative_path_from_root = ''
+  alias = env.Alias(os.path.join(relative_path_from_root, run_program_command), [program], program[0].abspath)
+  env.AlwaysBuild(alias)
+  return alias
+
+
+def RunPrograms(env, programs, run_programs_command):
+  """Creates a unit test for each program in the given list of programs.
+  Returns a list of aliases where each alias corresponds to a unit test.
+  """
+  aliases = []
+  for p in programs:
+    aliases.append(RunProgram(env, p, run_programs_command))
+  return aliases
+
+
+# this function takes a SCons environment and specifies some compiler
+# flags to use
+def apply_compiler_flags(env):
+  # first, general C++ flags
+  env.MergeFlags(['-O3', '-std=c++11', '-lstdc++', '-lpthread'])
+  
+  # next, flags for nvcc
+  env.MergeFlags(['--expt-extended-lambda', '-arch=sm_52'])
+
+
+# script execution begins here
+
+# first set up some variables we can control from the command line
+vars = Variables()
+vars.Add('CXX', 'C++ compiler', 'clang')
+vars.Add('CPPPATH', 'Agency include path', Dir('..'))
+
+# create a SCons build environment
+env = Environment(variables = vars, tools = ['default', 'nvcc-scons/nvcc'])
+
+apply_compiler_flags(env)
+
+# add our custom shorthand methods for subsidiary SConscripts' use
+env.AddMethod(ProgramPerSourceInCurrentDirectory)
+env.AddMethod(RunPrograms)
+
+# generate the list of executable programs from the SConscript in this directory
+programs = env.SConscript('./SConscript', exports = 'env')
+
+# create an alias named 'run_examples' that runs all the executable programs we've built
+env.RunPrograms(programs, 'run_examples')
+
