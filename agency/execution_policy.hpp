@@ -36,7 +36,6 @@ namespace detail
 // declare basic_execution_policy for replace_executor()'s signature below 
 template<class ExecutionAgent,
          class BulkExecutor,
-         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category,
          class DerivedExecutionPolicy = void>
 class basic_execution_policy;
 
@@ -48,8 +47,7 @@ class basic_execution_policy;
 template<class ExecutionPolicy, class Executor>
 detail::basic_execution_policy<
   typename ExecutionPolicy::execution_agent_type,
-  Executor,
-  typename ExecutionPolicy::execution_category>
+  Executor>
 replace_executor(const ExecutionPolicy& policy, const Executor& exec);
 
 
@@ -106,21 +104,16 @@ class scoped_execution_policy;
 
 // XXX we should assert that ExecutionCategory is stronger than the category of ExecutionAgent
 // XXX another way to order these parameters would be
-// ExecutionCategory, BulkExecutor, ExecutionAgent = __default_execution_agent<ExecutionAgent>, DerivedExecutionPolicy
-// XXX not sure it's worth taking ExecutionCategory as a parameter, because ExecutionAgency already advertises a category
-//     and it's not clear there's any value allowing further strengthening it
-//     also, a parallel policy that generates e.g. sequential_agent would be just weird
-//     so, we might want to eliminate the ExecutionCategory parameter
+// BulkExecutor, ExecutionAgent = __default_execution_agent<ExecutionAgent>, DerivedExecutionPolicy
 template<class ExecutionAgent,
          class BulkExecutor,
-         class ExecutionCategory,
          class DerivedExecutionPolicy>
 class basic_execution_policy
 {
   public:
     using execution_agent_type = ExecutionAgent;
     using executor_type        = BulkExecutor;
-    using execution_category   = ExecutionCategory;
+    using execution_category   = typename execution_agent_traits<ExecutionAgent>::execution_category;
 
   private:
     using derived_type         = typename std::conditional<
@@ -239,10 +232,6 @@ class scoped_execution_policy
         typename ExecutionPolicy1::executor_type,
         typename ExecutionPolicy2::executor_type
       >,
-      scoped_execution_tag<
-        typename ExecutionPolicy1::execution_category,
-        typename ExecutionPolicy2::execution_category
-      >,
       scoped_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
     >
 {
@@ -255,10 +244,6 @@ class scoped_execution_policy
       scoped_executor<
         typename ExecutionPolicy1::executor_type,
         typename ExecutionPolicy2::executor_type
-      >,
-      scoped_execution_tag<
-        typename ExecutionPolicy1::execution_category,
-        typename ExecutionPolicy2::execution_category
       >,
       scoped_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
     >;
@@ -300,8 +285,7 @@ class scoped_execution_policy
 template<class ExecutionPolicy, class Executor>
 detail::basic_execution_policy<
   typename ExecutionPolicy::execution_agent_type,
-  Executor,
-  typename ExecutionPolicy::execution_category
+  Executor
 >
 replace_executor(const ExecutionPolicy& policy, const Executor& exec)
 {
@@ -312,18 +296,17 @@ replace_executor(const ExecutionPolicy& policy, const Executor& exec)
 
   using result_type = detail::basic_execution_policy<
     typename ExecutionPolicy::execution_agent_type,
-    Executor,
-    policy_category
+    Executor
   >;
 
   return result_type(policy.param(), exec);
 }
 
 
-class sequential_execution_policy : public detail::basic_execution_policy<sequential_agent, sequential_executor, sequential_execution_tag, sequential_execution_policy>
+class sequential_execution_policy : public detail::basic_execution_policy<sequential_agent, sequential_executor, sequential_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<sequential_agent, sequential_executor, sequential_execution_tag, sequential_execution_policy>;
+    using super_t = detail::basic_execution_policy<sequential_agent, sequential_executor, sequential_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
@@ -333,10 +316,10 @@ class sequential_execution_policy : public detail::basic_execution_policy<sequen
 constexpr sequential_execution_policy seq{};
 
 
-class concurrent_execution_policy : public detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>
+class concurrent_execution_policy : public detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>;
+    using super_t = detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
@@ -346,10 +329,10 @@ class concurrent_execution_policy : public detail::basic_execution_policy<concur
 constexpr concurrent_execution_policy con{};
 
 
-class parallel_execution_policy : public detail::basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_tag, parallel_execution_policy>
+class parallel_execution_policy : public detail::basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_tag, parallel_execution_policy>;
+    using super_t = detail::basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
@@ -359,10 +342,10 @@ class parallel_execution_policy : public detail::basic_execution_policy<parallel
 const parallel_execution_policy par{};
 
 
-class vector_execution_policy : public detail::basic_execution_policy<vector_agent, vector_executor, unsequenced_execution_tag, vector_execution_policy>
+class vector_execution_policy : public detail::basic_execution_policy<vector_agent, vector_executor, vector_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<vector_agent, vector_executor, unsequenced_execution_tag, vector_execution_policy>;
+    using super_t = detail::basic_execution_policy<vector_agent, vector_executor, vector_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
