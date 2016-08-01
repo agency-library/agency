@@ -22,8 +22,12 @@ struct scoped_execution_tag
 };
 
 
-// XXX need some way to compare the strength of these at compile time
-// the following 
+namespace detail
+{
+
+
+// XXX maybe "weakness" is the wrong way to describe what we're really interested in here
+//     we just want some idea of substitutability
 
 //  "<" means "is weaker than"
 //  "<" is transitive
@@ -32,17 +36,38 @@ struct scoped_execution_tag
 //
 // these relationships should be true
 //
-// parallel_execution_tag < sequential_execution_tag
-// parallel_execution_tag < concurrent_execution_tag
-// unsequenced_execution_tag   < parallel_execution_tag
-//
-// XXX figure out how sequential is related to concurrent
+// parallel_execution_tag    < sequential_execution_tag
+// parallel_execution_tag    < concurrent_execution_tag
+// unsequenced_execution_tag < parallel_execution_tag
 //
 // XXX figure out how scoped_execution_tag sorts
 
+// most categories are not weaker than another
+template<class ExecutionCategory1, class ExecutionCategory2>
+struct is_weaker_than : std::false_type {};
 
-namespace detail
-{
+// all categories are weaker than themselves
+template<class ExecutionCategory>
+struct is_weaker_than<ExecutionCategory,ExecutionCategory> : std::true_type {};
+
+// unsequenced is weaker than everything
+template<class ExecutionCategory2>
+struct is_weaker_than<unsequenced_execution_tag, ExecutionCategory2> : std::true_type {};
+
+// introduce this specialization to disambiguate two other specializations
+template<>
+struct is_weaker_than<unsequenced_execution_tag, unsequenced_execution_tag> : std::true_type {};
+
+// parallel is weaker than everything except unsequenced
+template<class ExecutionCategory2>
+struct is_weaker_than<parallel_execution_tag, ExecutionCategory2> : std::true_type {};
+
+// introduce this specialization to disambiguate two other specializations
+template<>
+struct is_weaker_than<parallel_execution_tag, parallel_execution_tag> : std::true_type {};
+
+template<>
+struct is_weaker_than<parallel_execution_tag, unsequenced_execution_tag> : std::false_type {};
 
 
 template<class ExecutionCategory>
