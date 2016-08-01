@@ -107,6 +107,10 @@ class scoped_execution_policy;
 // XXX we should assert that ExecutionCategory is stronger than the category of ExecutionAgent
 // XXX another way to order these parameters would be
 // ExecutionCategory, BulkExecutor, ExecutionAgent = __default_execution_agent<ExecutionAgent>, DerivedExecutionPolicy
+// XXX not sure it's worth taking ExecutionCategory as a parameter, because ExecutionAgency already advertises a category
+//     and it's not clear there's any value allowing further strengthening it
+//     also, a parallel policy that generates e.g. sequential_agent would be just weird
+//     so, we might want to eliminate the ExecutionCategory parameter
 template<class ExecutionAgent,
          class BulkExecutor,
          class ExecutionCategory,
@@ -301,10 +305,15 @@ detail::basic_execution_policy<
 >
 replace_executor(const ExecutionPolicy& policy, const Executor& exec)
 {
+  using policy_category = typename ExecutionPolicy::execution_category;
+  using executor_category = detail::executor_execution_category_t<Executor>;
+
+  static_assert(detail::is_weaker_than<policy_category, executor_category>::value, "replace_executor(): Execution policy's forward progress requirements cannot be satisfied by executor's guarantees.");
+
   using result_type = detail::basic_execution_policy<
     typename ExecutionPolicy::execution_agent_type,
     Executor,
-    typename ExecutionPolicy::execution_category
+    policy_category
   >;
 
   return result_type(policy.param(), exec);
