@@ -2,10 +2,10 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/execution_categories.hpp>
-#include <agency/executor/parallel_executor.hpp>
-#include <agency/executor/vector_executor.hpp>
-#include <agency/executor/scoped_executor.hpp>
-#include <agency/executor/flattened_executor.hpp>
+#include <agency/execution/executor/parallel_executor.hpp>
+#include <agency/execution/executor/vector_executor.hpp>
+#include <agency/execution/executor/scoped_executor.hpp>
+#include <agency/execution/executor/flattened_executor.hpp>
 #include <agency/detail/concurrency/latch.hpp>
 #include <agency/detail/concurrency/concurrent_queue.hpp>
 #include <agency/detail/type_traits.hpp>

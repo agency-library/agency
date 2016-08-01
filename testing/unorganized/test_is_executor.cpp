@@ -1,4 +1,4 @@
-#include <agency/executor.hpp>
+#include <agency/agency.hpp>
 #include <iostream>
 
 int main()

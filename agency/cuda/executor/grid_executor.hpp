@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/executor/executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/cuda/detail/tuple.hpp>
 #include <agency/cuda/detail/feature_test.hpp>

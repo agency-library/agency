@@ -8,9 +8,7 @@
 #include <agency/exception_list.hpp>
 #include <agency/execution.hpp>
 #include <agency/execution_agent.hpp>
-#include <agency/execution_categories.hpp>
 #include <agency/execution_policy.hpp>
-#include <agency/executor.hpp>
 #include <agency/future.hpp>
 #include <agency/version.hpp>
 

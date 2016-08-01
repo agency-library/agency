@@ -11,7 +11,7 @@
 #include <agency/detail/bulk_functions/agent_shared_parameter_factory_tuple.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
 #include <agency/execution_agent.hpp>
-#include <agency/executor/executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 #include <utility>
 
 namespace agency

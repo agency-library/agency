@@ -1,11 +1,9 @@
+#include <agency/agency.hpp>
 #include <cassert>
 #include <algorithm>
 #include <iostream>
 #include <mutex>
 #include <thread>
-#include <agency/executor/executor_array.hpp>
-#include <agency/executor/concurrent_executor.hpp>
-#include <agency/executor/flattened_executor.hpp>
 
 int main()
 {

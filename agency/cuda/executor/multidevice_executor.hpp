@@ -3,8 +3,8 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/executor/grid_executor.hpp>
 #include <agency/cuda/executor/parallel_executor.hpp>
-#include <agency/executor/executor_array.hpp>
-#include <agency/executor/flattened_executor.hpp>
+#include <agency/execution/executor/executor_array.hpp>
+#include <agency/execution/executor/flattened_executor.hpp>
 #include <numeric>
 
 namespace agency

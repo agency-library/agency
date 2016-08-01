@@ -9,11 +9,7 @@
 #include <initializer_list>
 
 #include <agency/execution_agent.hpp>
-#include <agency/executor/sequential_executor.hpp>
-#include <agency/executor/concurrent_executor.hpp>
-#include <agency/executor/parallel_executor.hpp>
-#include <agency/executor/vector_executor.hpp>
-#include <agency/executor/scoped_executor.hpp>
+#include <agency/execution/executor.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
 #include <agency/detail/tuple.hpp>
 

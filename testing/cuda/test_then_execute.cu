@@ -1,5 +1,5 @@
-#include <agency/cuda/executor/grid_executor.hpp>
-#include <agency/executor/flattened_executor.hpp>
+#include <agency/agency.hpp>
+#include <agency/cuda.hpp>
 #include <algorithm>
 #include <cassert>
 #include <iostream>

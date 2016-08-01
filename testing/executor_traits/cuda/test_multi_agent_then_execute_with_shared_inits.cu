@@ -1,4 +1,4 @@
-#include <agency/cuda/executor/grid_executor.hpp>
+#include <agency/cuda.hpp>
 #include <algorithm>
 #include <iostream>
 
