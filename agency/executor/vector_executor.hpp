@@ -1,7 +1,7 @@
 #pragma once
 
 #include <future>
-#include <agency/execution_categories.hpp>
+#include <agency/execution/execution_categories.hpp>
 #include <agency/future.hpp>
 #include <utility>
 

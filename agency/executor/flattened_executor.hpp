@@ -3,7 +3,7 @@
 #include <type_traits>
 #include <agency/detail/tuple.hpp>
 #include <agency/executor/executor_traits.hpp>
-#include <agency/execution_categories.hpp>
+#include <agency/execution/execution_categories.hpp>
 #include <agency/executor/scoped_executor.hpp>
 #include <agency/executor/detail/flatten_index_and_invoke.hpp>
 #include <agency/detail/factory.hpp>

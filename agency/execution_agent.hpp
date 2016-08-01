@@ -1,6 +1,6 @@
 #pragma once
 
-#include <agency/execution_categories.hpp>
+#include <agency/execution/execution_categories.hpp>
 #include <agency/detail/concurrency/barrier.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/type_traits.hpp>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution_categories.hpp>
+#include <agency/execution/execution_categories.hpp>
 #include <agency/executor/parallel_executor.hpp>
 #include <agency/executor/vector_executor.hpp>
 #include <agency/executor/scoped_executor.hpp>

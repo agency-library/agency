@@ -6,6 +6,7 @@
 #include <agency/bulk_then.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/exception_list.hpp>
+#include <agency/execution.hpp>
 #include <agency/execution_agent.hpp>
 #include <agency/execution_categories.hpp>
 #include <agency/execution_policy.hpp>

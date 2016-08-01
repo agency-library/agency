@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/future.hpp>
-#include <agency/execution_categories.hpp>
+#include <agency/execution/execution_categories.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/executor/detail/executor_traits/member_types.hpp>
 #include <agency/executor/detail/executor_traits/check_for_member_functions.hpp>
