@@ -1,5 +1,4 @@
-#include <agency/bulk_async.hpp>
-#include <agency/execution_policy.hpp>
+#include <agency/agency.hpp>
 #include <cassert>
 #include <vector>
 

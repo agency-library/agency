@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution_policy.hpp>
+#include <agency/execution/execution_policy.hpp>
 #include <agency/cuda/executor/grid_executor.hpp>
 #include <agency/cuda/executor/parallel_executor.hpp>
 #include <agency/cuda/executor/concurrent_executor.hpp>

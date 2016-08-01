@@ -7,7 +7,6 @@
 #include <agency/coordinate.hpp>
 #include <agency/exception_list.hpp>
 #include <agency/execution.hpp>
-#include <agency/execution_policy.hpp>
 #include <agency/future.hpp>
 #include <agency/version.hpp>
 
