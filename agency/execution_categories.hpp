@@ -11,7 +11,7 @@ namespace agency
 struct sequential_execution_tag {};
 struct concurrent_execution_tag {};
 struct parallel_execution_tag {};
-struct vector_execution_tag {};
+struct unsequenced_execution_tag {};
 
 
 template<class ExecutionCategory1, class ExecutionCategory2>
@@ -34,7 +34,7 @@ struct scoped_execution_tag
 //
 // parallel_execution_tag < sequential_execution_tag
 // parallel_execution_tag < concurrent_execution_tag
-// vector_execution_tag   < parallel_execution_tag
+// unsequenced_execution_tag   < parallel_execution_tag
 //
 // XXX figure out how sequential is related to concurrent
 //

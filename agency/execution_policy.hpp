@@ -350,10 +350,10 @@ class parallel_execution_policy : public detail::basic_execution_policy<parallel
 const parallel_execution_policy par{};
 
 
-class vector_execution_policy : public detail::basic_execution_policy<vector_agent, vector_executor, vector_execution_tag, vector_execution_policy>
+class vector_execution_policy : public detail::basic_execution_policy<vector_agent, vector_executor, unsequenced_execution_tag, vector_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<vector_agent, vector_executor, vector_execution_tag, vector_execution_policy>;
+    using super_t = detail::basic_execution_policy<vector_agent, vector_executor, unsequenced_execution_tag, vector_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
