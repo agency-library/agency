@@ -15,7 +15,7 @@ namespace this_thread
 class vector_executor
 {
   public:
-    using execution_category = vector_execution_tag;
+    using execution_category = unsequenced_execution_tag;
 
     template<class Function, class Factory>
     void execute(Function f, size_t n, Factory shared_factory)

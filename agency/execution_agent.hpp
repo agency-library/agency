@@ -340,9 +340,9 @@ using parallel_agent_1d = parallel_agent;
 using parallel_agent_2d = detail::basic_execution_agent<parallel_execution_tag, size2>;
 
 
-using vector_agent = detail::basic_execution_agent<vector_execution_tag>;
+using vector_agent = detail::basic_execution_agent<unsequenced_execution_tag>;
 using vector_agent_1d = vector_agent;
-using vector_agent_2d = detail::basic_execution_agent<vector_execution_tag, size2>;
+using vector_agent_2d = detail::basic_execution_agent<unsequenced_execution_tag, size2>;
 
 
 namespace detail
