@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/tuple.hpp>
-#include <agency/execution_agent.hpp>
+#include <agency/execution/execution_agent.hpp>
 #include <type_traits>
 
 namespace agency

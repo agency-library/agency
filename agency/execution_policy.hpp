@@ -8,8 +8,8 @@
 #include <tuple>
 #include <initializer_list>
 
-#include <agency/execution_agent.hpp>
 #include <agency/execution/executor.hpp>
+#include <agency/execution/execution_agent.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
 #include <agency/detail/tuple.hpp>
 

@@ -11,7 +11,7 @@
 #include <agency/detail/bulk_functions/bulk_invoke_execution_policy.hpp>
 #include <agency/detail/execution_policy_traits.hpp>
 #include <agency/detail/is_call_possible.hpp>
-#include <agency/execution_agent.hpp>
+#include <agency/execution/execution_agent.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <utility>
 
