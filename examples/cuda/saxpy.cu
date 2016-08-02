@@ -1,9 +1,10 @@
+#include <agency/bulk_invoke.hpp>
+#include <agency/cuda/execution.hpp>
+#include <thrust/device_vector.h>
+
 #include <cassert>
 #include <iostream>
 #include <chrono>
-#include <agency/bulk_invoke.hpp>
-#include <agency/cuda/execution_policy.hpp>
-#include <thrust/device_vector.h>
 
 
 void saxpy(size_t n, float a, const float* x, const float* y, float* z)

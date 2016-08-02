@@ -1,9 +1,10 @@
+#include <agency/bulk_invoke.hpp>
+#include <agency/execution.hpp>
+
 #include <vector>
 #include <cassert>
 #include <iostream>
 #include <chrono>
-#include <agency/bulk_invoke.hpp>
-#include <agency/execution_policy.hpp>
 
 void saxpy(size_t n, float a, const float* x, const float* y, float* z)
 {
