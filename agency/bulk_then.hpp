@@ -4,7 +4,7 @@
 #include <agency/detail/bulk_functions/bulk_then_execution_policy.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/execution_agent.hpp>
+#include <agency/execution/execution_agent.hpp>
 
 namespace agency
 {

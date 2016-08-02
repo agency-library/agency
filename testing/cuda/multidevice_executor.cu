@@ -1,6 +1,5 @@
-#include <agency/bulk_invoke.hpp>
-#include <agency/cuda/execution_policy.hpp>
-#include <agency/cuda/executor/multidevice_executor.hpp>
+#include <agency/agency.hpp>
+#include <agency/cuda.hpp>
 #include <vector>
 
 struct functor

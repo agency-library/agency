@@ -1,8 +1,8 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/execution_policy_traits.hpp>
 #include <agency/detail/is_call_possible.hpp>
+#include <agency/execution/detail/execution_policy_traits.hpp>
 #include <type_traits>
 
 namespace agency

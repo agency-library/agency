@@ -1,4 +1,4 @@
-#include <agency/executor/executor_traits.hpp>
+#include <agency/agency.hpp>
 #include <cassert>
 #include <iostream>
 

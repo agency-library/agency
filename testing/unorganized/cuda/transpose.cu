@@ -4,8 +4,8 @@
 #include <numeric>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
-#include <agency/bulk_async.hpp>
-#include <agency/cuda/execution_policy.hpp>
+#include <agency/agency.hpp>
+#include <agency/cuda.hpp>
 
 const int TILE_DIM = 32;
 const int BLOCK_ROWS = 8;

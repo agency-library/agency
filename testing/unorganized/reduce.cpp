@@ -1,11 +1,10 @@
+#include <agency/agency.hpp>
 #include <thread>
 #include <vector>
 #include <algorithm>
 #include <numeric>
 #include <cassert>
 #include <iostream>
-#include <agency/bulk_invoke.hpp>
-#include <agency/execution_policy.hpp>
 
 
 template<class Iterator, class T, class BinaryFunction>

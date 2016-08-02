@@ -1,6 +1,5 @@
+#include <agency/agency.hpp>
 #include <iostream>
-#include <agency/bulk_async.hpp>
-#include <agency/execution_policy.hpp>
 
 int main()
 {

@@ -1,4 +1,4 @@
-#include <agency/cuda/future.hpp>
+#include <agency/cuda.hpp>
 #include <cassert>
 
 int main()

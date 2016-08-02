@@ -1,10 +1,9 @@
+#include <agency/agency.hpp>
 #include <algorithm>
 #include <iostream>
 #include <vector>
 #include <random>
 #include <cassert>
-#include <agency/bulk_invoke.hpp>
-#include <agency/execution_policy.hpp>
 
 // adapted from https://github.com/chriskohlhoff/executors/blob/master/src/examples/executor/fork_join.cpp
 

@@ -1,8 +1,7 @@
+#include <agency/agency.hpp>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
-#include <agency/bulk_invoke.hpp>
-#include <agency/execution_policy.hpp>
 
 int main()
 {

@@ -1,7 +1,5 @@
+#include <agency/agency.hpp>
 #include <iostream>
-#include <agency/bulk_invoke.hpp>
-#include <agency/execution_policy.hpp>
-#include <agency/coordinate.hpp>
 
 const agency::detail::basic_execution_policy<agency::parallel_agent_2d, agency::parallel_executor> par2d{};
 

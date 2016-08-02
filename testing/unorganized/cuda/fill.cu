@@ -2,8 +2,8 @@
 #include <cassert>
 #include <thrust/device_vector.h>
 #include <thrust/logical.h>
-#include <agency/bulk_invoke.hpp>
-#include <agency/cuda/execution_policy.hpp>
+#include <agency/agency.hpp>
+#include <agency/cuda.hpp>
 
 
 struct fill_functor

@@ -1,5 +1,5 @@
-#include <agency/cuda/executor/grid_executor.hpp>
-#include <agency/bulk_invoke.hpp>
+#include <agency/agency.hpp>
+#include <agency/cuda.hpp>
 
 struct hello_world
 {

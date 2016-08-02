@@ -1,5 +1,4 @@
-#include <agency/bulk_async.hpp>
-#include <agency/execution_policy.hpp>
+#include <agency/agency.hpp>
 
 template<class ExecutionPolicy>
 void test(ExecutionPolicy policy)

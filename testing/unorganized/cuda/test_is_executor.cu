@@ -1,5 +1,5 @@
-#include <agency/executor.hpp>
-#include <agency/cuda/executor.hpp>
+#include <agency/agency.hpp>
+#include <agency/cuda.hpp>
 #include <iostream>
 
 int main()

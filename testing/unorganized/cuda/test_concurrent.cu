@@ -1,6 +1,6 @@
 #include <iostream>
-#include <agency/bulk_invoke.hpp>
-#include <agency/cuda/execution_policy.hpp>
+#include <agency/agency.hpp>
+#include <agency/cuda.hpp>
 
 struct functor
 {
