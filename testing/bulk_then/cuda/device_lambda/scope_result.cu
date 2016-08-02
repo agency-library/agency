@@ -1,5 +1,5 @@
-#include <agency/bulk_then.hpp>
-#include <agency/cuda/execution_policy.hpp>
+#include <agency/agency.hpp>
+#include <agency/cuda.hpp>
 #include <iostream>
 #include <cassert>
 #include <vector>

@@ -1,5 +1,5 @@
-#include <agency/bulk_async.hpp>
-#include <agency/cuda/execution_policy.hpp>
+#include <agency/agency.hpp>
+#include <agency/cuda.hpp>
 #include <atomic>
 
 __managed__ int counter;

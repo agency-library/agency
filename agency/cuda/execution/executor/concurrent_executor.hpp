@@ -1,6 +1,6 @@
 #pragma once
 
-#include <agency/cuda/executor/block_executor.hpp>
+#include <agency/cuda/execution/executor/block_executor.hpp>
 
 namespace agency
 {

@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/flattened_executor.hpp>
-#include <agency/cuda/executor/grid_executor.hpp>
+#include <agency/cuda/execution/executor/grid_executor.hpp>
 #include <agency/cuda/memory/allocator.hpp>
 #include <agency/cuda/memory/pinned_allocator.hpp>
 #include <agency/cuda/detail/array.hpp>
