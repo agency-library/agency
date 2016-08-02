@@ -1,5 +1,5 @@
 #include <agency/bulk_invoke.hpp>
-#include <agency/execution_policy.hpp>
+#include <agency/execution.hpp>
 #include <mutex>
 #include <iostream>
 #include <thread>

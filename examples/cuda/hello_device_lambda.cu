@@ -1,5 +1,5 @@
 // This example program demonstrates how to use CUDA extended device lambdas with Agency.
-#include <agency/cuda/execution_policy.hpp>
+#include <agency/cuda/execution.hpp>
 #include <agency/bulk_invoke.hpp>
 #include <utility>
 #include <cstdio>
