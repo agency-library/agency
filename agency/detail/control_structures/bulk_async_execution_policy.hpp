@@ -1,13 +1,13 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/bulk_functions/executor_functions/bulk_async_executor.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/bulk_functions/execute_agent_functor.hpp>
-#include <agency/detail/bulk_functions/single_result.hpp>
-#include <agency/detail/bulk_functions/bulk_invoke_execution_policy.hpp>
-#include <agency/detail/bulk_functions/shared_parameter.hpp>
-#include <agency/detail/bulk_functions/agent_shared_parameter_factory_tuple.hpp>
+#include <agency/detail/control_structures/executor_functions/bulk_async_executor.hpp>
+#include <agency/detail/control_structures/execute_agent_functor.hpp>
+#include <agency/detail/control_structures/single_result.hpp>
+#include <agency/detail/control_structures/bulk_invoke_execution_policy.hpp>
+#include <agency/detail/control_structures/shared_parameter.hpp>
+#include <agency/detail/control_structures/agent_shared_parameter_factory_tuple.hpp>
 #include <agency/execution/execution_agent.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/detail/execution_policy_traits.hpp>

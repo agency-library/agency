@@ -2,8 +2,8 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/bulk_functions/bind.hpp>
-#include <agency/detail/bulk_functions/shared_parameter.hpp>
+#include <agency/detail/control_structures/bind.hpp>
+#include <agency/detail/control_structures/shared_parameter.hpp>
 #include <type_traits>
 
 namespace agency

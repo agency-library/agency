@@ -1,10 +1,10 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/bulk_functions/bulk_async_execution_policy.hpp>
+#include <agency/detail/control_structures/bulk_async_execution_policy.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/detail/bulk_functions/is_bulk_call_possible_via_execution_policy.hpp>
+#include <agency/detail/control_structures/is_bulk_call_possible_via_execution_policy.hpp>
 #include <agency/execution/execution_agent.hpp>
 
 namespace agency

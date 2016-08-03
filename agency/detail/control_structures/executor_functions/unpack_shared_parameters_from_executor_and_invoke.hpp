@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/bulk_functions/executor_functions/shared_parameter_packaging.hpp>
+#include <agency/detail/control_structures/executor_functions/shared_parameter_packaging.hpp>
 #include <agency/detail/tuple.hpp>
 
 namespace agency
