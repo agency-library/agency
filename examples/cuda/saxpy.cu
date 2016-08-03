@@ -1,5 +1,5 @@
-#include <agency/bulk_invoke.hpp>
-#include <agency/cuda/execution.hpp>
+#include <agency/agency.hpp>
+#include <agency/cuda.hpp>
 #include <thrust/device_vector.h>
 
 #include <cassert>

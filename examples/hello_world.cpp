@@ -1,5 +1,4 @@
-#include <agency/bulk_invoke.hpp>
-#include <agency/execution.hpp>
+#include <agency/agency.hpp>
 #include <iostream>
 
 void hello(agency::sequential_agent& self)

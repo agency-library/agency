@@ -1,5 +1,4 @@
-#include <agency/bulk_invoke.hpp>
-#include <agency/execution.hpp>
+#include <agency/agency.hpp>
 #include <vector>
 
 int sum(const std::vector<int>& data)

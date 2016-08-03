@@ -1,5 +1,4 @@
-#include <agency/bulk_invoke.hpp>
-#include <agency/execution.hpp>
+#include <agency/agency.hpp>
 
 #include <vector>
 #include <cassert>

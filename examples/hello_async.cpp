@@ -1,5 +1,4 @@
-#include <agency/bulk_async.hpp>
-#include <agency/execution.hpp>
+#include <agency/agency.hpp>
 #include <iostream>
 
 int main()

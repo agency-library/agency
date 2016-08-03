@@ -1,9 +1,9 @@
 #include <cassert>
 #include <iostream>
 #include <chrono>
-#include <agency/bulk_invoke.hpp>
+#include <agency/agency.hpp>
 #include <agency/cuda.hpp>
-#include <agency/cuda/experimental/multidevice_array.hpp>
+#include <agency/cuda/experimental.hpp>
 #include <agency/experimental.hpp>
 
 
