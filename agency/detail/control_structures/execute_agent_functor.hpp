@@ -4,6 +4,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/index_cast.hpp>
+#include <agency/detail/invoke.hpp>
 #include <utility>
 
 namespace agency
@@ -57,7 +58,7 @@ struct execute_agent_functor
       // XXX we explicitly cast the result of f_ to result_type
       //     this is due to our special implementation of result_of,
       //     coerces the return type of a CUDA extended device lambda to be void
-      return static_cast<result_type>(f_(self, agency::detail::get<Indices>(args_)...));
+      return static_cast<result_type>(agency::detail::invoke(f_, self, agency::detail::get<Indices>(args_)...));
     }
   };
 
