@@ -413,6 +413,15 @@ using executor_execution_category_t = typename executor_execution_category<Execu
 
 
 template<class Executor, class Enable = void>
+struct executor_execution_depth {};
+
+template<class Executor>
+struct executor_execution_depth<Executor, typename std::enable_if<is_executor<Executor>::value>::type>
+  : std::integral_constant<std::size_t, executor_traits<Executor>::execution_depth>
+{};
+
+
+template<class Executor, class Enable = void>
 struct executor_shape {};
 
 template<class Executor>
