@@ -333,6 +333,18 @@ template<template<class... Params> class Template, class TypeList>
 using type_list_instantiate = typename type_list_instantiate_impl<Template,TypeList>::type;
 
 
+template<class TypeList>
+struct type_list_tail_impl;
+
+template<class Type1, class... Types>
+struct type_list_tail_impl<type_list<Type1,Types...>>
+{
+  using type = type_list<Types...>;
+};
+
+template<class TypeList>
+using type_list_tail = typename type_list_tail_impl<TypeList>::type;
+
 
 } // end detail
 } // end agency
