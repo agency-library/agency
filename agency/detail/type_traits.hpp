@@ -23,6 +23,10 @@ struct lazy_conditional<false,T,F>
 };
 
 
+template<bool condition, typename T, typename F>
+using lazy_conditional_t = typename lazy_conditional<condition, T, F>::type;
+
+
 template<typename T>
 struct identity
 {
