@@ -116,6 +116,15 @@ using execution_policy_agent_t = typename execution_policy_agent<T>::type;
 //using has_execution_agent_type = is_detected<execution_policy_agent_t, T>;
 
 
+// returns T's ::execution_agent_type or nonesuch if T has no ::execution_agent_type
+template<class T, class Default>
+using execution_policy_agent_or_t = lazy_conditional_t<
+  has_execution_agent_type<T>::value,
+  execution_policy_agent<T>,
+  identity<Default>
+>;
+
+
 
 // XXX nvcc can't correctly compile this implementation of execution_policy_param in all cases
 template<class T>
@@ -176,6 +185,13 @@ using has_param = disjunction<
   has_param_member_type<T>
 >;
 
+
+template<class ExecutionPolicy>
+struct execution_policy_execution_depth
+  : executor_execution_depth<
+      execution_policy_executor_t<ExecutionPolicy>
+    >
+{};
 
 
 } // end detail
