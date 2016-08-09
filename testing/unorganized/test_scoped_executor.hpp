@@ -1,6 +1,6 @@
 #include <agency/scoped_executor.hpp>
 #include <agency/concurrent_executor.hpp>
-#include <agency/sequential_executor.hpp>
+#include <agency/sequenced_executor.hpp>
 #include <agency/bulk_invoke.hpp>
 #include <iostream>
 #include <thread>
@@ -13,7 +13,7 @@ int main()
   // XXX we should really assert that the results match the expected value
 
   {
-    using executor_type = agency::scoped_executor<agency::concurrent_executor, agency::sequential_executor>;
+    using executor_type = agency::scoped_executor<agency::concurrent_executor, agency::sequenced_executor>;
     executor_type ex;
 
     using traits = agency::executor_traits<executor_type>;
@@ -67,7 +67,7 @@ int main()
   {
     // test with 3-deep nesting
     
-    using executor_type = agency::scoped_executor<agency::sequential_executor, agency::scoped_executor<agency::sequential_executor,agency::sequential_executor>>;
+    using executor_type = agency::scoped_executor<agency::sequenced_executor, agency::scoped_executor<agency::sequenced_executor,agency::sequenced_executor>>;
     using traits = agency::executor_traits<executor_type>;
     executor_type ex;
 

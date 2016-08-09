@@ -264,11 +264,11 @@ void test(Shape shape)
 
 int main()
 {
-  test<agency::sequential_executor>(10);
+  test<agency::sequenced_executor>(10);
   test<agency::parallel_executor>(10);
   test<agency::concurrent_executor>(10);
 
-  using executor_type = agency::scoped_executor<agency::concurrent_executor,agency::sequential_executor>;
+  using executor_type = agency::scoped_executor<agency::concurrent_executor,agency::sequenced_executor>;
   test_nested<executor_type>(executor_type::shape_type(4,4));
 
   std::cout << "OK" << std::endl;

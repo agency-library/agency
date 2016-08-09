@@ -8,7 +8,7 @@
 
 
 template<class Iterator, class T, class BinaryFunction>
-T reduce(agency::sequential_execution_policy, Iterator first, Iterator last, T init, BinaryFunction binary_op)
+T reduce(agency::sequenced_execution_policy, Iterator first, Iterator last, T init, BinaryFunction binary_op)
 {
   return std::accumulate(first, last, init, binary_op);
 }

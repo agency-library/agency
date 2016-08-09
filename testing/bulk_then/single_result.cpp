@@ -177,7 +177,7 @@ void test()
 
 int main()
 {
-  test<agency::sequential_execution_policy>();
+  test<agency::sequenced_execution_policy>();
   test<agency::concurrent_execution_policy>();
   test<agency::parallel_execution_policy>();
 

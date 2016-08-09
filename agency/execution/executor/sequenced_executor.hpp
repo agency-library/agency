@@ -9,10 +9,10 @@ namespace agency
 {
 
 
-class sequential_executor
+class sequenced_executor
 {
   public:
-    using execution_category = sequential_execution_tag;
+    using execution_category = sequenced_execution_tag;
 
     template<class Function, class Factory>
     __AGENCY_ANNOTATION
