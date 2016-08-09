@@ -1,3 +1,14 @@
+/// \file
+/// \brief Include this file to use any component of Agency related to execution.
+///
+/// Including `<agency/execution.hpp>` recursively includes Agency header files organized beneath
+/// `<agency/execution/*>`.
+///
+
+///
+/// \defgroup execution Execution
+///
+
 #pragma once
 
 #include <agency/detail/config.hpp>

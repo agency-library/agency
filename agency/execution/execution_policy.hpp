@@ -1,3 +1,16 @@
+/// \file
+/// \brief Contains definitions of built-in execution policies.
+///
+
+/// \defgroup execution_policies Execution Policies
+/// \ingroup execution
+/// \brief Execution policies describe requirements for execution.
+///
+/// Execution policies describe the execution properties of bulk tasks created by control structures such as `bulk_invoke()`.
+/// Such properties include both *how* and *where* execution should occur. Forward progress requirements encapsulated by 
+/// execution policies describe the ordering relationships of individual execution agents comprising a bulk task, while the execution policy's
+/// associated *executor* governs where those execution agents execute.
+
 #pragma once
 
 #include <utility>
@@ -299,6 +312,22 @@ replace_executor(const ExecutionPolicy& policy, const Executor& exec)
 }
 
 
+/// \brief Encapsulates requirements for creating groups of sequenced execution agents.
+/// \ingroup execution_policies
+///
+///
+/// When used as a control structure parameter, `sequenced_execution_policy` requires the creation of a group of execution agents which execute in sequence.
+/// Agents in such a group execute on the thread which invokes the control structure. However, if the executor of a `sequenced_execution_policy` is replaced
+/// with another sequenced executor of a different type, the agents may execute in sequence on another thread or threads, depending on the type of that executor.
+///
+/// The order in which sequenced execution agents execute is given by the lexicographical order of their indices.
+///
+/// The type of execution agent `sequenced_execution_policy` induces is `sequenced_agent`.
+///
+/// \see seq
+/// \see sequenced_agent
+/// \see sequenced_executor
+/// \see sequenced_execution_tag
 class sequenced_execution_policy : public detail::basic_execution_policy<sequenced_agent, sequenced_executor, sequenced_execution_policy>
 {
   private:
@@ -309,9 +338,24 @@ class sequenced_execution_policy : public detail::basic_execution_policy<sequenc
 };
 
 
+/// \brief The global variable `seq` is the default `sequenced_execution_policy`.
+/// \ingroup execution_policies
 constexpr sequenced_execution_policy seq{};
 
 
+/// \brief Encapsulates requirements for creating groups of concurrent execution agents.
+/// \ingroup execution_policies
+///
+///
+/// When used as a control structure parameter, `concurrent_execution_policy` requires the creation of a group of execution agents which execute concurrently.
+/// Agents in such a group are guaranteed to make forward progress.
+///
+/// The type of execution agent `concurrent_execution_policy` induces is `concurrent_agent`.
+///
+/// \see con
+/// \see concurrent_agent
+/// \see concurrent_executor
+/// \see concurrent_execution_tag
 class concurrent_execution_policy : public detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_policy>
 {
   private:
@@ -322,9 +366,25 @@ class concurrent_execution_policy : public detail::basic_execution_policy<concur
 };
 
 
+/// \brief The global variable `con` is the default `concurrent_execution_policy`.
+/// \ingroup execution_policies
 constexpr concurrent_execution_policy con{};
 
 
+/// \brief Encapsulates requirements for creating groups of parallel execution agents.
+/// \ingroup execution_policies
+///
+///
+/// When used as a control structure parameter, `parallel_execution_policy` requires the creation of a group of execution agents which execute in parallel.
+/// When agents in such a group execute on separate threads, they have no order. Otherwise, if agents in such a group execute on the same thread,
+/// they execute in an unspecified order.
+///
+/// The type of execution agent `parallel_execution_policy` induces is `parallel_agent`.
+///
+/// \see par
+/// \see parallel_agent
+/// \see parallel_executor
+/// \see parallel_execution_tag
 class parallel_execution_policy : public detail::basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_policy>
 {
   private:
@@ -335,6 +395,8 @@ class parallel_execution_policy : public detail::basic_execution_policy<parallel
 };
 
 
+/// \brief The global variable `par` is the default `parallel_execution_policy`.
+/// \ingroup execution_policies
 const parallel_execution_policy par{};
 
 
