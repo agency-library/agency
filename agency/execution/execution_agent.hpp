@@ -330,9 +330,9 @@ class basic_execution_agent
 } // end detail
 
 
-using sequential_agent = detail::basic_execution_agent<sequential_execution_tag>;
-using sequential_agent_1d = sequential_agent;
-using sequential_agent_2d = detail::basic_execution_agent<sequential_execution_tag, size2>;
+using sequenced_agent = detail::basic_execution_agent<sequenced_execution_tag>;
+using sequenced_agent_1d = sequenced_agent;
+using sequenced_agent_2d = detail::basic_execution_agent<sequenced_execution_tag, size2>;
 
 
 using parallel_agent = detail::basic_execution_agent<parallel_execution_tag>;
@@ -810,11 +810,11 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
 
 
 template<class InnerExecutionAgent>
-using sequential_group = detail::execution_group<sequential_agent, InnerExecutionAgent>;
+using sequenced_group = detail::execution_group<sequenced_agent, InnerExecutionAgent>;
 template<class InnerExecutionAgent>
-using sequential_group_1d = detail::execution_group<sequential_agent_1d, InnerExecutionAgent>;
+using sequenced_group_1d = detail::execution_group<sequenced_agent_1d, InnerExecutionAgent>;
 template<class InnerExecutionAgent>
-using sequential_group_2d = detail::execution_group<sequential_agent_2d, InnerExecutionAgent>;
+using sequenced_group_2d = detail::execution_group<sequenced_agent_2d, InnerExecutionAgent>;
 
 template<class InnerExecutionAgent>
 using parallel_group = detail::execution_group<parallel_agent, InnerExecutionAgent>;
@@ -885,7 +885,7 @@ class basic_static_execution_agent : public BaseAgent
 
 
 template<std::size_t group_size, std::size_t grain_size = 1>
-using static_sequential_agent = detail::basic_static_execution_agent<agency::sequential_agent, group_size, grain_size>;
+using static_sequenced_agent = detail::basic_static_execution_agent<agency::sequenced_agent, group_size, grain_size>;
 
 template<std::size_t group_size, std::size_t grain_size = 1>
 using static_parallel_agent = detail::basic_static_execution_agent<agency::parallel_agent, group_size, grain_size>;

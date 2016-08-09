@@ -8,7 +8,7 @@ namespace agency
 
 
 // XXX consider whether there should be derived-from relationships between these
-struct sequential_execution_tag {};
+struct sequenced_execution_tag {};
 struct concurrent_execution_tag {};
 struct parallel_execution_tag {};
 struct unsequenced_execution_tag {};
@@ -36,7 +36,7 @@ namespace detail
 //
 // these relationships should be true
 //
-// parallel_execution_tag    < sequential_execution_tag
+// parallel_execution_tag    < sequenced_execution_tag
 // parallel_execution_tag    < concurrent_execution_tag
 // unsequenced_execution_tag < parallel_execution_tag
 //

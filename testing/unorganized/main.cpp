@@ -7,9 +7,9 @@ int main()
 {
   using namespace agency;
 
-  auto seq_f = bulk_async(seq(5), [](sequential_agent &self)
+  auto seq_f = bulk_async(seq(5), [](sequenced_agent &self)
   {
-    std::cout << "Hello world from sequential_agent " << self.index() << std::endl;
+    std::cout << "Hello world from sequenced_agent " << self.index() << std::endl;
   });
 
   seq_f.wait();
@@ -38,7 +38,7 @@ int main()
 
   con_f.wait();
 
-  auto singly_nested_f = bulk_async(con(2, seq(3)), [](concurrent_group<sequential_agent> &self)
+  auto singly_nested_f = bulk_async(con(2, seq(3)), [](concurrent_group<sequenced_agent> &self)
   {
     mut.lock();
     std::cout << "Hello world from con(seq) agent " << self.index() << std::endl;
@@ -61,10 +61,10 @@ int main()
 
   singly_nested_f.wait();
 
-  auto doubly_nested_f = bulk_async(seq(2, par(2, seq(3))), [](sequential_group<parallel_group<sequential_agent>> &self)
+  auto doubly_nested_f = bulk_async(seq(2, par(2, seq(3))), [](sequenced_group<parallel_group<sequenced_agent>> &self)
   {
     mut.lock();
-    std::cout << "Hello world from sequential_agent " << self.inner().inner().index() << " of parallel_group " << self.inner().outer().index() << " of sequential_group " << self.outer().index() << std::endl;
+    std::cout << "Hello world from sequenced_agent " << self.inner().inner().index() << " of parallel_group " << self.inner().outer().index() << " of sequenced_group " << self.outer().index() << std::endl;
     mut.unlock();
   });
 

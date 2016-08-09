@@ -8,7 +8,7 @@ int main()
 
   std::cout << "Testing seq" << std::endl << std::endl;
 
-  bulk_async(seq(2), [](sequential_agent &self)
+  bulk_async(seq(2), [](sequenced_agent &self)
   {
     int i = self.index();
 
@@ -45,7 +45,7 @@ int main()
   std::cout << "Testing seq(seq)" << std::endl << std::endl;
 
   std::mutex mut;
-  auto singly_nested_f = bulk_async(con(2, seq(3)), [&mut](concurrent_group<sequential_agent> &self)
+  auto singly_nested_f = bulk_async(con(2, seq(3)), [&mut](concurrent_group<sequenced_agent> &self)
   {
     mut.lock();
     std::cout << "Hello world from con(seq) agent " << self.index() << std::endl;
@@ -68,10 +68,10 @@ int main()
 
   singly_nested_f.wait();
 
-  auto doubly_nested_f = bulk_async(seq(2, par(2, seq(3))), [&mut](sequential_group<parallel_group<sequential_agent>> &self)
+  auto doubly_nested_f = bulk_async(seq(2, par(2, seq(3))), [&mut](sequenced_group<parallel_group<sequenced_agent>> &self)
   {
     mut.lock();
-    std::cout << "Hello world from sequential_agent " << self.inner().inner().index() << " of parallel_group " << self.inner().outer().index() << " of sequential_group " << self.outer().index() << std::endl;
+    std::cout << "Hello world from sequenced_agent " << self.inner().inner().index() << " of parallel_group " << self.inner().outer().index() << " of sequenced_group " << self.outer().index() << std::endl;
     mut.unlock();
   });
 

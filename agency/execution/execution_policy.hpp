@@ -299,17 +299,17 @@ replace_executor(const ExecutionPolicy& policy, const Executor& exec)
 }
 
 
-class sequential_execution_policy : public detail::basic_execution_policy<sequential_agent, sequential_executor, sequential_execution_policy>
+class sequenced_execution_policy : public detail::basic_execution_policy<sequenced_agent, sequenced_executor, sequenced_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<sequential_agent, sequential_executor, sequential_execution_policy>;
+    using super_t = detail::basic_execution_policy<sequenced_agent, sequenced_executor, sequenced_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
 };
 
 
-constexpr sequential_execution_policy seq{};
+constexpr sequenced_execution_policy seq{};
 
 
 class concurrent_execution_policy : public detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_policy>
@@ -375,10 +375,10 @@ using basic_static_execution_policy = agency::detail::basic_execution_policy<
 
 
 template<size_t group_size, size_t grain_size = 1>
-class static_sequential_execution_policy : public detail::basic_static_execution_policy<agency::sequential_execution_policy, group_size, grain_size>
+class static_sequenced_execution_policy : public detail::basic_static_execution_policy<agency::sequenced_execution_policy, group_size, grain_size>
 {
   private:
-    using super_t = detail::basic_static_execution_policy<agency::sequential_execution_policy, group_size, grain_size>;
+    using super_t = detail::basic_static_execution_policy<agency::sequenced_execution_policy, group_size, grain_size>;
 
   public:
     using super_t::super_t;

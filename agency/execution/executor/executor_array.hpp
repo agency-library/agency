@@ -138,7 +138,7 @@ class executor_array
   //     on types used to instantiate __global__ function templates
   public:
     template<class Function, class... Factories>
-    struct then_execute_sequential_functor
+    struct then_execute_sequenced_functor
     {
       executor_array exec;
       mutable Function f;
@@ -258,7 +258,7 @@ class executor_array
       //futures,
       //outer_factory);
 
-      auto functor = then_execute_sequential_functor<Function,Factories...>{*this, f, detail::make_tuple(inner_factories...), outer_shape, inner_shape};
+      auto functor = then_execute_sequenced_functor<Function,Factories...>{*this, f, detail::make_tuple(inner_factories...), outer_shape, inner_shape};
       return outer_traits::template when_all_execute_and_select<0>(outer_executor(), functor, outer_shape, futures, outer_factory);
       
       // XXX another option:
@@ -270,7 +270,7 @@ class executor_array
     // XXX make this functor public to accomodate nvcc's requirement
     //     on types used to instantiate __global__ function templates
     template<class Function, class Results, class Futures, class OuterShared, class... Factories>
-    struct then_execute_non_sequential_functor
+    struct then_execute_non_sequenced_functor
     {
       executor_array& exec;
       mutable Function f;
@@ -364,7 +364,7 @@ class executor_array
     future<detail::result_of_t<Factory1(shape_type)>>
       then_execute_impl(eager_strategy, Function f, Factory1 result_factory, shape_type shape, Future& fut, Factory2 outer_factory, Factories... inner_factories)
     {
-      // this implementation legal when the outer_category is not sequential
+      // this implementation legal when the outer_category is not sequenced
       // XXX and the inner executor's is concurrent with the launching agent
       //     i.e., we have to make sure that the inner call to then_execute() actually makes progress
       //     without having to call .get() on the returned futures
@@ -405,7 +405,7 @@ class executor_array
       //},
       //outer_shape);
 
-      auto functor = then_execute_non_sequential_functor<Function,result_type,future_container,outer_shared_arg_type,Factories...>{*this, f, results_raw_ptr, past_futures, outer_shared_arg_raw_ptr, detail::make_tuple(inner_factories...), outer_shape, inner_shape};
+      auto functor = then_execute_non_sequenced_functor<Function,result_type,future_container,outer_shared_arg_type,Factories...>{*this, f, results_raw_ptr, past_futures, outer_shared_arg_raw_ptr, detail::make_tuple(inner_factories...), outer_shape, inner_shape};
       auto inner_futures = outer_traits::execute(outer_executor(), functor, outer_shape);
 
       // create a continuation to synchronize the futures and return the result
@@ -434,8 +434,8 @@ class executor_array
 
     using then_execute_implementation_strategy = typename std::conditional<
       detail::disjunction<
-        std::is_same<outer_execution_category, sequential_execution_tag>,
-        std::is_same<inner_execution_category, sequential_execution_tag> // XXX this should really check whether the inner executor's async_execute() method executes concurrently with the caller 
+        std::is_same<outer_execution_category, sequenced_execution_tag>,
+        std::is_same<inner_execution_category, sequenced_execution_tag> // XXX this should really check whether the inner executor's async_execute() method executes concurrently with the caller 
       >::value,
       lazy_strategy,
       eager_strategy
