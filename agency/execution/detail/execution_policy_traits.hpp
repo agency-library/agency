@@ -194,6 +194,16 @@ struct execution_policy_execution_depth
 {};
 
 
+template<class ExecutionPolicy>
+struct execution_policy_execution_category
+{
+  using type = typename execution_agent_traits<execution_policy_agent_t<ExecutionPolicy>>::execution_category;
+};
+
+template<class ExecutionPolicy>
+using execution_policy_execution_category_t = typename execution_policy_execution_category<ExecutionPolicy>::type;
+
+
 } // end detail
 } // end agency
 
