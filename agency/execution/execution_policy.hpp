@@ -25,10 +25,6 @@ struct is_execution_policy : detail::conjunction<
 > {};
 
 
-namespace detail
-{
-
-
 // declare basic_execution_policy for replace_executor()'s signature below 
 template<class ExecutionAgent,
          class BulkExecutor,
@@ -36,12 +32,9 @@ template<class ExecutionAgent,
 class basic_execution_policy;
 
 
-} // end detail
-
-
 // declare replace_executor() so basic_execution_policy.on() can use it below
 template<class ExecutionPolicy, class Executor>
-detail::basic_execution_policy<
+basic_execution_policy<
   typename ExecutionPolicy::execution_agent_type,
   Executor>
 replace_executor(const ExecutionPolicy& policy, const Executor& exec);
@@ -98,18 +91,18 @@ template<class ExecutionPolicy1, class ExecutionPolicy2>
 class scoped_execution_policy;
 
 
-// XXX we should assert that ExecutionCategory is stronger than the category of ExecutionAgent
-// XXX another way to order these parameters would be
-// BulkExecutor, ExecutionAgent = __default_execution_agent<ExecutionAgent>, DerivedExecutionPolicy
+} // end detail
+
+
+// XXX we should assert that Executor's execution category is not weaker than ExecutionAgent's
 template<class ExecutionAgent,
-         class BulkExecutor,
+         class Executor,
          class DerivedExecutionPolicy>
 class basic_execution_policy
 {
   public:
     using execution_agent_type = ExecutionAgent;
-    using executor_type        = BulkExecutor;
-    using execution_category   = typename execution_agent_traits<ExecutionAgent>::execution_category;
+    using executor_type        = Executor;
 
   private:
     using derived_type         = typename std::conditional<
@@ -166,7 +159,7 @@ class basic_execution_policy
     template<class Arg1, class... Args>
     detail::scoped_execution_policy<
       derived_type,
-      decay_t<last_type<Arg1,Args...>>
+      detail::decay_t<detail::last_type<Arg1,Args...>>
     >
       scope(Arg1&& arg1, Args&&... args) const
     {
@@ -193,7 +186,7 @@ class basic_execution_policy
       detail::is_scoped_call<param_type, Arg1, Args...>::value,
       detail::scoped_execution_policy<
         derived_type,
-        decay_t<last_type<Arg1,Args...>>
+        detail::decay_t<detail::last_type<Arg1,Args...>>
       >
     >::type
       operator()(Arg1&& arg1, Args&&... args) const
@@ -215,6 +208,10 @@ class basic_execution_policy
     // * executor's member functions are not const
     mutable executor_type executor_;
 };
+
+
+namespace detail
+{
 
 
 template<class ExecutionPolicy1, class ExecutionPolicy2>
@@ -279,18 +276,18 @@ class scoped_execution_policy
 
 
 template<class ExecutionPolicy, class Executor>
-detail::basic_execution_policy<
+basic_execution_policy<
   typename ExecutionPolicy::execution_agent_type,
   Executor
 >
 replace_executor(const ExecutionPolicy& policy, const Executor& exec)
 {
-  using policy_category = typename ExecutionPolicy::execution_category;
+  using policy_category = detail::execution_policy_execution_category_t<ExecutionPolicy>;
   using executor_category = detail::executor_execution_category_t<Executor>;
 
   static_assert(detail::is_weaker_than<policy_category, executor_category>::value, "replace_executor(): Execution policy's forward progress requirements cannot be satisfied by executor's guarantees.");
 
-  using result_type = detail::basic_execution_policy<
+  using result_type = basic_execution_policy<
     typename ExecutionPolicy::execution_agent_type,
     Executor
   >;
@@ -299,10 +296,21 @@ replace_executor(const ExecutionPolicy& policy, const Executor& exec)
 }
 
 
-class sequenced_execution_policy : public detail::basic_execution_policy<sequenced_agent, sequenced_executor, sequenced_execution_policy>
+// What follows are the definitions of Agency's built-in execution policy
+// types. These are all defined by inheriting from basic_execution_policy,
+// using the appropriate types as template parameters to describe their
+// essential characteristics. We use inheritance, instead of making a simple
+// typedef of basic_execution_policy, for the sake of better documentation and
+// compiler error messages. Defining a unique type like
+// sequenced_execution_policy ensures that "sequenced_execution_policy" appears
+// in compiler output, instead of some type recipe involving
+// basic_execution_policy.
+
+
+class sequenced_execution_policy : public basic_execution_policy<sequenced_agent, sequenced_executor, sequenced_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<sequenced_agent, sequenced_executor, sequenced_execution_policy>;
+    using super_t = basic_execution_policy<sequenced_agent, sequenced_executor, sequenced_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
@@ -312,10 +320,10 @@ class sequenced_execution_policy : public detail::basic_execution_policy<sequenc
 constexpr sequenced_execution_policy seq{};
 
 
-class concurrent_execution_policy : public detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_policy>
+class concurrent_execution_policy : public basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_policy>;
+    using super_t = basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
@@ -325,10 +333,10 @@ class concurrent_execution_policy : public detail::basic_execution_policy<concur
 constexpr concurrent_execution_policy con{};
 
 
-class parallel_execution_policy : public detail::basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_policy>
+class parallel_execution_policy : public basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_policy>;
+    using super_t = basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
@@ -338,10 +346,10 @@ class parallel_execution_policy : public detail::basic_execution_policy<parallel
 const parallel_execution_policy par{};
 
 
-class vector_execution_policy : public detail::basic_execution_policy<vector_agent, vector_executor, vector_execution_policy>
+class vector_execution_policy : public basic_execution_policy<vector_agent, vector_executor, vector_execution_policy>
 {
   private:
-    using super_t = detail::basic_execution_policy<vector_agent, vector_executor, vector_execution_policy>;
+    using super_t = basic_execution_policy<vector_agent, vector_executor, vector_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
@@ -365,7 +373,7 @@ template<class ExecutionPolicy, std::size_t group_size,
            grain_size
          >,
          class Executor       = agency::detail::execution_policy_executor_t<ExecutionPolicy>>
-using basic_static_execution_policy = agency::detail::basic_execution_policy<
+using basic_static_execution_policy = basic_execution_policy<
   ExecutionAgent,
   Executor
 >;

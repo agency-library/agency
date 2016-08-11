@@ -2,7 +2,7 @@
 #include <agency/agency.hpp>
 #include <agency/cuda.hpp>
 
-const agency::detail::basic_execution_policy<agency::parallel_agent_2d, agency::cuda::parallel_executor> par2d{};
+const agency::basic_execution_policy<agency::parallel_agent_2d, agency::cuda::parallel_executor> par2d{};
 
 struct functor
 {
