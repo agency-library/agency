@@ -1,7 +1,7 @@
 #include <agency/agency.hpp>
 #include <iostream>
 
-const agency::detail::basic_execution_policy<agency::parallel_agent_2d, agency::parallel_executor> par2d{};
+const agency::basic_execution_policy<agency::parallel_agent_2d, agency::parallel_executor> par2d{};
 
 int main()
 {

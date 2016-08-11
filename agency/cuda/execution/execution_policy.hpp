@@ -16,12 +16,12 @@ namespace cuda
 {
 
 
-class parallel_execution_policy : public agency::detail::basic_execution_policy<parallel_agent, cuda::parallel_executor, parallel_execution_policy>
+class parallel_execution_policy : public basic_execution_policy<parallel_agent, cuda::parallel_executor, parallel_execution_policy>
 {
   private:
-    using super_t = agency::detail::basic_execution_policy<parallel_agent, cuda::parallel_executor, parallel_execution_policy>;
+    using super_t = basic_execution_policy<parallel_agent, cuda::parallel_executor, parallel_execution_policy>;
 
-    using par2d_t = agency::detail::basic_execution_policy<parallel_agent_2d, cuda::parallel_executor>;
+    using par2d_t = basic_execution_policy<parallel_agent_2d, cuda::parallel_executor>;
 
   public:
     using super_t::basic_execution_policy;
@@ -54,12 +54,12 @@ class parallel_execution_policy : public agency::detail::basic_execution_policy<
 const parallel_execution_policy par{};
 
 
-class concurrent_execution_policy : public agency::detail::basic_execution_policy<concurrent_agent, cuda::concurrent_executor, concurrent_execution_policy>
+class concurrent_execution_policy : public basic_execution_policy<concurrent_agent, cuda::concurrent_executor, concurrent_execution_policy>
 {
   private:
-    using super_t = agency::detail::basic_execution_policy<concurrent_agent, cuda::concurrent_executor, concurrent_execution_policy>;
+    using super_t = basic_execution_policy<concurrent_agent, cuda::concurrent_executor, concurrent_execution_policy>;
 
-    using con2d_t = agency::detail::basic_execution_policy<concurrent_agent_2d, cuda::concurrent_executor>;
+    using con2d_t = basic_execution_policy<concurrent_agent_2d, cuda::concurrent_executor>;
 
   public:
     using super_t::basic_execution_policy;
