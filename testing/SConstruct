@@ -28,6 +28,12 @@ def ProgramPerSourceInCurrentDirectory(env):
 def RunProgram(env, program, run_program_command):
   """Creates a unit test by running the given program after it is built."""
   relative_path_from_root = env.Dir('.').path
+
+  # XXX WAR an issue where env.Dir('.').path does not return a relative path for the root directory
+  root_abspath = os.path.dirname(os.path.realpath("__file__"))
+  if relative_path_from_root == root_abspath:
+    relative_path_from_root = '.'
+
   # elide '.'
   if relative_path_from_root == '.':
     relative_path_from_root = ''
