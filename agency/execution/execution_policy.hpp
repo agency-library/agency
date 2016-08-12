@@ -293,7 +293,7 @@ class basic_execution_policy
     ///           * `Policy::executor_type` is `OtherExecutor`.
     /// \note The given executor's forward progress guarantees must not be weaker than this
     ///       execution policy's forward progress requirements.
-    /// \note .on() is sugar for the expression `replace_executor(*this, exec)`.
+    /// \note on() is sugar for the expression `replace_executor(*this, exec)`.
     /// \see replace_executor
     template<class OtherExecutor>
     auto on(const OtherExecutor& exec) const ->
@@ -306,11 +306,11 @@ class basic_execution_policy
     /// \brief Reparameterizes this execution policy.
     ///
     ///
-    /// operator() returns a new execution policy identical to *this but whose
+    /// `operator()` returns a new execution policy identical to `*this` but whose
     /// parameterization is constructed from the given arguments.
     ///
-    /// \param Arg1 The first argument to forward to `param_type`'s constructor.
-    /// \param Args The rest of the arguments to forward to `param_type`'s constructor.
+    /// \param arg1 The first argument to forward to `param_type`'s constructor.
+    /// \param args The rest of the arguments to forward to `param_type`'s constructor.
     /// \return An execution policy equivalent to `*this` but whose parameterization has been constructed from the given arguments.
     ///         The type of the result is:
     ///           * `DerivedExecutionPolicy`, when `DerivedExecutionPolicy` is not `void`
