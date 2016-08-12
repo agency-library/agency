@@ -1,3 +1,30 @@
+/// \file
+/// \brief Contains definitions of execution categories.
+///
+
+/// \defgroup execution_categories Execution Categories
+/// \ingroup execution
+/// \brief Execution categories categorize forward progress behavior.
+///
+/// Execution categories describe the forward progress behavior of groups of execution agents
+/// without regard to the thread on which an individual agent executes.
+///
+/// Each execution agent within a group of such agents is associated with a function invocation.
+/// This function invocation depends on the context in which execution agents
+/// are created; for example, the group of function invocations created by bulk_invoke().
+/// 
+/// Execution categories describe the ordering of these function invocations with respect to one another.
+///
+/// 1. sequenced: Invocations are sequenced.
+/// 2. concurrent: Unblocked invocations make progress.
+/// 3. parallel: When invocations occur on the same thread, they are sequenced. When invocations occur on
+///              different threads, they are unsequenced.
+/// 4. unsequenced: Invocations are unsequenced.
+///
+/// Execution categories are represented in the C++ type system using tag types. Different components of
+/// Agency use these types to reason about forward progress guarantees and validate that forward progress
+/// guarantees satisfy forward progress requirements. 
+
 #pragma once
 
 #include <type_traits>
@@ -7,10 +34,20 @@ namespace agency
 {
 
 
-// XXX consider whether there should be derived-from relationships between these
+/// \brief Type representing the sequenced execution category.
+/// \ingroup execution_categories
 struct sequenced_execution_tag {};
+
+/// \brief Type representing the concurrent execution category.
+/// \ingroup execution_categories
 struct concurrent_execution_tag {};
+
+/// \brief Type representing the parallel execution category.
+/// \ingroup execution_categories
 struct parallel_execution_tag {};
+
+/// \brief Type representing the unsequenced execution category.
+/// \ingroup execution_categories
 struct unsequenced_execution_tag {};
 
 

@@ -1,3 +1,7 @@
+/// \example hello_lambda.cpp
+/// \brief Demonstrates how to use `bulk_invoke` to output sequential hello world messages.
+///
+
 #include <agency/agency.hpp>
 #include <iostream>
 

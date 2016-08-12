@@ -1,49 +1,31 @@
-#include <agency/agency.hpp>
+/// \example saxpy.cpp
+/// \brief Demonstrates how to use `bulk_invoke` to perform a parallel SAXPY.
+///
 
+#include <agency/agency.hpp>
 #include <vector>
 #include <cassert>
 #include <iostream>
-#include <chrono>
-
-void saxpy(size_t n, float a, const float* x, const float* y, float* z)
-{
-  using namespace agency;
-
-  bulk_invoke(par(n), [=](parallel_agent &self)
-  {
-    int i = self.index();
-    z[i] = a * x[i] + y[i];
-  });
-}
 
 int main()
 {
+  // set up some inputs
   size_t n = 16 << 20;
-  std::vector<float> x(n, 1), y(n, 2), z(n);
+  std::vector<float> x(n, 1), y(n, 2);
   float a = 13.;
 
-  saxpy(n, a, x.data(), y.data(), z.data());
-
-  std::vector<float> ref(n, a * 1.f + 2.f);
-  assert(ref == z);
-
-  std::cout << "Measuring performance..." << std::endl;
-
-  // time a number of trials
-  size_t num_trials = 20;
-
-  auto start = std::chrono::high_resolution_clock::now();
-  for(size_t i = 0; i < num_trials; ++i)
+  // use par to execute SAXPY in parallel, and collect the results
+  auto results = agency::bulk_invoke(agency::par(n), [&](agency::parallel_agent& self)
   {
-    saxpy(n, a, x.data(), y.data(), z.data());
-  }
-  std::chrono::duration<double> elapsed = std::chrono::high_resolution_clock::now() - start;
+    int i = self.index();
+    return a * x[i] + y[i];
+  });
 
-  double seconds = elapsed.count() / num_trials;
-  double gigabytes = double(3 * n * sizeof(float)) / (1 << 30);
-  double bandwidth = gigabytes / seconds;
+  // check the result
+  std::vector<float> ref(n, a * 1.f + 2.f);
+  assert(ref == results);
 
-  std::cout << "SAXPY Bandwidth: " << bandwidth << " GB/s" << std::endl;
+  std::cout << "OK" << std::endl;
 
   return 0;
 }
