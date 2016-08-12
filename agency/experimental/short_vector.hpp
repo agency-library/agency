@@ -145,7 +145,7 @@ class short_vector
     }
 
     template<class Function>
-    __host__ __device__
+    __AGENCY_ANNOTATION
     void for_each(Function&& f)
     {
       for_loop([&](int i)

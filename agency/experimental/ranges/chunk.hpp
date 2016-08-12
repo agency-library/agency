@@ -248,6 +248,18 @@ auto chunk(Range&& rng, Difference chunk_size) ->
 }
 
 
+template<class Range, class Difference>
+__AGENCY_ANNOTATION
+auto chunk_evenly(Range&& rng, Difference number_of_chunks) ->
+  decltype(
+    chunk(std::forward<Range>(rng), std::declval<Difference>())
+  )
+{
+  Difference chunk_size = (rng.size() + number_of_chunks - 1) / number_of_chunks;
+  return chunk(std::forward<Range>(rng), chunk_size);
+}
+
+
 } // end experimental
 } // end agency
 
