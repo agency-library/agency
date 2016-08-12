@@ -20,7 +20,7 @@
 ///
 /// ### Parameterization
 ///
-/// Aside from these characteristics, instances of basic_execution_policy also encapsulate a *parameterization* describing
+/// Aside from these characteristics, execution policy objects also encapsulat a *parameterization* describing
 /// the group of execution agents to create when composed with a control structure. For most of Agency's execution agent types,
 /// these parameters define the range of indices assigned to agents in the group.
 ///
