@@ -346,17 +346,17 @@ class parallel_execution_policy : public basic_execution_policy<parallel_agent, 
 const parallel_execution_policy par{};
 
 
-class vector_execution_policy : public basic_execution_policy<vector_agent, vector_executor, vector_execution_policy>
+class unsequenced_execution_policy : public basic_execution_policy<unsequenced_agent, unsequenced_executor, unsequenced_execution_policy>
 {
   private:
-    using super_t = basic_execution_policy<vector_agent, vector_executor, vector_execution_policy>;
+    using super_t = basic_execution_policy<unsequenced_agent, unsequenced_executor, unsequenced_execution_policy>;
 
   public:
     using super_t::basic_execution_policy;
 };
 
 
-constexpr vector_execution_policy vec{};
+constexpr unsequenced_execution_policy unseq{};
 
 
 namespace experimental
