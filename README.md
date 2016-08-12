@@ -1,61 +1,65 @@
-Agency
+What is Agency?
 ===============
 
-Agency is an experiment exploring how to marry bulk synchronous parallel programming with the components described in the Technical Specification for C++ Extensions for Parallelism. The programming model Agency embodies is intended to be suited to all parallel architectures and is particularly exploitable by wide architectures exposing fine-grained parallelism.
+Agency is an experimental C++ template library for parallel programming. Unlike
+higher-level parallel algorithms libraries like [Thrust](thrust.github.io),
+Agency provides **lower-level** primitives for **creating execution**. Agency
+interoperates with standard components like **execution policies** and
+**executors** to enable the creation of **portable** parallel algorithms.
 
-The `bulk_invoke` function creates groups of execution agents which all invoke a lambda en masse:
+# Examples
+
+Agency is best-explained through examples. The following program implements a parallel sum.
 
 ~~~~{.cpp}
-template<class Iterator, class T, class BinaryFunction>
-T reduce(Iterator first, Iterator last, T init, BinaryFunction binary_op)
+#include <agency/agency.hpp>
+#include <agency/experimental.hpp>
+#include <vector>
+#include <numeric>
+#include <iostream>
+#include <cassert>
+
+int parallel_sum(int* data, int n)
 {
-  using namespace agency;
-  auto n = std::distance(first, last);
+  // create a view of the input
+  agency::experimental::span<int> input(data, n);
 
-  // reduce partitions of data into partial sums
-  auto partial_sums = bulk_invoke(par, [=](parallel_agent& g)
+  // divide the input into 8 chunks
+  int num_agents = 8;
+  auto chunks = agency::experimental::chunk_evenly(input, num_agents);
+
+  // create 8 agents to sum each chunk in parallel
+  auto partial_sums = agency::bulk_invoke(agency::par(num_agents), [=](agency::parallel_agent& self)
   {
-    auto i = g.index();
-    auto partition_size = (n + g.group_size() - 1) / g.group_size();
+    // get this parallel agent's chunk
+    auto this_chunk = chunks[self.index()];
 
-    auto partition_begin = first + partition_size * i;
-    auto partition_end   = std::min(last, partition_begin + partition_size);
-
-    return reduce(seq, partition_begin + 1, partition_end, *partition_begin, binary_op);
+    // return the sum of this chunk
+    return std::accumulate(this_chunk.begin(), this_chunk.end(), 0);
   });
 
-  return reduce(seq, partial_sums.begin(), partial_sums.end(), init, binary_op);
+  // return the sum of partial sums
+  return std::accumulate(partial_sums.begin(), partial_sums.end(), 0);
+}
+
+int main()
+{
+  // create a large vector filled with 1s
+  std::vector<int> vec(32 << 20, 1);
+
+  int sum = parallel_sum(vec.data(), vec.size());
+
+  std::cout << "sum is " << sum << std::endl;
+
+  assert(sum == vec.size());
+
+  return 0;
 }
 ~~~~
 
-# Design Goals
+# Discover the Library
 
-The design of the library is intended to achieve the following goals:
+* Refer to Agency's [Quick Start Guide](https://github.com/jaredhoberock/agency/wiki/Quick-Start-Guide) for further information and examples.
+* See Agency in action in the [collection of example programs](https://github.com/jaredhoberock/agency/wiki/Quick-Start-Guide).
+* Browse Agency's online API documentation.
 
-  * Deliver efficiency by exploiting structured concurrency and sharing
-
-  * Build upon the execution policy approach introduced by the Parallelism TS
-
-  * Interface to the underlying platform via executors
-
-  * Provide a mechanism for controlling the placement of work to be created
-
-# Building the Example Programs
-
-Programs with filenames ending in the `.cpp` extension are compilable with a C++11 compiler, e.g.:
-
-    $ g++ -std=c++11 -I. -pthread example.cpp
-
-or
-
-    $ clang -std=c++11 -I. -pthread -lstdc++ example.cpp
-
-or
-
-    $ icc -std=c++11 -I. -pthread example.cpp
-    
-Programs with filenames ending in the `.cu` extension are compilable with the NVIDIA compiler, e.g.:
-
-    $ nvcc -std=c++11 -I. example.cu
-    
-These programs are known to compile with `g++` v4.8, `clang` v3.5, `nvcc` v8.0, and `icc` 15.0.
