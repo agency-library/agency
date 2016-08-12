@@ -8,5 +8,6 @@
 #include <agency/execution/executor/parallel_executor.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/sequenced_executor.hpp>
+#include <agency/execution/executor/unsequenced_executor.hpp>
 #include <agency/execution/executor/vector_executor.hpp>
 

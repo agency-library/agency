@@ -340,9 +340,9 @@ using parallel_agent_1d = parallel_agent;
 using parallel_agent_2d = detail::basic_execution_agent<parallel_execution_tag, size2>;
 
 
-using vector_agent = detail::basic_execution_agent<unsequenced_execution_tag>;
-using vector_agent_1d = vector_agent;
-using vector_agent_2d = detail::basic_execution_agent<unsequenced_execution_tag, size2>;
+using unsequenced_agent = detail::basic_execution_agent<unsequenced_execution_tag>;
+using unsequenced_agent_1d = unsequenced_agent;
+using unsequenced_agent_2d = detail::basic_execution_agent<unsequenced_execution_tag, size2>;
 
 
 namespace detail
@@ -831,11 +831,11 @@ template<class InnerExecutionAgent>
 using concurrent_group_2d = detail::execution_group<concurrent_agent_2d, InnerExecutionAgent>;
 
 template<class InnerExecutionAgent>
-using vector_group = detail::execution_group<vector_agent, InnerExecutionAgent>;
+using unsequenced_group = detail::execution_group<unsequenced_agent, InnerExecutionAgent>;
 template<class InnerExecutionAgent>
-using vector_group_1d = detail::execution_group<vector_agent_1d, InnerExecutionAgent>;
+using unsequenced_group_1d = detail::execution_group<unsequenced_agent_1d, InnerExecutionAgent>;
 template<class InnerExecutionAgent>
-using vector_group_2d = detail::execution_group<vector_agent_2d, InnerExecutionAgent>;
+using unsequenced_group_2d = detail::execution_group<unsequenced_agent_2d, InnerExecutionAgent>;
 
 
 namespace experimental

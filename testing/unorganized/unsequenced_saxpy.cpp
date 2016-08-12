@@ -11,7 +11,7 @@ int main()
   std::vector<float> x(n, 1), y(n, 2), z(n);
   float a = 13.;
 
-  bulk_invoke(vec(n), [&](vector_agent &self)
+  bulk_invoke(unseq(n), [&](unsequenced_agent &self)
   {
     auto i = self.index();
     z[i] = a * x[i] + y[i];
