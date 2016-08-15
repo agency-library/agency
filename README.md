@@ -24,18 +24,18 @@ int parallel_sum(int* data, int n)
   // create a view of the input
   agency::experimental::span<int> input(data, n);
 
-  // divide the input into 8 chunks
+  // divide the input into 8 tiles
   int num_agents = 8;
-  auto chunks = agency::experimental::chunk_evenly(input, num_agents);
+  auto tiles = agency::experimental::tile_evenly(input, num_agents);
 
-  // create 8 agents to sum each chunk in parallel
+  // create 8 agents to sum each tile in parallel
   auto partial_sums = agency::bulk_invoke(agency::par(num_agents), [=](agency::parallel_agent& self)
   {
-    // get this parallel agent's chunk
-    auto this_chunk = chunks[self.index()];
+    // get this parallel agent's tile
+    auto this_tile = tiles[self.index()];
 
-    // return the sum of this chunk
-    return std::accumulate(this_chunk.begin(), this_chunk.end(), 0);
+    // return the sum of this tile
+    return std::accumulate(this_tile.begin(), this_tile.end(), 0);
   });
 
   // return the sum of partial sums
