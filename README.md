@@ -59,7 +59,7 @@ int main()
 
 # Discover the Library
 
-* Refer to Agency's [Quick Start Guide](https://github.com/jaredhoberock/agency/wiki/Quick-Start-Guide) for further information and examples.
-* See Agency in action in the [collection of example programs](https://github.com/jaredhoberock/agency/wiki/Quick-Start-Guide).
+* Refer to Agency's [Quick Start Guide](http://github.com/jaredhoberock/agency/wiki/Quick-Start-Guide) for further information and examples.
+* See Agency in action in the [collection of example programs](http://github.com/jaredhoberock/agency/tree/master/examples).
 * Browse Agency's online API documentation.
 
