@@ -3,10 +3,7 @@ Agency v0.1.0 Changelog
 
 ## Summary
 
-TODO
-
-Agency v0.1.0 is the initial experimental release 
-Initial release of experimental library.
+Agency 0.1.0 introduces new **control structures** such as `bulk_invoke()` for creating parallel tasks. A suite of new **execution policies** compose with these control structures to require different kinds of semantic guarantees from the created tasks. A new library of **executors** controls the mapping of tasks onto underlying execution resources such as CPUs, GPUs, and collections of multiple GPUs. In addition to these basic components, this release also introduces experimental support for a collection of utility types useful for creating Agency programs.
 
 ## New Features
 
@@ -39,11 +36,13 @@ Initial release of experimental library.
   * `vector_executor`
   * CUDA-specific executors
     * `cuda::block_executor`
+    * `cuda::concurrent_executor`
     * `cuda::grid_executor`
     * `cuda::grid_executor_2d`
     * `cuda::multidevice_executor`
+    * `cuda::parallel_executor`
 
-### New Experimental Types
+### New Experimental Utilities
 
   * `experimental::array`
   * `experimental::bounded_integer`
@@ -85,7 +84,7 @@ Initial release of experimental library.
 
   * Thanks to Michael Garland for significant input into Agency's overall design.
   * Thanks to Steven Dalton and Mark Harris for testing this release during development.
-  * Thanks to Evghenni Gaburov and Duane Merrill for design feedback.
+  * Thanks to Evghenni Gaburov, Duane Merrill, and Sean Baxter for design feedback.
   * Thanks to Olivier Giroux for contributing an implementation of synchronic.
 
 
