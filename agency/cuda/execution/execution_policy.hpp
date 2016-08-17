@@ -134,6 +134,34 @@ typename std::enable_if<
 }
 
 
+// XXX consider making this a global object like the other execution policies
+auto grid(size_t num_blocks, size_t num_threads) ->
+  decltype(
+    par(num_blocks, con(num_threads))
+  )
+{
+  return par(num_blocks, con(num_threads));
+};
+
+
+// XXX consider making this a unique type instead of an alias
+using grid_agent = parallel_group<concurrent_agent>;
+
+
+// XXX need to figure out how to make this par(con) select grid_executor_2d automatically
+// XXX consider making this a global object like the other execution policies
+auto grid(size2 grid_dim, size2 block_dim) ->
+  decltype(
+      par(grid_dim, con(block_dim)).on(grid_executor_2d())
+  )
+{
+  return par(grid_dim, con(block_dim)).on(grid_executor_2d());
+}
+
+// XXX consider making this a unique type instead of an alias
+using grid_agent_2d = parallel_group_2d<concurrent_agent_2d>;
+
+
 namespace experimental
 {
 
