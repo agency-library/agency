@@ -8,6 +8,8 @@
 #include <agency/execution/executor/flattened_executor.hpp>
 #include <agency/detail/concurrency/latch.hpp>
 #include <agency/detail/concurrency/concurrent_queue.hpp>
+#include <agency/detail/unique_function.hpp>
+#include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
 
 #include <thread>
@@ -81,10 +83,32 @@ class thread_pool
       return threads_.size();
     }
 
+    template<class Function, class... Args>
+    std::future<result_of_t<Function(Args...)>>
+      async(Function&& f, Args&&... args)
+    {
+      // bind f & args together
+      auto g = std::bind(std::forward<Function>(f), std::forward<Args>(args)...);
+
+      using result_type = result_of_t<Function(Args...)>;
+
+      // create a packaged task
+      std::packaged_task<result_type()> task(std::move(g));
+
+      // get the packaged task's future so we can return it at the end
+      auto result_future = task.get_future();
+
+      // move the packaged task into the thread pool
+      submit(std::move(task));
+
+      return std::move(result_future);
+    }
+
+
   private:
     inline void work()
     {
-      std::function<void()> task;
+      unique_function<void()> task;
 
       while(tasks_.wait_and_pop(task))
       {
@@ -92,7 +116,7 @@ class thread_pool
       }
     }
 
-    agency::detail::concurrent_queue<std::function<void()>> tasks_;
+    agency::detail::concurrent_queue<unique_function<void()>> tasks_;
     std::vector<joining_thread> threads_;
 };
 
@@ -108,7 +132,8 @@ inline thread_pool& system_thread_pool()
 class thread_pool_executor
 {
   public:
-    // XXX should really implement then_execute(), but we'll start with execute() for now
+    using execution_category = parallel_execution_tag;
+
     template<class Factory1, class Function, class Factory2>
     result_of_t<Factory1(size_t)>
       execute(Function f, Factory1 result_factory, size_t n, Factory2 shared_factory)
@@ -200,6 +225,58 @@ class thread_pool_executor
         // wait for all the work to complete
         work_remaining.wait();
       }
+    }
+
+    template<size_t... Indices, class Function, class... Futures>
+    std::future<
+      detail::when_all_and_select_result_t<
+        detail::index_sequence<Indices...>, typename std::decay<Futures>::type...
+      >
+    >
+      when_all_execute_and_select_impl_impl(index_sequence<Indices...>, Function&& f, Futures&&... futures)
+    {
+      return system_thread_pool().async(when_all_execute_and_select_functor<Indices...>(), std::forward<Function>(f), std::move(futures)...);
+    }
+
+    template<size_t... SelectedIndices, size_t... TupleIndices, class Function, class TupleOfFutures>
+    std::future<
+      detail::when_all_execute_and_select_result_t<
+        index_sequence<SelectedIndices...>,
+        decay_t<TupleOfFutures>
+      >
+    >
+      when_all_execute_and_select_impl(index_sequence<SelectedIndices...> indices, index_sequence<TupleIndices...>, Function&& f, TupleOfFutures&& futures)
+    {
+      return when_all_execute_and_select_impl_impl(indices, std::forward<Function>(f), detail::get<TupleIndices>(std::forward<TupleOfFutures>(futures))...);
+    }
+
+
+    // XXX the reason we implemented single-agent when_all_execute_and_select
+    //     is to fix #246 -- bulk_async(par, ...) was executing synchronously
+    //     this is because:
+    //       * parallel_executor is implemented by flattening an executor_array
+    //       * executor_array::then_execute() is implemented with when_all_execute_and_select() on the outer executor
+    //         * in this case, the outer executor is a thread_pool_executor
+    //       * because thread_pool_executor did not previously have when_all_execute_and_select(), the asynchrony was created via std::async(std::launch::deferred, ...)
+    // XXX what we need to do in the future is something like this:
+    //       * implement a fix to #248
+    //       * simplify executor_array::then_execute() to use outer_executor().bulk_then_execute()
+    //       * implement bulk_execute(), bulk_async_execute(), and bulk_then_execute() for thread_pool_executor
+    template<size_t... Indices, class Function, class TupleOfFutures>
+    std::future<
+      detail::when_all_execute_and_select_result_t<
+        index_sequence<Indices...>,
+        decay_t<TupleOfFutures>
+      >
+    >
+      when_all_execute_and_select(Function&& f, TupleOfFutures&& futures)
+    {
+      return when_all_execute_and_select_impl(
+        index_sequence<Indices...>(),
+        make_tuple_indices(futures),
+        std::forward<Function>(f),
+        std::forward<TupleOfFutures>(futures)
+      );
     }
 
     size_t shape() const

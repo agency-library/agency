@@ -2,7 +2,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/memory/unique_ptr.hpp>
-#include <agency/cuda/memory/allocator.hpp>
 #include <stdexcept>
 #include <cassert>
 #include <utility>
@@ -226,25 +225,15 @@ class unique_function<Result(Args...)>
         ::new(ptr) U(std::forward<OtherArgs>(args)...);
       }
 
-      __AGENCY_ANNOTATION
       value_type* allocate(size_t n)
       {
-#ifdef __CUDA_ARCH__
-        agency::cuda::detail::allocator<T> alloc;
-#else
         std::allocator<T> alloc;
-#endif
         return alloc.allocate(n);
       }
 
-      __AGENCY_ANNOTATION
       void deallocate(value_type* ptr, std::size_t n)
       {
-#ifdef __CUDA_ARCH__
-        agency::cuda::detail::allocator<value_type> alloc;
-#else
         std::allocator<value_type> alloc;
-#endif
         alloc.deallocate(ptr, n);
       }
     };
