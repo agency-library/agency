@@ -118,8 +118,8 @@ class array
     __AGENCY_ANNOTATION
     void swap(array& other)
     {
-      agency::detail::swap(shape_, other.shape_);
-      agency::detail::swap(data_,  other.data_);
+      agency::detail::adl_swap(shape_, other.shape_);
+      agency::detail::adl_swap(data_,  other.data_);
     }
 
     __AGENCY_ANNOTATION

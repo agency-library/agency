@@ -344,7 +344,7 @@ class short_vector
     //{
     //  for(size_type i = 0; i < size(); ++i)
     //  {
-    //    agency::detail::swap((*this)[i], other[i]);
+    //    agency::detail::adl_swap((*this)[i], other[i]);
     //  }
     //}
 

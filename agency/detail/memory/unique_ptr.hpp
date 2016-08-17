@@ -62,15 +62,6 @@ class deleter
 };
 
 
-// introduce free function swap to avoid ambiguities during ADL between std::swap & agency::detail::swap
-template<class Allocator>
-__AGENCY_ANNOTATION
-void swap(deleter<Allocator>& a, deleter<Allocator>& b)
-{
-  a.swap(b);
-}
-
-
 template<class T>
 using default_delete = deleter<std::allocator<T>>;
 
@@ -97,8 +88,8 @@ class unique_ptr
       : ptr_(),
         deleter_(std::move(other.get_deleter()))
     {
-      agency::detail::swap(ptr_, other.ptr_);
-      agency::detail::swap(deleter_, other.deleter_);
+      agency::detail::adl_swap(ptr_, other.ptr_);
+      agency::detail::adl_swap(deleter_, other.deleter_);
     }
 
     template<class OtherT,
@@ -122,9 +113,8 @@ class unique_ptr
     __AGENCY_ANNOTATION
     unique_ptr& operator=(unique_ptr&& other)
     {
-      using agency::detail::swap;
-      swap(ptr_,     other.ptr_);
-      swap(deleter_, other.deleter_);
+      detail::adl_swap(ptr_,     other.ptr_);
+      detail::adl_swap(deleter_, other.deleter_);
       return *this;
     }
 
@@ -139,7 +129,7 @@ class unique_ptr
     {
       pointer result = nullptr;
 
-      agency::detail::swap(ptr_, result);
+      agency::detail::adl_swap(ptr_, result);
 
       return result;
     }
@@ -189,8 +179,8 @@ class unique_ptr
     __AGENCY_ANNOTATION
     void swap(unique_ptr& other)
     {
-      agency::detail::swap(ptr_, other.ptr_);
-      agency::detail::swap(deleter_, other.deleter_);
+      agency::detail::adl_swap(ptr_, other.ptr_);
+      agency::detail::adl_swap(deleter_, other.deleter_);
     }
 
   private:
