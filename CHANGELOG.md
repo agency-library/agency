@@ -58,22 +58,22 @@ Initial release of experimental library.
 
 ### New Examples
 
-  * `concurrent_ping_pong.cpp`
-  * `concurrent_sum.cpp`
-  * `fill.cpp`
-  * `hello_async.cpp`
-  * `hello_lambda.cpp`
-  * `hello_world.cpp`
-  * `ping_pong_tournament.cpp`
-  * `saxpy.cpp`
-  * `version.cpp`
+  * [`concurrent_ping_pong.cpp`](examples/concurrent_ping_pong.cpp)
+  * [`concurrent_sum.cpp`](examples/concurrent_sum.cpp)
+  * [`fill.cpp`](examples/fill.cpp)
+  * [`hello_async.cpp`](examples/hello_async.cpp)
+  * [`hello_lambda.cpp`](examples/hello_lambda.cpp)
+  * [`hello_world.cpp`](examples/hello_world.cpp)
+  * [`ping_pong_tournament.cpp`](examples/ping_pong_tournament.cpp)
+  * [`saxpy.cpp`](examples/saxpy.cpp)
+  * [`version.cpp`](examples/version.cpp)
   * CUDA-specific example programs
-    * `async_reduce.cu`
-    * `black_scholes.cu`
-    * `hello_device_lambda.cu`
-    * `multigpu_saxpy.cu`
-    * `saxpy.cu`
-    * `transpose.cu`
+    * [`async_reduce.cu`](examples/cuda/async_reduce.cu)
+    * [`black_scholes.cu`](examples/cuda/black_scholes.cu)
+    * [`hello_device_lambda.cu`](examples/cuda/hello_device_lambda.cu)
+    * [`multigpu_saxpy.cu`](examples/cuda/multigpu_saxpy.cu)
+    * [`saxpy.cu`](examples/cuda/saxpy.cu)
+    * [`transpose.cu`](examples/cuda/transpose.cu)
 
 ## Known Issues
 
