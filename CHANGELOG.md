@@ -1,22 +1,22 @@
-Agency v0.1.0
-=============
+Agency v0.1.0 Changelog
+=======================
 
-# Summary
+## Summary
 
 TODO
 
 Agency v0.1.0 is the initial experimental release 
 Initial release of experimental library.
 
-# New Features
+## New Features
 
-## New Control Structures
+### New Control Structures
 
   * `bulk_invoke`
   * `bulk_async`
   * `bulk_then`
 
-## New Execution Policies
+### New Execution Policies
 
   * `concurrent_execution_policy`
   * `sequenced_execution_policy`
@@ -27,7 +27,7 @@ Initial release of experimental library.
     * `cuda::parallel_execution_policy`
     * `cuda::grid`
 
-## New Executors
+### New Executors
 
   * `concurrent_executor`
   * `executor_array`
@@ -43,20 +43,20 @@ Initial release of experimental library.
     * `cuda::grid_executor_2d`
     * `cuda::multidevice_executor`
 
-## New Experimental Types
+### New Experimental Types
 
   * `experimental::array`
   * `experimental::bounded_integer`
   * `experimental::optional`
   * `experimental::short_vector`
   * `experimental::span`
-  * Fancy ranges based on [range-v3](http://github.com/ericniebler/range-v3)
+  * Fancy ranges based on the [range-v3](http://github.com/ericniebler/range-v3) library
     * `experimental::chunk_view`
     * `experimental::counted_view`
     * `experimental::stride_view`
     * `experimental::zip_view`
 
-## New Examples
+### New Examples
 
   * `concurrent_ping_pong.cpp`
   * `concurrent_sum.cpp`
@@ -75,13 +75,13 @@ Initial release of experimental library.
     * `saxpy.cu`
     * `transpose.cu`
 
-# Known Issues
+## Known Issues
 
-  * #255 Agency is not known to work with any version of the Microsoft Compiler
-  * #256 Agency is not known to work with NVIDIA Compiler versions prior to 8.0
-  * #257 Agency is not known to work with NVIDIA GPU architectures prior to `sm_3x`
+  * [#255](../../issues/255) Agency is not known to work with any version of the Microsoft Compiler
+  * [#256](../../issues/256) Agency is not known to work with NVIDIA Compiler versions prior to 8.0
+  * [#257](../../issues/257) Agency is not known to work with NVIDIA GPU architectures prior to `sm_3x`
 
-# Acknowledgments
+## Acknowledgments
 
   * Thanks to Michael Garland for significant input into Agency's overall design.
   * Thanks to Steven Dalton and Mark Harris for testing this release during development.
@@ -89,10 +89,10 @@ Initial release of experimental library.
   * Thanks to Olivier Giroux for contributing an implementation of synchronic.
 
 
-Agency v0.0.0
-=============
+Agency v0.0.0 Changelog
+=======================
 
-# Summary
+## Summary
 
 This version of Agency was not released.
 
