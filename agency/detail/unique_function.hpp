@@ -150,6 +150,10 @@ class unique_function<Result(Args...)>
       mutable Function f_;
 
       __agency_exec_check_disable__
+      __AGENCY_ANNOTATION
+      ~callable() = default;
+
+      __agency_exec_check_disable__
       template<class OtherFunction,
                class = typename std::enable_if<
                  std::is_constructible<Function,OtherFunction&&>::value
