@@ -11,16 +11,6 @@ const int TILE_DIM = 32;
 const int BLOCK_ROWS = 8;
 
 
-// XXX need to figure out how to make this par(con) select grid_executor_2d automatically
-auto grid(agency::size2 num_blocks, agency::size2 num_threads)
-  -> decltype(agency::cuda::par(num_blocks, agency::cuda::con(num_threads)).on(agency::cuda::grid_executor_2d{}))
-{
-  return agency::cuda::par(num_blocks, agency::cuda::con(num_threads)).on(agency::cuda::grid_executor_2d{});
-}
-
-using cuda_thread_2d = agency::parallel_group_2d<agency::concurrent_agent_2d>;
-
-
 // Check errors and print GB/s
 void postprocess(const thrust::host_vector<float>& ref, const thrust::host_vector<float>& res, float ms)
 {
@@ -42,7 +32,7 @@ void postprocess(const thrust::host_vector<float>& ref, const thrust::host_vecto
 // Used as reference case representing best effective bandwidth.
 struct copy_kernel
 {
-  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata)
+  __device__ void operator()(agency::cuda::grid_agent_2d& self, float* odata, const float* idata)
   {
     auto idx = TILE_DIM * self.outer().index() + self.inner().index();
     int width = self.outer().group_shape()[0] * TILE_DIM;
@@ -65,7 +55,7 @@ struct tile1d_t
 // Also used as reference case, demonstrating effect of using shared memory.
 struct copy_shared_mem
 {
-  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata, tile1d_t& tile)
+  __device__ void operator()(agency::cuda::grid_agent_2d& self, float* odata, const float* idata, tile1d_t& tile)
   {
     auto global_idx = TILE_DIM * self.outer().index() + self.inner().index();
     int width = self.outer().group_shape()[0] * TILE_DIM;
@@ -89,7 +79,7 @@ struct copy_shared_mem
 
 struct transpose_naive
 {
-  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata)
+  __device__ void operator()(agency::cuda::grid_agent_2d& self, float* odata, const float* idata)
   {
     auto idx = TILE_DIM * self.outer().index() + self.inner().index();
     int width = self.outer().group_shape()[0] * TILE_DIM;
@@ -110,7 +100,7 @@ struct tile2d_t
 
 struct transpose_coalesced
 {
-  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata, tile2d_t& tile)
+  __device__ void operator()(agency::cuda::grid_agent_2d& self, float* odata, const float* idata, tile2d_t& tile)
   {
     int x = self.outer().index()[0] * TILE_DIM + self.inner().index()[0];
     int y = self.outer().index()[1] * TILE_DIM + self.inner().index()[1];
@@ -142,7 +132,7 @@ struct conflict_free_tile2d_t
 
 struct transpose_no_bank_conflicts
 {
-  __device__ void operator()(cuda_thread_2d& self, float* odata, const float* idata, conflict_free_tile2d_t& tile)
+  __device__ void operator()(agency::cuda::grid_agent_2d& self, float* odata, const float* idata, conflict_free_tile2d_t& tile)
   {
     int x = blockIdx.x * TILE_DIM + threadIdx.x;
     int y = blockIdx.y * TILE_DIM + threadIdx.y;
@@ -293,7 +283,7 @@ int main(int argc, char **argv)
 
   ms = time_invocation([&]
   {
-    agency::bulk_async(grid(dim_grid, dim_block), copy_kernel{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
+    agency::bulk_async(agency::cuda::grid(dim_grid, dim_block), copy_kernel{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()));
   });
 
   h_cdata = d_cdata;
@@ -307,7 +297,7 @@ int main(int argc, char **argv)
 
   ms = time_invocation([&]
   {
-    agency::bulk_async(grid(dim_grid, dim_block), copy_shared_mem{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()), agency::share_at_scope<1,tile1d_t>());
+    agency::bulk_async(agency::cuda::grid(dim_grid, dim_block), copy_shared_mem{}, raw_pointer_cast(d_cdata.data()), raw_pointer_cast(d_idata.data()), agency::share_at_scope<1,tile1d_t>());
   });
 
   h_cdata = d_cdata;
@@ -321,7 +311,7 @@ int main(int argc, char **argv)
 
   ms = time_invocation([&]
   {
-    agency::bulk_async(grid(dim_grid, dim_block), transpose_naive{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
+    agency::bulk_async(agency::cuda::grid(dim_grid, dim_block), transpose_naive{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()));
   });
 
   h_tdata = d_tdata;
@@ -335,7 +325,7 @@ int main(int argc, char **argv)
 
   ms = time_invocation([&]
   {
-    agency::bulk_async(grid(dim_grid, dim_block), transpose_coalesced{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()), agency::share_at_scope<1,tile2d_t>());
+    agency::bulk_async(agency::cuda::grid(dim_grid, dim_block), transpose_coalesced{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()), agency::share_at_scope<1,tile2d_t>());
   });
 
   h_tdata = d_tdata;
@@ -349,7 +339,7 @@ int main(int argc, char **argv)
 
   ms = time_invocation([&]
   {
-    agency::bulk_async(grid(dim_grid, dim_block), transpose_no_bank_conflicts{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()), agency::share_at_scope<1,conflict_free_tile2d_t>());
+    agency::bulk_async(agency::cuda::grid(dim_grid, dim_block), transpose_no_bank_conflicts{}, raw_pointer_cast(d_tdata.data()), raw_pointer_cast(d_idata.data()), agency::share_at_scope<1,conflict_free_tile2d_t>());
   });
 
   h_tdata = d_tdata;

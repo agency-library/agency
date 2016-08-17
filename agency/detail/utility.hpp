@@ -48,6 +48,7 @@ typename std::enable_if<
 
 // this is the default implementation of swap
 // which calls swap through ADL
+__agency_exec_check_disable__
 template<class T>
 __AGENCY_ANNOTATION
 typename std::enable_if<

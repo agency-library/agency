@@ -149,6 +149,7 @@ class unique_function<Result(Args...)>
 
       mutable Function f_;
 
+      __agency_exec_check_disable__
       template<class OtherFunction,
                class = typename std::enable_if<
                  std::is_constructible<Function,OtherFunction&&>::value
@@ -159,12 +160,14 @@ class unique_function<Result(Args...)>
           f_(std::forward<OtherFunction>(f))
       {}
 
+      __agency_exec_check_disable__
       __AGENCY_ANNOTATION
       virtual Result operator()(Args... args) const
       {
         return f_(args...);
       }
 
+      __agency_exec_check_disable__
       __AGENCY_ANNOTATION
       static void deallocate(callable_self_deallocator_base* ptr)
       {

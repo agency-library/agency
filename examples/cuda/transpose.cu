@@ -7,13 +7,6 @@
 #include <agency/agency.hpp>
 #include <agency/cuda.hpp>
 
-// XXX need to figure out how to make this par(con) select grid_executor_2d automatically
-auto grid(agency::size2 outer_shape, agency::size2 inner_shape)
-  -> decltype(agency::cuda::par(outer_shape, agency::cuda::con(inner_shape)).on(agency::cuda::grid_executor_2d{}))
-{
-  return agency::cuda::par(outer_shape, agency::cuda::con(inner_shape)).on(agency::cuda::grid_executor_2d{});
-}
-
 
 agency::cuda::future<void> async_square_transpose(size_t matrix_dim, float* transposed_matrix, const float* input_matrix)
 {
@@ -25,8 +18,8 @@ agency::cuda::future<void> async_square_transpose(size_t matrix_dim, float* tran
   size2 outer_shape{matrix_dim/tile_dim, matrix_dim/tile_dim};
   size2 inner_shape{tile_dim, num_rows_per_block};
 
-  return bulk_async(grid(outer_shape, inner_shape), 
-    [=] __host__ __device__ (parallel_group_2d<concurrent_agent_2d>& self)
+  return bulk_async(cuda::grid(outer_shape, inner_shape), 
+    [=] __host__ __device__ (cuda::grid_agent_2d& self)
     {
       auto idx = tile_dim * self.outer().index() + self.inner().index();
 
