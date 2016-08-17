@@ -189,6 +189,7 @@ class unique_ptr
 };
 
 
+__agency_exec_check_disable__
 template<class T, class Alloc, class Deleter, class... Args>
 __AGENCY_ANNOTATION
 unique_ptr<T,Deleter> allocate_unique_with_deleter(const Alloc& alloc, const Deleter& deleter, Args&&... args)
