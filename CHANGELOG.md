@@ -62,6 +62,7 @@ Agency 0.1.0 introduces new **control structures** such as `bulk_invoke()` for c
   * [`fill.cpp`](../0.1.0/examples/fill.cpp)
   * [`hello_async.cpp`](../0.1.0/examples/hello_async.cpp)
   * [`hello_lambda.cpp`](../0.1.0/examples/hello_lambda.cpp)
+  * [`hello_then.cpp`](../0.1.0/examples/hello_then.cpp)
   * [`hello_world.cpp`](../0.1.0/examples/hello_world.cpp)
   * [`ping_pong_tournament.cpp`](../0.1.0/examples/ping_pong_tournament.cpp)
   * [`saxpy.cpp`](../0.1.0/examples/saxpy.cpp)
@@ -72,6 +73,7 @@ Agency 0.1.0 introduces new **control structures** such as `bulk_invoke()` for c
     * [`hello_device_lambda.cu`](../0.1.0/examples/cuda/hello_device_lambda.cu)
     * [`multigpu_saxpy.cu`](../0.1.0/examples/cuda/multigpu_saxpy.cu)
     * [`saxpy.cu`](../0.1.0/examples/cuda/saxpy.cu)
+    * [`simple_on.cu`](../0.1.0/examples/cuda/simple_on.cu)
     * [`transpose.cu`](../0.1.0/examples/cuda/transpose.cu)
 
 ## Known Issues
