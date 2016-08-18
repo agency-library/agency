@@ -140,5 +140,5 @@ int main()
 * See Agency in action in the [collection of example programs](http://github.com/agency-library/agency/tree/master/examples).
 * Browse Agency's [online API documentation](http://agency-library.github.io/modules.html).
 
-Agency is an [NVIDIA Research](research.nvidia.com) project.
+Agency is an [NVIDIA Research](http://research.nvidia.com) project.
 
