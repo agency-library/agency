@@ -58,7 +58,7 @@ struct enable_if_bulk_invoke_execution_policy
 /// `bulk_invoke` is a control structure which creates a group of function invocations with forward progress ordering as required by an execution policy.
 /// The results of these invocations, if any, are collected into a container and returned as bulk_invoke's result.
 ///
-/// If a group of function invocations of size `N` is created, each invocation i in `[0,N)` has the following form:
+/// A group of function invocations of size `N` is created, and each invocation i in `[0,N)` has the following form:
 ///
 ///     result_i = f(agent_i, arg_i_1, arg_i_2, ..., arg_i_M)
 ///
@@ -110,6 +110,9 @@ struct enable_if_bulk_invoke_execution_policy
 ///     $ clang -std=c++11 -I. -lstdc++ -pthread -O3 examples/saxpy.cpp -o saxpy
 ///     $ ./saxpy 
 ///     OK
+///
+/// \see bulk_async
+/// \see bulk_then
 template<class ExecutionPolicy, class Function, class... Args>
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 typename detail::enable_if_bulk_invoke_execution_policy<
