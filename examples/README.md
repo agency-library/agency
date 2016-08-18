@@ -1,5 +1,3 @@
-This is the top-level directory of Agency's example programs.
-
 # Building and Running Example Programs
 
 Each example program is built from a single source file. To build an example program by hand, compile a source file with a C++11 or better compiler. For example, the following command builds the `hello_world.cpp` source file from the `examples` directory:
