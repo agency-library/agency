@@ -52,7 +52,7 @@ struct enable_if_bulk_invoke_execution_policy
 /// requested execution.
 ///
 /// For example, the following code snipped uses the bulk_invoke() control
-/// structure with the agency::par execution policy to require the parallel execution
+/// structure with the \ref par execution policy to require the parallel execution
 /// of ten invocations of a lambda function:
 ///
 /// ~~~~{.cpp}
@@ -73,7 +73,7 @@ struct enable_if_bulk_invoke_execution_policy
 /// `bulk_invoke` is a control structure which creates a group of function invocations with forward progress ordering as required by an execution policy.
 /// The results of these invocations, if any, are collected into a container and returned as bulk_invoke's result.
 ///
-/// A group of function invocations of size `N` is created, and each invocation i in `[0,N)` has the following form:
+/// `bulk_invoke` creates a group of function invocations of size `N`, and each invocation i in `[0,N)` has the following form:
 ///
 ///     result_i = f(agent_i, arg_i_1, arg_i_2, ..., arg_i_M)
 ///
