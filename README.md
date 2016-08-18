@@ -136,9 +136,9 @@ int main()
 
 # Discover the Library
 
-* Refer to Agency's [Quick Start Guide](http://github.com/jaredhoberock/agency/wiki/Quick-Start-Guide) for further information and examples.
-* See Agency in action in the [collection of example programs](http://github.com/jaredhoberock/agency/tree/master/examples).
-* Browse Agency's online API documentation.
+* Refer to Agency's [Quick Start Guide](github.com/agency-library/agency/wiki/Quick-Start-Guide) for further information and examples.
+* See Agency in action in the [collection of example programs](github.com/agency-library/agency/tree/master/examples).
+* Browse Agency's [online API documentation](agency-library.github.io/modules.html).
 
 Agency is an [NVIDIA Research](research.nvidia.com) project.
 
