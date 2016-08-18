@@ -7,7 +7,7 @@
 # don't ignore files that have an extension
 !*.*
 
-# ignore intermediate files introduced build systems
+# ignore intermediate files introduced by build systems
 *.o
 *.out
 
@@ -18,3 +18,7 @@
 # ignore files introduced by scons
 .sconsign.dblite
 *.pyc
+
+# ignore files introduced by doxygen
+*.log
+
