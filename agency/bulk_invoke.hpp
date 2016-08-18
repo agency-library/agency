@@ -1,5 +1,5 @@
 /// \file
-/// \brief Include this file to use `bulk_invoke`.
+/// \brief Include this file to use bulk_invoke().
 ///
 
 #pragma once
@@ -46,9 +46,24 @@ struct enable_if_bulk_invoke_execution_policy
 ///
 ///
 /// The primary way Agency programs create execution is by invoking a
-/// **control structure**. Control structures are invoked via composition
-/// with an **execution policy**. Execution policies parameterize control
-/// structures by describing the properties of the requested execution.
+/// **control structure**. Control structures are functions invoked via
+/// composition with an **execution policy**. Execution policies
+/// parameterize control structures by describing the properties of the
+/// requested execution.
+///
+/// For example, the following code snipped uses the bulk_invoke() control
+/// structure with the \ref par execution policy to require the parallel execution
+/// of ten invocations of a lambda function:
+///
+/// ~~~~{.cpp}
+/// using namespace agency;
+///
+/// bulk_invoke(par(10), [](parallel_agent& self)
+/// {
+///   // task body here
+///   ...
+/// });
+/// ~~~~
 
 
 /// \brief Creates a bulk synchronous invocation.
@@ -58,7 +73,7 @@ struct enable_if_bulk_invoke_execution_policy
 /// `bulk_invoke` is a control structure which creates a group of function invocations with forward progress ordering as required by an execution policy.
 /// The results of these invocations, if any, are collected into a container and returned as bulk_invoke's result.
 ///
-/// A group of function invocations of size `N` is created, and each invocation i in `[0,N)` has the following form:
+/// `bulk_invoke` creates a group of function invocations of size `N`, and each invocation i in `[0,N)` has the following form:
 ///
 ///     result_i = f(agent_i, arg_i_1, arg_i_2, ..., arg_i_M)
 ///
