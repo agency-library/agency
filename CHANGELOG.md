@@ -85,8 +85,9 @@ Agency 0.1.0 introduces new **control structures** such as `bulk_invoke()` for c
 ## Acknowledgments
 
   * Thanks to Michael Garland for significant input into Agency's overall design.
-  * Thanks to Steven Dalton and Mark Harris for testing this release during development.
-  * Thanks to Evghenni Gaburov, Duane Merrill, and Sean Baxter for design feedback.
+  * Thanks to the NVIDIA compiler team, especially Jaydeep Marathe, for enhancements to `nvcc`'s C++ support.
+  * Thanks to Steven Dalton, Mark Harris, and Evghenni Gaburov for testing this release during development.
+  * Thanks to Duane Merrill and Sean Baxter for design feedback.
   * Thanks to Olivier Giroux for contributing an implementation of synchronic.
 
 
