@@ -1,5 +1,5 @@
 /// \file
-/// \brief Include this file to use `bulk_invoke`.
+/// \brief Include this file to use bulk_invoke().
 ///
 
 #pragma once

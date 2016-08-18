@@ -1,3 +1,7 @@
+/// \file
+/// \brief Include this file to use bulk_async().
+///
+
 #pragma once
 
 #include <agency/detail/config.hpp>
