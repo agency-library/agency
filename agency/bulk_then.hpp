@@ -83,22 +83,24 @@ struct enable_if_bulk_then_execution_policy
 ///
 /// Messages from agents in the predecessor task are guaranteed to be output before messages from the continuation:
 ///
-///     $ clang -std=c++11 -I. -lstdc++ -pthread examples/hello_then.cpp -o hello_then
-///     $ ./hello_then
-///     Starting predecessor and continuation tasks asynchronously...
-///     Sleeping before waiting on the continuation...
-///     Hello, world from agent 0 in the predecessor task
-///     Hello, world from agent 1 in the predecessor task
-///     Hello, world from agent 2 in the predecessor task
-///     Hello, world from agent 3 in the predecessor task
-///     Hello, world from agent 4 in the predecessor task
-///     Hello, world from agent 0 in the continuation
-///     Hello, world from agent 1 in the continuation
-///     Hello, world from agent 2 in the continuation
-///     Hello, world from agent 3 in the continuation
-///     Hello, world from agent 4 in the continuation
-///     Woke up, waiting for the continuation to complete...
-///     OK
+/// ~~~~
+/// $ clang -std=c++11 -I. -lstdc++ -pthread examples/hello_then.cpp -o hello_then
+/// $ ./hello_then
+/// Starting predecessor and continuation tasks asynchronously...
+/// Sleeping before waiting on the continuation...
+/// Hello, world from agent 0 in the predecessor task
+/// Hello, world from agent 1 in the predecessor task
+/// Hello, world from agent 2 in the predecessor task
+/// Hello, world from agent 3 in the predecessor task
+/// Hello, world from agent 4 in the predecessor task
+/// Hello, world from agent 0 in the continuation
+/// Hello, world from agent 1 in the continuation
+/// Hello, world from agent 2 in the continuation
+/// Hello, world from agent 3 in the continuation
+/// Hello, world from agent 4 in the continuation
+/// Woke up, waiting for the continuation to complete...
+/// OK
+/// ~~~~
 ///
 /// \see bulk_invoke
 /// \see bulk_async

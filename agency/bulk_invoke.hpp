@@ -101,18 +101,20 @@ struct enable_if_bulk_invoke_execution_policy
 ///
 /// Messages from agents 0 through 9 are printed in sequential order:
 ///
-///     $ clang -std=c++11 -I. -lstdc++ -pthread examples/hello_lambda.cpp -o hello_lambda
-///     $ ./hello_lambda
-///     Hello, world from agent 0
-///     Hello, world from agent 1
-///     Hello, world from agent 2
-///     Hello, world from agent 3
-///     Hello, world from agent 4
-///     Hello, world from agent 5
-///     Hello, world from agent 6
-///     Hello, world from agent 7
-///     Hello, world from agent 8
-///     Hello, world from agent 9
+/// ~~~~
+/// $ clang -std=c++11 -I. -lstdc++ -pthread examples/hello_lambda.cpp -o hello_lambda
+/// $ ./hello_lambda
+/// Hello, world from agent 0
+/// Hello, world from agent 1
+/// Hello, world from agent 2
+/// Hello, world from agent 3
+/// Hello, world from agent 4
+/// Hello, world from agent 5
+/// Hello, world from agent 6
+/// Hello, world from agent 7
+/// Hello, world from agent 8
+/// Hello, world from agent 9
+/// ~~~~
 ///
 /// Changing the execution policy used in the call to `bulk_invoke` changes how and where the execution agents
 /// will execute the provided function. This example demonstrates how to use `bulk_invoke` with `par` to execute
