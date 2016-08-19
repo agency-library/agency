@@ -57,6 +57,9 @@ int main()
 }
 ~~~~
 
+-----------
+
+
 This code example implements a vector sum operation and executes it sequentially, in parallel, in parallel on a single GPU, and finally multiple GPUs:
 
 ~~~~{.cpp}
