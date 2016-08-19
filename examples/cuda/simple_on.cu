@@ -24,6 +24,7 @@ int main()
   float* y_ptr = y.data();
   float* z_ptr = z.data();
 
+
   // execute sequentially in the current thread
   bulk_invoke(seq(n), [=](sequenced_agent& self)
   {
@@ -34,6 +35,7 @@ int main()
   assert(z == reference);
   std::fill(z.begin(), z.end(), 0);
 
+
   // execute in parallel on the CPU
   bulk_invoke(par(n), [=](parallel_agent& self)
   {
@@ -43,6 +45,7 @@ int main()
 
   assert(z == reference);
   std::fill(z.begin(), z.end(), 0);
+
 
   // execute in parallel on a GPU
   cuda::grid_executor gpu;
@@ -55,6 +58,7 @@ int main()
   assert(z == reference);
   std::fill(z.begin(), z.end(), 0);
 
+
   // execute in parallel on all GPUs in the system
   cuda::multidevice_executor all_gpus;
   bulk_invoke(par(n).on(all_gpus), [=] __device__ (parallel_agent& self)
@@ -65,6 +69,7 @@ int main()
 
   assert(z == reference);
   std::fill(z.begin(), z.end(), 0);
+
 
   std::cout << "OK" << std::endl;
   return 0;
