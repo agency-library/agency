@@ -1,0 +1,31 @@
+#pragma once
+
+#include <agency/detail/config.hpp>
+#include <agency/detail/type_traits.hpp>
+#include <future>
+
+namespace agency
+{
+namespace detail
+{
+namespace new_executor_traits_detail
+{
+
+
+template<class T, class U, template<class> class Default = std::future>
+struct executor_future_or
+{
+  template<class V>
+  using helper = typename V::template future<U>;
+
+  using type = detected_or_t<Default<U>, helper, T>;
+};
+
+template<class T, class U, template<class> class Default = std::future>
+using executor_future_or_t = typename executor_future_or<T,U,Default>::type;
+
+
+} // end new_executor_traits_detail
+} // end detail
+} // end agency
+
