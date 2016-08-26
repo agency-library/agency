@@ -159,6 +159,9 @@ using is_detected = typename detector<nonesuch, void, Op, Args...>::value_t;
  
 template<template<class...> class Op, class... Args> 
 using detected_t = typename detector<nonesuch, void, Op, Args...>::type; 
+
+template<class Expected, template<class...> class Op, class... Args>
+using is_detected_exact = std::is_same<Expected, detected_t<Op,Args...>>;
  
 template<class Default, template<class...> class Op, class... Args> 
 using detected_or = detector<Default, void, Op, Args...>; 
