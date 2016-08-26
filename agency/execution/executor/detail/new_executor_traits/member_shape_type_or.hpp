@@ -12,8 +12,9 @@ namespace new_executor_traits_detail
 {
 
 
-template<class T, class Default = size_t>
-struct executor_shape_or
+// returns T::shape_type if it exists, Default otherwise
+template<class T, class Default>
+struct member_shape_type_or
 {
   template<class U>
   using helper = typename U::shape_type;
@@ -21,8 +22,8 @@ struct executor_shape_or
   using type = detected_or_t<Default, helper, T>;
 };
 
-template<class T, class Default = size_t>
-using executor_shape_or_t = typename executor_shape_or<T,Default>::type;
+template<class T, class Default>
+using member_shape_type_or_t = typename member_shape_type_or<T,Default>::type;
 
 
 } // end new_executor_traits_detail

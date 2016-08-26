@@ -5,9 +5,9 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_execution_depth_or.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_shape_or.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_future_or.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_index_or.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/member_shape_type_or.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/member_future_or.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/member_index_type_or.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -25,7 +25,8 @@ template<class Executor, class Function, class Shape,
         >
 struct has_bulk_async_execute_impl
 {
-  using expected_return_type = executor_future_or_t<Executor,result_of_t<ResultFactory(Shape)>>;
+  using result_type = result_of_t<ResultFactory(Shape)>;
+  using expected_future_type = member_future_or_t<Executor,result_type,std::future>;
 
   template<class Executor1,
            class ReturnType = decltype(
@@ -37,7 +38,7 @@ struct has_bulk_async_execute_impl
              )
            ),
            class = typename std::enable_if<
-             std::is_same<ReturnType,expected_return_type>::value
+             std::is_same<ReturnType,expected_future_type>::value
            >::type>
   static std::true_type test(int);
 
@@ -62,8 +63,8 @@ template<class T, size_t... Indices>
 struct is_bulk_asynchronous_executor_impl<T, index_sequence<Indices...>>
 {
   // executor properties
-  using shape_type = executor_shape_or_t<T>;
-  using index_type = executor_index_or_t<T>;
+  using shape_type = member_shape_type_or_t<T, size_t>;
+  using index_type = member_index_type_or_t<T, shape_type>;
 
   // types related to functions passed to .bulk_async_execute()
   using result_type = int;

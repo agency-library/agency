@@ -12,8 +12,8 @@ namespace new_executor_traits_detail
 {
 
 
-template<class T, class Default = unsequenced_execution_tag>
-struct executor_execution_category_or
+template<class T, class Default>
+struct member_execution_category_or
 {
   template<class U>
   using helper = typename U::execution_category;
@@ -21,8 +21,8 @@ struct executor_execution_category_or
   using type = detected_or_t<Default, helper, T>;
 };
 
-template<class T, class Default = unsequenced_execution_tag>
-using executor_execution_category_or_t = typename executor_execution_category_or<T,Default>::type;
+template<class T, class Default>
+using member_execution_category_or_t = typename member_execution_category_or<T,Default>::type;
 
 
 } // end new_executor_traits_detail
