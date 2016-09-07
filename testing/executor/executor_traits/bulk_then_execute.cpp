@@ -14,8 +14,6 @@ void test(Executor exec)
   using namespace agency::detail::new_executor_traits_detail;
 
   auto fut = agency::detail::make_ready_future<int>(7);
-  
-  int val = 13;
 
   using shape_type = executor_shape_t<Executor>;
   using index_type = executor_index_t<Executor>;
