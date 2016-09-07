@@ -4,7 +4,8 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/member_allocator_or.hpp>
-#include <allocator>
+#include <memory>
+
 
 namespace agency
 {
