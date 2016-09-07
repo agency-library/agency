@@ -4,8 +4,6 @@
 
 #include "test_executors.hpp"
 
-struct not_an_executor {};
-
 struct bulk_executor_without_shape_type
 {
   template<class Function, class ResultFactory, class SharedFactory>
