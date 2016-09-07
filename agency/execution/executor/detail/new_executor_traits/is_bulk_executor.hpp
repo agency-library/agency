@@ -13,12 +13,21 @@ namespace detail
 namespace new_executor_traits_detail
 {
 
+
 template<class T>
 using is_bulk_executor = agency::detail::disjunction<
   is_bulk_synchronous_executor<T>,
   is_bulk_asynchronous_executor<T>,
   is_bulk_continuation_executor<T>
 >;
+
+
+// a fake Concept to use with __AGENCY_REQUIRES
+template<class T>
+constexpr bool BulkExecutor()
+{
+  return is_bulk_executor<T>();
+}
 
 
 } // end new_executor_traits_detail

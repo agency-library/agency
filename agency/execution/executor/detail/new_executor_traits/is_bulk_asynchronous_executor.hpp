@@ -97,6 +97,14 @@ using is_bulk_asynchronous_executor = typename is_bulk_asynchronous_executor_imp
 >::type;
 
 
+// a fake Concept to use with __AGENCY_REQUIRES
+template<class T>
+constexpr bool BulkAsynchronousExecutor()
+{
+  return is_bulk_asynchronous_executor<T>();
+}
+
+
 } // end new_executor_traits_detail
 } // end detail
 } // end agency

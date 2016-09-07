@@ -104,6 +104,14 @@ using is_bulk_continuation_executor = typename is_bulk_continuation_executor_imp
 >::type;
 
 
+// a fake Concept to use with __AGENCY_REQUIRES
+template<class T>
+constexpr bool BulkContinuationExecutor()
+{
+  return is_bulk_continuation_executor<T>();
+}
+
+
 } // end new_executor_traits_detail
 } // end detail
 } // end agency
