@@ -2,7 +2,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <cstddef>
 
 namespace agency
 {
