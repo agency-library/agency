@@ -2,6 +2,8 @@
 #include <type_traits>
 #include <iostream>
 
+#include "executors.hpp"
+
 struct not_an_executor {};
 
 struct bulk_executor_without_shape_type
@@ -32,6 +34,8 @@ int main()
   static_assert(agency::detail::is_detected_exact<size_t, executor_shape_t, bulk_executor_without_shape_type>::value, "bulk_executor_without_shape_type should have size_t shape_type");
 
   static_assert(agency::detail::is_detected_exact<bulk_executor_with_shape_type::shape_type, executor_shape_t, bulk_executor_with_shape_type>::value, "bulk_executor_with_shape_type should have bulk_executor_with_shape_type::shape_type shape_type");
+
+  static_assert(agency::detail::is_detected_exact<size_t, executor_shape_t, bulk_continuation_executor>::value, "bulk_continuation_executor should have size_t shape_type");
 
   std::cout << "OK" << std::endl;
 
