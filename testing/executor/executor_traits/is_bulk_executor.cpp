@@ -56,7 +56,7 @@ int main()
 
   // test not_a_bulk_synchronous_executor
   static_assert(is_bulk_executor<complete_bulk_executor>::value,              "complete_bulk_executor is supposed to be a bulk executor");
-  static_assert(is_bulk_executor<complete_bulk_executor>::value,              "complete_bulk_executor is supposed to be a bulk synchronous executor");
+  static_assert(is_bulk_synchronous_executor<complete_bulk_executor>::value,  "complete_bulk_executor is supposed to be a bulk synchronous executor");
   static_assert(is_bulk_asynchronous_executor<complete_bulk_executor>::value, "complete_bulk_executor is supposed to be a bulk asynchronous executor");
   static_assert(is_bulk_continuation_executor<complete_bulk_executor>::value, "complete_bulk_executor is supposed to be a bulk continuation executor");
   

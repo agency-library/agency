@@ -27,7 +27,7 @@ template<class E, class Function, class Future, class Factory1, class Factory2,
         >
 executor_future_t<
   E,
-  result_of_t<Factory1(executor_shape_t<E>)>
+  result_of_t<Factory1()>
 >
 bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factory1 result_factory, Factory2 shared_factory)
 {
@@ -80,7 +80,7 @@ template<class E, class Function, class Future, class Factory1, class Factory2,
         >
 executor_future_t<
   E,
-  result_of_t<Factory1(executor_shape_t<E>)>
+  result_of_t<Factory1()>
 >
 bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factory1 result_factory, Factory2 shared_factory)
 {
@@ -100,7 +100,7 @@ template<class E, class Function, class Future, class Factory1, class Factory2,
         >
 executor_future_t<
   E,
-  result_of_t<Factory1(executor_shape_t<E>)>
+  result_of_t<Factory1()>
 >
 bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factory1 result_factory, Factory2 shared_factory)
 {

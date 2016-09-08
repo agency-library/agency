@@ -19,7 +19,7 @@ namespace new_executor_traits_detail
 template<class E, class Function, class Factory1, class Factory2,
          __AGENCY_REQUIRES(BulkSynchronousExecutor<E>())
         >
-result_of_t<Factory1(executor_shape_t<E>)>
+result_of_t<Factory1()>
 bulk_execute(E& exec, Function f, executor_shape_t<E> shape, Factory1 result_factory, Factory2 shared_factory)
 {
   return exec.bulk_execute(f, shape, result_factory, shared_factory);
@@ -29,7 +29,7 @@ bulk_execute(E& exec, Function f, executor_shape_t<E> shape, Factory1 result_fac
 template<class E, class Function, class Factory1, class Factory2,
          __AGENCY_REQUIRES(BulkExecutor<E>() && !BulkSynchronousExecutor<E>())
         >
-result_of_t<Factory1(executor_shape_t<E>)>
+result_of_t<Factory1()>
 bulk_execute(E& exec, Function f, executor_shape_t<E> shape, Factory1 result_factory, Factory2 shared_factory)
 {
   return bulk_async_execute(exec, f, shape, result_factory, shared_factory).get();

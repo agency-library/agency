@@ -27,7 +27,7 @@ template<class Executor, class Function, class Shape,
         >
 struct has_bulk_then_execute_impl
 {
-  using result_type = result_of_t<ResultFactory(Shape)>;
+  using result_type = result_of_t<ResultFactory()>;
   using expected_future_type = member_future_or_t<Executor,result_type,std::future>;
 
   template<class Executor1,
@@ -70,20 +70,39 @@ struct is_bulk_continuation_executor_impl<T, index_sequence<Indices...>>
   using shape_type = member_shape_type_or_t<T,size_t>;
   using index_type = member_index_type_or_t<T,shape_type>;
 
-  // types related to functions passed to .bulk_async_execute()
+  // types related to functions passed to .bulk_then_execute()
   using result_type = int;
   using predecessor_type = int;
-  using predecessor_future_type = std::future<predecessor_type>;
+  using predecessor_future_type = member_future_or_t<T,predecessor_type,std::future>;
+
   template<size_t>
   using shared_type = int;
 
   // the functions we'll pass to .bulk_then_execute() to test
-  using test_function = std::function<void(index_type, predecessor_type&, result_type&, shared_type<Indices>&...)>;
-  using test_result_factory = std::function<result_type(shape_type)>;
 
-  // XXX we're passing the wrong shape_type -- we need to pick out the Ith shape_type
+  // XXX WAR nvcc 8.0 bug
+  //using test_function = std::function<void(index_type, predecessor_type&, result_type&, shared_type<Indices>&...)>;
+  //using test_result_factory = std::function<result_type()>;
+
+  struct test_function
+  {
+    void operator()(index_type, predecessor_type&, result_type&, shared_type<Indices>&...);
+  };
+
+  struct test_result_factory
+  {
+    result_type operator()();
+  };
+
+  // XXX WAR nvcc 8.0 bug
+  //template<size_t I>
+  //using test_shared_factory = std::function<shared_type<I>()>;
+
   template<size_t I>
-  using test_shared_factory = std::function<shared_type<I>(shape_type)>;
+  struct test_shared_factory
+  {
+    shared_type<I> operator()();
+  };
 
   using type = has_bulk_then_execute<
     T,

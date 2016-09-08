@@ -17,16 +17,18 @@ void test(Executor exec)
 
   using shape_type = executor_shape_t<Executor>;
   using index_type = executor_index_t<Executor>;
+
+  size_t shape = 10;
   
   auto f = bulk_then_execute(exec,
     [](index_type idx, int& past_arg, std::vector<int>& results, std::vector<int>& shared_arg)
     {
       results[idx] = past_arg + shared_arg[idx];
     },
-    10,
+    shape,
     fut,
-    [](shape_type shape){ return std::vector<int>(shape); },     // results
-    [](shape_type shape){ return std::vector<int>(shape, 13); }  // shared_arg
+    [=]{ return std::vector<int>(shape); },     // results
+    [=]{ return std::vector<int>(shape, 13); }  // shared_arg
   );
   
   auto result = f.get();

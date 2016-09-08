@@ -12,7 +12,7 @@ class bulk_continuation_executor
   public:
     template<class Function, class Future, class ResultFactory, class SharedFactory>
     std::future<
-      typename std::result_of<ResultFactory(size_t)>::type
+      typename std::result_of<ResultFactory()>::type
     >
     bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
     {
@@ -21,7 +21,7 @@ class bulk_continuation_executor
 
   private:
     template<class Function, class Future, class ResultFactory, class SharedFactory>
-    std::future<agency::detail::result_of_t<ResultFactory(size_t)>>
+    std::future<agency::detail::result_of_t<ResultFactory()>>
       bulk_then_execute_impl(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory,
                              typename std::enable_if<
                                !std::is_void<
@@ -36,8 +36,8 @@ class bulk_continuation_executor
         return agency::detail::monadic_then(predecessor, std::launch::async, [=](predecessor_type& predecessor) mutable
         {
           // put all the shared parameters on the first thread's stack
-          auto result = result_factory(n);
-          auto shared_parameter = shared_factory(n);
+          auto result = result_factory();
+          auto shared_parameter = shared_factory();
 
           // create a lambda to handle parameter passing
           auto g = [&,f](size_t idx)
@@ -68,11 +68,11 @@ class bulk_continuation_executor
         });
       }
 
-      return agency::detail::make_ready_future(result_factory(n));
+      return agency::detail::make_ready_future(result_factory());
     }
 
     template<class Function, class Future, class ResultFactory, class SharedFactory>
-    std::future<agency::detail::result_of_t<ResultFactory(size_t)>>
+    std::future<agency::detail::result_of_t<ResultFactory()>>
       bulk_then_execute_impl(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory,
                              typename std::enable_if<
                                std::is_void<
@@ -85,8 +85,8 @@ class bulk_continuation_executor
         return agency::detail::monadic_then(predecessor, std::launch::async, [=]() mutable
         {
           // put all the shared parameters on the first thread's stack
-          auto result = result_factory(n);
-          auto shared_parameter = shared_factory(n);
+          auto result = result_factory();
+          auto shared_parameter = shared_factory();
 
           // create a lambda to handle parameter passing
           auto g = [&,f](size_t idx)
@@ -117,7 +117,7 @@ class bulk_continuation_executor
         });
       }
 
-      return agency::detail::make_ready_future(result_factory(n));
+      return agency::detail::make_ready_future(result_factory());
     }
 
     // first must be less than last
@@ -153,11 +153,11 @@ class bulk_synchronous_executor
 {
   public:
     template<class Function, class ResultFactory, class SharedFactory>
-    typename std::result_of<ResultFactory(size_t)>::type
+    typename std::result_of<ResultFactory()>::type
     bulk_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
     {
-      auto result = result_factory(n);
-      auto shared_parm = shared_factory(n);
+      auto result = result_factory();
+      auto shared_parm = shared_factory();
 
       for(size_t i = 0; i < n; ++i)
       {
@@ -174,14 +174,14 @@ class bulk_asynchronous_executor
   public:
     template<class Function, class ResultFactory, class SharedFactory>
     std::future<
-      typename std::result_of<ResultFactory(size_t)>::type
+      typename std::result_of<ResultFactory()>::type
     >
     bulk_async_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
     {
       return std::async(std::launch::async, [=]
       {
-        auto result = result_factory(n);
-        auto shared_parm = shared_factory(n);
+        auto result = result_factory();
+        auto shared_parm = shared_factory();
 
         for(size_t i = 0; i < n; ++i)
         {
@@ -204,6 +204,22 @@ struct not_a_bulk_continuation_executor : bulk_synchronous_executor, bulk_asynch
 struct complete_bulk_executor : bulk_synchronous_executor, bulk_asynchronous_executor, bulk_continuation_executor {};
 
 
+struct bulk_executor_without_shape_type
+{
+  template<class Function, class ResultFactory, class SharedFactory>
+  typename std::result_of<ResultFactory()>::type
+  bulk_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
+};
 
+struct bulk_executor_with_shape_type
+{
+  struct shape_type
+  {
+    size_t n;
+  };
 
+  template<class Function, class ResultFactory, class SharedFactory>
+  typename std::result_of<ResultFactory()>::type
+  bulk_execute(Function f, shape_type n, ResultFactory result_factory, SharedFactory shared_factory);
+};
 

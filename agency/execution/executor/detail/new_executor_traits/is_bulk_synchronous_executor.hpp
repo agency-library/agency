@@ -24,7 +24,7 @@ template<class Executor, class Function, class Shape,
         >
 struct has_bulk_execute_impl
 {
-  using expected_return_type = result_of_t<ResultFactory(Shape)>;
+  using expected_return_type = result_of_t<ResultFactory()>;
 
   template<class Executor1,
            class ReturnType = decltype(
@@ -70,12 +70,30 @@ struct is_bulk_synchronous_executor_impl<T, index_sequence<Indices...>>
   using shared_type = int;
 
   // the functions we'll pass to .bulk_execute() to test
-  using test_function = std::function<void(index_type, result_type&, shared_type<Indices>&...)>;
-  using test_result_factory = std::function<result_type(shape_type)>;
+  
+  // XXX WAR nvcc 8.0 bug
+  //using test_function = std::function<void(index_type, result_type&, shared_type<Indices>&...)>;
+  //using test_result_factory = std::function<result_type()>;
 
-  // XXX we're passing the wrong shape_type -- we need to pick out the Ith shape_type
+  struct test_function
+  {
+    void operator()(index_type, result_type&, shared_type<Indices>&...);
+  };
+
+  struct test_result_factory
+  {
+    result_type operator()();
+  };
+
+  // XXX WAR nvcc 8.0 bug
+  //template<size_t I>
+  //using test_shared_factory = std::function<shared_type<I>()>;
+
   template<size_t I>
-  using test_shared_factory = std::function<shared_type<I>(shape_type)>;
+  struct test_shared_factory
+  {
+    shared_type<I> operator()();
+  };
 
   using type = has_bulk_execute<
     T,

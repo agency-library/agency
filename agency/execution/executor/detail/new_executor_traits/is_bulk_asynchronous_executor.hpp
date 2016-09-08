@@ -25,7 +25,7 @@ template<class Executor, class Function, class Shape,
         >
 struct has_bulk_async_execute_impl
 {
-  using result_type = result_of_t<ResultFactory(Shape)>;
+  using result_type = result_of_t<ResultFactory()>;
   using expected_future_type = member_future_or_t<Executor,result_type,std::future>;
 
   template<class Executor1,
@@ -72,12 +72,30 @@ struct is_bulk_asynchronous_executor_impl<T, index_sequence<Indices...>>
   using shared_type = int;
 
   // the functions we'll pass to .bulk_async_execute() to test
-  using test_function = std::function<void(index_type, result_type&, shared_type<Indices>&...)>;
-  using test_result_factory = std::function<result_type(shape_type)>;
 
-  // XXX we're passing the wrong shape_type -- we need to pick out the last (depth - Ith) dimensions of the shape_type
+  // XXX WAR nvcc 8.0 bug
+  //using test_function = std::function<void(index_type, result_type&, shared_type<Indices>&...)>;
+  //using test_result_factory = std::function<result_type()>;
+
+  struct test_function
+  {
+    void operator()(index_type, result_type&, shared_type<Indices>&...);
+  };
+
+  struct test_result_factory
+  {
+    result_type operator()();
+  };
+
+  // XXX WAR nvcc 8.0 bug
+  //template<size_t I>
+  //using test_shared_factory = std::function<shared_type<I>()>;
+  
   template<size_t I>
-  using test_shared_factory = std::function<shared_type<I>(shape_type)>;
+  struct test_shared_factory
+  {
+    shared_type<I> operator()();
+  };
 
   using type = has_bulk_async_execute<
     T,
