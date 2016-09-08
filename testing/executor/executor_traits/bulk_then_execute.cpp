@@ -9,11 +9,11 @@
 
 
 template<class Executor>
-void test(Executor exec)
+void test_with_non_void_predecessor(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  auto fut = agency::detail::make_ready_future<int>(7);
+  auto predecessor_future = agency::detail::make_ready_future<int>(7);
 
   using shape_type = executor_shape_t<Executor>;
   using index_type = executor_index_t<Executor>;
@@ -21,12 +21,12 @@ void test(Executor exec)
   size_t shape = 10;
   
   auto f = bulk_then_execute(exec,
-    [](index_type idx, int& past_arg, std::vector<int>& results, std::vector<int>& shared_arg)
+    [](index_type idx, int& predecessor, std::vector<int>& results, std::vector<int>& shared_arg)
     {
-      results[idx] = past_arg + shared_arg[idx];
+      results[idx] = predecessor + shared_arg[idx];
     },
     shape,
-    fut,
+    predecessor_future,
     [=]{ return std::vector<int>(shape); },     // results
     [=]{ return std::vector<int>(shape, 13); }  // shared_arg
   );
@@ -37,17 +37,52 @@ void test(Executor exec)
 }
 
 
+template<class Executor>
+void test_with_void_predecessor(Executor exec)
+{
+  using namespace agency::detail::new_executor_traits_detail;
+
+  auto predecessor_future = agency::detail::make_ready_future();
+
+  using shape_type = executor_shape_t<Executor>;
+  using index_type = executor_index_t<Executor>;
+
+  size_t shape = 10;
+  
+  auto f = bulk_then_execute(exec,
+    [](index_type idx, std::vector<int>& results, std::vector<int>& shared_arg)
+    {
+      results[idx] = shared_arg[idx];
+    },
+    shape,
+    predecessor_future,
+    [=]{ return std::vector<int>(shape); },     // results
+    [=]{ return std::vector<int>(shape, 13); }  // shared_arg
+  );
+  
+  auto result = f.get();
+  
+  assert(std::vector<int>(10, 13) == result);
+}
+
+
 int main()
 {
-  test(bulk_synchronous_executor());
-  test(bulk_asynchronous_executor());
-  test(bulk_continuation_executor());
+  test_with_non_void_predecessor(bulk_synchronous_executor());
+  test_with_non_void_predecessor(bulk_asynchronous_executor());
+  test_with_non_void_predecessor(bulk_continuation_executor());
+  test_with_non_void_predecessor(not_a_bulk_synchronous_executor());
+  test_with_non_void_predecessor(not_a_bulk_asynchronous_executor());
+  test_with_non_void_predecessor(not_a_bulk_continuation_executor());
+  test_with_non_void_predecessor(complete_bulk_executor());
 
-  test(not_a_bulk_synchronous_executor());
-  test(not_a_bulk_asynchronous_executor());
-  test(not_a_bulk_continuation_executor());
-
-  test(complete_bulk_executor());
+  test_with_void_predecessor(bulk_synchronous_executor());
+  test_with_void_predecessor(bulk_asynchronous_executor());
+  test_with_void_predecessor(bulk_continuation_executor());
+  test_with_void_predecessor(not_a_bulk_synchronous_executor());
+  test_with_void_predecessor(not_a_bulk_asynchronous_executor());
+  test_with_void_predecessor(not_a_bulk_continuation_executor());
+  test_with_void_predecessor(complete_bulk_executor());
 
   std::cout << "OK" << std::endl;
 
