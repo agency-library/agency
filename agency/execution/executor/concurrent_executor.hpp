@@ -44,6 +44,15 @@ class concurrent_executor
       return hw_concurrency ? hw_concurrency : default_result;
     }
 
+    template<class Function, class Future, class ResultFactory, class SharedFactory>
+    std::future<
+      typename std::result_of<ResultFactory()>::type
+    >
+    bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+    {
+      return bulk_then_execute_impl(f, n, predecessor, result_factory, shared_factory);
+    }
+
   private:
     template<class Function, class Factory1, class Future, class Factory2>
     std::future<agency::detail::result_of_t<Factory1(size_t)>>
@@ -146,6 +155,106 @@ class concurrent_executor
     }
 
   private:
+    template<class Function, class Future, class ResultFactory, class SharedFactory>
+    std::future<agency::detail::result_of_t<ResultFactory()>>
+      bulk_then_execute_impl(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory,
+                             typename std::enable_if<
+                               !std::is_void<
+                                 typename agency::future_traits<Future>::value_type
+                               >::value
+                             >::type* = 0)
+    {
+      if(n > 0)
+      {
+        using predecessor_type = typename agency::future_traits<Future>::value_type;
+
+        return agency::detail::monadic_then(predecessor, std::launch::async, [=](predecessor_type& predecessor) mutable
+        {
+          // put all the shared parameters on the first thread's stack
+          auto result = result_factory();
+          auto shared_parameter = shared_factory();
+
+          // create a lambda to handle parameter passing
+          auto g = [&,f](size_t idx)
+          {
+            agency::detail::invoke(f, idx, predecessor, result, shared_parameter);
+          };
+
+          size_t mid = n / 2;
+
+          std::future<void> left = agency::detail::make_ready_future();
+          if(0 < mid)
+          {
+            left = this->async_execute(g, 0, mid);
+          }
+
+          std::future<void> right = agency::detail::make_ready_future();
+          if(mid + 1 < n)
+          {
+            right = this->async_execute(g, mid + 1, n);
+          }
+
+          g(mid);
+
+          left.wait();
+          right.wait();
+
+          return std::move(result);
+        });
+      }
+
+      return agency::detail::make_ready_future(result_factory());
+    }
+
+    template<class Function, class Future, class ResultFactory, class SharedFactory>
+    std::future<agency::detail::result_of_t<ResultFactory()>>
+      bulk_then_execute_impl(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory,
+                             typename std::enable_if<
+                               std::is_void<
+                                 typename agency::future_traits<Future>::value_type
+                               >::value
+                             >::type* = 0)
+    {
+      if(n > 0)
+      {
+        return agency::detail::monadic_then(predecessor, std::launch::async, [=]() mutable
+        {
+          // put all the shared parameters on the first thread's stack
+          auto result = result_factory();
+          auto shared_parameter = shared_factory();
+
+          // create a lambda to handle parameter passing
+          auto g = [&,f](size_t idx)
+          {
+            agency::detail::invoke(f, idx, result, shared_parameter);
+          };
+
+          size_t mid = n / 2;
+
+          std::future<void> left = agency::detail::make_ready_future();
+          if(0 < mid)
+          {
+            left = this->async_execute(g, 0, mid);
+          }
+
+          std::future<void> right = agency::detail::make_ready_future();
+          if(mid + 1 < n)
+          {
+            right = this->async_execute(g, mid + 1, n);
+          }
+
+          g(mid);
+
+          left.wait();
+          right.wait();
+
+          return std::move(result);
+        });
+      }
+
+      return agency::detail::make_ready_future(result_factory());
+    }
+
     // first must be less than last
     template<class Function>
     std::future<void> async_execute(Function f, size_t first, size_t last)
