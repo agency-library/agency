@@ -46,7 +46,7 @@ class concurrent_executor
 
     template<class Function, class Future, class ResultFactory, class SharedFactory>
     std::future<
-      typename std::result_of<ResultFactory()>::type
+      detail::result_of_t<ResultFactory()>
     >
     bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
     {
