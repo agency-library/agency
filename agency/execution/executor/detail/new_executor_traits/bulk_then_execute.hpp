@@ -8,6 +8,7 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_continuation_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_future.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute.hpp>
 #include <future>
@@ -22,16 +23,17 @@ namespace new_executor_traits_detail
 
 
 // this case handles executors which .bulk_then_execute()
-template<class E, class Function, class Future, class Factory1, class Factory2,
-         __AGENCY_REQUIRES(BulkContinuationExecutor<E>())
+template<class E, class Function, class Future, class ResultFactory, class... Factories,
+         __AGENCY_REQUIRES(BulkContinuationExecutor<E>()),
+         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 executor_future_t<
   E,
-  result_of_t<Factory1()>
+  result_of_t<ResultFactory()>
 >
-bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factory1 result_factory, Factory2 shared_factory)
+bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
-  return exec.bulk_then_execute(f, shape, predecessor, result_factory, shared_factory);
+  return exec.bulk_then_execute(f, shape, predecessor, result_factory, shared_factories...);
 }
 
 
@@ -75,14 +77,15 @@ struct bulk_then_execute_functor<Function,SharedFuture,true>
 
 
 // this case handles executors which have .bulk_async_execute() and may or may not have .bulk_execute()
-template<class E, class Function, class Future, class Factory1, class Factory2,
-         __AGENCY_REQUIRES(!BulkContinuationExecutor<E>() && BulkAsynchronousExecutor<E>())
+template<class E, class Function, class Future, class ResultFactory, class... Factories,
+         __AGENCY_REQUIRES(!BulkContinuationExecutor<E>() && BulkAsynchronousExecutor<E>()),
+         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 executor_future_t<
   E,
-  result_of_t<Factory1()>
+  result_of_t<ResultFactory()>
 >
-bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factory1 result_factory, Factory2 shared_factory)
+bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   // XXX we may wish to allow the executor to participate in this sharing operation
   auto shared_predecessor_future = future_traits<Future>::share(predecessor);
@@ -90,19 +93,20 @@ bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predec
   using shared_predecessor_future_type = decltype(shared_predecessor_future);
   auto functor = bulk_then_execute_functor<Function,shared_predecessor_future_type>{f, shared_predecessor_future};
 
-  return bulk_async_execute(exec, functor, shape, result_factory, shared_factory);
+  return bulk_async_execute(exec, functor, shape, result_factory, shared_factories...);
 }
 
 
 // this case handles executors which only have .bulk_execute()
-template<class E, class Function, class Future, class Factory1, class Factory2,
-         __AGENCY_REQUIRES(!BulkContinuationExecutor<E>() && !BulkAsynchronousExecutor<E>())
+template<class E, class Function, class Future, class ResultFactory, class... Factories,
+         __AGENCY_REQUIRES(!BulkContinuationExecutor<E>() && !BulkAsynchronousExecutor<E>()),
+         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 executor_future_t<
   E,
-  result_of_t<Factory1()>
+  result_of_t<ResultFactory()>
 >
-bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factory1 result_factory, Factory2 shared_factory)
+bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   // XXX we may wish to allow the executor to participate in this sharing operation
   auto shared_predecessor_future = future_traits<Future>::share(predecessor);
@@ -112,7 +116,7 @@ bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predec
     using shared_predecessor_future_type = decltype(shared_predecessor_future);
     auto functor = bulk_then_execute_functor<Function,shared_predecessor_future_type>{f, shared_predecessor_future};
 
-    return bulk_execute(exec, functor, shape, result_factory, shared_factory);
+    return bulk_execute(exec, functor, shape, result_factory, shared_factories...);
   });
 }
 
