@@ -17,6 +17,27 @@ class vector_executor
   public:
     using execution_category = unsequenced_execution_tag;
 
+    template<class Function, class ResultFactory, class SharedFactory>
+    agency::detail::result_of_t<ResultFactory()>
+      bulk_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
+    {
+      auto result = result_factory();
+      auto shared_parm = shared_factory();
+
+      // ivdep requires gcc 4.9+
+#if !defined(__INTEL_COMPILER) && !defined(__NVCC__) && (__GNUC__ >= 4) && (__GNUC_MINOR__ >= 9)
+      #pragma GCC ivdep
+#elif defined(__INTEL_COMPILER)
+      #pragma simd
+#endif
+      for(size_t i = 0; i < n; ++i)
+      {
+        f(i, result, shared_parm);
+      }
+
+      return std::move(result);
+    }
+
     template<class Function, class Factory>
     void execute(Function f, size_t n, Factory shared_factory)
     {
