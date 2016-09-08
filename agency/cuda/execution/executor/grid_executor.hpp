@@ -206,6 +206,16 @@ class basic_grid_executor
       return cuda::make_ready_async_future();
     }
 
+
+    template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
+    __host__ __device__
+    async_future<agency::detail::result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, shape_type shape, future<T>& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory)
+    {
+      return predecessor.new_bulk_then(f, shape, this_index_function_type(), result_factory, outer_factory, inner_factory, device());
+    }
+
+
     template<size_t... Indices, class Function, class TupleOfFutures, class Factory1, class Factory2>
     __host__ __device__
     async_future<detail::when_all_execute_and_select_result_t<agency::detail::index_sequence<Indices...>, agency::detail::decay_t<TupleOfFutures>>>
