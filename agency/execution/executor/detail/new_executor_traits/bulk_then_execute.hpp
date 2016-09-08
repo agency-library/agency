@@ -61,11 +61,11 @@ struct bulk_then_execute_functor
 template<class Function, class SharedFuture>
 struct bulk_then_execute_functor<Function,SharedFuture,true>
 {
-  Function f_;
-  SharedFuture fut_;
+  mutable Function f_;
+  mutable SharedFuture fut_;
 
   template<class Index, class... Args>
-  auto operator()(const Index &idx, Args&... args) ->
+  auto operator()(const Index &idx, Args&... args) const ->
     decltype(f_(idx, args...))
   {
     fut_.wait();
