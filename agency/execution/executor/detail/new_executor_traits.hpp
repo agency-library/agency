@@ -4,6 +4,7 @@
 #include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_execute.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute_with_auto_result.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_allocator.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_container.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_execution_depth.hpp>
