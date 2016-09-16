@@ -22,7 +22,7 @@ int main()
     "concurrent_executor should have size_t index_type");
 
   static_assert(agency::detail::is_detected_exact<std::future<int>, executor_future_t, agency::concurrent_executor, int>::value,
-    "concurrent_executor should have std::future furture");
+    "concurrent_executor should have std::future future");
 
   agency::concurrent_executor exec;
 
