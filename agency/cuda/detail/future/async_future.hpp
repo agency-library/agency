@@ -518,6 +518,33 @@ class async_future
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }
 
+
+    template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
+    __host__ __device__
+    async_future<agency::detail::result_of_t<ResultFactory()>>
+      new_bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+    {
+      using result_type = agency::detail::result_of_t<ResultFactory()>;
+      detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory());
+      
+      using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
+      auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
+      
+      // create a functor to implement this bulk_then()
+      auto g = detail::make_new_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg.data(), inner_factory);
+
+      uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
+      uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
+
+      ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
+      ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
+      
+      // schedule g on our device and get a handle to the next event
+      auto next_event = event().then_on(g, grid_dim, block_dim, 0, device.native_handle());
+      
+      return async_future<result_type>(std::move(next_event), std::move(result_state));
+    }
+
     template<class U> friend class async_future;
     template<class Shape, class Index> friend class agency::cuda::detail::basic_grid_executor;
 
