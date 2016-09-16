@@ -487,6 +487,40 @@ class future
       return agency::detail::visit(visitor, variant_);
     }
 
+
+
+    template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
+    struct new_bulk_then_and_leave_valid_visitor
+    {
+      Function f;
+      Shape shape;
+      IndexFunction index_function;
+      ResultFactory result_factory;
+      OuterFactory outer_factory;
+      InnerFactory inner_factory;
+      agency::cuda::device_id device;
+
+      template<class Future>
+      __AGENCY_ANNOTATION
+      future<
+        agency::detail::result_of_t<ResultFactory()>
+      >
+        operator()(Future& fut)
+      {
+        return fut.new_bulk_then_and_leave_valid(f, shape, index_function, result_factory, outer_factory, inner_factory, device);
+      }
+    };
+
+
+    template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
+    __host__ __device__
+    future<agency::detail::result_of_t<ResultFactory()>>
+      new_bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+    {
+      auto visitor = new_bulk_then_and_leave_valid_visitor<Function,Shape,IndexFunction,ResultFactory,OuterFactory,InnerFactory>{f,shape,index_function,result_factory,outer_factory,inner_factory,device};
+      return agency::detail::visit(visitor, variant_);
+    }
+
     variant_type variant_;
 
     using get_ref_result_type = typename std::conditional<
