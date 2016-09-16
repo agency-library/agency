@@ -207,12 +207,27 @@ class basic_grid_executor
     }
 
 
+    // this overload of bulk_then_execute() consumes a future<T> predecessor
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
     async_future<agency::detail::result_of_t<ResultFactory()>>
       bulk_then_execute(Function f, shape_type shape, future<T>& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory)
     {
       return predecessor.new_bulk_then(f, shape, this_index_function_type(), result_factory, outer_factory, inner_factory, device());
+    }
+
+
+    // this overload of bulk_then_execute() consumes a shared_future<T> predecessor
+    template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
+    async_future<agency::detail::result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, shape_type shape, shared_future<T>& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory)
+    {
+      using result_future_type = async_future<agency::detail::result_of_t<ResultFactory()>>;
+
+      auto intermediate_future = predecessor.new_bulk_then(f, shape, this_index_function_type(), result_factory, outer_factory, inner_factory, device());
+
+      // convert the intermediate future into the type of future we need to return
+      return std::move(intermediate_future.template get<result_future_type>());
     }
 
 
