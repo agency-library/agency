@@ -19,10 +19,12 @@ namespace new_executor_traits_detail
 {
 
 
+__agency_exec_check_disable__
 template<class E, class Function, class ResultFactory, class... Factories,
          __AGENCY_REQUIRES(BulkAsynchronousExecutor<E>()),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
+__AGENCY_ANNOTATION
 executor_future_t<
   E,
   result_of_t<ResultFactory()>
@@ -33,10 +35,12 @@ bulk_async_execute(E& exec, Function f, executor_shape_t<E> shape, ResultFactory
 }
 
 
+__agency_exec_check_disable__
 template<class E, class Function, class ResultFactory, class... Factories,
          __AGENCY_REQUIRES(BulkExecutor<E>() && !BulkAsynchronousExecutor<E>()),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
+__AGENCY_ANNOTATION
 executor_future_t<
   E,
   result_of_t<ResultFactory()>

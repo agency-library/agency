@@ -27,18 +27,26 @@ struct return_unit
 };
 
 
-template<class Function>
+// this is the general case when the predecessor future is non-void
+template<class Function, class Predecessor>
 struct ignore_unit_result_parameter_and_invoke
 {
   mutable Function f;
 
   // this is the case when the predecessor type is non-void
-  template<class Index, class Predecessor, class... SharedParameters>
+  template<class Index, class... SharedParameters>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Predecessor& predecessor, unit&, SharedParameters&... shared_parameters) const
   {
     agency::detail::invoke(f, idx, predecessor, shared_parameters...);
   }
+};
+
+// this is the special case when the predecessor future is void
+template<class Function>
+struct ignore_unit_result_parameter_and_invoke<Function,void>
+{
+  mutable Function f;
 
   // this is the case when the predecessor type is void
   template<class Index, class... SharedParameters>
@@ -51,16 +59,20 @@ struct ignore_unit_result_parameter_and_invoke
 
 
 // this is the case for when Function returns void
+__agency_exec_check_disable__
 template<class E, class Function, class Future, class... Factories,
          __AGENCY_REQUIRES(BulkExecutor<E>()),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories)),
          __AGENCY_REQUIRES(std::is_void<result_of_continuation_t<Function, executor_index_t<E>, Future, result_of_t<Factories()>&...>>::value)
         >
+__AGENCY_ANNOTATION
 executor_future_t<E,void>
   bulk_then_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
+  using predecessor_type = future_value_t<Future>;
+
   // wrap f in a functor that will ignore the unit object we pass to it
-  ignore_unit_result_parameter_and_invoke<Function> g{f};
+  ignore_unit_result_parameter_and_invoke<Function,predecessor_type> g{f};
 
   // just call bulk_then_execute() and use a result factory that creates a unit object which can be easily discarded
   executor_future_t<E,unit> intermediate_future = bulk_then_execute(exec, g, shape, predecessor, return_unit(), factories...);
@@ -116,6 +128,7 @@ template<class E, class Function, class Future, class... Factories,
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories)),
          __AGENCY_REQUIRES(!std::is_void<result_of_continuation_t<Function, executor_index_t<E>, Future, result_of_t<Factories()>&...>>::value)
         >
+__AGENCY_ANNOTATION
 executor_future_t<E,
   executor_container_t<E,
     result_of_continuation_t<Function,executor_index_t<E>,Future,result_of_t<Factories()>&...>
