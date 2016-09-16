@@ -109,19 +109,7 @@ class bulk_continuation_executor_adaptor<LegacyExecutor,false>
 
       auto futures = detail::make_tuple(std::move(predecessor), std::move(results));
 
-#ifndef __CUDA_ARCH__
-      std::cout << "calling when_all_execute_and_select" << std::endl;
-#endif
-
-      auto result_future = executor_traits<LegacyExecutor>::template when_all_execute_and_select<1>(adapted_executor_, f, shape, futures, shared_factories...);
-
-#ifndef __CUDA_ARCH__
-      std::cout << "LegacyExecutor: " << typeid(LegacyExecutor).name() << std::endl;
-      std::cout << "returning future" << std::endl;
-      assert(result_future.valid());
-#endif
-
-      return std::move(result_future);
+      return executor_traits<LegacyExecutor>::template when_all_execute_and_select<1>(adapted_executor_, f, shape, futures, shared_factories...);
     }
 };
 
