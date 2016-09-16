@@ -201,6 +201,124 @@ flatten_index_and_invoke<Index,PastParameterT,Function,Shape>
 }
 
 
+// new_flatten_index_and_invoke is used by flattened_executor::bulk_then_execute()
+// this definition is for the general case when the predecessor future's type is non-void
+template<class Index, class Predecessor, class Function, class Shape>
+struct new_flatten_index_and_invoke
+{
+  using index_type = Index;
+  using shape_type = Shape;
+
+  using flattened_index_type = flattened_index_type_t<Index>;
+  using flattened_shape_type = flattened_shape_type_t<Shape>;
+
+  mutable Function     f_;
+  shape_type           shape_;
+  flattened_shape_type flattened_shape_;
+
+  __AGENCY_ANNOTATION
+  new_flatten_index_and_invoke(const Function& f, shape_type shape, flattened_shape_type flattened_shape)
+    : f_(f),
+      shape_(shape),
+      flattened_shape_(flattened_shape)
+  {}
+
+  __AGENCY_ANNOTATION
+  flattened_index_type flatten_index(const Index& idx) const
+  {
+    return detail::merge_front_index_elements(idx, shape_);
+  }
+
+  __AGENCY_ANNOTATION
+  bool in_domain(const flattened_index_type& idx) const
+  {
+    // idx is in the domain of f_ if idx is contained within the
+    // axis-aligned bounded box from extremal corners at the origin
+    // and flattened_shape_. the "hyper-interval" is half-open, so
+    // the origin is contained within the box but the corner at
+    // flattened_shape_ is not.
+    return detail::is_bounded_by(idx, flattened_shape_);
+  }
+
+  template<class Result, class OuterArg, class... InnerArgs>
+  __AGENCY_ANNOTATION
+  void operator()(const Index& idx, Predecessor& predecessor, Result& result, OuterArg& outer_arg, detail::unit, InnerArgs&... inner_args) const
+  {
+    flattened_index_type flattened_idx = flatten_index(idx);
+
+    if(in_domain(flattened_idx))
+    {
+      f_(flattened_idx, predecessor, result, outer_arg, inner_args...);
+    }
+  }
+};
+
+
+// this specialization is for when the predecessor future's type is void
+template<class Index, class Function, class Shape>
+struct new_flatten_index_and_invoke<Index,void,Function,Shape>
+{
+  using index_type = Index;
+  using shape_type = Shape;
+
+  using flattened_index_type = flattened_index_type_t<Index>;
+  using flattened_shape_type = flattened_shape_type_t<Shape>;
+
+  mutable Function     f_;
+  shape_type           shape_;
+  flattened_shape_type flattened_shape_;
+
+  __AGENCY_ANNOTATION
+  new_flatten_index_and_invoke(const Function& f, shape_type shape, flattened_shape_type flattened_shape)
+    : f_(f),
+      shape_(shape),
+      flattened_shape_(flattened_shape)
+  {}
+
+  __AGENCY_ANNOTATION
+  flattened_index_type flatten_index(const Index& idx) const
+  {
+    return detail::merge_front_index_elements(idx, shape_);
+  }
+
+  __AGENCY_ANNOTATION
+  bool in_domain(const flattened_index_type& idx) const
+  {
+    // idx is in the domain of f_ if idx is contained within the
+    // axis-aligned bounded box from extremal corners at the origin
+    // and flattened_shape_. the "hyper-interval" is half-open, so
+    // the origin is contained within the box but the corner at
+    // flattened_shape_ is not.
+    return detail::is_bounded_by(idx, flattened_shape_);
+  }
+
+  // note that because the predecessor future type is void, no predecessor argument
+  // appears in operator()'s parameter list
+  template<class Result, class OuterArg, class... InnerArgs>
+  __AGENCY_ANNOTATION
+  void operator()(const Index& idx, Result& result, OuterArg& outer_arg, detail::unit, InnerArgs&... inner_args) const
+  {
+    flattened_index_type flattened_idx = flatten_index(idx);
+
+    if(in_domain(flattened_idx))
+    {
+      f_(flattened_idx, result, outer_arg, inner_args...);
+    }
+  }
+};
+
+
+template<class Index, class Predecessor, class Function, class Shape>
+__AGENCY_ANNOTATION
+new_flatten_index_and_invoke<Index,Predecessor,Function,Shape>
+  make_new_flatten_index_and_invoke(Function f,
+                                    Shape higher_dimensional_shape,
+                                    typename new_flatten_index_and_invoke<Index,Predecessor,Function,Shape>::flattened_shape_type lower_dimensional_shape)
+{
+  return new_flatten_index_and_invoke<Index,Predecessor,Function,Shape>{f,higher_dimensional_shape,lower_dimensional_shape};
+}
+
+
 } // end detail
 } // end agency
 

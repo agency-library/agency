@@ -107,6 +107,8 @@ class executor_array
       return wait_for_futures_and_move_result<typename std::decay<Futures>::type,UniquePtr1,UniquePtr2>{std::move(futures),std::move(result_ptr),std::move(shared_arg_ptr)};
     }
 
+  // XXX eliminate this protected when we eliminate scoped_executor::bulk_then_execute()
+  protected:
     __AGENCY_ANNOTATION
     static outer_shape_type outer_shape(const shape_type& shape)
     {
@@ -127,6 +129,8 @@ class executor_array
       return detail::make_scoped_index<outer_execution_category,inner_execution_category>(outer_idx, inner_idx);
     }
 
+  // XXX eliminate this private when we eliminate scoped_executor::bulk_then_execute()
+  private:
     __AGENCY_ANNOTATION
     size_t select_inner_executor(const outer_index_type& idx, const outer_shape_type& shape) const
     {
