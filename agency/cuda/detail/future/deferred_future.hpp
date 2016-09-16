@@ -823,6 +823,17 @@ class deferred_future
 
       return deferred_future<agency::detail::result_of_t<Factory(Shape)>>();
     }
+
+
+    template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
+    __host__ __device__
+    deferred_future<agency::detail::result_of_t<ResultFactory()>>
+      new_bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+    {
+      printf("deferred_future::new_bulk_then_and_leave_valid(): Unimplemented.\n");
+
+      return deferred_future<agency::detail::result_of_t<ResultFactory()>>();
+    }
 };
 
 } // end cuda
