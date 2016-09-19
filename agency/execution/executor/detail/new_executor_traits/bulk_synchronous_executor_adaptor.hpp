@@ -26,7 +26,7 @@ class bulk_synchronous_executor_adaptor<BulkExecutor,true>
     BulkExecutor adapted_executor_;
 
   public:
-    using execution_category = member_execution_category_or<BulkExecutor, unsequenced_execution_tag>;
+    using execution_category = member_execution_category_or_t<BulkExecutor, unsequenced_execution_tag>;
     using shape_type = executor_shape_t<BulkExecutor>;
     using index_type = executor_index_t<BulkExecutor>;
 
