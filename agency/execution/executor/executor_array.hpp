@@ -10,6 +10,7 @@
 #include <agency/execution/executor/detail/this_thread_parallel_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_continuation_executor_adaptor.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute_with_void_result.hpp>
 
 namespace agency
 {
@@ -338,27 +339,15 @@ class executor_array
       {
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
 
-        using past_arg_type = typename future_traits<typename Futures::value_type>::value_type;
+        agency::detail::new_executor_traits_detail::bulk_continuation_executor_adaptor<inner_executor_type> adapted_inner_executor(exec.inner_executor(inner_executor_idx));
 
-        return inner_traits::then_execute(
-          exec.inner_executor(inner_executor_idx),
+        return agency::detail::new_executor_traits_detail::bulk_then_execute_with_void_result(
+          adapted_inner_executor,
           inner_functor{f,outer_idx,*results_ptr,*outer_shared_arg_ptr},
           inner_shape,
           past_futures[outer_idx],
           detail::get<Indices>(inner_factories)...
         );
-        
-        //auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
-
-        //agency::detail::new_executor_traits_detail::bulk_continuation_executor_adaptor<inner_executor_type> adapted_inner_executor(exec.inner_executor(inner_executor_idx));
-
-        //return agency::detail::new_executor_traits_detail::bulk_then_execute_with_auto_result(
-        //  adapted_inner_executor,
-        //  inner_functor{f,outer_idx,*results_ptr,*outer_shared_arg_ptr},
-        //  inner_shape,
-        //  past_futures[outer_idx],
-        //  detail::get<Indices>(inner_factories)...
-        //);
       }
 
       __AGENCY_ANNOTATION
