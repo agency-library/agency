@@ -437,6 +437,112 @@ class executor_array
       return then_execute_impl(then_execute_implementation_strategy(), f, result_factory, shape, fut, outer_factory, inner_factories...);
     }
 
+
+    // XXX make this functor public to accomodate nvcc's requirement
+    //     on types used to instantiate __global__ function templates
+    template<class Function, class... InnerFactories>
+    struct bulk_then_execute_functor
+    {
+      // XXX this should probably not be a reference
+      executor_array& exec;
+      outer_shape_type outer_shape;
+      inner_shape_type inner_shape;
+      Function f;
+      detail::tuple<InnerFactories...> inner_factories;
+
+      template<class... OuterArgs>
+      struct inner_functor
+      {
+        mutable Function f;
+        outer_index_type outer_idx;
+        detail::tuple<OuterArgs&...> outer_args;
+
+        template<size_t... Indices, class... InnerSharedArgs>
+        __AGENCY_ANNOTATION
+        void impl(detail::index_sequence<Indices...>, const inner_index_type& inner_idx, InnerSharedArgs&... inner_args) const
+        {
+          index_type idx = make_index(outer_idx, inner_idx);
+
+          f(idx, detail::get<Indices>(outer_args)..., inner_args...);
+        }
+
+        template<class... InnerSharedArgs>
+        __AGENCY_ANNOTATION
+        void operator()(const inner_index_type& inner_idx, InnerSharedArgs&... inner_shared_args) const
+        {
+          impl(detail::make_index_sequence<sizeof...(OuterArgs)>(), inner_idx, inner_shared_args...);
+        }
+      };
+
+      template<size_t... Indices, class... OuterArgs>
+      __AGENCY_ANNOTATION
+      void impl(detail::index_sequence<Indices...>, const outer_index_type& outer_idx, OuterArgs&... outer_args) const
+      {
+        auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
+        inner_executor_type& inner_exec = exec.inner_executor(inner_executor_idx);
+
+        agency::detail::new_executor_traits_detail::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_exec(inner_exec);
+
+        // XXX avoid lambdas to workaround nvcc limitations
+        //agency::detail::new_executor_traits_detail::bulk_execute_with_void_result(adapted_exec, [=,&predecessor,&result,&outer_shared_arg](const inner_index_type& inner_idx, detail::result_of_t<InnerFactories()>&... inner_shared_args)
+        //{
+        //  index_type idx = make_index(outer_idx, inner_idx);
+
+        //  f(idx, predecessor, result, outer_shared_arg, inner_shared_args...);
+        //},
+        //inner_shape,
+        //detail::get<Indices>(inner_factories)...);
+
+        inner_functor<OuterArgs...> execute_me{f, outer_idx, detail::forward_as_tuple(outer_args...)};
+
+        agency::detail::new_executor_traits_detail::bulk_execute_with_void_result(adapted_exec, execute_me, inner_shape, detail::get<Indices>(inner_factories)...);
+      }
+
+      template<class... OuterArgs>
+      __AGENCY_ANNOTATION
+      void operator()(const outer_index_type& outer_idx, OuterArgs&... outer_args) const
+      {
+        impl(detail::make_index_sequence<sizeof...(InnerFactories)>(), outer_idx, outer_args...);
+      }
+    };
+
+    template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories,
+             __AGENCY_REQUIRES(sizeof...(InnerFactories) == inner_depth)
+            >
+    __AGENCY_ANNOTATION
+    future<detail::result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+    {
+      using namespace agency::detail::new_executor_traits_detail;
+
+      // split shape into its outer and inner components
+      outer_shape_type outer_shape = this->outer_shape(shape);
+      inner_shape_type inner_shape = this->inner_shape(shape);
+
+      //// XXX avoid lambdas to workaround nvcc limitations as well as lack of polymorphic lambda
+      //return bulk_then_execute(outer_executor(), [=](const outer_index_type& outer_idx, auto&... outer_args)
+      //{
+      //  auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
+
+      //  bulk_execute_with_void_result(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx, auto&... inner_args)
+      //  {
+      //    index_type idx = make_index(outer_idx, inner_idx);
+      //    f(idx, outer_args..., inner_args...); 
+      //  });
+      //},
+      //outer_shape,
+      //predecessor,
+      //result_factory,
+      //outer_factory
+      //);
+
+      bulk_then_execute_functor<Function,InnerFactories...> execute_me{*this,outer_shape,inner_shape,f,detail::make_tuple(inner_factories...)};
+
+      agency::detail::new_executor_traits_detail::bulk_continuation_executor_adaptor<outer_executor_type> adapted_exec(outer_executor());
+
+      return adapted_exec.bulk_then_execute(execute_me, outer_shape, predecessor, result_factory, outer_factory);
+    }
+
   private:
     outer_executor_type            outer_executor_;
 
