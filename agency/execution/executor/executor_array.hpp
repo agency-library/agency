@@ -11,6 +11,8 @@
 #include <agency/execution/executor/detail/new_executor_traits.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_continuation_executor_adaptor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute_with_void_result.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/bulk_synchronous_executor_adaptor.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/bulk_execute_with_void_result.hpp>
 
 namespace agency
 {
@@ -188,11 +190,13 @@ class executor_array
         }
       };
 
-      template<size_t... Indices, class... Args>
+      template<size_t... Indices, class InnerFunctor>
       __AGENCY_ANNOTATION
-      void unpack_factories_and_call_execute(detail::index_sequence<Indices...>, inner_executor_type& exec, Args&&... args)
+      void unpack_factories_and_call_execute(detail::index_sequence<Indices...>, inner_executor_type& exec, InnerFunctor f, inner_shape_type shape)
       {
-        inner_traits::execute(exec, std::forward<Args>(args)..., detail::get<Indices>(inner_factories)...);
+        agency::detail::new_executor_traits_detail::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_executor(exec);
+
+        agency::detail::new_executor_traits_detail::bulk_execute_with_void_result(adapted_executor, f, shape, detail::get<Indices>(inner_factories)...);
       }
 
       template<class ResultsType, class PastArgType, class OuterSharedArgType>
