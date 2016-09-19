@@ -10,6 +10,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/detail/flatten_index_and_invoke.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/bulk_continuation_executor_adaptor.hpp>
 
 namespace agency
 {
@@ -180,6 +181,24 @@ class flattened_executor
       // cast the intermediate result to the type of result expected by the caller
       using result_type = detail::result_of_t<Factory1(shape_type)>;
       return executor_traits<base_executor_type>::template future_cast<result_type>(base_executor(), intermediate_fut);
+    }
+
+
+    template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories,
+             __AGENCY_REQUIRES(sizeof...(InnerFactories) == execution_depth - 1)
+            >
+    future<detail::result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+    {
+      base_shape_type base_shape = partition_into_base_shape(shape);
+
+      using base_index_type = detail::executor_index_t<base_executor_type>;
+      using future_value_type = detail::future_value_t<Future>;
+      auto execute_me = detail::make_new_flatten_index_and_invoke<base_index_type,future_value_type>(f, base_shape, shape);
+
+      detail::new_executor_traits_detail::bulk_continuation_executor_adaptor<base_executor_type> adapted_executor(base_executor());
+
+      return adapted_executor.bulk_then_execute(execute_me, base_shape, predecessor, result_factory, outer_factory, agency::detail::unit_factory(), inner_factories...);
     }
 
     const base_executor_type& base_executor() const
