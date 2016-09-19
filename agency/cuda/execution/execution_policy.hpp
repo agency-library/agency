@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/execution_policy.hpp>
+#include <agency/execution/detail/execution_policy_traits.hpp>
 #include <agency/cuda/execution/executor/grid_executor.hpp>
 #include <agency/cuda/execution/executor/parallel_executor.hpp>
 #include <agency/cuda/execution/executor/concurrent_executor.hpp>
@@ -95,7 +96,7 @@ const concurrent_execution_policy con{};
 template<class ExecutionPolicy>
 typename std::enable_if<
   std::is_same<
-    typename ExecutionPolicy::execution_category,
+    agency::detail::execution_policy_execution_category_t<ExecutionPolicy>,
     concurrent_execution_tag
   >::value,
   cuda::concurrent_execution_policy
@@ -109,7 +110,7 @@ typename std::enable_if<
 template<class ExecutionPolicy>
 typename std::enable_if<
   std::is_same<
-    typename ExecutionPolicy::execution_category,
+    agency::detail::execution_policy_execution_category_t<ExecutionPolicy>,
     parallel_execution_tag
   >::value,
   cuda::parallel_execution_policy
@@ -123,7 +124,7 @@ typename std::enable_if<
 template<class ExecutionPolicy>
 typename std::enable_if<
   std::is_same<
-    typename ExecutionPolicy::execution_category,
+    agency::detail::execution_policy_execution_category_t<ExecutionPolicy>,
     parallel_execution_tag
   >::value,
   cuda::parallel_execution_policy
