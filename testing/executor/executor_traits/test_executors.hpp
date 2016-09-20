@@ -3,9 +3,44 @@
 #include <type_traits>
 #include <agency/detail/invoke.hpp>
 #include <agency/future.hpp>
+#include <future>
 
 // this type falls into no executor categories
 struct not_an_executor {};
+
+
+class continuation_executor
+{
+  public:
+    template<class Function, class T>
+    std::future<agency::detail::result_of_t<Function(T&)>>
+      then_execute(Function&& f, std::future<T>& predecessor)
+    {
+      return std::async(std::launch::async, [](std::future<T>&& predecessor, Function&& f)
+      {
+        T arg = predecessor.get();
+        return std::forward<Function>(f)(arg);
+      },
+      std::move(predecessor),
+      std::forward<Function>(f)
+      );
+    }
+
+    template<class Function>
+    std::future<agency::detail::result_of_t<Function()>>
+      then_execute(Function&& f, std::future<void>& predecessor)
+    {
+      return std::async(std::launch::async, [](std::future<void>&& predecessor, Function&& f)
+      {
+        predecessor.get();
+        return std::forward<Function>(f)();
+      },
+      std::move(predecessor),
+      std::forward<Function>(f)
+      );
+    }
+};
+
 
 class bulk_continuation_executor
 {
