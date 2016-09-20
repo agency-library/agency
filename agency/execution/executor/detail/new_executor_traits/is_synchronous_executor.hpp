@@ -12,15 +12,15 @@ namespace new_executor_traits_detail
 
 
 template<class T, class Function>
-using execute_t = decltype(std::declval<T>().execute(std::declval<Function>()));
+using sync_execute_t = decltype(std::declval<T>().sync_execute(std::declval<Function>()));
 
 
 template<class T, class Function>
-using has_execute = is_detected_exact<result_of_t<Function()>, execute_t, T, Function>;
+using has_sync_execute = is_detected_exact<result_of_t<Function()>, sync_execute_t, T, Function>;
 
 
 template<class T>
-using is_synchronous_executor = has_execute<T, std::function<void()>>;
+using is_synchronous_executor = has_sync_execute<T, std::function<void()>>;
 
 
 // a fake Concept to use with __AGENCY_REQUIRES

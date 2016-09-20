@@ -54,6 +54,18 @@ class asynchronous_executor
 };
 
 
+class synchronous_executor
+{
+  public:
+    template<class Function>
+    agency::detail::result_of_t<Function()>
+      sync_execute(Function&& f)
+    {
+      return std::forward<Function>(f)();
+    }
+};
+
+
 class bulk_continuation_executor
 {
   public:

@@ -2,8 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_asynchronous_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_continuation_executor.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/is_simple_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
 
 namespace agency
@@ -16,8 +15,7 @@ namespace new_executor_traits_detail
 
 template<class T>
 using is_executor = agency::detail::disjunction<
-  is_asynchronous_executor<T>,
-  is_continuation_executor<T>,
+  is_simple_executor<T>,
   is_bulk_executor<T>
 >;
 
@@ -33,5 +31,4 @@ constexpr bool Executor()
 } // end new_executor_traits_detail
 } // end detail
 } // end agency
-
 

@@ -18,5 +18,7 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_synchronous_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_continuation_executor.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/is_synchronous_executor.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/sync_execute.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/then_execute.hpp>
 
