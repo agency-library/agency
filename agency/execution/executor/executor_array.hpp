@@ -506,20 +506,25 @@ class executor_array
       }
     };
 
-    template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories,
-             __AGENCY_REQUIRES(sizeof...(InnerFactories) == inner_depth)
-            >
+  private:
+    template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      lazy_bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
     {
+      // this implementation of bulk_then_execute() is "lazy" in the sense that it
+      // immediately calls bulk_then_execute() on the outer executor, but bulk_sync_execute() is
+      // called on the inner executors eventually at some point in the future
+
       using namespace agency::detail::new_executor_traits_detail;
 
       // split shape into its outer and inner components
       outer_shape_type outer_shape = this->outer_shape(shape);
       inner_shape_type inner_shape = this->inner_shape(shape);
 
-      //// XXX avoid lambdas to workaround nvcc limitations as well as lack of polymorphic lambda
+      // this commented-out code expressed with two lambdas is functionally equivalent to what happens with the named
+      // functors below
+      // XXX avoid lambdas to workaround nvcc limitations as well as lack of polymorphic lambda in c++11
       //return bulk_then_execute(outer_executor(), [=](const outer_index_type& outer_idx, auto&... outer_args)
       //{
       //  auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
@@ -542,6 +547,19 @@ class executor_array
 
       return adapted_exec.bulk_then_execute(execute_me, outer_shape, predecessor, result_factory, outer_factory);
     }
+             
+
+  public:
+    template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories,
+             __AGENCY_REQUIRES(sizeof...(InnerFactories) == inner_depth)
+            >
+    __AGENCY_ANNOTATION
+    future<detail::result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+    {
+      return lazy_bulk_then_execute(f, shape, predecessor, result_factory, outer_factory, inner_factories...);
+    }
+
 
   private:
     outer_executor_type            outer_executor_;
