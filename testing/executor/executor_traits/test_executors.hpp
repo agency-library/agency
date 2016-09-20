@@ -42,6 +42,18 @@ class continuation_executor
 };
 
 
+class asynchronous_executor
+{
+  public:
+    template<class Function>
+    std::future<agency::detail::result_of_t<Function()>>
+      async_execute(Function&& f)
+    {
+      return std::async(std::launch::async, std::forward<Function>(f));
+    }
+};
+
+
 class bulk_continuation_executor
 {
   public:
