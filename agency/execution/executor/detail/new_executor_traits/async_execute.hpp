@@ -6,7 +6,7 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_asynchronous_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_continuation_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute_without_shared_parameters.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_future.hpp>
 
@@ -72,7 +72,7 @@ struct functor
 
   template<class Index, class Result>
   __AGENCY_ANNOTATION
-  void operator()(const Index&, Result& result, unit) const
+  void operator()(const Index&, Result& result) const
   {
     result = invoke_and_return_unit_if_void_result(f);
   }
@@ -110,12 +110,12 @@ async_execute(E& exec, Function f)
 
   using shape_type = executor_shape_t<E>;
 
-  // call bulk_async_execute() to get an intermediate future
-  auto intermediate_future = bulk_async_execute(exec,
+  // call bulk_async_execute_without_shared_parameters() to get an intermediate future
+  auto intermediate_future = bulk_async_execute_without_shared_parameters(
+    exec,                      // the executor
     execute_me,                // the functor to execute
     shape_cast<shape_type>(1), // create only a single agent
-    construct<result_type>(),  // a factory for creating f's result
-    unit_factory()             // a factory for creating a unit shared parameter which execute_me will ignore
+    construct<result_type>()   // a factory for creating f's result
   );
 
   // cast the intermediate future into the right type of future for the result

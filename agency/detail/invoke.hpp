@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/unit.hpp>
 #include <agency/detail/requires.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <utility>
 
 namespace agency

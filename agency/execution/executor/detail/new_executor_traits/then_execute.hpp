@@ -3,9 +3,11 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/detail/invoke.hpp>
+#include <agency/detail/factory.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_continuation_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_continuation_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute_without_shared_parameters.hpp>
 
 
 namespace agency
@@ -43,7 +45,7 @@ struct functor
 
   template<class Index, class Result>
   __AGENCY_ANNOTATION
-  void operator()(const Index&, Predecessor& predecessor, Result& result, unit) const
+  void operator()(const Index&, Predecessor& predecessor, Result& result) const
   {
     result = invoke_and_return_unit_if_void_result(f, predecessor);
   }
@@ -57,7 +59,7 @@ struct functor<Function,void>
 
   template<class Index, class Result>
   __AGENCY_ANNOTATION
-  void operator()(const Index&, Result& result, unit) const
+  void operator()(const Index&, Result& result) const
   {
     result = invoke_and_return_unit_if_void_result(f);
   }
@@ -95,13 +97,13 @@ then_execute(E& exec, Function f, Future& predecessor)
 
   using shape_type = executor_shape_t<E>;
 
-  // call .bulk_then_execute() to get an intermediate future
-  auto intermediate_future = exec.bulk_then_execute(
+  // call bulk_then_execute_without_shared_parameters() to get an intermediate future
+  auto intermediate_future = bulk_then_execute_without_shared_parameters(
+    exec,                      // the executor
     execute_me,                // the functor to execute
     shape_cast<shape_type>(1), // create only a single agent
     predecessor,               // the incoming argument to f
-    construct<result_type>(),  // a factory for creating f's result
-    unit_factory()             // a factory for creating a unit shared parameter which execute_me will ignore
+    construct<result_type>()   // a factory for creating f's result
   );
 
   // cast the intermediate future into the right type of future for the result
