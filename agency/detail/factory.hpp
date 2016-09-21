@@ -86,6 +86,16 @@ template<class T>
 class moving_factory
 {
   public:
+    __AGENCY_ANNOTATION
+    moving_factory(moving_factory&& other) = default;
+
+    // this constructor moves other's value into value_
+    // so, it acts like a move constructor
+    __AGENCY_ANNOTATION
+    moving_factory(const moving_factory& other)
+      : value_(std::move(other.value_))
+    {}
+
     // XXX this code causes nvcc 8.0 to produce an error message
     //     
     //__agency_exec_check_disable__
