@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/async_execute.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute_with_one_shared_parameter.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute_without_shared_parameters.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_execute.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_execute_with_void_result.hpp>
