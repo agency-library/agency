@@ -37,26 +37,20 @@ namespace then_execute_detail
 {
 
 
-// this handles the general case when the predecessor future is non-void
-template<class Function, class Predecessor>
+template<class Function>
 struct functor
 {
   mutable Function f;
 
-  template<class Index, class Result>
+  // this overload of operator() handles the case when there is a non-void predecessor future
+  template<class Index, class Predecessor, class Result>
   __AGENCY_ANNOTATION
   void operator()(const Index&, Predecessor& predecessor, Result& result) const
   {
     result = invoke_and_return_unit_if_void_result(f, predecessor);
   }
-};
 
-// this specialization handles the case when the predecessor future is void
-template<class Function>
-struct functor<Function,void>
-{
-  mutable Function f;
-
+  // this overload of operator() handles the case when there is a void predecessor future
   template<class Index, class Result>
   __AGENCY_ANNOTATION
   void operator()(const Index&, Result& result) const
@@ -93,7 +87,7 @@ then_execute(E& exec, Function f, Future& predecessor)
 
   // XXX should really move f into this functor, but it's not clear how to make move-only
   //     parameters to CUDA kernels
-  auto execute_me = then_execute_detail::functor<Function,predecessor_type>{f};
+  auto execute_me = then_execute_detail::functor<Function>{f};
 
   using shape_type = executor_shape_t<E>;
 
