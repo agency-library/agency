@@ -81,6 +81,50 @@ construct<T,T> make_copy_construct(const T& arg)
 struct unit_factory : construct<unit> {};
 
 
+// a moving_factory is a factory which moves an object when it is called
+template<class T>
+class moving_factory
+{
+  public:
+    // XXX this code causes nvcc 8.0 to produce an error message
+    //     
+    //__agency_exec_check_disable__
+    //template<class U,
+    //         class = typename std::enable_if<
+    //           std::is_constructible<T,U&&>::value
+    //         >::type>
+    //__AGENCY_ANNOTATION
+    //moving_factory(U&& value)
+    //  : value_(std::forward<U>(value))
+    //{}
+    
+    // XXX in order to WAR the nvcc 8.0 error above,
+    //     instead of perfectly forwarding the value in,
+    //     move construct it into value_ instead.
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    moving_factory(T&& value)
+      : value_(std::move(value))
+    {}
+
+    __AGENCY_ANNOTATION
+    T operator()() const
+    {
+      return std::move(value_);
+    }
+
+  private:
+    mutable T value_;
+};
+
+
+template<class T>
+moving_factory<decay_t<T>> make_moving_factory(T&& value)
+{
+  return moving_factory<decay_t<T>>(std::forward<T>(value));
+}
+
+
 // a zip_factory is a type of Factory which takes a list of Factories
 // and creates a tuple whose elements are the results of the given Factories
 template<class... Factories>
