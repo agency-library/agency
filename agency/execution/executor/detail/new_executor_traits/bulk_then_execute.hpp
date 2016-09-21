@@ -170,6 +170,7 @@ struct then_with_nested_bulk_execute_functor
     }
   };
 
+  __agency_exec_check_disable__
   template<size_t... Indices>
   __AGENCY_ANNOTATION
   result_of_t<ResultFactory()> impl(detail::index_sequence<Indices...>, Predecessor& predecessor) const
@@ -197,6 +198,7 @@ struct then_with_nested_bulk_execute_functor<Executor,Function,void,ResultFactor
   mutable ResultFactory result_factory;
   mutable detail::tuple<SharedFactories...> shared_factories;
 
+  __agency_exec_check_disable__
   template<size_t... Indices>
   __AGENCY_ANNOTATION
   result_of_t<ResultFactory()> impl(detail::index_sequence<Indices...>) const
