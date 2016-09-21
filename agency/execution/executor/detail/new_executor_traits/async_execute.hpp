@@ -6,7 +6,7 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_asynchronous_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_continuation_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute_without_shared_parameters.hpp>
+#include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute_with_one_shared_parameter.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_future.hpp>
 
@@ -65,16 +65,13 @@ namespace async_execute_detail
 {
 
 
-template<class Function>
 struct functor
 {
-  mutable Function f;
-
-  template<class Index, class Result>
+  template<class Index, class Result, class SharedFunction>
   __AGENCY_ANNOTATION
-  void operator()(const Index&, Result& result) const
+  void operator()(const Index&, Result& result, SharedFunction& shared_function) const
   {
-    result = invoke_and_return_unit_if_void_result(f);
+    result = invoke_and_return_unit_if_void_result(shared_function);
   }
 };
 
@@ -93,7 +90,7 @@ executor_future_t<
   E,
   result_of_t<decay_t<Function>()>
 >
-async_execute(E& exec, Function f)
+async_execute(E& exec, Function&& f)
 {
   using result_of_function = result_of_t<Function()>;
 
@@ -104,18 +101,14 @@ async_execute(E& exec, Function f)
     result_of_function
   >::type;
 
-  // XXX should really move f into this functor, but it's not clear how to make move-only
-  //     parameters to CUDA kernels
-  auto execute_me = async_execute_detail::functor<Function>{f};
-
   using shape_type = executor_shape_t<E>;
 
-  // call bulk_async_execute_without_shared_parameters() to get an intermediate future
-  auto intermediate_future = bulk_async_execute_without_shared_parameters(
-    exec,                      // the executor
-    execute_me,                // the functor to execute
-    shape_cast<shape_type>(1), // create only a single agent
-    construct<result_type>()   // a factory for creating f's result
+  auto intermediate_future = bulk_async_execute_with_one_shared_parameter(
+    exec,                                          // the executor
+    async_execute_detail::functor(),               // the functor to execute
+    shape_cast<shape_type>(1),                     // create only a single agent
+    construct<result_type>(),                      // a factory for creating f's result
+    make_moving_factory(std::forward<Function>(f)) // a factory to present f as the one shared parameter
   );
 
   // cast the intermediate future into the right type of future for the result
