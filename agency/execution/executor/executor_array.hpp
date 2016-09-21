@@ -10,9 +10,8 @@
 #include <agency/execution/executor/detail/this_thread_parallel_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_continuation_executor_adaptor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_synchronous_executor_adaptor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/bulk_execute_with_void_result.hpp>
+
 
 namespace agency
 {
@@ -423,7 +422,7 @@ class executor_array
       auto continuation = make_wait_for_futures_and_move_result(std::move(inner_futures), std::move(results_ptr), std::move(outer_shared_arg_ptr));
 
       // async_execute() with the outer executor to launch the continuation
-      return outer_traits::async_execute(outer_executor(), std::move(continuation));
+      return detail::new_executor_traits_detail::async_execute(outer_executor(), std::move(continuation));
     }
 
   public:
