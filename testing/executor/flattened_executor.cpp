@@ -23,7 +23,7 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
   static_assert(agency::detail::is_detected_exact<size_t, agency::new_executor_index_t, flattened_executor_type>::value,
     "flattened_executor should have size_t index_type");
 
-  static_assert(agency::detail::is_detected_exact<executor_future_t<OuterExecutor,int>, executor_future_t, flattened_executor_type, int>::value,
+  static_assert(agency::detail::is_detected_exact<agency::new_executor_future_t<OuterExecutor,int>, agency::new_executor_future_t, flattened_executor_type, int>::value,
     "flattened_executor should have the same future type as OuterExecutor");
 
   flattened_executor_type exec(scoped_executor_type(outer_exec,inner_exec));

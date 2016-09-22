@@ -72,7 +72,7 @@ void test_with_non_void_predecessor2(TwoLevelExecutor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  using predecessor_future_type = executor_future_t<TwoLevelExecutor,int>;
+  using predecessor_future_type = agency::new_executor_future_t<TwoLevelExecutor,int>;
   auto predecessor_future = agency::future_traits<predecessor_future_type>::make_ready(7);
 
   using shape_type = agency::new_executor_shape_t<TwoLevelExecutor>;
@@ -105,7 +105,7 @@ void test_with_void_predecessor2(TwoLevelExecutor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  using predecessor_future_type = executor_future_t<TwoLevelExecutor,void>;
+  using predecessor_future_type = agency::new_executor_future_t<TwoLevelExecutor,void>;
   auto predecessor_future = agency::future_traits<predecessor_future_type>::make_ready();
 
   using shape_type = agency::new_executor_shape_t<TwoLevelExecutor>;

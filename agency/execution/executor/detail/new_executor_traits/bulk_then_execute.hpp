@@ -6,7 +6,6 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_synchronous_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_asynchronous_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_continuation_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_future.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
@@ -28,7 +27,7 @@ template<class E, class Function, class Future, class ResultFactory, class... Fa
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
-executor_future_t<
+new_executor_future_t<
   E,
   result_of_t<ResultFactory()>
 >
@@ -122,7 +121,7 @@ template<class E, class Function, class Future, class ResultFactory, class... Fa
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
-executor_future_t<
+new_executor_future_t<
   E,
   result_of_t<ResultFactory()>
 >
@@ -225,7 +224,7 @@ template<class E, class Function, class Future, class ResultFactory, class... Fa
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
-executor_future_t<
+new_executor_future_t<
   E,
   result_of_t<ResultFactory()>
 >

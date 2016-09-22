@@ -23,7 +23,7 @@ __agency_exec_check_disable__
 template<class E, class Function, class Future,
          __AGENCY_REQUIRES(ContinuationExecutor<E>())>
 __AGENCY_ANNOTATION
-executor_future_t<
+new_executor_future_t<
   E,
   result_of_continuation_t<decay_t<Function>,Future>
 >
@@ -69,7 +69,7 @@ template<class E, class Function, class Future,
          __AGENCY_REQUIRES(!ContinuationExecutor<E>()),
          __AGENCY_REQUIRES(BulkContinuationExecutor<E>())>
 __AGENCY_ANNOTATION
-executor_future_t<
+new_executor_future_t<
   E,
   result_of_continuation_t<decay_t<Function>,Future>
 >

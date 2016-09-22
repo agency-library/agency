@@ -5,7 +5,6 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_synchronous_executor.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_future.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute.hpp>
 

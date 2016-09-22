@@ -21,7 +21,7 @@ int main()
   static_assert(agency::detail::is_detected_exact<size_t, agency::new_executor_index_t, agency::sequenced_executor>::value,
     "sequenced_executor should have size_t index_type");
 
-  static_assert(agency::detail::is_detected_exact<std::future<int>, executor_future_t, agency::sequenced_executor, int>::value,
+  static_assert(agency::detail::is_detected_exact<std::future<int>, agency::new_executor_future_t, agency::sequenced_executor, int>::value,
     "sequenced_executor should have std::future furture");
 
   agency::sequenced_executor exec;

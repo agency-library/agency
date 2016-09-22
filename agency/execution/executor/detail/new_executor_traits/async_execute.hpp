@@ -7,7 +7,6 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_continuation_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute_with_one_shared_parameter.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_future.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 
 
@@ -25,7 +24,7 @@ template<class E, class Function,
          __AGENCY_REQUIRES(AsynchronousExecutor<E>())
         >
 __AGENCY_ANNOTATION
-executor_future_t<
+new_executor_future_t<
   E,
   result_of_t<decay_t<Function>()>
 >
@@ -46,13 +45,13 @@ template<class E, class Function,
          __AGENCY_REQUIRES(ContinuationExecutor<E>())
         >
 __AGENCY_ANNOTATION
-executor_future_t<
+new_executor_future_t<
   E,
   result_of_t<decay_t<Function>()>
 >
 async_execute(E& exec, Function&& f)
 {
-  using void_future_type = executor_future_t<E,void>;
+  using void_future_type = new_executor_future_t<E,void>;
 
   // XXX should really allow the executor to participate here
   void_future_type ready_predecessor = future_traits<void_future_type>::make_ready();
@@ -86,7 +85,7 @@ template<class E, class Function,
          __AGENCY_REQUIRES(!ContinuationExecutor<E>()),
          __AGENCY_REQUIRES(BulkExecutor<E>())>
 __AGENCY_ANNOTATION
-executor_future_t<
+new_executor_future_t<
   E,
   result_of_t<decay_t<Function>()>
 >
