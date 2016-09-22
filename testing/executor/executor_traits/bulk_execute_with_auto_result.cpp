@@ -10,7 +10,7 @@ void test_returning_void(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  executor_shape_t<Executor> shape{100};
+  agency::new_executor_shape_t<Executor> shape{100};
   
   int shared_arg = 0;
   
@@ -39,8 +39,8 @@ void test_returning_results(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  using shape_type = executor_shape_t<Executor>;
-  using index_type = executor_index_t<Executor>;
+  using shape_type = agency::new_executor_shape_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
 
   size_t shape = 10;
   

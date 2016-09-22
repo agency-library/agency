@@ -3,8 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_execute.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_shape.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_index.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/future.hpp>
@@ -43,7 +42,7 @@ template<class E, class Function, class... Factories,
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
-void bulk_execute_with_void_result(E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
+void bulk_execute_with_void_result(E& exec, Function f, agency::new_executor_shape_t<E> shape, Factories... factories)
 {
   namespace ns = bulk_execute_with_void_result_detail;
 

@@ -7,7 +7,7 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_simple_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_execute.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 
 
 namespace agency
@@ -88,7 +88,7 @@ result_of_t<decay_t<Function>()>
   //     parameters to CUDA kernels
   auto execute_me = sync_execute_detail::functor<Function>{f};
 
-  using shape_type = executor_shape_t<E>;
+  using shape_type = new_executor_shape_t<E>;
 
   // call bulk_async_execute() and cast to the expected result, which handles void result
   return static_cast<result_of_function>(bulk_execute(exec,

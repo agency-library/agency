@@ -7,9 +7,9 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_asynchronous_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_continuation_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_future.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <future>
 
 
@@ -32,7 +32,7 @@ executor_future_t<
   E,
   result_of_t<ResultFactory()>
 >
-bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
+bulk_then_execute(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   return exec.bulk_then_execute(f, shape, predecessor, result_factory, shared_factories...);
 }
@@ -126,7 +126,7 @@ executor_future_t<
   E,
   result_of_t<ResultFactory()>
 >
-bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
+bulk_then_execute(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   using namespace bulk_then_execute_detail;
 
@@ -151,7 +151,7 @@ struct then_with_nested_bulk_execute_functor
 {
   mutable Executor exec;
   mutable Function f;
-  executor_shape_t<Executor> shape;
+  new_executor_shape_t<Executor> shape;
   mutable ResultFactory result_factory;
   mutable detail::tuple<SharedFactories...> shared_factories;
 
@@ -194,7 +194,7 @@ struct then_with_nested_bulk_execute_functor<Executor,Function,void,ResultFactor
 {
   mutable Executor exec;
   mutable Function f;
-  executor_shape_t<Executor> shape;
+  new_executor_shape_t<Executor> shape;
   mutable ResultFactory result_factory;
   mutable detail::tuple<SharedFactories...> shared_factories;
 
@@ -229,7 +229,7 @@ executor_future_t<
   E,
   result_of_t<ResultFactory()>
 >
-bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
+bulk_then_execute(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   using namespace bulk_then_execute_detail;
 

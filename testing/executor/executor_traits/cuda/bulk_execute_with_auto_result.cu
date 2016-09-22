@@ -14,7 +14,7 @@ void test_returning_void(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  executor_shape_t<Executor> shape{100};
+  agency::new_executor_shape_t<Executor> shape{100};
   
   int shared_arg = 0;
   
@@ -43,8 +43,8 @@ void test_returning_results(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  using shape_type = executor_shape_t<Executor>;
-  using index_type = executor_index_t<Executor>;
+  using shape_type = agency::new_executor_shape_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
 
   size_t shape = 10;
   
@@ -67,11 +67,11 @@ void test_returning_void2(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  executor_shape_t<Executor> shape{10,10};
+  agency::new_executor_shape_t<Executor> shape{10,10};
 
   increment_me = 0;
 
-  using index_type = executor_index_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
   
   bulk_execute_with_auto_result(exec, [] __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
   {
@@ -91,8 +91,8 @@ void test_returning_results2(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  using shape_type = executor_shape_t<Executor>;
-  using index_type = executor_index_t<Executor>;
+  using shape_type = agency::new_executor_shape_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
 
   shape_type shape{10,10};
   

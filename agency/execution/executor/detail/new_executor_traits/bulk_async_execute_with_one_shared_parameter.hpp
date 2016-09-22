@@ -4,7 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_future.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/integer_sequence.hpp>
@@ -42,7 +42,7 @@ template<size_t... Indices, class E, class Function, class ResultFactory, class 
 __AGENCY_ANNOTATION
 executor_future_t<E, result_of_t<ResultFactory()>>
   bulk_async_execute_with_one_shared_parameter_impl(index_sequence<Indices...>,
-                                                    E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, SharedFactory shared_factory)
+                                                    E& exec, Function f, new_executor_shape_t<E> shape, ResultFactory result_factory, SharedFactory shared_factory)
 {
   bulk_async_execute_with_one_shared_parameter_detail::ignore_trailing_shared_parameters_and_invoke<Function> execute_me{f};
 
@@ -64,7 +64,7 @@ template<class E, class Function, class ResultFactory, class SharedFactory,
         >
 __AGENCY_ANNOTATION
 executor_future_t<E, result_of_t<ResultFactory()>>
-  bulk_async_execute_with_one_shared_parameter(E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, SharedFactory shared_factory)
+  bulk_async_execute_with_one_shared_parameter(E& exec, Function f, new_executor_shape_t<E> shape, ResultFactory result_factory, SharedFactory shared_factory)
 {
   return bulk_async_execute_with_one_shared_parameter_detail::bulk_async_execute_with_one_shared_parameter_impl(
     detail::make_index_sequence<executor_execution_depth<E>::value - 1>(),

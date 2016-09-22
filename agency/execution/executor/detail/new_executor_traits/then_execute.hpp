@@ -6,8 +6,8 @@
 #include <agency/detail/factory.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_continuation_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_continuation_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute_without_shared_parameters.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 
 
 namespace agency
@@ -89,7 +89,7 @@ then_execute(E& exec, Function f, Future& predecessor)
   //     parameters to CUDA kernels
   auto execute_me = then_execute_detail::functor<Function>{f};
 
-  using shape_type = executor_shape_t<E>;
+  using shape_type = new_executor_shape_t<E>;
 
   // call bulk_then_execute_without_shared_parameters() to get an intermediate future
   auto intermediate_future = bulk_then_execute_without_shared_parameters(

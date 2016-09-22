@@ -14,7 +14,7 @@ void test_with_void_predecessor_returning_void(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  executor_shape_t<Executor> shape{100};
+  agency::new_executor_shape_t<Executor> shape{100};
 
   executor_future_t<Executor,void> predecessor = agency::future_traits<executor_future_t<Executor,void>>::make_ready();
   
@@ -50,8 +50,8 @@ void test_with_void_predecessor_returning_results(Executor exec)
 
   auto predecessor_future = agency::detail::make_ready_future();
 
-  using shape_type = executor_shape_t<Executor>;
-  using index_type = executor_index_t<Executor>;
+  using shape_type = agency::new_executor_shape_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
 
   size_t shape = 10;
   
@@ -77,7 +77,7 @@ void test_with_non_void_predecessor_returning_void(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  executor_shape_t<Executor> shape{100};
+  agency::new_executor_shape_t<Executor> shape{100};
 
   executor_future_t<Executor,int> predecessor_future = agency::future_traits<executor_future_t<Executor,int>>::template make_ready<int>(13);
   
@@ -113,8 +113,8 @@ void test_with_non_void_predecessor_returning_results(Executor exec)
 
   executor_future_t<Executor,int> predecessor_future = agency::future_traits<executor_future_t<Executor,int>>::template make_ready<int>(7);
 
-  using shape_type = executor_shape_t<Executor>;
-  using index_type = executor_index_t<Executor>;
+  using shape_type = agency::new_executor_shape_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
 
   size_t shape = 10;
   
@@ -140,13 +140,13 @@ void test_with_void_predecessor_returning_void2(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  executor_shape_t<Executor> shape{10,10};
+  agency::new_executor_shape_t<Executor> shape{10,10};
 
   executor_future_t<Executor,void> predecessor = agency::future_traits<executor_future_t<Executor,void>>::make_ready();
 
   increment_me = 0;
 
-  using index_type = executor_index_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
   
   auto fut = bulk_then_execute_with_auto_result(exec, [] __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
   {
@@ -171,8 +171,8 @@ void test_with_void_predecessor_returning_results2(Executor exec)
 
   executor_future_t<Executor,void> predecessor_future = agency::future_traits<executor_future_t<Executor,void>>::make_ready();
 
-  using shape_type = executor_shape_t<Executor>;
-  using index_type = executor_index_t<Executor>;
+  using shape_type = agency::new_executor_shape_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
 
   shape_type shape{10,10};
   
@@ -199,13 +199,13 @@ void test_with_non_void_predecessor_returning_void2(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  executor_shape_t<Executor> shape{10,10};
+  agency::new_executor_shape_t<Executor> shape{10,10};
 
   executor_future_t<Executor,int> predecessor_future = agency::future_traits<executor_future_t<Executor,int>>::template make_ready(42);
 
   increment_me = 0;
 
-  using index_type = executor_index_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
   
   auto fut = bulk_then_execute_with_auto_result(exec, [] __device__ (index_type idx, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
   {
@@ -228,11 +228,11 @@ void test_with_non_void_predecessor_returning_results2(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  executor_shape_t<Executor> shape{10,10};
+  agency::new_executor_shape_t<Executor> shape{10,10};
 
   executor_future_t<Executor,int> predecessor_future = agency::future_traits<executor_future_t<Executor,int>>::template make_ready(42);
 
-  using index_type = executor_index_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
   
   auto fut = bulk_then_execute_with_auto_result(exec, [] __host__ __device__ (index_type idx, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
   {

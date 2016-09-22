@@ -10,7 +10,7 @@ void test_with_void_predecessor_returning_void(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  executor_shape_t<Executor> shape{100};
+  agency::new_executor_shape_t<Executor> shape{100};
 
   executor_future_t<Executor,void> predecessor = agency::future_traits<executor_future_t<Executor,void>>::make_ready();
   
@@ -46,8 +46,8 @@ void test_with_void_predecessor_returning_results(Executor exec)
 
   auto predecessor_future = agency::detail::make_ready_future();
 
-  using shape_type = executor_shape_t<Executor>;
-  using index_type = executor_index_t<Executor>;
+  using shape_type = agency::new_executor_shape_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
 
   size_t shape = 10;
   
@@ -73,7 +73,7 @@ void test_with_non_void_predecessor_returning_void(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  executor_shape_t<Executor> shape{100};
+  agency::new_executor_shape_t<Executor> shape{100};
 
   executor_future_t<Executor,int> predecessor_future = agency::future_traits<executor_future_t<Executor,int>>::template make_ready<int>(13);
   
@@ -109,8 +109,8 @@ void test_with_non_void_predecessor_returning_results(Executor exec)
 
   executor_future_t<Executor,int> predecessor_future = agency::future_traits<executor_future_t<Executor,int>>::template make_ready<int>(7);
 
-  using shape_type = executor_shape_t<Executor>;
-  using index_type = executor_index_t<Executor>;
+  using shape_type = agency::new_executor_shape_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
 
   size_t shape = 10;
   

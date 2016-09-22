@@ -7,8 +7,8 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_continuation_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute_with_one_shared_parameter.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_future.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 
 
 namespace agency
@@ -101,7 +101,7 @@ async_execute(E& exec, Function&& f)
     result_of_function
   >::type;
 
-  using shape_type = executor_shape_t<E>;
+  using shape_type = new_executor_shape_t<E>;
 
   auto intermediate_future = bulk_async_execute_with_one_shared_parameter(
     exec,                                          // the executor

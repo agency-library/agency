@@ -14,8 +14,8 @@ void test(Executor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  using shape_type = executor_shape_t<Executor>;
-  using index_type = executor_index_t<Executor>;
+  using shape_type = agency::new_executor_shape_t<Executor>;
+  using index_type = agency::new_executor_index_t<Executor>;
 
   shape_type shape = 10;
   
@@ -38,8 +38,8 @@ void test2(TwoLevelExecutor exec)
 {
   using namespace agency::detail::new_executor_traits_detail;
 
-  using shape_type = executor_shape_t<TwoLevelExecutor>;
-  using index_type = executor_index_t<TwoLevelExecutor>;
+  using shape_type = agency::new_executor_shape_t<TwoLevelExecutor>;
+  using index_type = agency::new_executor_index_t<TwoLevelExecutor>;
 
   shape_type shape{10,10};
 

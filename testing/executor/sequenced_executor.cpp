@@ -15,10 +15,10 @@ int main()
   static_assert(is_bulk_executor<agency::sequenced_executor>::value,
     "sequenced_executor should be a bulk executor");
 
-  static_assert(agency::detail::is_detected_exact<size_t, executor_shape_t, agency::sequenced_executor>::value,
+  static_assert(agency::detail::is_detected_exact<size_t, agency::new_executor_shape_t, agency::sequenced_executor>::value,
     "sequenced_executor should have size_t shape_type");
 
-  static_assert(agency::detail::is_detected_exact<size_t, executor_index_t, agency::sequenced_executor>::value,
+  static_assert(agency::detail::is_detected_exact<size_t, agency::new_executor_index_t, agency::sequenced_executor>::value,
     "sequenced_executor should have size_t index_type");
 
   static_assert(agency::detail::is_detected_exact<std::future<int>, executor_future_t, agency::sequenced_executor, int>::value,

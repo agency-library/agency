@@ -4,9 +4,8 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/member_container_or.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/executor_allocator.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_index.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/array.hpp>
 
 
@@ -27,7 +26,7 @@ template<class BulkExecutor, class T>
 struct executor_container_impl<BulkExecutor,T,true>
 {
   template<class U>
-  using default_container = agency::detail::array<T, executor_shape_t<BulkExecutor>, executor_allocator_t<BulkExecutor,T>, executor_index_t<BulkExecutor>>;
+  using default_container = agency::detail::array<T, new_executor_shape_t<BulkExecutor>, executor_allocator_t<BulkExecutor,T>, new_executor_index_t<BulkExecutor>>;
 
   using type = member_container_or_t<BulkExecutor,T,default_container>;
 };
