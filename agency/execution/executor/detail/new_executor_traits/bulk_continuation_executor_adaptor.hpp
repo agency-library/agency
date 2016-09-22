@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_continuation_executor.hpp>
 #include <agency/detail/invoke.hpp>
 
@@ -33,7 +34,7 @@ class bulk_continuation_executor_adaptor<BulkExecutor,true>
     using future = new_executor_future_t<BulkExecutor,T>;
 
     template<class T>
-    using allocator = executor_allocator_t<BulkExecutor,T>;
+    using allocator = new_executor_allocator_t<BulkExecutor,T>;
 
     __AGENCY_ANNOTATION
     bulk_continuation_executor_adaptor() = default;

@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_synchronous_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_execute.hpp>
 #include <agency/detail/invoke.hpp>
@@ -31,7 +32,7 @@ class bulk_synchronous_executor_adaptor<BulkExecutor,true>
     using index_type = new_executor_index_t<BulkExecutor>;
 
     template<class T>
-    using allocator = executor_allocator_t<BulkExecutor,T>;
+    using allocator = new_executor_allocator_t<BulkExecutor,T>;
 
     __AGENCY_ANNOTATION
     bulk_synchronous_executor_adaptor() = default;
