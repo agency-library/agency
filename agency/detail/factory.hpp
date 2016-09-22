@@ -129,6 +129,7 @@ class moving_factory
 
 
 template<class T>
+__AGENCY_ANNOTATION
 moving_factory<decay_t<T>> make_moving_factory(T&& value)
 {
   return moving_factory<decay_t<T>>(std::forward<T>(value));
