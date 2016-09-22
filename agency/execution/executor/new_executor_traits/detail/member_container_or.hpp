@@ -7,8 +7,6 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
-{
 
 
 template<class T, class U, template<class> class Default>
@@ -24,8 +22,6 @@ template<class T, class U, template<class> class Default>
 using member_container_or_t = typename member_container_or<T,U,Default>::type;
 
 
-} // end new_executor_traits_detail
 } // end detail
 } // end agency
-
 

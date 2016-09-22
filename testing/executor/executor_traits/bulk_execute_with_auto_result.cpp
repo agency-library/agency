@@ -53,7 +53,7 @@ void test_returning_results(Executor exec)
     [=]{ return std::vector<int>(shape, 13); }  // shared_arg
   );
   
-  using container_type = executor_container_t<Executor,int>;
+  using container_type = agency::new_executor_container_t<Executor,int>;
   assert(container_type(shape, 13) == result);
 }
 

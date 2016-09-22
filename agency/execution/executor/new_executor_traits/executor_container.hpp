@@ -3,8 +3,9 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/member_container_or.hpp>
-#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/new_executor_traits/detail/member_container_or.hpp>
+#include <agency/execution/executor/new_executor_traits/executor_index.hpp>
+#include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
 #include <agency/detail/array.hpp>
 
 
@@ -12,11 +13,9 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
-{
 
 
-template<class BulkExecutor, class T, bool Enable = is_bulk_executor<BulkExecutor>::value>
+template<class BulkExecutor, class T, bool Enable = agency::detail::new_executor_traits_detail::is_bulk_executor<BulkExecutor>::value>
 struct executor_container_impl
 {
 };
@@ -31,15 +30,15 @@ struct executor_container_impl<BulkExecutor,T,true>
 };
 
 
-template<class BulkExecutor, class T>
-struct executor_container : executor_container_impl<BulkExecutor,T> {};
-
-template<class BulkExecutor, class T>
-using executor_container_t = typename executor_container<BulkExecutor,T>::type;
-
-
-} // end new_executor_traits_detail
 } // end detail
-} // end agency
 
+
+template<class BulkExecutor, class T>
+struct new_executor_container : detail::executor_container_impl<BulkExecutor,T> {};
+
+template<class BulkExecutor, class T>
+using new_executor_container_t = typename new_executor_container<BulkExecutor,T>::type;
+
+
+} // end agency
 

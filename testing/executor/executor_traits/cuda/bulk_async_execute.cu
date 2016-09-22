@@ -45,7 +45,7 @@ void test2(TwoLevelExecutor exec)
 
   shape_type shape{10,10};
 
-  using container_type = executor_container_t<TwoLevelExecutor, int>;
+  using container_type = agency::new_executor_container_t<TwoLevelExecutor, int>;
   
   auto f = bulk_async_execute(exec,
     [] __device__ (index_type idx, container_type& results, int& outer_shared_arg, int& inner_shared_arg)

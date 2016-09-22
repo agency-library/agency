@@ -2,8 +2,8 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
+#include <agency/execution/executor/new_executor_traits/executor_container.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_execute.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_container.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_execute_with_void_result.hpp>
 #include <agency/detail/invoke.hpp>
 
@@ -41,9 +41,9 @@ struct container_factory
 
   __agency_exec_check_disable__
   __AGENCY_ANNOTATION
-  executor_container_t<Executor,T> operator()() const
+  new_executor_container_t<Executor,T> operator()() const
   {
-    return executor_container_t<Executor,T>(shape);
+    return new_executor_container_t<Executor,T>(shape);
   }
 };
 
@@ -74,7 +74,7 @@ template<class E, class Function, class... Factories,
          __AGENCY_REQUIRES(!std::is_void<result_of_t<Function(new_executor_index_t<E>, result_of_t<Factories()>&...)>>::value)
         >
 __AGENCY_ANNOTATION
-executor_container_t<E,
+new_executor_container_t<E,
   result_of_t<Function(new_executor_index_t<E>,result_of_t<Factories()>&...)>
 >
   bulk_execute_with_auto_result(E& exec, Function f, new_executor_shape_t<E> shape, Factories... factories)
@@ -85,7 +85,7 @@ executor_container_t<E,
   using result_type = result_of_t<Function(new_executor_index_t<E>,result_of_t<Factories()>&...)>;
 
   // compute the type of container that will store f's results
-  using container_type = executor_container_t<E,result_type>;
+  using container_type = new_executor_container_t<E,result_type>;
 
   // wrap f in a functor that will store f's result
   invoke_and_store_result<Function, container_type> g{f};
