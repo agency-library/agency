@@ -416,7 +416,7 @@ class executor_array
       //outer_shape);
 
       auto functor = then_execute_non_sequenced_functor<Function,result_type,future_container,outer_shared_arg_type,Factories...>{*this, f, results_raw_ptr, past_futures, outer_shared_arg_raw_ptr, detail::make_tuple(inner_factories...), outer_shape, inner_shape};
-      auto inner_futures = outer_traits::execute(outer_executor(), functor, outer_shape);
+      auto inner_futures = detail::new_executor_traits_detail::bulk_execute_with_auto_result_and_without_shared_parameters(outer_executor(), functor, outer_shape);
 
       // create a continuation to synchronize the futures and return the result
       auto continuation = make_wait_for_futures_and_move_result(std::move(inner_futures), std::move(results_ptr), std::move(outer_shared_arg_ptr));
