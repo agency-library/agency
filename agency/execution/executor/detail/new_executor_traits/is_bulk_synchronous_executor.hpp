@@ -4,7 +4,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_execution_depth_or.hpp>
+#include <agency/execution/executor/new_executor_traits/detail/executor_execution_depth_or.hpp>
 #include <agency/execution/executor/new_executor_traits/detail/member_shape_type_or.hpp>
 #include <agency/execution/executor/new_executor_traits/detail/member_index_type_or.hpp>
 #include <type_traits>

@@ -2,17 +2,15 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_execution_depth_or.hpp>
+#include <agency/execution/executor/new_executor_traits/detail/executor_execution_depth_or.hpp>
 
 namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
-{
 
 
-template<class BulkExecutor, bool Enable = is_bulk_executor<BulkExecutor>::value>
+template<class BulkExecutor, bool Enable = agency::detail::new_executor_traits_detail::is_bulk_executor<BulkExecutor>::value>
 struct executor_execution_depth_impl;
 
 template<class BulkExecutor>
@@ -21,11 +19,12 @@ struct executor_execution_depth_impl<BulkExecutor,true>
 {};
 
 
-template<class BulkExecutor>
-struct executor_execution_depth : executor_execution_depth_impl<BulkExecutor> {};
-
-
-} // end new_executor_traits_detail
 } // end detail
+
+
+template<class BulkExecutor>
+struct new_executor_execution_depth : detail::executor_execution_depth_impl<BulkExecutor> {};
+
+
 } // end agency
 

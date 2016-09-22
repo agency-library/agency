@@ -39,7 +39,7 @@ struct ignore_unit_result_parameter_and_invoke
 __agency_exec_check_disable__
 template<class E, class Function, class... Factories,
          __AGENCY_REQUIRES(BulkExecutor<E>()),
-         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
+         __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
 void bulk_execute_with_void_result(E& exec, Function f, agency::new_executor_shape_t<E> shape, Factories... factories)

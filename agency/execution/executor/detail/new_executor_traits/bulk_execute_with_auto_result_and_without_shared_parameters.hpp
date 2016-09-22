@@ -3,7 +3,6 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_execute_with_auto_result.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
@@ -76,7 +75,7 @@ auto bulk_execute_with_auto_result_and_without_shared_parameters(E& exec,
                                                                  new_executor_shape_t<E> shape) ->
   decltype(
     bulk_execute_with_auto_result_and_without_shared_parameters_detail::bulk_execute_with_auto_result_and_without_shared_parameters_impl(
-      detail::make_index_sequence<executor_execution_depth<E>::value>(),
+      detail::make_index_sequence<new_executor_execution_depth<E>::value>(),
       exec,
       f,
       shape
@@ -86,7 +85,7 @@ auto bulk_execute_with_auto_result_and_without_shared_parameters(E& exec,
   namespace ns = bulk_execute_with_auto_result_and_without_shared_parameters_detail;
 
   return ns::bulk_execute_with_auto_result_and_without_shared_parameters_impl(
-    detail::make_index_sequence<executor_execution_depth<E>::value>(),
+    detail::make_index_sequence<new_executor_execution_depth<E>::value>(),
     exec,
     f,
     shape

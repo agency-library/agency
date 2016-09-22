@@ -6,7 +6,6 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_synchronous_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_asynchronous_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_continuation_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <future>
@@ -24,7 +23,7 @@ namespace new_executor_traits_detail
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class ResultFactory, class... Factories,
          __AGENCY_REQUIRES(BulkContinuationExecutor<E>()),
-         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
+         __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
 new_executor_future_t<
@@ -118,7 +117,7 @@ struct bulk_then_execute_functor<Function,SharedFuture,true>
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class ResultFactory, class... Factories,
          __AGENCY_REQUIRES(!BulkContinuationExecutor<E>() && BulkAsynchronousExecutor<E>()),
-         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
+         __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
 new_executor_future_t<
@@ -221,7 +220,7 @@ struct then_with_nested_bulk_execute_functor<Executor,Function,void,ResultFactor
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class ResultFactory, class... Factories,
          __AGENCY_REQUIRES(!BulkContinuationExecutor<E>() && !BulkAsynchronousExecutor<E>()),
-         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
+         __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
 new_executor_future_t<

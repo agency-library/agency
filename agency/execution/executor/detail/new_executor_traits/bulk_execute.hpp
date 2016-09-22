@@ -5,7 +5,6 @@
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_synchronous_executor.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_async_execute.hpp>
 
 namespace agency
@@ -19,7 +18,7 @@ namespace new_executor_traits_detail
 __agency_exec_check_disable__
 template<class E, class Function, class ResultFactory, class... Factories,
          __AGENCY_REQUIRES(BulkSynchronousExecutor<E>()),
-         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
+         __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
 result_of_t<ResultFactory()>
@@ -32,7 +31,7 @@ bulk_execute(E& exec, Function f, new_executor_shape_t<E> shape, ResultFactory r
 __agency_exec_check_disable__
 template<class E, class Function, class ResultFactory, class... Factories,
          __AGENCY_REQUIRES(BulkExecutor<E>() && !BulkSynchronousExecutor<E>()),
-         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
+         __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
 result_of_t<ResultFactory()>
