@@ -77,22 +77,24 @@ struct enable_if_bulk_async_execution_policy
 ///
 /// Messages from the agents in the two asynchronous tasks are printed while the main thread sleeps:
 ///
-///     $ clang -std=c++11 -I. -lstdc++ -pthread examples/hello_async.cpp -o hello_async
-///     $ ./hello_async
-///     Starting two tasks asynchronously...
-///     Sleeping before waiting on the tasks...
-///     Hello, world from agent 0 in task 1
-///     Hello, world from agent 1 in task 1
-///     Hello, world from agent 2 in task 1
-///     Hello, world from agent 3 in task 1
-///     Hello, world from agent 4 in task 1
-///     Hello, world from agent 0 in task 2
-///     Hello, world from agent 1 in task 2
-///     Hello, world from agent 2 in task 2
-///     Hello, world from agent 3 in task 2
-///     Hello, world from agent 4 in task 2
-///     Woke up, waiting for the tasks to complete...
-///     OK
+/// ~~~~
+/// $ clang -std=c++11 -I. -lstdc++ -pthread examples/hello_async.cpp -o hello_async
+/// $ ./hello_async
+/// Starting two tasks asynchronously...
+/// Sleeping before waiting on the tasks...
+/// Hello, world from agent 0 in task 1
+/// Hello, world from agent 1 in task 1
+/// Hello, world from agent 2 in task 1
+/// Hello, world from agent 3 in task 1
+/// Hello, world from agent 4 in task 1
+/// Hello, world from agent 0 in task 2
+/// Hello, world from agent 1 in task 2
+/// Hello, world from agent 2 in task 2
+/// Hello, world from agent 3 in task 2
+/// Hello, world from agent 4 in task 2
+/// Woke up, waiting for the tasks to complete...
+/// OK
+/// ~~~~
 ///
 /// \see bulk_invoke
 /// \see bulk_then
