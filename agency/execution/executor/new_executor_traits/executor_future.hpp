@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/member_future_or.hpp>
+#include <agency/execution/executor/new_executor_traits/detail/member_future_or.hpp>
 #include <future>
 
 namespace agency
@@ -20,7 +20,7 @@ struct executor_future_impl
 template<class Executor, class T>
 struct executor_future_impl<Executor,T,true>
 {
-  using type = agency::detail::new_executor_traits_detail::member_future_or_t<Executor,T,std::future>;
+  using type = member_future_or_t<Executor,T,std::future>;
 };
 
 

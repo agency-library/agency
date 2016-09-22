@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/member_shape_type_or.hpp>
+#include <agency/execution/executor/new_executor_traits/detail/member_shape_type_or.hpp>
 #include <cstddef>
 
 namespace agency
@@ -19,7 +19,7 @@ struct executor_shape_impl
 template<class BulkExecutor>
 struct executor_shape_impl<BulkExecutor,true>
 {
-  using type = agency::detail::new_executor_traits_detail::member_shape_type_or_t<BulkExecutor,std::size_t>;
+  using type = member_shape_type_or_t<BulkExecutor,std::size_t>;
 };
 
 

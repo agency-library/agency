@@ -7,8 +7,6 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
-{
 
 
 // returns T::shape_type if it exists, Default otherwise
@@ -25,7 +23,6 @@ template<class T, class Default>
 using member_shape_type_or_t = typename member_shape_type_or<T,Default>::type;
 
 
-} // end new_executor_traits_detail
 } // end detail
 } // end agency
 
