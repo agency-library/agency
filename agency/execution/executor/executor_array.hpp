@@ -250,7 +250,7 @@ class executor_array
       auto futures = agency::detail::make_tuple(std::move(results_fut), std::move(fut));
 
       // XXX doesn't work when past_arg_type is void
-      using past_arg_type = typename future_traits<Future>::value_type;
+      using past_arg_type = detail::future_value_t<Future>;
       using outer_shared_arg_type = decltype(outer_factory());
 
       // XXX avoid lambdas to workaround nvcc limitations as well as lack of polymorphic lambda
@@ -442,7 +442,7 @@ class executor_array
     // XXX make this functor public to accomodate nvcc's requirement
     //     on types used to instantiate __global__ function templates
     template<class Function, class... InnerFactories>
-    struct bulk_then_execute_functor
+    struct lazy_bulk_then_execute_functor
     {
       // XXX this should probably not be a reference
       executor_array& exec;
@@ -540,7 +540,7 @@ class executor_array
       //outer_factory
       //);
 
-      bulk_then_execute_functor<Function,InnerFactories...> execute_me{*this,outer_shape,inner_shape,f,detail::make_tuple(inner_factories...)};
+      lazy_bulk_then_execute_functor<Function,InnerFactories...> execute_me{*this,outer_shape,inner_shape,f,detail::make_tuple(inner_factories...)};
 
       experimental::bulk_continuation_executor_adaptor<outer_executor_type> adapted_exec(outer_executor());
 

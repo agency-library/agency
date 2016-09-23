@@ -10,7 +10,7 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 {
   using namespace agency;
 
-  using executor_array_type = agency::executor_array<OuterExecutor,InnerExecutor>;
+  using executor_array_type = agency::executor_array<InnerExecutor,OuterExecutor>;
 
   static_assert(is_bulk_continuation_executor<executor_array_type>::value,
     "executor_array should be a bulk continuation executor");
@@ -61,16 +61,16 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 int main()
 {
   test(bulk_continuation_executor(), bulk_continuation_executor());
-  //test(bulk_continuation_executor(), bulk_synchronous_executor());
-  //test(bulk_continuation_executor(), bulk_asynchronous_executor());
+  test(bulk_continuation_executor(), bulk_synchronous_executor());
+  test(bulk_continuation_executor(), bulk_asynchronous_executor());
 
-  //test(bulk_synchronous_executor(), bulk_continuation_executor());
-  //test(bulk_synchronous_executor(), bulk_synchronous_executor());
-  //test(bulk_synchronous_executor(), bulk_asynchronous_executor());
+  test(bulk_synchronous_executor(), bulk_continuation_executor());
+  test(bulk_synchronous_executor(), bulk_synchronous_executor());
+  test(bulk_synchronous_executor(), bulk_asynchronous_executor());
 
-  //test(bulk_asynchronous_executor(), bulk_continuation_executor());
-  //test(bulk_asynchronous_executor(), bulk_synchronous_executor());
-  //test(bulk_asynchronous_executor(), bulk_asynchronous_executor());
+  test(bulk_asynchronous_executor(), bulk_continuation_executor());
+  test(bulk_asynchronous_executor(), bulk_synchronous_executor());
+  test(bulk_asynchronous_executor(), bulk_asynchronous_executor());
 
   std::cout << "OK" << std::endl;
 
