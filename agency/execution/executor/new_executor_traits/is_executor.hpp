@@ -24,7 +24,7 @@ namespace detail
 template<class T>
 constexpr bool Executor()
 {
-  return is_executor<T>();
+  return new_is_executor<T>();
 }
 
 
