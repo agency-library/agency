@@ -10,7 +10,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_customization_points_detail
 {
 
 
@@ -96,7 +96,7 @@ result_of_t<decay_t<Function>()>
 }
 
   
-} // end new_executor_traits_detail
+} // end executor_customization_points_detail
 } // end detail
 } // end agency
 

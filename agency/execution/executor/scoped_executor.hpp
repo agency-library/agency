@@ -2,8 +2,8 @@
 
 #include <utility>
 #include <agency/execution/executor/executor_array.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/bulk_continuation_executor_adaptor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/bulk_synchronous_executor_adaptor.hpp>
+#include <agency/execution/executor/detail/customization_points/bulk_continuation_executor_adaptor.hpp>
+#include <agency/execution/executor/detail/customization_points/bulk_synchronous_executor_adaptor.hpp>
 
 namespace agency
 {
@@ -69,7 +69,7 @@ class scoped_executor : public executor_array<Executor2,Executor1>
       __AGENCY_ANNOTATION
       void operator()(outer_index_type outer_idx, Predecessor& predecessor, Result& result, OuterArg& outer_arg) const
       {
-        detail::new_executor_traits_detail::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_inner_exec(inner_exec);
+        experimental::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_inner_exec(inner_exec);
         adapted_inner_exec.bulk_execute(inner_functor_with_predecessor<Predecessor,Result,OuterArg>{f, outer_idx, predecessor, result, outer_arg}, inner_shape, detail::unit_factory(), inner_factory);
       }
 
@@ -94,7 +94,7 @@ class scoped_executor : public executor_array<Executor2,Executor1>
       __AGENCY_ANNOTATION
       void operator()(outer_index_type outer_idx, Result& result, OuterArg& outer_arg) const
       {
-        detail::new_executor_traits_detail::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_inner_exec(inner_exec);
+        experimental::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_inner_exec(inner_exec);
         adapted_inner_exec.bulk_execute(inner_functor_without_predecessor<Result,OuterArg>{f, outer_idx, result, outer_arg}, inner_shape, detail::unit_factory(), inner_factory);
       }
     };
@@ -107,7 +107,7 @@ class scoped_executor : public executor_array<Executor2,Executor1>
       auto outer_shape = this->outer_shape(shape);
       auto inner_shape = this->inner_shape(shape);
 
-      detail::new_executor_traits_detail::bulk_continuation_executor_adaptor<outer_executor_type> adapted_outer_executor(this->outer_executor());
+      experimental::bulk_continuation_executor_adaptor<outer_executor_type> adapted_outer_executor(this->outer_executor());
 
       auto execute_me = bulk_then_execute_functor<Function,InnerFactory>{this->inner_executor(0), f, inner_shape, inner_factory};
 

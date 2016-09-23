@@ -10,7 +10,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/detail/flatten_index_and_invoke.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/bulk_continuation_executor_adaptor.hpp>
+#include <agency/execution/executor/detail/customization_points/bulk_continuation_executor_adaptor.hpp>
 
 namespace agency
 {
@@ -196,7 +196,7 @@ class flattened_executor
       using future_value_type = detail::future_value_t<Future>;
       auto execute_me = detail::make_new_flatten_index_and_invoke<base_index_type,future_value_type>(f, base_shape, shape);
 
-      detail::new_executor_traits_detail::bulk_continuation_executor_adaptor<base_executor_type> adapted_executor(base_executor());
+      experimental::bulk_continuation_executor_adaptor<base_executor_type> adapted_executor(base_executor());
 
       return adapted_executor.bulk_then_execute(execute_me, base_shape, predecessor, result_factory, outer_factory, agency::detail::unit_factory(), inner_factories...);
     }

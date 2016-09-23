@@ -5,14 +5,14 @@
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute_without_shared_parameters.hpp>
+#include <agency/execution/executor/detail/customization_points/bulk_then_execute_without_shared_parameters.hpp>
 
 
 namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_customization_points_detail
 {
 
 
@@ -107,7 +107,7 @@ then_execute(E& exec, Function f, Future& predecessor)
 // XXX introduce a worst case which uses predecessor.then() and ignores the executor entirely?
 
   
-} // end new_executor_traits_detail
+} // end executor_customization_points_detail
 } // end detail
 } // end agency
 

@@ -3,20 +3,19 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/bulk_execute.hpp>
+#include <agency/execution/executor/detail/customization_points/bulk_execute.hpp>
 #include <agency/detail/invoke.hpp>
+
 
 namespace agency
 {
-namespace detail
-{
-namespace new_executor_traits_detail
+namespace experimental
 {
 
 
 // this adaptor turns an Executor into a BulkSynchronousExecutor
 // XXX eliminate this when Agency drops support for legacy executors 
-template<class E, bool Enable = BulkExecutor<E>()>
+template<class E, bool Enable = agency::detail::BulkExecutor<E>()>
 class bulk_synchronous_executor_adaptor;
 
 template<class BulkExecutor>
@@ -26,7 +25,7 @@ class bulk_synchronous_executor_adaptor<BulkExecutor,true>
     BulkExecutor adapted_executor_;
 
   public:
-    using execution_category = member_execution_category_or_t<BulkExecutor, unsequenced_execution_tag>;
+    using execution_category = agency::detail::member_execution_category_or_t<BulkExecutor, unsequenced_execution_tag>;
     using shape_type = new_executor_shape_t<BulkExecutor>;
     using index_type = new_executor_index_t<BulkExecutor>;
 
@@ -46,10 +45,10 @@ class bulk_synchronous_executor_adaptor<BulkExecutor,true>
 
     template<class Function, class ResultFactory, class... SharedFactories>
     __AGENCY_ANNOTATION
-    result_of_t<ResultFactory()>
+    agency::detail::result_of_t<ResultFactory()>
       bulk_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
     {
-      return agency::detail::new_executor_traits_detail::bulk_execute(adapted_executor_, f, shape, result_factory, shared_factories...);
+      return agency::detail::executor_customization_points_detail::bulk_execute(adapted_executor_, f, shape, result_factory, shared_factories...);
     }
 };
 
@@ -95,7 +94,7 @@ class bulk_synchronous_executor_adaptor<LegacyExecutor,false>
 
     template<class Function, class ResultFactory, class... SharedFactories>
     __AGENCY_ANNOTATION
-    result_of_t<ResultFactory()>
+    agency::detail::result_of_t<ResultFactory()>
       bulk_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
     {
       auto result = ResultFactory();
@@ -107,8 +106,6 @@ class bulk_synchronous_executor_adaptor<LegacyExecutor,false>
 };
 
 
-} // end new_executor_traits_detail
-} // end detail
+} // end experimental
 } // end agency
-
 

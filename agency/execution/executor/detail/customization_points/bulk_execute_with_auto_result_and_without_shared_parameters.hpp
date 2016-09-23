@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/bulk_execute_with_auto_result.hpp>
+#include <agency/execution/executor/detail/customization_points/bulk_execute_with_auto_result.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
@@ -14,7 +14,7 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
+namespace executor_customization_points_detail
 {
 namespace bulk_execute_with_auto_result_and_without_shared_parameters_detail
 {
@@ -93,7 +93,7 @@ auto bulk_execute_with_auto_result_and_without_shared_parameters(E& exec,
 } // end bulk_execute_with_auto_result_and_without_shared_parameters()
 
 
-} // end new_executor_traits_detail
+} // end executor_customization_points_detail
 } // end detail
 } // end agency
 
