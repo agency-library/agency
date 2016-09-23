@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
+#include <agency/execution/executor/new_executor_traits/is_bulk_executor.hpp>
 #include <agency/execution/executor/new_executor_traits/detail/member_container_or.hpp>
 #include <agency/execution/executor/new_executor_traits/executor_index.hpp>
 #include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
@@ -15,7 +15,7 @@ namespace detail
 {
 
 
-template<class BulkExecutor, class T, bool Enable = agency::detail::new_executor_traits_detail::is_bulk_executor<BulkExecutor>::value>
+template<class BulkExecutor, class T, bool Enable = is_bulk_executor<BulkExecutor>::value>
 struct executor_container_impl
 {
 };

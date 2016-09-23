@@ -6,6 +6,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/new_executor_traits/detail/executor_execution_depth_or.hpp>
 #include <agency/execution/executor/new_executor_traits/detail/member_shape_type_or.hpp>
+#include <agency/execution/executor/new_executor_traits/detail/member_future_or.hpp>
 #include <agency/execution/executor/new_executor_traits/detail/member_index_type_or.hpp>
 #include <type_traits>
 #include <utility>
@@ -14,21 +15,20 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
-{
 
 
 template<class Executor, class Function, class Shape,
          class ResultFactory,
          class... SharedFactories
         >
-struct has_bulk_execute_impl
+struct has_bulk_async_execute_impl
 {
-  using expected_return_type = result_of_t<ResultFactory()>;
+  using result_type = result_of_t<ResultFactory()>;
+  using expected_future_type = member_future_or_t<Executor,result_type,std::future>;
 
   template<class Executor1,
            class ReturnType = decltype(
-             std::declval<Executor1>().bulk_execute(
+             std::declval<Executor1>().bulk_async_execute(
                std::declval<Function>(),
                std::declval<Shape>(),
                std::declval<ResultFactory>(),
@@ -36,7 +36,7 @@ struct has_bulk_execute_impl
              )
            ),
            class = typename std::enable_if<
-             std::is_same<ReturnType,expected_return_type>::value
+             std::is_same<ReturnType,expected_future_type>::value
            >::type>
   static std::true_type test(int);
 
@@ -51,26 +51,26 @@ template<class Executor, class Function, class Shape,
          class ResultFactory,
          class... SharedFactories
         >
-using has_bulk_execute = typename has_bulk_execute_impl<Executor, Function, Shape, ResultFactory, SharedFactories...>::type;
+using has_bulk_async_execute = typename has_bulk_async_execute_impl<Executor, Function, Shape, ResultFactory, SharedFactories...>::type;
 
 
 template<class T, class IndexSequence>
-struct is_bulk_synchronous_executor_impl;
+struct is_bulk_asynchronous_executor_impl;
 
 template<class T, size_t... Indices>
-struct is_bulk_synchronous_executor_impl<T, index_sequence<Indices...>>
+struct is_bulk_asynchronous_executor_impl<T, index_sequence<Indices...>>
 {
   // executor properties
-  using shape_type = member_shape_type_or_t<T,size_t>;
-  using index_type = member_index_type_or_t<T,shape_type>;
+  using shape_type = member_shape_type_or_t<T, size_t>;
+  using index_type = member_index_type_or_t<T, shape_type>;
 
-  // types related to functions passed to .bulk_execute()
+  // types related to functions passed to .bulk_async_execute()
   using result_type = int;
   template<size_t>
   using shared_type = int;
 
-  // the functions we'll pass to .bulk_execute() to test
-  
+  // the functions we'll pass to .bulk_async_execute() to test
+
   // XXX WAR nvcc 8.0 bug
   //using test_function = std::function<void(index_type, result_type&, shared_type<Indices>&...)>;
   //using test_result_factory = std::function<result_type()>;
@@ -88,14 +88,14 @@ struct is_bulk_synchronous_executor_impl<T, index_sequence<Indices...>>
   // XXX WAR nvcc 8.0 bug
   //template<size_t I>
   //using test_shared_factory = std::function<shared_type<I>()>;
-
+  
   template<size_t I>
   struct test_shared_factory
   {
     shared_type<I> operator()();
   };
 
-  using type = has_bulk_execute<
+  using type = has_bulk_async_execute<
     T,
     test_function,
     shape_type,
@@ -104,24 +104,31 @@ struct is_bulk_synchronous_executor_impl<T, index_sequence<Indices...>>
   >;
 };
 
+
+} // end detail
+
+
 template<class T>
-using is_bulk_synchronous_executor = typename is_bulk_synchronous_executor_impl<
+using is_bulk_asynchronous_executor = typename detail::is_bulk_asynchronous_executor_impl<
   T,
-  make_index_sequence<
-    executor_execution_depth_or<T>::value
+  detail::make_index_sequence<
+    detail::executor_execution_depth_or<T>::value
   >
 >::type;
 
 
+namespace detail
+{
+
+
 // a fake Concept to use with __AGENCY_REQUIRES
 template<class T>
-constexpr bool BulkSynchronousExecutor()
+constexpr bool BulkAsynchronousExecutor()
 {
-  return is_bulk_synchronous_executor<T>();
+  return is_bulk_asynchronous_executor<T>();
 }
 
 
-} // end new_executor_traits_detail
 } // end detail
 } // end agency
 

@@ -12,7 +12,7 @@ namespace detail
 {
 
 
-template<class Executor, class T, bool Enable = agency::detail::new_executor_traits_detail::is_executor<Executor>::value>
+template<class Executor, class T, bool Enable = new_executor_traits_detail::is_executor<Executor>::value>
 struct executor_future_impl
 {
 };

@@ -2,10 +2,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_bulk_synchronous_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_bulk_asynchronous_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_bulk_continuation_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <future>

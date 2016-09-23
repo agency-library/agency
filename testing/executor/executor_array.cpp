@@ -8,11 +8,9 @@
 template<class OuterExecutor, class InnerExecutor>
 void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
-
   using executor_array_type = agency::executor_array<OuterExecutor,InnerExecutor>;
 
-  static_assert(is_bulk_continuation_executor<executor_array_type>::value,
+  static_assert(agency::is_bulk_continuation_executor<executor_array_type>::value,
     "executor_array should be a bulk continuation executor");
 
   static_assert(agency::detail::is_detected_exact<agency::detail::tuple<size_t,size_t>, agency::new_executor_shape_t, executor_array_type>::value,

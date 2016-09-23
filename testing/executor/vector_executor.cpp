@@ -7,12 +7,10 @@
 
 int main()
 {
-  using namespace agency::detail::new_executor_traits_detail;
-
-  static_assert(is_bulk_synchronous_executor<agency::vector_executor>::value,
+  static_assert(agency::is_bulk_synchronous_executor<agency::vector_executor>::value,
     "vector_executor should be a bulk synchronous executor");
 
-  static_assert(is_bulk_executor<agency::vector_executor>::value,
+  static_assert(agency::is_bulk_executor<agency::vector_executor>::value,
     "vector_executor should be a bulk executor");
 
   static_assert(agency::detail::is_detected_exact<size_t, agency::new_executor_shape_t, agency::vector_executor>::value,

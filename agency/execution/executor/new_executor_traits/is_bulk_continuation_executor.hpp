@@ -16,8 +16,6 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
-{
 
 
 template<class Executor, class Function, class Shape,
@@ -114,13 +112,21 @@ struct is_bulk_continuation_executor_impl<T, index_sequence<Indices...>>
   >;
 };
 
+
+} // end detail
+
+
 template<class T>
-using is_bulk_continuation_executor = typename is_bulk_continuation_executor_impl<
+using is_bulk_continuation_executor = typename detail::is_bulk_continuation_executor_impl<
   T,
-  make_index_sequence<
-    executor_execution_depth_or<T>::value
+  detail::make_index_sequence<
+    detail::executor_execution_depth_or<T>::value
   >
 >::type;
+
+
+namespace detail
+{
 
 
 // a fake Concept to use with __AGENCY_REQUIRES
@@ -131,7 +137,6 @@ constexpr bool BulkContinuationExecutor()
 }
 
 
-} // end new_executor_traits_detail
 } // end detail
 } // end agency
 

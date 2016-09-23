@@ -9,12 +9,10 @@
 template<class OuterExecutor, class InnerExecutor>
 void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
-
   using scoped_executor_type = agency::scoped_executor<OuterExecutor,InnerExecutor>;
   using flattened_executor_type = agency::flattened_executor<scoped_executor_type>;
 
-  static_assert(is_bulk_continuation_executor<flattened_executor_type>::value,
+  static_assert(agency::is_bulk_continuation_executor<flattened_executor_type>::value,
     "flattened_executor should be a bulk continuation executor");
 
   static_assert(agency::detail::is_detected_exact<size_t, agency::new_executor_shape_t, flattened_executor_type>::value,

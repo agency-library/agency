@@ -7,7 +7,7 @@
 
 int main()
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency;
 
   // test not_an_executor
   static_assert(!is_bulk_executor<not_an_executor>::value, "not_an_executor is not supposed to be a bulk executor");

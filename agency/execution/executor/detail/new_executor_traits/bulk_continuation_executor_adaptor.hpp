@@ -3,7 +3,6 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_bulk_continuation_executor.hpp>
 #include <agency/detail/invoke.hpp>
 
 namespace agency

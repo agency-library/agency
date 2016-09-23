@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_bulk_executor.hpp>
+#include <agency/execution/executor/new_executor_traits/is_bulk_executor.hpp>
 #include <agency/execution/executor/new_executor_traits/detail/member_shape_type_or.hpp>
 #include <cstddef>
 
@@ -11,7 +11,7 @@ namespace detail
 {
 
 
-template<class BulkExecutor, bool Enable = agency::detail::new_executor_traits_detail::is_bulk_executor<BulkExecutor>::value>
+template<class BulkExecutor, bool Enable = is_bulk_executor<BulkExecutor>::value>
 struct executor_shape_impl
 {
 };

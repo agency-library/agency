@@ -5,7 +5,6 @@
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/is_continuation_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_bulk_continuation_executor.hpp>
 #include <agency/execution/executor/detail/new_executor_traits/bulk_then_execute_without_shared_parameters.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 
