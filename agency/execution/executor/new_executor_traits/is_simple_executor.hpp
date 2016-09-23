@@ -2,15 +2,11 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_synchronous_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_asynchronous_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_continuation_executor.hpp>
+#include <agency/execution/executor/new_executor_traits/is_synchronous_executor.hpp>
+#include <agency/execution/executor/new_executor_traits/is_asynchronous_executor.hpp>
+#include <agency/execution/executor/new_executor_traits/is_continuation_executor.hpp>
 
 namespace agency
-{
-namespace detail
-{
-namespace new_executor_traits_detail
 {
 
 
@@ -22,6 +18,10 @@ using is_simple_executor = agency::detail::disjunction<
 >;
 
 
+namespace detail
+{
+
+
 // a fake Concept to use with __AGENCY_REQUIRES
 template<class T>
 constexpr bool SimpleExecutor()
@@ -30,7 +30,6 @@ constexpr bool SimpleExecutor()
 }
 
 
-} // end new_executor_traits_detail
 } // end detail
 } // end agency
 

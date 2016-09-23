@@ -10,8 +10,6 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
-{
 
 
 template<class Executor, class Function>
@@ -64,8 +62,15 @@ struct is_synchronous_executor_impl
 };
 
 
+} // end detail
+
+
 template<class T>
-using is_synchronous_executor = typename is_synchronous_executor_impl<T>::type;
+using is_synchronous_executor = typename detail::is_synchronous_executor_impl<T>::type;
+
+
+namespace detail
+{
 
 
 // a fake Concept to use with __AGENCY_REQUIRES
@@ -76,7 +81,6 @@ constexpr bool SynchronousExecutor()
 }
 
 
-} // end new_executor_traits_detail
 } // end detail
 } // end agency
 

@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_executor.hpp>
+#include <agency/execution/executor/new_executor_traits/is_executor.hpp>
 #include <agency/execution/executor/new_executor_traits/detail/member_future_or.hpp>
 #include <future>
 
@@ -12,7 +12,7 @@ namespace detail
 {
 
 
-template<class Executor, class T, bool Enable = new_executor_traits_detail::is_executor<Executor>::value>
+template<class Executor, class T, bool Enable = new_is_executor<Executor>::value>
 struct executor_future_impl
 {
 };

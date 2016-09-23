@@ -2,22 +2,22 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/detail/new_executor_traits/is_simple_executor.hpp>
+#include <agency/execution/executor/new_executor_traits/is_simple_executor.hpp>
 #include <agency/execution/executor/new_executor_traits/is_bulk_executor.hpp>
 
 namespace agency
 {
-namespace detail
-{
-namespace new_executor_traits_detail
-{
 
 
 template<class T>
-using is_executor = agency::detail::disjunction<
+using new_is_executor = agency::detail::disjunction<
   is_simple_executor<T>,
   is_bulk_executor<T>
 >;
+
+
+namespace detail
+{
 
 
 // a fake Concept to use with __AGENCY_REQUIRES
@@ -28,7 +28,6 @@ constexpr bool Executor()
 }
 
 
-} // end new_executor_traits_detail
 } // end detail
 } // end agency
 

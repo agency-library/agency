@@ -12,8 +12,6 @@ namespace agency
 {
 namespace detail
 {
-namespace new_executor_traits_detail
-{
 
 
 template<class Executor, class Function>
@@ -66,8 +64,16 @@ struct is_asynchronous_executor_impl
   >;
 };
 
+
+} // end detail
+
+
 template<class T>
-using is_asynchronous_executor = typename is_asynchronous_executor_impl<T>::type;
+using is_asynchronous_executor = typename detail::is_asynchronous_executor_impl<T>::type;
+
+
+namespace detail
+{
 
 
 // a fake Concept to use with __AGENCY_REQUIRES
@@ -78,7 +84,6 @@ constexpr bool AsynchronousExecutor()
 }
 
 
-} // end new_executor_traits_detail
 } // end detail
 } // end agency
 
