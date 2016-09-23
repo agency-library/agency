@@ -398,7 +398,7 @@ class executor_array
       using past_arg_type = detail::future_value_t<Future>;
 
       // split the incoming future into a collection of shared futures
-      auto past_futures = outer_traits::share_future(outer_executor(), fut, outer_shape);
+      auto past_futures = detail::executor_customization_points_detail::bulk_share_future(outer_executor(), outer_shape, fut);
       using future_container = decltype(past_futures);
 
       // XXX avoid lambdas to workaround nvcc limitations as well as lack of polymorphic lambda

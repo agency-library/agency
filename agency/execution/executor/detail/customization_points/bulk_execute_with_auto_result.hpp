@@ -52,6 +52,7 @@ struct invoke_and_store_result
 {
   mutable Function f;
 
+  __agency_exec_check_disable__
   template<class Index, class... SharedParameters>
   __AGENCY_ANNOTATION
   void operator()(const Index& idx, Container& results, SharedParameters&... shared_parameters) const
