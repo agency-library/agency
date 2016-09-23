@@ -15,6 +15,8 @@
 #include <thread>
 #include <vector>
 #include <algorithm>
+#include <memory>
+#include <future>
 
 
 namespace agency
@@ -277,6 +279,136 @@ class thread_pool_executor
         std::forward<Function>(f),
         std::forward<TupleOfFutures>(futures)
       );
+    }
+
+
+  private:
+    // this deleter fulfills a promise just before
+    // it deletes its argument
+    template<class ResultType>
+    struct fulfill_promise_and_delete
+    {
+      std::shared_ptr<std::promise<ResultType>> shared_promise_ptr;
+
+      void operator()(ResultType* ptr_to_result)
+      {
+        // move the result object into the promise
+        shared_promise_ptr->set_value(std::move(*ptr_to_result));
+
+        // delete the pointer
+        delete ptr_to_result;
+      }
+    };
+    
+
+  public:
+    // this is the overload of bulk_then_execute for non-void Future
+    template<class Function, class Future, class ResultFactory, class SharedFactory,
+             __AGENCY_REQUIRES(!std::is_void<future_value_t<Future>>::value)
+            >
+    std::future<
+      result_of_t<ResultFactory()>
+    >
+      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+    {
+      using result_type = result_of_t<ResultFactory()>;
+
+      // create a shared promise to fulfill the result
+      auto shared_promise_ptr = std::make_shared<std::promise<result_type>>();
+
+      // get the shared promise's future
+      auto result_future = shared_promise_ptr->get_future();
+
+      // create a deleter which fulfills the promise with the result and then deletes the result
+      fulfill_promise_and_delete<result_type> deleter{std::move(shared_promise_ptr)};
+
+      // create the shared state for the result
+      // note that we use our special deleter with this state
+      auto shared_result_ptr = std::shared_ptr<result_type>(new result_type(result_factory()), std::move(deleter));
+
+      // create the shared state for the shared parameter
+      using shared_arg_type = result_of_t<SharedFactory()>;
+      auto shared_arg_ptr = std::make_shared<shared_arg_type>(shared_factory());
+
+      // share the incoming future
+      auto shared_predecessor = future_traits<Future>::share(predecessor);
+
+      // submit n tasks to the thread pool
+      for(size_t idx = 0; idx < n; ++idx)
+      {
+        system_thread_pool().submit([=]() mutable
+        {
+          // get the predecessor future's value
+          using predecessor_type = future_value_t<Future>;
+          predecessor_type& predecessor_arg = const_cast<predecessor_type&>(shared_predecessor.get());
+
+          // call the user's function
+          f(idx, predecessor_arg, *shared_result_ptr, *shared_arg_ptr);
+
+          // we explicitly release shared_result_ptr because even though this
+          // lambda's invocation is complete, the lambda's lifetime
+          // (and therefore shared_result_ptr's lifetime) is not necessarily complete
+          // this .reset() is what fulfills the promise via shared_result_ptr's deleter
+          shared_result_ptr.reset();
+        });
+      }
+
+      // return the result future
+      return std::move(result_future);
+    }
+
+
+    // this is the overload of bulk_then_execute for void Future
+    template<class Function, class Future, class ResultFactory, class SharedFactory,
+             __AGENCY_REQUIRES(std::is_void<future_value_t<Future>>::value)
+            >
+    std::future<
+      result_of_t<ResultFactory()>
+    >
+      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+    {
+      using result_type = result_of_t<ResultFactory()>;
+
+      // create a shared promise to fulfill the result
+      auto shared_promise_ptr = std::make_shared<std::promise<result_type>>();
+
+      // get the shared promise's future
+      auto result_future = shared_promise_ptr->get_future();
+
+      // create a deleter which fulfills the promise with the result and then deletes the result
+      fulfill_promise_and_delete<result_type> deleter{std::move(shared_promise_ptr)};
+
+      // create the shared state for the result
+      auto shared_result_ptr = std::shared_ptr<result_type>(new result_type(result_factory()), std::move(deleter));
+
+      // create the shared state for the shared parameter
+      using shared_arg_type = result_of_t<SharedFactory()>;
+      auto shared_arg_ptr = std::make_shared<shared_arg_type>(shared_factory());
+
+      // share the incoming future
+      auto shared_predecessor = future_traits<Future>::share(predecessor);
+
+      // submit n tasks to the thread pool
+      for(size_t idx = 0; idx < n; ++idx)
+      {
+        system_thread_pool().submit([=]() mutable
+        {
+          // wait on the predecessor future
+          shared_predecessor.wait();
+
+          // call the user's function
+          f(idx, *shared_result_ptr, *shared_arg_ptr);
+
+          // we explicitly release shared_result_ptr because even though this
+          // lambda's invocation is complete, the lambda's lifetime
+          // (and therefore shared_result_ptr's lifetime) is not necessarily complete
+          // this .reset() is what fulfills the promise via shared_result_ptr's deleter
+          shared_result_ptr.reset();
+        });
+      }
+
+      // return the result future
+      return std::move(result_future);
     }
 
     size_t shape() const
