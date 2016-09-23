@@ -1,8 +1,9 @@
 #include <iostream>
 #include <cassert>
 #include <agency/execution/executor/customization_points/make_ready_future.hpp>
+#include <agency/cuda.hpp>
 
-#include "../test_executors.hpp"
+#include "../../test_executors.hpp"
 
 template<class Executor>
 void test(Executor exec)
@@ -33,6 +34,8 @@ int main()
   test(not_a_bulk_continuation_executor());
 
   test(complete_bulk_executor());
+
+  test(agency::cuda::grid_executor());
 
   std::cout << "OK" << std::endl;
 
