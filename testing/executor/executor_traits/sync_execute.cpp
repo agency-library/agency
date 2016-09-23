@@ -5,7 +5,7 @@
 #include <agency/future.hpp>
 #include <agency/execution/executor/detail/new_executor_traits.hpp>
 
-#include "test_executors.hpp"
+#include "../test_executors.hpp"
 
 
 template<class Executor>

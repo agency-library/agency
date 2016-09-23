@@ -4,7 +4,7 @@
 
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/flattened_executor.hpp>
-#include "executor_traits/test_executors.hpp"
+#include "test_executors.hpp"
 
 template<class OuterExecutor, class InnerExecutor>
 void test(OuterExecutor outer_exec, InnerExecutor inner_exec)

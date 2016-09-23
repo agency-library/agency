@@ -3,7 +3,7 @@
 #include <agency/cuda.hpp>
 #include <iostream>
 
-#include "../test_executors.hpp"
+#include "../../test_executors.hpp"
 
 
 template<class Executor>
