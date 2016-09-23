@@ -9,6 +9,8 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/detail/this_thread_parallel_executor.hpp>
 #include <agency/execution/executor/detail/customization_points.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/customization_points.hpp>
 #include <agency/execution/executor/detail/customization_points/bulk_continuation_executor_adaptor.hpp>
 #include <agency/execution/executor/detail/customization_points/bulk_synchronous_executor_adaptor.hpp>
 
@@ -28,19 +30,19 @@ class executor_array
     using inner_traits = executor_traits<inner_executor_type>;
     using outer_traits = executor_traits<outer_executor_type>;
 
-    using outer_execution_category = typename outer_traits::execution_category;
-    using inner_execution_category = typename inner_traits::execution_category;
+    using outer_execution_category = new_executor_execution_category_t<outer_executor_type>;
+    using inner_execution_category = new_executor_execution_category_t<inner_executor_type>;
 
-    constexpr static size_t inner_depth = inner_traits::execution_depth;
+    constexpr static size_t inner_depth = new_executor_execution_depth<inner_executor_type>::value;
 
   public:
     using execution_category = scoped_execution_tag<outer_execution_category,inner_execution_category>;
 
-    using outer_shape_type = typename outer_traits::shape_type;
-    using inner_shape_type = typename inner_traits::shape_type;
+    using outer_shape_type = new_executor_shape_t<outer_executor_type>;
+    using inner_shape_type = new_executor_shape_t<inner_executor_type>;
 
-    using outer_index_type = typename outer_traits::index_type;
-    using inner_index_type = typename inner_traits::index_type;
+    using outer_index_type = new_executor_index_t<outer_executor_type>;
+    using inner_index_type = new_executor_index_t<inner_executor_type>;
 
     using shape_type = detail::scoped_shape_t<outer_execution_category,inner_execution_category,outer_shape_type,inner_shape_type>;
     using index_type = detail::scoped_index_t<outer_execution_category,inner_execution_category,outer_index_type,inner_index_type>;
@@ -71,10 +73,10 @@ class executor_array
     {}
 
     template<class T>
-    using future = typename outer_traits::template future<T>;
+    using future = new_executor_future_t<outer_executor_type,T>;
 
     template<class T>
-    using allocator = typename outer_traits::template allocator<T>;
+    using allocator = new_executor_allocator_t<outer_executor_type,T>;
 
     template<class T>
     using container = agency::detail::array<T, shape_type, allocator<T>, index_type>;
@@ -244,7 +246,7 @@ class executor_array
 
       // create the results via the result_factory
       using result_type = decltype(result_factory(shape));
-      auto results_fut = outer_traits::template make_ready_future<result_type>(outer_executor(), result_factory(shape));
+      auto results_fut = agency::make_ready_future<result_type>(outer_executor(), result_factory(shape));
       auto futures = agency::detail::make_tuple(std::move(results_fut), std::move(fut));
 
       // XXX doesn't work when past_arg_type is void
@@ -337,7 +339,7 @@ class executor_array
 
       template<size_t... Indices>
       __AGENCY_ANNOTATION
-      typename inner_traits::template future<void>
+      new_executor_future_t<inner_executor_type,void>
         impl(detail::index_sequence<Indices...>, const outer_index_type& outer_idx) const
       {
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
@@ -354,7 +356,7 @@ class executor_array
       }
 
       __AGENCY_ANNOTATION
-      typename inner_traits::template future<void>
+      new_executor_future_t<inner_executor_type,void>
         operator()(const outer_index_type& outer_idx) const
       {
         return impl(detail::index_sequence_for<Factories...>(), outer_idx);
@@ -393,7 +395,7 @@ class executor_array
       auto outer_shared_arg_ptr = detail::allocate_unique<outer_shared_arg_type>(allocator<outer_shared_arg_type>(), outer_factory());
       outer_shared_arg_type* outer_shared_arg_raw_ptr = outer_shared_arg_ptr.get();
 
-      using past_arg_type = typename future_traits<Future>::value_type;
+      using past_arg_type = detail::future_value_t<Future>;
 
       // split the incoming future into a collection of shared futures
       auto past_futures = outer_traits::share_future(outer_executor(), fut, outer_shape);

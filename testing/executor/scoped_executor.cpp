@@ -17,8 +17,7 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
   static_assert(is_bulk_continuation_executor<scoped_executor_type>::value,
     "scoped_executor should be a bulk continuation executor");
 
-  // XXX scoped_executor & executor_array still advertises their category using executor_traits
-  using expected_category = scoped_execution_tag<typename executor_traits<OuterExecutor>::execution_category, typename executor_traits<InnerExecutor>::execution_category>;
+  using expected_category = scoped_execution_tag<new_executor_execution_category_t<OuterExecutor>, new_executor_execution_category_t<InnerExecutor>>;
 
   static_assert(detail::is_detected_exact<expected_category, new_executor_execution_category_t, scoped_executor_type>::value,
     "scoped_executor should have expected_category execution_category");
