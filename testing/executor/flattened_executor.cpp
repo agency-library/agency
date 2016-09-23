@@ -4,34 +4,38 @@
 
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/flattened_executor.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/customization_points.hpp>
 #include "test_executors.hpp"
 
 template<class OuterExecutor, class InnerExecutor>
 void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 {
-  using scoped_executor_type = agency::scoped_executor<OuterExecutor,InnerExecutor>;
-  using flattened_executor_type = agency::flattened_executor<scoped_executor_type>;
+  using namespace agency;
 
-  static_assert(agency::is_bulk_continuation_executor<flattened_executor_type>::value,
+  using scoped_executor_type = scoped_executor<OuterExecutor,InnerExecutor>;
+  using flattened_executor_type = flattened_executor<scoped_executor_type>;
+
+  static_assert(is_bulk_continuation_executor<flattened_executor_type>::value,
     "flattened_executor should be a bulk continuation executor");
 
-  static_assert(agency::detail::is_detected_exact<size_t, agency::new_executor_shape_t, flattened_executor_type>::value,
+  static_assert(detail::is_detected_exact<size_t, new_executor_shape_t, flattened_executor_type>::value,
     "flattened_executor should have size_t shape_type");
 
-  static_assert(agency::detail::is_detected_exact<size_t, agency::new_executor_index_t, flattened_executor_type>::value,
+  static_assert(detail::is_detected_exact<size_t, new_executor_index_t, flattened_executor_type>::value,
     "flattened_executor should have size_t index_type");
 
-  static_assert(agency::detail::is_detected_exact<agency::new_executor_future_t<OuterExecutor,int>, agency::new_executor_future_t, flattened_executor_type, int>::value,
+  static_assert(detail::is_detected_exact<new_executor_future_t<OuterExecutor,int>, new_executor_future_t, flattened_executor_type, int>::value,
     "flattened_executor should have the same future type as OuterExecutor");
 
   flattened_executor_type exec(scoped_executor_type(outer_exec,inner_exec));
 
-  std::future<int> fut = agency::executor_traits<flattened_executor_type>::template make_ready_future<int>(exec, 7);
+  std::future<int> fut = make_ready_future<int>(exec, 7);
 
-  using shape_type = agency::new_executor_shape_t<flattened_executor_type>;
+  using shape_type = new_executor_shape_t<flattened_executor_type>;
   shape_type shape(10);
 
-  using index_type = agency::new_executor_index_t<flattened_executor_type>;
+  using index_type = new_executor_index_t<flattened_executor_type>;
 
   auto f = exec.bulk_then_execute(
     [=](index_type idx, int& past_arg, std::vector<int>& results, std::vector<int>& shared_arg)

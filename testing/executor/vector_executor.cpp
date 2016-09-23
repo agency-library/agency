@@ -7,22 +7,27 @@
 
 int main()
 {
-  static_assert(agency::is_bulk_synchronous_executor<agency::vector_executor>::value,
+  using namespace agency;
+
+  static_assert(is_bulk_synchronous_executor<vector_executor>::value,
     "vector_executor should be a bulk synchronous executor");
 
-  static_assert(agency::is_bulk_executor<agency::vector_executor>::value,
+  static_assert(is_bulk_executor<vector_executor>::value,
     "vector_executor should be a bulk executor");
 
-  static_assert(agency::detail::is_detected_exact<size_t, agency::new_executor_shape_t, agency::vector_executor>::value,
+  static_assert(detail::is_detected_exact<unsequenced_execution_tag, new_executor_execution_category_t, vector_executor>::value,
+    "vector_executor should have unsequenced_execution_tag execution_category");
+
+  static_assert(detail::is_detected_exact<size_t, new_executor_shape_t, vector_executor>::value,
     "vector_executor should have size_t shape_type");
 
-  static_assert(agency::detail::is_detected_exact<size_t, agency::new_executor_index_t, agency::vector_executor>::value,
+  static_assert(detail::is_detected_exact<size_t, new_executor_index_t, vector_executor>::value,
     "vector_executor should have size_t index_type");
 
-  static_assert(agency::detail::is_detected_exact<std::future<int>, agency::new_executor_future_t, agency::vector_executor, int>::value,
+  static_assert(detail::is_detected_exact<std::future<int>, new_executor_future_t, vector_executor, int>::value,
     "vector_executor should have std::future furture");
 
-  agency::vector_executor exec;
+  vector_executor exec;
 
   size_t shape = 10;
   
