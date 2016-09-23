@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/detail/new_executor_traits.hpp>
+#include <agency/execution/executor/detail/customization_points.hpp>
 #include <agency/cuda.hpp>
 
 #include "../../test_executors.hpp"
@@ -12,7 +12,7 @@
 template<class Executor>
 void test_with_non_void_predecessor(Executor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   auto predecessor_future = agency::detail::make_ready_future<int>(7);
 
@@ -41,7 +41,7 @@ void test_with_non_void_predecessor(Executor exec)
 template<class Executor>
 void test_with_void_predecessor(Executor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   auto predecessor_future = agency::detail::make_ready_future();
 
@@ -70,7 +70,7 @@ void test_with_void_predecessor(Executor exec)
 template<class TwoLevelExecutor>
 void test_with_non_void_predecessor2(TwoLevelExecutor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   using predecessor_future_type = agency::new_executor_future_t<TwoLevelExecutor,int>;
   auto predecessor_future = agency::future_traits<predecessor_future_type>::make_ready(7);
@@ -103,7 +103,7 @@ void test_with_non_void_predecessor2(TwoLevelExecutor exec)
 template<class TwoLevelExecutor>
 void test_with_void_predecessor2(TwoLevelExecutor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   using predecessor_future_type = agency::new_executor_future_t<TwoLevelExecutor,void>;
   auto predecessor_future = agency::future_traits<predecessor_future_type>::make_ready();

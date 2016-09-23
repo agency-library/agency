@@ -1,4 +1,4 @@
-#include <agency/execution/executor/detail/new_executor_traits.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <type_traits>
 #include <iostream>
 
@@ -54,8 +54,6 @@ struct bulk_executor_with_shape_type_with_index_type
 
 int main()
 {
-  using namespace agency::detail::new_executor_traits_detail;
-
   static_assert(!agency::detail::is_detected<agency::new_executor_index_t, not_an_executor>::value,
     "executor_index_t<not_an_executor> should not be detected");
 

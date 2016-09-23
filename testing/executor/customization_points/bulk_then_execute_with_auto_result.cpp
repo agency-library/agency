@@ -1,5 +1,5 @@
 #include <agency/agency.hpp>
-#include <agency/execution/executor/detail/new_executor_traits.hpp>
+#include <agency/execution/executor/detail/customization_points.hpp>
 #include <iostream>
 
 #include "../test_executors.hpp"
@@ -8,7 +8,7 @@
 template<class Executor>
 void test_with_void_predecessor_returning_void(Executor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   agency::new_executor_shape_t<Executor> shape{100};
 
@@ -42,7 +42,7 @@ void test_with_void_predecessor_returning_void(Executor exec)
 template<class Executor>
 void test_with_void_predecessor_returning_results(Executor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   auto predecessor_future = agency::detail::make_ready_future();
 
@@ -71,7 +71,7 @@ void test_with_void_predecessor_returning_results(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor_returning_void(Executor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   agency::new_executor_shape_t<Executor> shape{100};
 
@@ -105,7 +105,7 @@ void test_with_non_void_predecessor_returning_void(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor_returning_results(Executor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   agency::new_executor_future_t<Executor,int> predecessor_future = agency::future_traits<agency::new_executor_future_t<Executor,int>>::template make_ready<int>(7);
 

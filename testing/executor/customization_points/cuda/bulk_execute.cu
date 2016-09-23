@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/detail/new_executor_traits.hpp>
+#include <agency/execution/executor/detail/customization_points.hpp>
 #include <agency/cuda.hpp>
 
 #include "../../test_executors.hpp"
@@ -12,7 +12,7 @@
 template<class Executor>
 void test(Executor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   using shape_type = agency::new_executor_shape_t<Executor>;
   using index_type = agency::new_executor_index_t<Executor>;
@@ -36,7 +36,7 @@ void test(Executor exec)
 template<class TwoLevelExecutor>
 void test2(TwoLevelExecutor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   using shape_type = agency::new_executor_shape_t<TwoLevelExecutor>;
   using index_type = agency::new_executor_index_t<TwoLevelExecutor>;

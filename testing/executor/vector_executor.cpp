@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <agency/execution/executor/vector_executor.hpp>
-#include <agency/execution/executor/detail/new_executor_traits.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 
 int main()
 {

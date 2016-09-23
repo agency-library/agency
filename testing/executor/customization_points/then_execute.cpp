@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/detail/new_executor_traits.hpp>
+#include <agency/execution/executor/detail/customization_points.hpp>
 
 #include "../test_executors.hpp"
 
@@ -11,7 +11,7 @@
 template<class Executor>
 void test_with_non_void_predecessor(Executor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   auto predecessor_future = agency::detail::make_ready_future<int>(7);
   
@@ -30,7 +30,7 @@ void test_with_non_void_predecessor(Executor exec)
 template<class Executor>
 void test_with_void_predecessor(Executor exec)
 {
-  using namespace agency::detail::new_executor_traits_detail;
+  using namespace agency::detail::executor_customization_points_detail;
 
   auto predecessor_future = agency::detail::make_ready_future();
 
