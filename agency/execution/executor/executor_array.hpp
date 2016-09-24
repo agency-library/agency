@@ -546,7 +546,14 @@ class executor_array
 
       return adapted_exec.bulk_then_execute(execute_me, outer_shape, predecessor, result_factory, outer_factory);
     }
-             
+
+    template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
+    __AGENCY_ANNOTATION
+    future<detail::result_of_t<ResultFactory()>>
+      bulk_then_execute_impl(lazy_strategy, Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+    {
+      return lazy_bulk_then_execute(f, shape, predecessor, result_factory, outer_factory, inner_factories...);
+    }
 
   public:
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories,
@@ -556,9 +563,10 @@ class executor_array
     future<detail::result_of_t<ResultFactory()>>
       bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
     {
-      return lazy_bulk_then_execute(f, shape, predecessor, result_factory, outer_factory, inner_factories...);
-    }
+      using implementation_strategy = lazy_strategy;
 
+      return bulk_then_execute_impl(implementation_strategy(), f, shape, predecessor, result_factory, outer_factory, inner_factories...);
+    }
 
   private:
     outer_executor_type            outer_executor_;
