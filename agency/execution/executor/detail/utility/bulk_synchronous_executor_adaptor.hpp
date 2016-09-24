@@ -9,13 +9,13 @@
 
 namespace agency
 {
-namespace experimental
+namespace detail
 {
 
 
 // this adaptor turns an Executor into a BulkSynchronousExecutor
 // XXX eliminate this when Agency drops support for legacy executors 
-template<class E, bool Enable = agency::detail::BulkExecutor<E>()>
+template<class E, bool Enable = BulkExecutor<E>()>
 class bulk_synchronous_executor_adaptor;
 
 template<class BulkExecutor>
@@ -25,7 +25,7 @@ class bulk_synchronous_executor_adaptor<BulkExecutor,true>
     BulkExecutor adapted_executor_;
 
   public:
-    using execution_category = agency::detail::member_execution_category_or_t<BulkExecutor, unsequenced_execution_tag>;
+    using execution_category = member_execution_category_or_t<BulkExecutor, unsequenced_execution_tag>;
     using shape_type = new_executor_shape_t<BulkExecutor>;
     using index_type = new_executor_index_t<BulkExecutor>;
 
@@ -45,7 +45,7 @@ class bulk_synchronous_executor_adaptor<BulkExecutor,true>
 
     template<class Function, class ResultFactory, class... SharedFactories>
     __AGENCY_ANNOTATION
-    agency::detail::result_of_t<ResultFactory()>
+    result_of_t<ResultFactory()>
       bulk_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
     {
       return agency::bulk_execute(adapted_executor_, f, shape, result_factory, shared_factories...);
@@ -94,7 +94,7 @@ class bulk_synchronous_executor_adaptor<LegacyExecutor,false>
 
     template<class Function, class ResultFactory, class... SharedFactories>
     __AGENCY_ANNOTATION
-    agency::detail::result_of_t<ResultFactory()>
+    result_of_t<ResultFactory()>
       bulk_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
     {
       auto result = ResultFactory();
@@ -106,6 +106,6 @@ class bulk_synchronous_executor_adaptor<LegacyExecutor,false>
 };
 
 
-} // end experimental
+} // end detail
 } // end agency
 

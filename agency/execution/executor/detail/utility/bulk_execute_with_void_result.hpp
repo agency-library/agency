@@ -13,8 +13,6 @@ namespace agency
 {
 namespace detail
 {
-namespace executor_customization_points_detail
-{
 namespace bulk_execute_with_void_result_detail
 {
 
@@ -54,7 +52,6 @@ void bulk_execute_with_void_result(E& exec, Function f, agency::new_executor_sha
 }
 
 
-} // end executor_customization_points_detail
 } // end detail
 } // end agency
 

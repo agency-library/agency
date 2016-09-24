@@ -6,7 +6,7 @@
 #include <agency/detail/factory.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_then_execute_without_shared_parameters.hpp>
+#include <agency/execution/executor/detail/utility/bulk_then_execute_without_shared_parameters.hpp>
 
 
 namespace agency
@@ -87,7 +87,7 @@ then_execute(E& exec, Function f, Future& predecessor)
   using shape_type = new_executor_shape_t<E>;
 
   // call bulk_then_execute_without_shared_parameters() to get an intermediate future
-  auto intermediate_future = agency::detail::executor_customization_points_detail::bulk_then_execute_without_shared_parameters(
+  auto intermediate_future = detail::bulk_then_execute_without_shared_parameters(
     exec,                              // the executor
     execute_me,                        // the functor to execute
     detail::shape_cast<shape_type>(1), // create only a single agent

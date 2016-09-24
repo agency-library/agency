@@ -12,17 +12,15 @@ __managed__ int increment_me;
 template<class Executor>
 void test_with_void_predecessor_returning_void(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   agency::new_executor_shape_t<Executor> shape{100};
 
-  agency::new_executor_future_t<Executor,void> predecessor = agency::future_traits<agency::new_executor_future_t<Executor,void>>::make_ready();
+  auto predecessor_future = agency::make_ready_future<void>(exec);
   
   int shared_arg = 0;
   
   int increment_me = 0;
   std::mutex mut;
-  auto fut = bulk_then_execute_with_auto_result(exec, [&](size_t idx, int& shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t idx, int& shared_arg)
   {
     mut.lock();
     increment_me += 1;
@@ -46,16 +44,14 @@ void test_with_void_predecessor_returning_void(Executor exec)
 template<class Executor>
 void test_with_void_predecessor_returning_results(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
-  auto predecessor_future = agency::detail::make_ready_future();
+  auto predecessor_future = agency::make_ready_future<void>(exec);
 
   using shape_type = agency::new_executor_shape_t<Executor>;
   using index_type = agency::new_executor_index_t<Executor>;
 
   size_t shape = 10;
   
-  auto f = bulk_then_execute_with_auto_result(exec,
+  auto f = agency::detail::bulk_then_execute_with_auto_result(exec,
     [](index_type idx, std::vector<int>& shared_arg)
     {
       return shared_arg[idx];
@@ -75,17 +71,15 @@ void test_with_void_predecessor_returning_results(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor_returning_void(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   agency::new_executor_shape_t<Executor> shape{100};
 
-  agency::new_executor_future_t<Executor,int> predecessor_future = agency::future_traits<agency::new_executor_future_t<Executor,int>>::template make_ready<int>(13);
+  auto predecessor_future = agency::make_ready_future<int>(exec, 13);
   
   int shared_arg = 0;
   
   int increment_me = 0;
   std::mutex mut;
-  auto fut = bulk_then_execute_with_auto_result(exec, [&](size_t idx, int& predecessor, int& shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t idx, int& predecessor, int& shared_arg)
   {
     mut.lock();
     increment_me += predecessor;
@@ -109,16 +103,14 @@ void test_with_non_void_predecessor_returning_void(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor_returning_results(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
-  agency::new_executor_future_t<Executor,int> predecessor_future = agency::future_traits<agency::new_executor_future_t<Executor,int>>::template make_ready<int>(7);
+  auto predecessor_future = agency::make_ready_future<int>(exec, 7);
 
   using shape_type = agency::new_executor_shape_t<Executor>;
   using index_type = agency::new_executor_index_t<Executor>;
 
   size_t shape = 10;
   
-  auto f = bulk_then_execute_with_auto_result(exec,
+  auto f = agency::detail::bulk_then_execute_with_auto_result(exec,
     [](index_type idx, int& predecessor, std::vector<int>& shared_arg)
     {
       return predecessor + shared_arg[idx];
@@ -138,22 +130,20 @@ void test_with_non_void_predecessor_returning_results(Executor exec)
 template<class Executor>
 void test_with_void_predecessor_returning_void2(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   agency::new_executor_shape_t<Executor> shape{10,10};
 
-  agency::new_executor_future_t<Executor,void> predecessor = agency::future_traits<agency::new_executor_future_t<Executor,void>>::make_ready();
+  auto predecessor_future = agency::make_ready_future<void>(exec);
 
   increment_me = 0;
 
   using index_type = agency::new_executor_index_t<Executor>;
   
-  auto fut = bulk_then_execute_with_auto_result(exec, [] __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
   {
     atomicAdd(&increment_me, outer_shared_arg + inner_shared_arg);
   },
   shape,
-  predecessor,
+  predecessor_future,
   [] __host__ __device__ { return 7; },
   [] __host__ __device__ { return 13; }
   );
@@ -167,16 +157,14 @@ void test_with_void_predecessor_returning_void2(Executor exec)
 template<class Executor>
 void test_with_void_predecessor_returning_results2(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
-  agency::new_executor_future_t<Executor,void> predecessor_future = agency::future_traits<agency::new_executor_future_t<Executor,void>>::make_ready();
+  auto predecessor_future = agency::make_ready_future<void>(exec);
 
   using shape_type = agency::new_executor_shape_t<Executor>;
   using index_type = agency::new_executor_index_t<Executor>;
 
   shape_type shape{10,10};
   
-  auto f = bulk_then_execute_with_auto_result(exec,
+  auto f = agency::detail::bulk_then_execute_with_auto_result(exec,
     [] __host__ __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
     {
       return outer_shared_arg + inner_shared_arg;
@@ -197,17 +185,15 @@ void test_with_void_predecessor_returning_results2(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor_returning_void2(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   agency::new_executor_shape_t<Executor> shape{10,10};
 
-  agency::new_executor_future_t<Executor,int> predecessor_future = agency::future_traits<agency::new_executor_future_t<Executor,int>>::template make_ready(42);
+  auto predecessor_future = agency::make_ready_future<int>(exec, 42);
 
   increment_me = 0;
 
   using index_type = agency::new_executor_index_t<Executor>;
   
-  auto fut = bulk_then_execute_with_auto_result(exec, [] __device__ (index_type idx, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __device__ (index_type idx, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
   {
     atomicAdd(&increment_me, predecessor + outer_shared_arg + inner_shared_arg);
   },
@@ -226,15 +212,13 @@ void test_with_non_void_predecessor_returning_void2(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor_returning_results2(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   agency::new_executor_shape_t<Executor> shape{10,10};
 
-  agency::new_executor_future_t<Executor,int> predecessor_future = agency::future_traits<agency::new_executor_future_t<Executor,int>>::template make_ready(42);
+  auto predecessor_future = agency::make_ready_future<int>(exec, 42);
 
   using index_type = agency::new_executor_index_t<Executor>;
   
-  auto fut = bulk_then_execute_with_auto_result(exec, [] __host__ __device__ (index_type idx, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __host__ __device__ (index_type idx, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
   {
     return predecessor + outer_shared_arg + inner_shared_arg;
   },

@@ -4,15 +4,13 @@
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/new_executor_traits/executor_container.hpp>
 #include <agency/execution/executor/customization_points/bulk_then_execute.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_then_execute_with_void_result.hpp>
+#include <agency/execution/executor/detail/utility/bulk_then_execute_with_void_result.hpp>
 #include <agency/detail/invoke.hpp>
 
 
 namespace agency
 {
 namespace detail
-{
-namespace executor_customization_points_detail
 {
 
 
@@ -29,6 +27,10 @@ new_executor_future_t<E,void>
 {
   return bulk_then_execute_with_void_result(exec, f, shape, predecessor, factories...);
 }
+
+
+namespace bulk_then_execute_with_auto_result_detail
+{
 
 
 template<class Executor, class T>
@@ -67,6 +69,9 @@ struct invoke_and_store_result
 };
 
 
+} // end bulk_then_execute_with_auto_result_detail
+
+
 // this is the case for when Function returns non-void
 // when Function does not return void, this function collects
 // the results of each invocation into a container
@@ -84,6 +89,8 @@ new_executor_future_t<E,
 >
   bulk_then_execute_with_auto_result(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
+  using namespace bulk_then_execute_with_auto_result_detail;
+
   // compute the type of f's result
   using result_type = result_of_continuation_t<Function,new_executor_index_t<E>,Future,result_of_t<Factories()>...>;
 
@@ -98,7 +105,6 @@ new_executor_future_t<E,
 }
 
 
-} // end executor_customization_points_detail
 } // end detail
 } // end agency
 

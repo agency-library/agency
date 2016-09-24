@@ -1,9 +1,7 @@
 #pragma once
 
-#include <utility>
+#include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_array.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_continuation_executor_adaptor.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_synchronous_executor_adaptor.hpp>
 
 namespace agency
 {

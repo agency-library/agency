@@ -13,7 +13,7 @@ namespace agency
 {
 namespace detail
 {
-namespace executor_customization_points_detail
+namespace bulk_then_execute_with_void_result_detail
 {
 
 
@@ -49,6 +49,9 @@ struct ignore_unit_result_parameter_and_invoke<Function,void>
 };
 
 
+} // end bulk_then_execute_with_void_result_detail
+
+
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class... Factories,
          __AGENCY_REQUIRES(BulkExecutor<E>()),
@@ -58,6 +61,8 @@ __AGENCY_ANNOTATION
 new_executor_future_t<E,void>
   bulk_then_execute_with_void_result(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
+  using namespace bulk_then_execute_with_void_result_detail;
+
   using predecessor_type = future_value_t<Future>;
 
   // wrap f in a functor that will ignore the unit object we pass to it
@@ -72,7 +77,6 @@ new_executor_future_t<E,void>
 }
 
 
-} // end executor_customization_points_detail
 } // end detail
 } // end agency
 

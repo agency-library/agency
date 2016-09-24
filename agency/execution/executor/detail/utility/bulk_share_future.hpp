@@ -3,15 +3,13 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_execute_with_auto_result_and_without_shared_parameters.hpp>
+#include <agency/execution/executor/detail/utility/bulk_execute_with_auto_result_and_without_shared_parameters.hpp>
 #include <agency/future.hpp>
 
 
 namespace agency
 {
 namespace detail
-{
-namespace executor_customization_points_detail
 {
 
 
@@ -69,7 +67,6 @@ new_executor_container_t<
 }
 
 
-} // end executor_customization_points_detail
 } // end detail
 } // end agency
 

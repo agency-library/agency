@@ -12,8 +12,6 @@
 template<class Executor>
 void test_with_non_void_predecessor(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   auto predecessor_future = agency::make_ready_future<int>(exec, 7);
 
   using shape_type = agency::new_executor_shape_t<Executor>;

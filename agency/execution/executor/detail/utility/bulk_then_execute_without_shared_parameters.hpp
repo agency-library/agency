@@ -14,8 +14,6 @@ namespace agency
 {
 namespace detail
 {
-namespace executor_customization_points_detail
-{
 namespace bulk_then_execute_without_shared_parameters_detail
 {
 
@@ -94,7 +92,6 @@ new_executor_future_t<E, result_of_t<ResultFactory()>>
 }
 
 
-} // end executor_customization_points_detail
 } // end detail
 } // end agency
 

@@ -4,7 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_async_execute_with_one_shared_parameter.hpp>
+#include <agency/execution/executor/detail/utility/bulk_async_execute_with_one_shared_parameter.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 
 
@@ -96,7 +96,7 @@ async_execute(E& exec, Function&& f)
 
   using shape_type = new_executor_shape_t<E>;
 
-  auto intermediate_future = agency::detail::executor_customization_points_detail::bulk_async_execute_with_one_shared_parameter(
+  auto intermediate_future = agency::detail::bulk_async_execute_with_one_shared_parameter(
     exec,                                                  // the executor
     detail::async_execute_functor(),                       // the functor to execute
     detail::shape_cast<shape_type>(1),                     // create only a single agent

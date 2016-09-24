@@ -8,11 +8,9 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/detail/this_thread_parallel_executor.hpp>
-#include <agency/execution/executor/detail/customization_points.hpp>
+#include <agency/execution/executor/detail/utility.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_continuation_executor_adaptor.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_synchronous_executor_adaptor.hpp>
 
 
 namespace agency
@@ -191,9 +189,9 @@ class executor_array
       __AGENCY_ANNOTATION
       void unpack_factories_and_call_execute(detail::index_sequence<Indices...>, inner_executor_type& exec, InnerFunctor f, inner_shape_type shape)
       {
-        experimental::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_executor(exec);
+        detail::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_executor(exec);
 
-        agency::detail::executor_customization_points_detail::bulk_execute_with_void_result(adapted_executor, f, shape, detail::get<Indices>(inner_factories)...);
+        detail::bulk_execute_with_void_result(adapted_executor, f, shape, detail::get<Indices>(inner_factories)...);
       }
 
       template<class ResultsType, class PastArgType, class OuterSharedArgType>
@@ -339,9 +337,9 @@ class executor_array
       {
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
 
-        experimental::bulk_continuation_executor_adaptor<inner_executor_type> adapted_inner_executor(exec.inner_executor(inner_executor_idx));
+        detail::bulk_continuation_executor_adaptor<inner_executor_type> adapted_inner_executor(exec.inner_executor(inner_executor_idx));
 
-        return agency::detail::executor_customization_points_detail::bulk_then_execute_with_void_result(
+        return detail::bulk_then_execute_with_void_result(
           adapted_inner_executor,
           inner_functor{f,outer_idx,*results_ptr,*outer_shared_arg_ptr},
           inner_shape,
@@ -393,7 +391,7 @@ class executor_array
       using past_arg_type = detail::future_value_t<Future>;
 
       // split the incoming future into a collection of shared futures
-      auto past_futures = detail::executor_customization_points_detail::bulk_share_future(outer_executor(), outer_shape, fut);
+      auto past_futures = detail::bulk_share_future(outer_executor(), outer_shape, fut);
       using future_container = decltype(past_futures);
 
       // XXX avoid lambdas to workaround nvcc limitations as well as lack of polymorphic lambda
@@ -413,7 +411,7 @@ class executor_array
       //outer_shape);
 
       auto functor = then_execute_non_sequenced_functor<Function,result_type,future_container,outer_shared_arg_type,Factories...>{*this, f, results_raw_ptr, past_futures, outer_shared_arg_raw_ptr, detail::make_tuple(inner_factories...), outer_shape, inner_shape};
-      auto inner_futures = detail::executor_customization_points_detail::bulk_execute_with_auto_result_and_without_shared_parameters(outer_executor(), functor, outer_shape);
+      auto inner_futures = detail::bulk_execute_with_auto_result_and_without_shared_parameters(outer_executor(), functor, outer_shape);
 
       // create a continuation to synchronize the futures and return the result
       auto continuation = make_wait_for_futures_and_move_result(std::move(inner_futures), std::move(results_ptr), std::move(outer_shared_arg_ptr));
@@ -477,10 +475,10 @@ class executor_array
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
         inner_executor_type& inner_exec = exec.inner_executor(inner_executor_idx);
 
-        experimental::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_exec(inner_exec);
+        detail::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_exec(inner_exec);
 
         // XXX avoid lambdas to workaround nvcc limitations
-        //agency::detail::executor_customization_points_detail::bulk_execute_with_void_result(adapted_exec, [=,&predecessor,&result,&outer_shared_arg](const inner_index_type& inner_idx, detail::result_of_t<InnerFactories()>&... inner_shared_args)
+        //detail::bulk_execute_with_void_result(adapted_exec, [=,&predecessor,&result,&outer_shared_arg](const inner_index_type& inner_idx, detail::result_of_t<InnerFactories()>&... inner_shared_args)
         //{
         //  index_type idx = make_index(outer_idx, inner_idx);
 
@@ -491,7 +489,7 @@ class executor_array
 
         inner_functor<OuterArgs...> execute_me{f, outer_idx, detail::forward_as_tuple(outer_args...)};
 
-        agency::detail::executor_customization_points_detail::bulk_execute_with_void_result(adapted_exec, execute_me, inner_shape, detail::get<Indices>(inner_factories)...);
+        detail::bulk_execute_with_void_result(adapted_exec, execute_me, inner_shape, detail::get<Indices>(inner_factories)...);
       }
 
       template<class... OuterArgs>
@@ -537,7 +535,7 @@ class executor_array
 
       lazy_bulk_then_execute_functor<Function,InnerFactories...> execute_me{*this,outer_shape,inner_shape,f,detail::make_tuple(inner_factories...)};
 
-      experimental::bulk_continuation_executor_adaptor<outer_executor_type> adapted_exec(outer_executor());
+      detail::bulk_continuation_executor_adaptor<outer_executor_type> adapted_exec(outer_executor());
 
       return adapted_exec.bulk_then_execute(execute_me, outer_shape, predecessor, result_factory, outer_factory);
     }
@@ -616,9 +614,9 @@ class executor_array
       {
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
 
-        experimental::bulk_continuation_executor_adaptor<inner_executor_type> adapted_inner_executor(exec.inner_executor(inner_executor_idx));
+        detail::bulk_continuation_executor_adaptor<inner_executor_type> adapted_inner_executor(exec.inner_executor(inner_executor_idx));
 
-        return agency::detail::executor_customization_points_detail::bulk_then_execute_with_void_result(
+        return detail::bulk_then_execute_with_void_result(
           adapted_inner_executor,
           inner_functor{f,outer_idx,*result_ptr,*outer_shared_arg_ptr},
           inner_shape,
@@ -663,7 +661,7 @@ class executor_array
       using past_arg_type = detail::future_value_t<Future>;
 
       // split the predecessor future into a collection of shared futures
-      auto shared_predecessor_futures = detail::executor_customization_points_detail::bulk_share_future(outer_executor(), outer_shape, predecessor);
+      auto shared_predecessor_futures = detail::bulk_share_future(outer_executor(), outer_shape, predecessor);
       using future_container = decltype(shared_predecessor_futures);
 
       // XXX avoid lambdas to workaround nvcc limitations as well as lack of polymorphic lambda
@@ -683,7 +681,7 @@ class executor_array
       //outer_shape);
 
       auto functor = eager_bulk_then_execute_functor<Function,future_container,result_type,outer_shared_arg_type,InnerFactories...>{*this, f, shared_predecessor_futures, results_raw_ptr, outer_shared_arg_raw_ptr, detail::make_tuple(inner_factories...), outer_shape, inner_shape};
-      auto inner_futures = detail::executor_customization_points_detail::bulk_execute_with_auto_result_and_without_shared_parameters(outer_executor(), functor, outer_shape);
+      auto inner_futures = detail::bulk_execute_with_auto_result_and_without_shared_parameters(outer_executor(), functor, outer_shape);
 
       // create a continuation to synchronize the futures and return the result
       auto continuation = make_wait_for_futures_and_move_result(std::move(inner_futures), std::move(results_ptr), std::move(outer_shared_arg_ptr));

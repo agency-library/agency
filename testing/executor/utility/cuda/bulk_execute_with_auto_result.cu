@@ -1,5 +1,5 @@
 #include <agency/agency.hpp>
-#include <agency/execution/executor/detail/customization_points.hpp>
+#include <agency/execution/executor/detail/utility.hpp>
 #include <agency/cuda.hpp>
 #include <iostream>
 
@@ -12,15 +12,13 @@ __managed__ int increment_me;
 template<class Executor>
 void test_returning_void(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   agency::new_executor_shape_t<Executor> shape{100};
   
   int shared_arg = 0;
   
   int increment_me = 0;
   std::mutex mut;
-  bulk_execute_with_auto_result(exec, [&](size_t idx, int& shared_arg)
+  agency::detail::bulk_execute_with_auto_result(exec, [&](size_t idx, int& shared_arg)
   {
     mut.lock();
     increment_me += 1;
@@ -48,7 +46,7 @@ void test_returning_results(Executor exec)
 
   size_t shape = 10;
   
-  auto result = bulk_execute_with_auto_result(exec,
+  auto result = agency::detail::bulk_execute_with_auto_result(exec,
     [](index_type idx, std::vector<int>& shared_arg)
     {
       return shared_arg[idx];
@@ -65,15 +63,13 @@ void test_returning_results(Executor exec)
 template<class Executor>
 void test_returning_void2(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   agency::new_executor_shape_t<Executor> shape{10,10};
 
   increment_me = 0;
 
   using index_type = agency::new_executor_index_t<Executor>;
   
-  bulk_execute_with_auto_result(exec, [] __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
+  agency::detail::bulk_execute_with_auto_result(exec, [] __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
   {
     atomicAdd(&increment_me, outer_shared_arg + inner_shared_arg);
   },
@@ -89,14 +85,12 @@ void test_returning_void2(Executor exec)
 template<class Executor>
 void test_returning_results2(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   using shape_type = agency::new_executor_shape_t<Executor>;
   using index_type = agency::new_executor_index_t<Executor>;
 
   shape_type shape{10,10};
   
-  auto result = bulk_execute_with_auto_result(exec,
+  auto result = agency::detail::bulk_execute_with_auto_result(exec,
     [] __host__ __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
     {
       return outer_shared_arg + inner_shared_arg;
