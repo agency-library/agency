@@ -31,31 +31,60 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 
   executor_array_type exec(10, inner_exec);
 
-  std::future<int> fut = make_ready_future<int>(exec, 7);
-
   using shape_type = new_executor_shape_t<executor_array_type>;
-  shape_type shape(10,10);
-
   using index_type = new_executor_index_t<executor_array_type>;
+  using result_type = new_executor_container_t<executor_array_type, int>;
 
-  auto f = exec.bulk_then_execute(
-    [=](index_type idx, int& past_arg, std::vector<int>& results, std::vector<int>& outer_shared_arg, std::vector<int>& inner_shared_arg)
-    {
-      auto rank = detail::get<0>(idx) * detail::get<1>(shape) + detail::get<1>(idx);
-      auto outer_idx = detail::get<0>(idx);
-      auto inner_idx = detail::get<1>(idx);
-      results[rank] = past_arg + outer_shared_arg[outer_idx] + inner_shared_arg[inner_idx];
-    },
-    shape,
-    fut,
-    [=]{ return std::vector<int>(detail::shape_cast<int>(shape)); }, // results
-    [=]{ return std::vector<int>(detail::get<0>(shape), 13); },      // outer_shared_arg
-    [=]{ return std::vector<int>(detail::get<1>(shape), 42); }       // inner_shared_arg
-  );
+  {
+    // test .bulk_then_execute() with non-void predecessor
 
-  auto result = f.get();
+    shape_type shape(10,10);
+    std::future<int> predecessor_fut = make_ready_future<int>(exec, 7);
 
-  assert(std::vector<int>(10 * 10, 7 + 13 + 42) == result);
+    auto f = exec.bulk_then_execute(
+      [=](index_type idx, int& predecessor, result_type& results, std::vector<int>& outer_shared_arg, std::vector<int>& inner_shared_arg)
+      {
+        auto outer_idx = detail::get<0>(idx);
+        auto inner_idx = detail::get<1>(idx);
+        results[idx] = predecessor + outer_shared_arg[outer_idx] + inner_shared_arg[inner_idx];
+      },
+      shape,
+      predecessor_fut,
+      [=]{ return result_type(shape); },                          // results
+      [=]{ return std::vector<int>(detail::get<0>(shape), 13); }, // outer_shared_arg
+      [=]{ return std::vector<int>(detail::get<1>(shape), 42); }  // inner_shared_arg
+    );
+
+    auto result = f.get();
+
+    assert(result_type(shape, 7 + 13 + 42) == result);
+  }
+
+
+  {
+    // test .bulk_then_execute() with void predecessor
+
+    shape_type shape(10,10);
+    std::future<void> predecessor_fut = make_ready_future<void>(exec);
+
+    auto f = exec.bulk_then_execute(
+      [=](index_type idx, result_type& results, std::vector<int>& outer_shared_arg, std::vector<int>& inner_shared_arg)
+      {
+        auto outer_idx = detail::get<0>(idx);
+        auto inner_idx = detail::get<1>(idx);
+        results[idx] = outer_shared_arg[outer_idx] + inner_shared_arg[inner_idx];
+      },
+      shape,
+      predecessor_fut,
+      [=]{ return result_type(shape); },                          // results
+      [=]{ return std::vector<int>(detail::get<0>(shape), 13); }, // outer_shared_arg
+      [=]{ return std::vector<int>(detail::get<1>(shape), 42); }  // inner_shared_arg
+    );
+
+    auto result = f.get();
+
+    assert(result_type(shape, 13 + 42) == result);
+  }
 }
 
 int main()
