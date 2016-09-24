@@ -4,26 +4,23 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/factory.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/execution/executor/detail/customization_points/bulk_then_execute_without_shared_parameters.hpp>
 
 
 namespace agency
 {
-namespace detail
-{
-namespace executor_customization_points_detail
-{
 
 
 // this case handles executors which have .then_execute()
 __agency_exec_check_disable__
 template<class E, class Function, class Future,
-         __AGENCY_REQUIRES(ContinuationExecutor<E>())>
+         __AGENCY_REQUIRES(detail::ContinuationExecutor<E>())>
 __AGENCY_ANNOTATION
 new_executor_future_t<
   E,
-  result_of_continuation_t<decay_t<Function>,Future>
+  detail::result_of_continuation_t<detail::decay_t<Function>,Future>
 >
 then_execute(E& exec, Function&& f, Future& predecessor)
 {
@@ -31,12 +28,12 @@ then_execute(E& exec, Function&& f, Future& predecessor)
 }
 
 
-namespace then_execute_detail
+namespace detail
 {
 
 
 template<class Function>
-struct functor
+struct then_execute_functor
 {
   mutable Function f;
 
@@ -58,44 +55,44 @@ struct functor
 };
 
 
-} // end then_execute_detail
+} // end detail
 
 
 // this case handles executors which have .bulk_then_execute() but not .then_execute()
 __agency_exec_check_disable__
 template<class E, class Function, class Future,
-         __AGENCY_REQUIRES(!ContinuationExecutor<E>()),
-         __AGENCY_REQUIRES(BulkContinuationExecutor<E>())>
+         __AGENCY_REQUIRES(!detail::ContinuationExecutor<E>()),
+         __AGENCY_REQUIRES(detail::BulkContinuationExecutor<E>())>
 __AGENCY_ANNOTATION
 new_executor_future_t<
   E,
-  result_of_continuation_t<decay_t<Function>,Future>
+  detail::result_of_continuation_t<detail::decay_t<Function>,Future>
 >
 then_execute(E& exec, Function f, Future& predecessor)
 {
-  using result_of_function = result_of_continuation_t<Function,Future>;
-  using predecessor_type = future_value_t<Future>;
+  using result_of_function = detail::result_of_continuation_t<Function,Future>;
+  using predecessor_type = detail::future_value_t<Future>;
 
   // if f returns void, then return a unit from bulk_then_execute()
   using result_type = typename std::conditional<
     std::is_void<result_of_function>::value,
-    unit,
+    detail::unit,
     result_of_function
   >::type;
 
   // XXX should really move f into this functor, but it's not clear how to make move-only
   //     parameters to CUDA kernels
-  auto execute_me = then_execute_detail::functor<Function>{f};
+  auto execute_me = detail::then_execute_functor<Function>{f};
 
   using shape_type = new_executor_shape_t<E>;
 
   // call bulk_then_execute_without_shared_parameters() to get an intermediate future
-  auto intermediate_future = bulk_then_execute_without_shared_parameters(
-    exec,                      // the executor
-    execute_me,                // the functor to execute
-    shape_cast<shape_type>(1), // create only a single agent
-    predecessor,               // the incoming argument to f
-    construct<result_type>()   // a factory for creating f's result
+  auto intermediate_future = agency::detail::executor_customization_points_detail::bulk_then_execute_without_shared_parameters(
+    exec,                              // the executor
+    execute_me,                        // the functor to execute
+    detail::shape_cast<shape_type>(1), // create only a single agent
+    predecessor,                       // the incoming argument to f
+    detail::construct<result_type>()   // a factory for creating f's result
   );
 
   // cast the intermediate future into the right type of future for the result
@@ -107,7 +104,5 @@ then_execute(E& exec, Function f, Future& predecessor)
 // XXX introduce a worst case which uses predecessor.then() and ignores the executor entirely?
 
   
-} // end executor_customization_points_detail
-} // end detail
 } // end agency
 

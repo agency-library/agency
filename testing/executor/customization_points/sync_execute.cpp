@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/detail/customization_points.hpp>
+#include <agency/execution/executor/customization_points.hpp>
 
 #include "../test_executors.hpp"
 
@@ -11,9 +11,7 @@
 template<class Executor>
 void test(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-  
-  auto result = sync_execute(exec, []{ return 7; });
+  auto result = agency::sync_execute(exec, []{ return 7; });
   
   assert(7 == result);
 }

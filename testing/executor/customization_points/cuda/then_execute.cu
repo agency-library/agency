@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/detail/customization_points.hpp>
+#include <agency/execution/executor/customization_points.hpp>
 #include <agency/cuda.hpp>
 
 #include "../../test_executors.hpp"
@@ -12,11 +12,9 @@
 template<class Executor>
 void test_with_non_void_predecessor(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
-  auto predecessor_future = agency::executor_traits<Executor>::template make_ready_future<int>(exec, 7);
+  auto predecessor_future = agency::make_ready_future<int>(exec, 7);
   
-  auto f = then_execute(exec, [] __host__ __device__ (int& predecessor)
+  auto f = agency::then_execute(exec, [] __host__ __device__ (int& predecessor)
   {
     return predecessor + 13;
   },
@@ -31,11 +29,13 @@ void test_with_non_void_predecessor(Executor exec)
 template<class Executor>
 void test_with_void_predecessor(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
+  auto predecessor_future = agency::make_ready_future<void>(exec);
 
-  auto predecessor_future = agency::executor_traits<Executor>::template make_ready_future<void>(exec);
-
-  auto f = then_execute(exec, [] __host__ __device__ { return 13; }, predecessor_future);
+  auto f = agency::then_execute(exec, [] __host__ __device__
+  {
+    return 13;
+  },
+  predecessor_future);
   
   auto result = f.get();
   
