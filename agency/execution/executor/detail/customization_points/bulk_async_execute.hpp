@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/future.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_then_execute.hpp>
+#include <agency/execution/executor/customization_points/bulk_then_execute.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/type_traits.hpp>
 
@@ -48,7 +48,7 @@ bulk_async_execute(E& exec, Function f, new_executor_shape_t<E> shape, ResultFac
   // XXX we might want to actually allow the executor to participate here
   auto predecessor = future_traits<void_future_type>::make_ready();
 
-  return bulk_then_execute(exec, f, shape, predecessor, result_factory, shared_factories...);
+  return agency::bulk_then_execute(exec, f, shape, predecessor, result_factory, shared_factories...);
 }
 
 

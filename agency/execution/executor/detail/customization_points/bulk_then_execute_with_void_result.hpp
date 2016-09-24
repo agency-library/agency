@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_then_execute.hpp>
+#include <agency/execution/executor/customization_points/bulk_then_execute.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
@@ -64,7 +64,7 @@ new_executor_future_t<E,void>
   ignore_unit_result_parameter_and_invoke<Function,predecessor_type> g{f};
 
   // just call bulk_then_execute() and use a result factory that creates a unit object which can be easily discarded
-  new_executor_future_t<E,unit> intermediate_future = bulk_then_execute(exec, g, shape, predecessor, unit_factory(), factories...);
+  new_executor_future_t<E,unit> intermediate_future = agency::bulk_then_execute(exec, g, shape, predecessor, unit_factory(), factories...);
 
   // cast the intermediate_future to void
   // XXX we may wish to allow the executor to participate in this cast

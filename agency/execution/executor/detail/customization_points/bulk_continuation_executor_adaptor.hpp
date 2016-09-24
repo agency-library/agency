@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
-#include <agency/execution/executor/detail/customization_points.hpp>
+#include <agency/execution/executor/customization_points/bulk_then_execute.hpp>
 #include <agency/detail/invoke.hpp>
 
 namespace agency
@@ -50,7 +50,7 @@ class bulk_continuation_executor_adaptor<BulkExecutor,true>
     future<agency::detail::result_of_t<ResultFactory()>>
       bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, SharedFactories... shared_factories)
     {
-      return agency::detail::executor_customization_points_detail::bulk_then_execute(adapted_executor_, f, shape, predecessor, result_factory, shared_factories...);
+      return agency::bulk_then_execute(adapted_executor_, f, shape, predecessor, result_factory, shared_factories...);
     }
 };
 

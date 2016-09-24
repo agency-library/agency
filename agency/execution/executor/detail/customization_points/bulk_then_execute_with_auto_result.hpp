@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/new_executor_traits/executor_container.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_then_execute.hpp>
+#include <agency/execution/executor/customization_points/bulk_then_execute.hpp>
 #include <agency/execution/executor/detail/customization_points/bulk_then_execute_with_void_result.hpp>
 #include <agency/detail/invoke.hpp>
 
@@ -94,7 +94,7 @@ new_executor_future_t<E,
   invoke_and_store_result<Function, container_type> g{f};
 
   // call bulk_then_execute() and use a result factory that creates a container to store f's results
-  return bulk_then_execute(exec, g, shape, predecessor, container_factory<E,result_type>{shape}, factories...);
+  return agency::bulk_then_execute(exec, g, shape, predecessor, container_factory<E,result_type>{shape}, factories...);
 }
 
 
