@@ -9,21 +9,17 @@
 
 namespace agency
 {
-namespace detail
-{
-namespace executor_customization_points_detail
-{
 
 
 // this case handles executors which have .async_execute()
 __agency_exec_check_disable__
 template<class E, class Function,
-         __AGENCY_REQUIRES(AsynchronousExecutor<E>())
+         __AGENCY_REQUIRES(detail::AsynchronousExecutor<E>())
         >
 __AGENCY_ANNOTATION
 new_executor_future_t<
   E,
-  result_of_t<decay_t<Function>()>
+  detail::result_of_t<detail::decay_t<Function>()>
 >
 async_execute(E& exec, Function&& f)
 {
@@ -38,13 +34,13 @@ async_execute(E& exec, Function&& f)
 // XXX also, there's no weirdness involving move-only functions which .bulk_async_execute() would have trouble with
 __agency_exec_check_disable__
 template<class E, class Function,
-         __AGENCY_REQUIRES(!AsynchronousExecutor<E>()),
-         __AGENCY_REQUIRES(ContinuationExecutor<E>())
+         __AGENCY_REQUIRES(!detail::AsynchronousExecutor<E>()),
+         __AGENCY_REQUIRES(detail::ContinuationExecutor<E>())
         >
 __AGENCY_ANNOTATION
 new_executor_future_t<
   E,
-  result_of_t<decay_t<Function>()>
+  detail::result_of_t<detail::decay_t<Function>()>
 >
 async_execute(E& exec, Function&& f)
 {
@@ -57,11 +53,11 @@ async_execute(E& exec, Function&& f)
 }
 
 
-namespace async_execute_detail
+namespace detail
 {
 
 
-struct functor
+struct async_execute_functor
 {
   template<class Index, class Result, class SharedFunction>
   __AGENCY_ANNOTATION
@@ -72,39 +68,39 @@ struct functor
 };
 
 
-} // end async_execute_detail
+} // end detail
 
 
 // this case handles executors which have no way to create single-agent asynchrony
 __agency_exec_check_disable__
 template<class E, class Function,
-         __AGENCY_REQUIRES(!AsynchronousExecutor<E>()),
-         __AGENCY_REQUIRES(!ContinuationExecutor<E>()),
-         __AGENCY_REQUIRES(BulkExecutor<E>())>
+         __AGENCY_REQUIRES(!detail::AsynchronousExecutor<E>()),
+         __AGENCY_REQUIRES(!detail::ContinuationExecutor<E>()),
+         __AGENCY_REQUIRES(detail::BulkExecutor<E>())>
 __AGENCY_ANNOTATION
 new_executor_future_t<
   E,
-  result_of_t<decay_t<Function>()>
+  detail::result_of_t<detail::decay_t<Function>()>
 >
 async_execute(E& exec, Function&& f)
 {
-  using result_of_function = result_of_t<Function()>;
+  using result_of_function = detail::result_of_t<Function()>;
 
   // if f returns void, then return a unit from bulk_async_execute()
   using result_type = typename std::conditional<
     std::is_void<result_of_function>::value,
-    unit,
+    detail::unit,
     result_of_function
   >::type;
 
   using shape_type = new_executor_shape_t<E>;
 
-  auto intermediate_future = bulk_async_execute_with_one_shared_parameter(
-    exec,                                          // the executor
-    async_execute_detail::functor(),               // the functor to execute
-    shape_cast<shape_type>(1),                     // create only a single agent
-    construct<result_type>(),                      // a factory for creating f's result
-    make_moving_factory(std::forward<Function>(f)) // a factory to present f as the one shared parameter
+  auto intermediate_future = agency::detail::executor_customization_points_detail::bulk_async_execute_with_one_shared_parameter(
+    exec,                                                  // the executor
+    detail::async_execute_functor(),                       // the functor to execute
+    detail::shape_cast<shape_type>(1),                     // create only a single agent
+    detail::construct<result_type>(),                      // a factory for creating f's result
+    detail::make_moving_factory(std::forward<Function>(f)) // a factory to present f as the one shared parameter
   );
 
   // cast the intermediate future into the right type of future for the result
@@ -112,8 +108,5 @@ async_execute(E& exec, Function&& f)
 }
 
   
-} // end executor_customization_points_detail
-} // end detail
 } // end agency
-
 

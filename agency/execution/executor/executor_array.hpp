@@ -419,7 +419,7 @@ class executor_array
       auto continuation = make_wait_for_futures_and_move_result(std::move(inner_futures), std::move(results_ptr), std::move(outer_shared_arg_ptr));
 
       // async_execute() with the outer executor to launch the continuation
-      return detail::executor_customization_points_detail::async_execute(outer_executor(), std::move(continuation));
+      return agency::async_execute(outer_executor(), std::move(continuation));
     }
 
   public:
@@ -689,7 +689,7 @@ class executor_array
       auto continuation = make_wait_for_futures_and_move_result(std::move(inner_futures), std::move(results_ptr), std::move(outer_shared_arg_ptr));
 
       // async_execute() with the outer executor to launch the continuation
-      return detail::executor_customization_points_detail::async_execute(outer_executor(), std::move(continuation));
+      return agency::async_execute(outer_executor(), std::move(continuation));
     }
 
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>

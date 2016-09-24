@@ -4,6 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/customization_points/async_execute.hpp>
 
 
 namespace agency
@@ -37,7 +38,7 @@ __AGENCY_ANNOTATION
 result_of_t<decay_t<Function>()>
   sync_execute(E& exec, Function&& f)
 {
-  return async_execute(exec, std::forward<Function>(f)).get();
+  return agency::async_execute(exec, std::forward<Function>(f)).get();
 }
 
 

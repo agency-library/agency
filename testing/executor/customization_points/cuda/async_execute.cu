@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/detail/customization_points.hpp>
+#include <agency/execution/executor/customization_points.hpp>
 #include <agency/cuda.hpp>
 
 #include "../../test_executors.hpp"
@@ -12,9 +12,7 @@
 template<class Executor>
 void test(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-  
-  auto f = async_execute(exec, [] __host__ __device__ { return 7;});
+  auto f = agency::async_execute(exec, [] __host__ __device__ { return 7;});
   
   auto result = f.get();
   
