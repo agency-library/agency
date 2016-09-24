@@ -35,13 +35,19 @@ class concurrent_executor
       return this->then_execute_impl(f, result_factory, n, fut, shared_factory);
     }
 
-    size_t shape() const
+    size_t unit_shape() const
     {
       constexpr size_t default_result = 1;
       size_t hw_concurrency = std::thread::hardware_concurrency();
 
       // hardware_concurency() is allowed to return 0, so guard against a 0 result
       return hw_concurrency ? hw_concurrency : default_result;
+    }
+
+    // XXX eliminate this when we eliminate executor_traits
+    size_t shape() const
+    {
+      return unit_shape();
     }
 
     template<class Function, class Future, class ResultFactory, class SharedFactory>

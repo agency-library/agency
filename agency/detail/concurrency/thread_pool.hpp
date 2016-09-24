@@ -411,9 +411,15 @@ class thread_pool_executor
       return std::move(result_future);
     }
 
-    size_t shape() const
+    size_t unit_shape() const
     {
       return system_thread_pool().size();
+    }
+
+    // XXX eliminate this when we eliminate executor_traits
+    size_t shape() const
+    {
+      return unit_shape();
     }
 };
 

@@ -11,6 +11,8 @@
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/detail/flatten_index_and_invoke.hpp>
 #include <agency/execution/executor/detail/utility/bulk_continuation_executor_adaptor.hpp>
+#include <agency/execution/executor/customization_points.hpp>
+
 
 namespace agency
 {
@@ -211,10 +213,16 @@ class flattened_executor
       return base_executor_;
     }
 
-    shape_type shape() const
+    shape_type unit_shape() const
     {
       // to flatten the base executor's shape we merge the two front dimensions together
-      return detail::merge_front_shape_elements(base_traits::shape(base_executor()));
+      return detail::merge_front_shape_elements(agency::unit_shape(base_executor()));
+    }
+
+    // XXX eliminate this when we eliminate executor_traits
+    shape_type shape() const
+    {
+      return unit_shape();
     }
 
     shape_type max_shape_dimensions() const
@@ -246,7 +254,7 @@ class flattened_executor
         return head_partition_type{};
       }
 
-      base_shape_type base_executor_shape = base_traits::shape(base_executor());
+      base_shape_type base_executor_shape = agency::unit_shape(base_executor());
       size_t outer_granularity = detail::shape_head_size(base_executor_shape);
       size_t inner_granularity = detail::shape_size(detail::get<1>(base_executor_shape));
 

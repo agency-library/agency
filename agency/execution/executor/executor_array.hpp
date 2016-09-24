@@ -764,12 +764,18 @@ class executor_array
     }
 
     __AGENCY_ANNOTATION
-    shape_type shape() const
+    shape_type unit_shape() const
     {
-      auto outer_exec_shape = size() * outer_traits::shape(outer_executor());
-      auto inner_exec_shape = inner_traits::shape(inner_executor(0));
+      auto outer_exec_shape = size() * agency::unit_shape(outer_executor());
+      auto inner_exec_shape = agency::unit_shape(inner_executor(0));
 
       return make_shape(outer_exec_shape, inner_exec_shape);
+    }
+
+    // XXX eliminate this when we eliminate executor_traits
+    shape_type shape() const
+    {
+      return unit_shape();
     }
 
     __AGENCY_ANNOTATION

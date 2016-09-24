@@ -445,9 +445,16 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2>
     }
 
     __host__ __device__
-    shape_type shape() const
+    shape_type unit_shape() const
     {
       return shape_type{detail::number_of_multiprocessors(device()), 256};
+    }
+
+    // XXX eliminate this when we eliminate executor_traits
+    __host__ __device__
+    shape_type shape() const
+    {
+      return unit_shape();
     }
 
     __host__ __device__
