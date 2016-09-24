@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_async_execute.hpp>
+#include <agency/execution/executor/customization_points/bulk_async_execute.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
@@ -45,7 +45,7 @@ new_executor_future_t<E, result_of_t<ResultFactory()>>
 {
   bulk_async_execute_without_shared_parameters_detail::ignore_shared_parameters_and_invoke<Function> execute_me{f};
 
-  return bulk_async_execute(exec,
+  return agency::bulk_async_execute(exec,
     execute_me,                                     // the functor to execute
     shape,                                          // the number of agents to create
     result_factory,                                 // the factory to create the result

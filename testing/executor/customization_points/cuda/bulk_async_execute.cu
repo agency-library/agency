@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/detail/customization_points.hpp>
+#include <agency/execution/executor/customization_points.hpp>
 #include <agency/cuda.hpp>
 
 #include "../../test_executors.hpp"
@@ -12,14 +12,12 @@
 template<class Executor>
 void test(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   using shape_type = agency::new_executor_shape_t<Executor>;
   using index_type = agency::new_executor_index_t<Executor>;
 
   shape_type shape = 10;
   
-  auto f = bulk_async_execute(exec,
+  auto f = agency::bulk_async_execute(exec,
     [](index_type idx, std::vector<int>& results, std::vector<int>& shared_arg)
     {
       results[idx] = 7 + shared_arg[idx];
@@ -38,8 +36,6 @@ void test(Executor exec)
 template<class TwoLevelExecutor>
 void test2(TwoLevelExecutor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   using shape_type = agency::new_executor_shape_t<TwoLevelExecutor>;
   using index_type = agency::new_executor_index_t<TwoLevelExecutor>;
 
@@ -47,7 +43,7 @@ void test2(TwoLevelExecutor exec)
 
   using container_type = agency::new_executor_container_t<TwoLevelExecutor, int>;
   
-  auto f = bulk_async_execute(exec,
+  auto f = agency::bulk_async_execute(exec,
     [] __device__ (index_type idx, container_type& results, int& outer_shared_arg, int& inner_shared_arg)
     {
       results[idx] = outer_shared_arg + inner_shared_arg;

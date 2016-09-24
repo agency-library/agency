@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/detail/customization_points.hpp>
+#include <agency/execution/executor/customization_points.hpp>
 
 #include "../test_executors.hpp"
 
@@ -11,14 +11,12 @@
 template<class Executor>
 void test(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   using shape_type = agency::new_executor_shape_t<Executor>;
   using index_type = agency::new_executor_index_t<Executor>;
 
   shape_type shape = 10;
   
-  auto f = bulk_async_execute(exec,
+  auto f = agency::bulk_async_execute(exec,
     [](index_type idx, std::vector<int>& results, std::vector<int>& shared_arg)
     {
       results[idx] = 7 + shared_arg[idx];

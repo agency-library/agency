@@ -9,21 +9,17 @@
 
 namespace agency
 {
-namespace detail
-{
-namespace executor_customization_points_detail
-{
 
 
 __agency_exec_check_disable__
 template<class E, class Function, class ResultFactory, class... Factories,
-         __AGENCY_REQUIRES(BulkAsynchronousExecutor<E>()),
+         __AGENCY_REQUIRES(detail::BulkAsynchronousExecutor<E>()),
          __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
 new_executor_future_t<
   E,
-  result_of_t<ResultFactory()>
+  detail::result_of_t<ResultFactory()>
 >
 bulk_async_execute(E& exec, Function f, new_executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
 {
@@ -33,13 +29,13 @@ bulk_async_execute(E& exec, Function f, new_executor_shape_t<E> shape, ResultFac
 
 __agency_exec_check_disable__
 template<class E, class Function, class ResultFactory, class... Factories,
-         __AGENCY_REQUIRES(BulkExecutor<E>() && !BulkAsynchronousExecutor<E>()),
+         __AGENCY_REQUIRES(detail::BulkExecutor<E>() && !detail::BulkAsynchronousExecutor<E>()),
          __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
 new_executor_future_t<
   E,
-  result_of_t<ResultFactory()>
+  detail::result_of_t<ResultFactory()>
 >
 bulk_async_execute(E& exec, Function f, new_executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
 {
@@ -52,7 +48,5 @@ bulk_async_execute(E& exec, Function f, new_executor_shape_t<E> shape, ResultFac
 }
 
 
-} // end executor_customization_points_detail
-} // end detail
 } // end agency
 

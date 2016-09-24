@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_async_execute.hpp>
+#include <agency/execution/executor/customization_points/bulk_async_execute.hpp>
 
 namespace agency
 {
@@ -35,7 +35,7 @@ __AGENCY_ANNOTATION
 result_of_t<ResultFactory()>
 bulk_execute(E& exec, Function f, new_executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
 {
-  return bulk_async_execute(exec, f, shape, result_factory, shared_factories...).get();
+  return agency::bulk_async_execute(exec, f, shape, result_factory, shared_factories...).get();
 }
 
 
