@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_execute.hpp>
+#include <agency/execution/executor/customization_points/bulk_execute.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
@@ -50,7 +50,7 @@ void bulk_execute_with_void_result(E& exec, Function f, agency::new_executor_sha
   ns::ignore_unit_result_parameter_and_invoke<Function> g{f};
 
   // just call bulk_execute() and use a result factory that creates a unit object which can be easily discarded
-  bulk_execute(exec, g, shape, unit_factory(), factories...);
+  agency::bulk_execute(exec, g, shape, unit_factory(), factories...);
 }
 
 

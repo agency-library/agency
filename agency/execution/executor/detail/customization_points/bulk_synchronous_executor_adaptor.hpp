@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
-#include <agency/execution/executor/detail/customization_points/bulk_execute.hpp>
+#include <agency/execution/executor/customization_points/bulk_execute.hpp>
 #include <agency/detail/invoke.hpp>
 
 
@@ -48,7 +48,7 @@ class bulk_synchronous_executor_adaptor<BulkExecutor,true>
     agency::detail::result_of_t<ResultFactory()>
       bulk_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
     {
-      return agency::detail::executor_customization_points_detail::bulk_execute(adapted_executor_, f, shape, result_factory, shared_factories...);
+      return agency::bulk_execute(adapted_executor_, f, shape, result_factory, shared_factories...);
     }
 };
 
