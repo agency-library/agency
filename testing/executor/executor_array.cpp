@@ -26,7 +26,7 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
   static_assert(detail::is_detected_exact<detail::index_tuple<size_t,size_t>, new_executor_index_t, executor_array_type>::value,
     "executor_array should have detail::index_tuple<size_t,size_t> index_type");
 
-  static_assert(detail::is_detected_exact<new_executor_future_t<OuterExecutor,int>, new_executor_future_t, executor_array_type, int>::value,
+  static_assert(detail::is_detected_exact<executor_future_t<OuterExecutor,int>, executor_future_t, executor_array_type, int>::value,
     "executor_array should have the same future type as OuterExecutor");
 
   executor_array_type exec(10, inner_exec);

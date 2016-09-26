@@ -29,7 +29,7 @@ class bulk_continuation_executor_adaptor<BulkExecutor,true>
     using index_type = new_executor_index_t<BulkExecutor>;
 
     template<class T>
-    using future = new_executor_future_t<BulkExecutor,T>;
+    using future = executor_future_t<BulkExecutor,T>;
 
     template<class T>
     using allocator = new_executor_allocator_t<BulkExecutor,T>;

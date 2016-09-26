@@ -22,7 +22,7 @@ template<class E, class Function, class Future, class... Factories,
          __AGENCY_REQUIRES(std::is_void<result_of_continuation_t<Function, new_executor_index_t<E>, Future, result_of_t<Factories()>&...>>::value)
         >
 __AGENCY_ANNOTATION
-new_executor_future_t<E,void>
+executor_future_t<E,void>
   bulk_then_execute_with_auto_result(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
   return bulk_then_execute_with_void_result(exec, f, shape, predecessor, factories...);
@@ -82,7 +82,7 @@ template<class E, class Function, class Future, class... Factories,
          __AGENCY_REQUIRES(!std::is_void<result_of_continuation_t<Function, new_executor_index_t<E>, Future, result_of_t<Factories()>&...>>::value)
         >
 __AGENCY_ANNOTATION
-new_executor_future_t<E,
+executor_future_t<E,
   new_executor_container_t<E,
     result_of_continuation_t<Function,new_executor_index_t<E>,Future,result_of_t<Factories()>&...>
   >

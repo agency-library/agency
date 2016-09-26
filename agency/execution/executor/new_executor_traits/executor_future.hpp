@@ -28,10 +28,10 @@ struct executor_future_impl<Executor,T,true>
 
 
 template<class Executor, class T>
-struct new_executor_future : detail::executor_future_impl<Executor,T> {};
+struct executor_future : detail::executor_future_impl<Executor,T> {};
 
 template<class Executor, class T>
-using new_executor_future_t = typename new_executor_future<Executor,T>::type;
+using executor_future_t = typename executor_future<Executor,T>::type;
 
 
 } // end agency

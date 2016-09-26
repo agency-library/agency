@@ -24,7 +24,7 @@ int main()
   static_assert(detail::is_detected_exact<size_t, new_executor_index_t, sequenced_executor>::value,
     "sequenced_executor should have size_t index_type");
 
-  static_assert(detail::is_detected_exact<std::future<int>, new_executor_future_t, sequenced_executor, int>::value,
+  static_assert(detail::is_detected_exact<std::future<int>, executor_future_t, sequenced_executor, int>::value,
     "sequenced_executor should have std::future furture");
 
   sequenced_executor exec;

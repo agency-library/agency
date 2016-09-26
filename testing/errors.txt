@@ -1,0 +1,13 @@
+scons: Reading SConscript files ...
+scons: done reading SConscript files.
+scons: Building targets ...
+clang -o bulk_async/multiple_results.o -c -std=c++11 -O3 -I/home/jhoberock/dev/git/agency-issue-248 bulk_async/multiple_results.cpp
+clang -o bulk_async/scope_result.o -c -std=c++11 -O3 -I/home/jhoberock/dev/git/agency-issue-248 bulk_async/scope_result.cpp
+clang -o bulk_async/scope_result bulk_async/scope_result.o -lstdc++ -lpthread
+clang -o bulk_async/single_result.o -c -std=c++11 -O3 -I/home/jhoberock/dev/git/agency-issue-248 bulk_async/single_result.cpp
+clang -o bulk_async/single_result bulk_async/single_result.o -lstdc++ -lpthread
+clang -o bulk_async/void_result.o -c -std=c++11 -O3 -I/home/jhoberock/dev/git/agency-issue-248 bulk_async/void_result.cpp
+scons: *** [bulk_async/void_result.o] Build interrupted.
+scons: Build interrupted.
+scons: building terminated because of errors.
+scons: writing .sconsign file.

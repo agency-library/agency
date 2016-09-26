@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/new_executor_traits/executor_future.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/control_structures/executor_functions/bind_agent_local_parameters.hpp>

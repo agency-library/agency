@@ -447,19 +447,6 @@ template<class Executor>
 using executor_index_t = typename executor_index<Executor>::type;
 
 
-template<class Executor, class T, class Enable = void>
-struct executor_future {};
-
-template<class Executor, class T>
-struct executor_future<Executor, T, typename std::enable_if<is_executor<Executor>::value>::type>
-{
-  using type = typename executor_traits<Executor>::template future<T>;
-};
-
-template<class Executor, class T>
-using executor_future_t = typename executor_future<Executor,T>::type;
-
-
 } // end detail
 } // end agency
 

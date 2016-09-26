@@ -26,7 +26,7 @@ int main()
   static_assert(detail::is_detected_exact<size_t, new_executor_index_t, detail::thread_pool_executor>::value,
     "thread_pool_executor should have size_t index_type");
 
-  static_assert(detail::is_detected_exact<std::future<int>, new_executor_future_t, detail::thread_pool_executor, int>::value,
+  static_assert(detail::is_detected_exact<std::future<int>, executor_future_t, detail::thread_pool_executor, int>::value,
     "thread_pool_executor should have std::future future");
 
   detail::thread_pool_executor exec;

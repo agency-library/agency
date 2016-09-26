@@ -18,7 +18,7 @@ template<class E, class Function, class Future, class ResultFactory, class... Fa
          __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
-new_executor_future_t<
+executor_future_t<
   E,
   detail::result_of_t<ResultFactory()>
 >
@@ -112,7 +112,7 @@ template<class E, class Function, class Future, class ResultFactory, class... Fa
          __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
-new_executor_future_t<
+executor_future_t<
   E,
   detail::result_of_t<ResultFactory()>
 >
@@ -213,7 +213,7 @@ template<class E, class Function, class Future, class ResultFactory, class... Fa
          __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
-new_executor_future_t<
+executor_future_t<
   E,
   detail::result_of_t<ResultFactory()>
 >

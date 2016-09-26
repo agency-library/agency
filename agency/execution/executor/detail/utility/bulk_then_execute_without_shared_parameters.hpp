@@ -54,7 +54,7 @@ using factory_returning_ignored_result = agency::detail::unit_factory;
 
 template<size_t... Indices, class E, class Function, class Future, class ResultFactory>
 __AGENCY_ANNOTATION
-new_executor_future_t<E, result_of_t<ResultFactory()>>
+executor_future_t<E, result_of_t<ResultFactory()>>
   bulk_then_execute_without_shared_parameters_impl(index_sequence<Indices...>,
                                                    E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory)
 {
@@ -78,7 +78,7 @@ template<class E, class Function, class Future, class ResultFactory,
          __AGENCY_REQUIRES(BulkExecutor<E>())
         >
 __AGENCY_ANNOTATION
-new_executor_future_t<E, result_of_t<ResultFactory()>>
+executor_future_t<E, result_of_t<ResultFactory()>>
   bulk_then_execute_without_shared_parameters(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory)
 {
   return bulk_then_execute_without_shared_parameters_detail::bulk_then_execute_without_shared_parameters_impl(

@@ -43,7 +43,7 @@ using has_make_ready_future = typename has_make_ready_future_impl<Executor,T,Arg
 __agency_exec_check_disable__
 template<class T, class Executor, class... Args>
 __AGENCY_ANNOTATION
-new_executor_future_t<Executor,T>
+executor_future_t<Executor,T>
   make_ready_future_impl(std::true_type, Executor& exec, Args&&... args)
 {
   return exec.template make_ready_future<T>(std::forward<Args>(args)...);
@@ -53,10 +53,10 @@ new_executor_future_t<Executor,T>
 // this overload handles the case of executors which do not have the member function .make_ready_future()
 template<class T, class Executor, class... Args>
 __AGENCY_ANNOTATION
-new_executor_future_t<Executor,T>
+executor_future_t<Executor,T>
   make_ready_future_impl(std::false_type, Executor&, Args&&... args)
 {
-  using future_type = new_executor_future_t<Executor,T>;
+  using future_type = executor_future_t<Executor,T>;
   return future_traits<future_type>::template make_ready<T>(std::forward<Args>(args)...);
 } // end make_ready_future_impl()
 
@@ -68,7 +68,7 @@ template<class T, class E, class... Args,
          __AGENCY_REQUIRES(detail::Executor<E>())
         >
 __AGENCY_ANNOTATION
-new_executor_future_t<E,T> make_ready_future(E& exec, Args&&... args)
+executor_future_t<E,T> make_ready_future(E& exec, Args&&... args)
 {
   using check_for_member_function = detail::has_make_ready_future<
     E,

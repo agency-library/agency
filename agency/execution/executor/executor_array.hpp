@@ -71,7 +71,7 @@ class executor_array
     {}
 
     template<class T>
-    using future = new_executor_future_t<outer_executor_type,T>;
+    using future = executor_future_t<outer_executor_type,T>;
 
     template<class T>
     using allocator = new_executor_allocator_t<outer_executor_type,T>;
@@ -332,7 +332,7 @@ class executor_array
 
       template<size_t... Indices>
       __AGENCY_ANNOTATION
-      new_executor_future_t<inner_executor_type,void>
+      executor_future_t<inner_executor_type,void>
         impl(detail::index_sequence<Indices...>, const outer_index_type& outer_idx) const
       {
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
@@ -349,7 +349,7 @@ class executor_array
       }
 
       __AGENCY_ANNOTATION
-      new_executor_future_t<inner_executor_type,void>
+      executor_future_t<inner_executor_type,void>
         operator()(const outer_index_type& outer_idx) const
       {
         return impl(detail::index_sequence_for<Factories...>(), outer_idx);
@@ -609,7 +609,7 @@ class executor_array
 
       template<size_t... Indices>
       __AGENCY_ANNOTATION
-      new_executor_future_t<inner_executor_type,void>
+      executor_future_t<inner_executor_type,void>
         impl(detail::index_sequence<Indices...>, const outer_index_type& outer_idx) const
       {
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
@@ -626,7 +626,7 @@ class executor_array
       }
 
       __AGENCY_ANNOTATION
-      new_executor_future_t<inner_executor_type,void>
+      executor_future_t<inner_executor_type,void>
         operator()(const outer_index_type& outer_idx) const
       {
         return impl(detail::index_sequence_for<Factories...>(), outer_idx);

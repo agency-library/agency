@@ -58,7 +58,7 @@ template<class E, class Function, class Future, class... Factories,
          __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
-new_executor_future_t<E,void>
+executor_future_t<E,void>
   bulk_then_execute_with_void_result(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
   using namespace bulk_then_execute_with_void_result_detail;
@@ -69,11 +69,11 @@ new_executor_future_t<E,void>
   ignore_unit_result_parameter_and_invoke<Function,predecessor_type> g{f};
 
   // just call bulk_then_execute() and use a result factory that creates a unit object which can be easily discarded
-  new_executor_future_t<E,unit> intermediate_future = agency::bulk_then_execute(exec, g, shape, predecessor, unit_factory(), factories...);
+  executor_future_t<E,unit> intermediate_future = agency::bulk_then_execute(exec, g, shape, predecessor, unit_factory(), factories...);
 
   // cast the intermediate_future to void
   // XXX we may wish to allow the executor to participate in this cast
-  return future_traits<new_executor_future_t<E,unit>>::template cast<void>(intermediate_future);
+  return future_traits<executor_future_t<E,unit>>::template cast<void>(intermediate_future);
 }
 
 

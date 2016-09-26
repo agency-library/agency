@@ -24,7 +24,7 @@ int main()
   static_assert(detail::is_detected_exact<size_t, new_executor_index_t, vector_executor>::value,
     "vector_executor should have size_t index_type");
 
-  static_assert(detail::is_detected_exact<std::future<int>, new_executor_future_t, vector_executor, int>::value,
+  static_assert(detail::is_detected_exact<std::future<int>, executor_future_t, vector_executor, int>::value,
     "vector_executor should have std::future furture");
 
   vector_executor exec;

@@ -18,7 +18,7 @@ template<class E, class Function,
          __AGENCY_REQUIRES(detail::AsynchronousExecutor<E>())
         >
 __AGENCY_ANNOTATION
-new_executor_future_t<
+executor_future_t<
   E,
   detail::result_of_t<detail::decay_t<Function>()>
 >
@@ -39,13 +39,13 @@ template<class E, class Function,
          __AGENCY_REQUIRES(detail::ContinuationExecutor<E>())
         >
 __AGENCY_ANNOTATION
-new_executor_future_t<
+executor_future_t<
   E,
   detail::result_of_t<detail::decay_t<Function>()>
 >
 async_execute(E& exec, Function&& f)
 {
-  using void_future_type = new_executor_future_t<E,void>;
+  using void_future_type = executor_future_t<E,void>;
 
   // XXX should really allow the executor to participate here
   void_future_type ready_predecessor = future_traits<void_future_type>::make_ready();
@@ -79,7 +79,7 @@ template<class E, class Function,
          __AGENCY_REQUIRES(!detail::ContinuationExecutor<E>()),
          __AGENCY_REQUIRES(detail::BulkExecutor<E>())>
 __AGENCY_ANNOTATION
-new_executor_future_t<
+executor_future_t<
   E,
   detail::result_of_t<detail::decay_t<Function>()>
 >
