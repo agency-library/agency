@@ -84,6 +84,31 @@ struct block_executor_helper_container_factory
 };
 
 
+
+// XXX eliminate the stuff above this once we scrub use of old executor_traits
+template<class Function>
+struct new_block_executor_helper_functor
+{
+  mutable Function f_;
+
+  // this is the form of operator() for bulk_then_execute() with a non-void predecessor future
+  template<class Arg1, class Arg2>
+  __device__
+  void operator()(grid_executor::index_type idx, Arg1& predecessor, agency::detail::unit, Arg2& inner_shared_param) const
+  {
+    agency::detail::invoke(f_, agency::detail::get<1>(idx), predecessor, inner_shared_param);
+  }
+
+  // this is the form of operator() for then_execute() with a void predecessor future
+  template<class Arg>
+  __device__
+  void operator()(grid_executor::index_type idx, agency::detail::unit, Arg& inner_shared_param) const
+  {
+    agency::detail::invoke(f_, agency::detail::get<1>(idx), inner_shared_param);
+  }
+};
+
+
 } // end detail
 
 
@@ -121,6 +146,7 @@ class block_executor : private grid_executor
       return super_t::max_shape(f).y;
     }
 
+    // XXX eliminate this once we finish scrubbing use of the old-style executor_traits
     template<class Function, class Factory1, class T, class Factory2,
              class = agency::detail::result_of_continuation_t<
                Function,
@@ -139,6 +165,26 @@ class block_executor : private grid_executor
       auto wrapped_result_factory = detail::block_executor_helper_container_factory<Factory1>{result_factory};
 
       return super_traits::then_execute(*this, wrapped_f, wrapped_result_factory, super_t::shape_type{1,shape}, fut, agency::detail::unit_factory(), shared_factory);
+    }
+
+
+    template<class Function, class T, class ResultFactory, class SharedFactory,
+             class = agency::detail::result_of_continuation_t<
+               Function,
+               index_type,
+               async_future<T>,
+               agency::detail::result_of_t<ResultFactory()>&,
+               agency::detail::result_of_t<SharedFactory()>&
+             >
+            >
+    async_future<agency::detail::result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, shape_type shape, async_future<T>& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+    {
+      // wrap f with a functor which accepts indices which grid_executor produces
+      auto wrapped_f = detail::new_block_executor_helper_functor<Function>{f};
+
+      // call grid_executor's .bulk_then_execute()
+      return super_t::bulk_then_execute(wrapped_f, super_t::shape_type{1,shape}, predecessor, result_factory, agency::detail::unit_factory(), shared_factory);
     }
 };
 
