@@ -67,14 +67,12 @@ void test_returning_void2(Executor exec)
 template<class Executor>
 void test_returning_results2(Executor exec)
 {
-  using namespace agency::detail::executor_customization_points_detail;
-
   using shape_type = agency::executor_shape_t<Executor>;
   using index_type = agency::executor_index_t<Executor>;
 
   shape_type shape{10,10};
   
-  auto result = bulk_execute_with_auto_result_and_without_shared_parameters(exec, [] __host__ __device__ (index_type idx)
+  auto result = agency::detail::bulk_execute_with_auto_result_and_without_shared_parameters(exec, [] __host__ __device__ (index_type idx)
   {
     return 13;
   },

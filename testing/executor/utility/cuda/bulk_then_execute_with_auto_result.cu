@@ -1,5 +1,5 @@
 #include <agency/agency.hpp>
-#include <agency/execution/executor/detail/customization_points.hpp>
+#include <agency/execution/executor/detail/utility.hpp>
 #include <agency/cuda.hpp>
 #include <iostream>
 
@@ -28,7 +28,7 @@ void test_with_void_predecessor_returning_void(Executor exec)
     mut.unlock();
   },
   shape,
-  predecessor,
+  predecessor_future,
   [&]
   {
     return std::ref(shared_arg);
