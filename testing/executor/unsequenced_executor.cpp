@@ -18,10 +18,10 @@ int main()
   static_assert(detail::is_detected_exact<unsequenced_execution_tag, new_executor_execution_category_t, unsequenced_executor>::value,
     "unsequenced_executor should have unsequenced_execution_tag execution_category");
 
-  static_assert(detail::is_detected_exact<size_t, new_executor_shape_t, unsequenced_executor>::value,
+  static_assert(detail::is_detected_exact<size_t, executor_shape_t, unsequenced_executor>::value,
     "unsequenced_executor should have size_t shape_type");
 
-  static_assert(detail::is_detected_exact<size_t, new_executor_index_t, unsequenced_executor>::value,
+  static_assert(detail::is_detected_exact<size_t, executor_index_t, unsequenced_executor>::value,
     "unsequenced_executor should have size_t index_type");
 
   static_assert(detail::is_detected_exact<std::future<int>, executor_future_t, unsequenced_executor, int>::value,

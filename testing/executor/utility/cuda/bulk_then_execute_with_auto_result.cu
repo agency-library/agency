@@ -12,7 +12,7 @@ __managed__ int increment_me;
 template<class Executor>
 void test_with_void_predecessor_returning_void(Executor exec)
 {
-  agency::new_executor_shape_t<Executor> shape{100};
+  agency::executor_shape_t<Executor> shape{100};
 
   auto predecessor_future = agency::make_ready_future<void>(exec);
   
@@ -46,8 +46,8 @@ void test_with_void_predecessor_returning_results(Executor exec)
 {
   auto predecessor_future = agency::make_ready_future<void>(exec);
 
-  using shape_type = agency::new_executor_shape_t<Executor>;
-  using index_type = agency::new_executor_index_t<Executor>;
+  using shape_type = agency::executor_shape_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
 
   size_t shape = 10;
   
@@ -71,7 +71,7 @@ void test_with_void_predecessor_returning_results(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor_returning_void(Executor exec)
 {
-  agency::new_executor_shape_t<Executor> shape{100};
+  agency::executor_shape_t<Executor> shape{100};
 
   auto predecessor_future = agency::make_ready_future<int>(exec, 13);
   
@@ -105,8 +105,8 @@ void test_with_non_void_predecessor_returning_results(Executor exec)
 {
   auto predecessor_future = agency::make_ready_future<int>(exec, 7);
 
-  using shape_type = agency::new_executor_shape_t<Executor>;
-  using index_type = agency::new_executor_index_t<Executor>;
+  using shape_type = agency::executor_shape_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
 
   size_t shape = 10;
   
@@ -130,13 +130,13 @@ void test_with_non_void_predecessor_returning_results(Executor exec)
 template<class Executor>
 void test_with_void_predecessor_returning_void2(Executor exec)
 {
-  agency::new_executor_shape_t<Executor> shape{10,10};
+  agency::executor_shape_t<Executor> shape{10,10};
 
   auto predecessor_future = agency::make_ready_future<void>(exec);
 
   increment_me = 0;
 
-  using index_type = agency::new_executor_index_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
   
   auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
   {
@@ -159,8 +159,8 @@ void test_with_void_predecessor_returning_results2(Executor exec)
 {
   auto predecessor_future = agency::make_ready_future<void>(exec);
 
-  using shape_type = agency::new_executor_shape_t<Executor>;
-  using index_type = agency::new_executor_index_t<Executor>;
+  using shape_type = agency::executor_shape_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
 
   shape_type shape{10,10};
   
@@ -185,13 +185,13 @@ void test_with_void_predecessor_returning_results2(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor_returning_void2(Executor exec)
 {
-  agency::new_executor_shape_t<Executor> shape{10,10};
+  agency::executor_shape_t<Executor> shape{10,10};
 
   auto predecessor_future = agency::make_ready_future<int>(exec, 42);
 
   increment_me = 0;
 
-  using index_type = agency::new_executor_index_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
   
   auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __device__ (index_type idx, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
   {
@@ -212,11 +212,11 @@ void test_with_non_void_predecessor_returning_void2(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor_returning_results2(Executor exec)
 {
-  agency::new_executor_shape_t<Executor> shape{10,10};
+  agency::executor_shape_t<Executor> shape{10,10};
 
   auto predecessor_future = agency::make_ready_future<int>(exec, 42);
 
-  using index_type = agency::new_executor_index_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
   
   auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __host__ __device__ (index_type idx, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
   {

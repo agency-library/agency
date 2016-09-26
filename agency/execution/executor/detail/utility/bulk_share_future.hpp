@@ -55,7 +55,7 @@ new_executor_container_t<
   E,
   typename future_traits<Future>::shared_future_type
 >
-  bulk_share_future(E& exec, new_executor_shape_t<E> shape, Future& f)
+  bulk_share_future(E& exec, executor_shape_t<E> shape, Future& f)
 {
   using shared_future_type = typename future_traits<Future>::shared_future_type;
 

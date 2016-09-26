@@ -8,7 +8,7 @@
 template<class Executor>
 void test_with_void_predecessor_returning_void(Executor exec)
 {
-  agency::new_executor_shape_t<Executor> shape{100};
+  agency::executor_shape_t<Executor> shape{100};
 
   auto predecessor_future = agency::make_ready_future<void>(exec);
   
@@ -42,8 +42,8 @@ void test_with_void_predecessor_returning_results(Executor exec)
 {
   auto predecessor_future = agency::detail::make_ready_future();
 
-  using shape_type = agency::new_executor_shape_t<Executor>;
-  using index_type = agency::new_executor_index_t<Executor>;
+  using shape_type = agency::executor_shape_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
 
   size_t shape = 10;
   
@@ -67,7 +67,7 @@ void test_with_void_predecessor_returning_results(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor_returning_void(Executor exec)
 {
-  agency::new_executor_shape_t<Executor> shape{100};
+  agency::executor_shape_t<Executor> shape{100};
 
   auto predecessor_future = agency::make_ready_future<int>(exec, 13);
   
@@ -101,8 +101,8 @@ void test_with_non_void_predecessor_returning_results(Executor exec)
 {
   auto predecessor_future = agency::make_ready_future<int>(exec, 7);
 
-  using shape_type = agency::new_executor_shape_t<Executor>;
-  using index_type = agency::new_executor_index_t<Executor>;
+  using shape_type = agency::executor_shape_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
 
   size_t shape = 10;
   

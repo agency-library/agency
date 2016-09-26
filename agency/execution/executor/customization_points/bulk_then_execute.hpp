@@ -22,7 +22,7 @@ executor_future_t<
   E,
   detail::result_of_t<ResultFactory()>
 >
-bulk_then_execute(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
+bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   return exec.bulk_then_execute(f, shape, predecessor, result_factory, shared_factories...);
 }
@@ -116,7 +116,7 @@ executor_future_t<
   E,
   detail::result_of_t<ResultFactory()>
 >
-bulk_then_execute(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
+bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   // XXX we may wish to allow the executor to participate in this sharing operation
   auto shared_predecessor_future = future_traits<Future>::share(predecessor);
@@ -139,7 +139,7 @@ struct then_with_nested_bulk_execute_functor
 {
   mutable Executor exec;
   mutable Function f;
-  new_executor_shape_t<Executor> shape;
+  executor_shape_t<Executor> shape;
   mutable ResultFactory result_factory;
   mutable detail::tuple<SharedFactories...> shared_factories;
 
@@ -182,7 +182,7 @@ struct then_with_nested_bulk_execute_functor<Executor,Function,void,ResultFactor
 {
   mutable Executor exec;
   mutable Function f;
-  new_executor_shape_t<Executor> shape;
+  executor_shape_t<Executor> shape;
   mutable ResultFactory result_factory;
   mutable detail::tuple<SharedFactories...> shared_factories;
 
@@ -217,7 +217,7 @@ executor_future_t<
   E,
   detail::result_of_t<ResultFactory()>
 >
-bulk_then_execute(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
+bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   using predecessor_type = detail::future_value_t<Future>;
   detail::then_with_nested_bulk_execute_functor<E,Function,predecessor_type,ResultFactory,Factories...> functor{exec,f,shape,result_factory,detail::make_tuple(shared_factories...)};

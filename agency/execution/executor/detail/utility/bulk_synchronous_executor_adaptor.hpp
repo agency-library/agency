@@ -26,8 +26,8 @@ class bulk_synchronous_executor_adaptor<BulkExecutor,true>
 
   public:
     using execution_category = member_execution_category_or_t<BulkExecutor, unsequenced_execution_tag>;
-    using shape_type = new_executor_shape_t<BulkExecutor>;
-    using index_type = new_executor_index_t<BulkExecutor>;
+    using shape_type = executor_shape_t<BulkExecutor>;
+    using index_type = executor_index_t<BulkExecutor>;
 
     template<class T>
     using allocator = new_executor_allocator_t<BulkExecutor,T>;

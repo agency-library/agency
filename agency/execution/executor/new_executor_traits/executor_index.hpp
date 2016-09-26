@@ -20,7 +20,7 @@ struct executor_index_impl
 template<class BulkExecutor>
 struct executor_index_impl<BulkExecutor,true>
 {
-  using type = member_index_type_or_t<BulkExecutor,new_executor_shape_t<BulkExecutor>>;
+  using type = member_index_type_or_t<BulkExecutor,executor_shape_t<BulkExecutor>>;
 };
 
 
@@ -28,10 +28,10 @@ struct executor_index_impl<BulkExecutor,true>
 
 
 template<class BulkExecutor>
-struct new_executor_index : detail::executor_index_impl<BulkExecutor> {};
+struct executor_index : detail::executor_index_impl<BulkExecutor> {};
 
 template<class BulkExecutor>
-using new_executor_index_t = typename new_executor_index<BulkExecutor>::type;
+using executor_index_t = typename executor_index<BulkExecutor>::type;
 
 
 } // end agency

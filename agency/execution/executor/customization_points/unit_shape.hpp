@@ -43,10 +43,10 @@ using has_unit_shape = typename has_unit_shape_impl<Executor,Shape>::type;
 __agency_exec_check_disable__
 template<class E,
          __AGENCY_REQUIRES(detail::Executor<E>()),
-         __AGENCY_REQUIRES(detail::has_unit_shape<E,new_executor_shape_t<E>>::value)
+         __AGENCY_REQUIRES(detail::has_unit_shape<E,executor_shape_t<E>>::value)
         >
 __AGENCY_ANNOTATION
-new_executor_shape_t<E> unit_shape(const E& exec)
+executor_shape_t<E> unit_shape(const E& exec)
 {
   return exec.unit_shape();
 }
@@ -56,13 +56,13 @@ new_executor_shape_t<E> unit_shape(const E& exec)
 __agency_exec_check_disable__
 template<class E,
          __AGENCY_REQUIRES(detail::Executor<E>()),
-         __AGENCY_REQUIRES(!detail::has_unit_shape<E,new_executor_shape_t<E>>::value)
+         __AGENCY_REQUIRES(!detail::has_unit_shape<E,executor_shape_t<E>>::value)
         >
 __AGENCY_ANNOTATION
-new_executor_shape_t<E> unit_shape(const E& exec)
+executor_shape_t<E> unit_shape(const E& exec)
 {
   // by default, an executor's unit shape contains a single point
-  return detail::shape_cast<new_executor_shape_t<E>>(1);
+  return detail::shape_cast<executor_shape_t<E>>(1);
 }
 
 

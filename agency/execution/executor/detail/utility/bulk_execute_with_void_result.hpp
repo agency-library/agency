@@ -40,7 +40,7 @@ template<class E, class Function, class... Factories,
          __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
-void bulk_execute_with_void_result(E& exec, Function f, agency::new_executor_shape_t<E> shape, Factories... factories)
+void bulk_execute_with_void_result(E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
 {
   namespace ns = bulk_execute_with_void_result_detail;
 

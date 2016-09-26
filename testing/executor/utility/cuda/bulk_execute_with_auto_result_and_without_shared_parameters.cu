@@ -9,7 +9,7 @@
 template<class Executor>
 void test_returning_void(Executor exec)
 {
-  agency::new_executor_shape_t<Executor> shape{100};
+  agency::executor_shape_t<Executor> shape{100};
   
   int increment_me = 0;
   std::mutex mut;
@@ -28,8 +28,8 @@ void test_returning_void(Executor exec)
 template<class Executor>
 void test_returning_results(Executor exec)
 {
-  using shape_type = agency::new_executor_shape_t<Executor>;
-  using index_type = agency::new_executor_index_t<Executor>;
+  using shape_type = agency::executor_shape_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
 
   size_t shape = 10;
   
@@ -50,8 +50,8 @@ __managed__ int increment_me;
 template<class Executor>
 void test_returning_void2(Executor exec)
 {
-  agency::new_executor_shape_t<Executor> shape{10,10};
-  using index_type = agency::new_executor_index_t<Executor>;
+  agency::executor_shape_t<Executor> shape{10,10};
+  using index_type = agency::executor_index_t<Executor>;
   
   increment_me = 0;
   agency::detail::bulk_execute_with_auto_result_and_without_shared_parameters(exec, [] __device__ (index_type idx)
@@ -69,8 +69,8 @@ void test_returning_results2(Executor exec)
 {
   using namespace agency::detail::executor_customization_points_detail;
 
-  using shape_type = agency::new_executor_shape_t<Executor>;
-  using index_type = agency::new_executor_index_t<Executor>;
+  using shape_type = agency::executor_shape_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
 
   shape_type shape{10,10};
   

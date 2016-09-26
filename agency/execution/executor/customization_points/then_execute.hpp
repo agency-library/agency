@@ -84,7 +84,7 @@ then_execute(E& exec, Function f, Future& predecessor)
   //     parameters to CUDA kernels
   auto execute_me = detail::then_execute_functor<Function>{f};
 
-  using shape_type = new_executor_shape_t<E>;
+  using shape_type = executor_shape_t<E>;
 
   // call bulk_then_execute_without_shared_parameters() to get an intermediate future
   auto intermediate_future = detail::bulk_then_execute_without_shared_parameters(

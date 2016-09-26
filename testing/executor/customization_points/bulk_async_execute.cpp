@@ -11,8 +11,8 @@
 template<class Executor>
 void test(Executor exec)
 {
-  using shape_type = agency::new_executor_shape_t<Executor>;
-  using index_type = agency::new_executor_index_t<Executor>;
+  using shape_type = agency::executor_shape_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
 
   shape_type shape = 10;
   

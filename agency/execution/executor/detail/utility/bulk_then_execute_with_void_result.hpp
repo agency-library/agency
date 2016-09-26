@@ -59,7 +59,7 @@ template<class E, class Function, class Future, class... Factories,
         >
 __AGENCY_ANNOTATION
 executor_future_t<E,void>
-  bulk_then_execute_with_void_result(E& exec, Function f, new_executor_shape_t<E> shape, Future& predecessor, Factories... factories)
+  bulk_then_execute_with_void_result(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
   using namespace bulk_then_execute_with_void_result_detail;
 

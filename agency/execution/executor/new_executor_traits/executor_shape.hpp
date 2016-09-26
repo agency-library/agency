@@ -27,10 +27,10 @@ struct executor_shape_impl<BulkExecutor,true>
 
 
 template<class BulkExecutor>
-struct new_executor_shape : detail::executor_shape_impl<BulkExecutor> {};
+struct executor_shape : detail::executor_shape_impl<BulkExecutor> {};
 
 template<class BulkExecutor>
-using new_executor_shape_t = typename new_executor_shape<BulkExecutor>::type;
+using executor_shape_t = typename executor_shape<BulkExecutor>::type;
 
 
 } // end agency

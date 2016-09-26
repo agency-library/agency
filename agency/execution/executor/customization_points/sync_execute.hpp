@@ -83,7 +83,7 @@ detail::result_of_t<detail::decay_t<Function>()>
   //     parameters to CUDA kernels
   auto execute_me = detail::sync_execute_functor<Function>{f};
 
-  using shape_type = new_executor_shape_t<E>;
+  using shape_type = executor_shape_t<E>;
 
   // call bulk_async_execute() and cast to the expected result, which handles void result
   return static_cast<result_of_function>(agency::bulk_execute(exec,

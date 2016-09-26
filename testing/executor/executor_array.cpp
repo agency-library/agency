@@ -20,10 +20,10 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
   static_assert(detail::is_detected_exact<expected_category, new_executor_execution_category_t, executor_array_type>::value,
     "scoped_executor should have expected_category execution_category");
 
-  static_assert(detail::is_detected_exact<detail::tuple<size_t,size_t>, new_executor_shape_t, executor_array_type>::value,
+  static_assert(detail::is_detected_exact<detail::tuple<size_t,size_t>, executor_shape_t, executor_array_type>::value,
     "executor_array should have detail::tuple<size_t,size_t> shape_type");
 
-  static_assert(detail::is_detected_exact<detail::index_tuple<size_t,size_t>, new_executor_index_t, executor_array_type>::value,
+  static_assert(detail::is_detected_exact<detail::index_tuple<size_t,size_t>, executor_index_t, executor_array_type>::value,
     "executor_array should have detail::index_tuple<size_t,size_t> index_type");
 
   static_assert(detail::is_detected_exact<executor_future_t<OuterExecutor,int>, executor_future_t, executor_array_type, int>::value,
@@ -31,8 +31,8 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 
   executor_array_type exec(10, inner_exec);
 
-  using shape_type = new_executor_shape_t<executor_array_type>;
-  using index_type = new_executor_index_t<executor_array_type>;
+  using shape_type = executor_shape_t<executor_array_type>;
+  using index_type = executor_index_t<executor_array_type>;
   using result_type = new_executor_container_t<executor_array_type, int>;
 
   {

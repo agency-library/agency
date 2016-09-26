@@ -8,6 +8,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/execution_categories.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/detail/flatten_index_and_invoke.hpp>
 #include <agency/execution/executor/detail/utility/bulk_continuation_executor_adaptor.hpp>
@@ -194,7 +195,7 @@ class flattened_executor
     {
       base_shape_type base_shape = partition_into_base_shape(shape);
 
-      using base_index_type = detail::executor_index_t<base_executor_type>;
+      using base_index_type = executor_index_t<base_executor_type>;
       using future_value_type = detail::future_value_t<Future>;
       auto execute_me = detail::make_new_flatten_index_and_invoke<base_index_type,future_value_type>(f, base_shape, shape);
 

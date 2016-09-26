@@ -41,7 +41,7 @@ __AGENCY_ANNOTATION
 auto bulk_execute_with_auto_result_and_without_shared_parameters_impl(index_sequence<Indices...>,
                                                                       E& exec,
                                                                       Function f,
-                                                                      new_executor_shape_t<E> shape) ->
+                                                                      executor_shape_t<E> shape) ->
 
   decltype(
     bulk_execute_with_auto_result(
@@ -70,7 +70,7 @@ template<class E, class Function,
 __AGENCY_ANNOTATION
 auto bulk_execute_with_auto_result_and_without_shared_parameters(E& exec,
                                                                  Function f,
-                                                                 new_executor_shape_t<E> shape) ->
+                                                                 executor_shape_t<E> shape) ->
   decltype(
     bulk_execute_with_auto_result_and_without_shared_parameters_detail::bulk_execute_with_auto_result_and_without_shared_parameters_impl(
       detail::make_index_sequence<new_executor_execution_depth<E>::value>(),

@@ -94,7 +94,7 @@ async_execute(E& exec, Function&& f)
     result_of_function
   >::type;
 
-  using shape_type = new_executor_shape_t<E>;
+  using shape_type = executor_shape_t<E>;
 
   auto intermediate_future = agency::detail::bulk_async_execute_with_one_shared_parameter(
     exec,                                                  // the executor

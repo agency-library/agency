@@ -21,7 +21,7 @@ executor_future_t<
   E,
   detail::result_of_t<ResultFactory()>
 >
-bulk_async_execute(E& exec, Function f, new_executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
+bulk_async_execute(E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
 {
   return exec.bulk_async_execute(f, shape, result_factory, shared_factories...);
 }
@@ -37,7 +37,7 @@ executor_future_t<
   E,
   detail::result_of_t<ResultFactory()>
 >
-bulk_async_execute(E& exec, Function f, new_executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
+bulk_async_execute(E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
 {
   using void_future_type = executor_future_t<E,void>;
 

@@ -8,7 +8,7 @@
 template<class Executor>
 void test_returning_void(Executor exec)
 {
-  agency::new_executor_shape_t<Executor> shape{100};
+  agency::executor_shape_t<Executor> shape{100};
   
   int increment_me = 0;
   std::mutex mut;
@@ -27,8 +27,8 @@ void test_returning_void(Executor exec)
 template<class Executor>
 void test_returning_results(Executor exec)
 {
-  using shape_type = agency::new_executor_shape_t<Executor>;
-  using index_type = agency::new_executor_index_t<Executor>;
+  using shape_type = agency::executor_shape_t<Executor>;
+  using index_type = agency::executor_index_t<Executor>;
 
   size_t shape = 10;
   

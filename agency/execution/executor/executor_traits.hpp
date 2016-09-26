@@ -421,32 +421,6 @@ struct executor_execution_depth<Executor, typename std::enable_if<is_executor<Ex
 {};
 
 
-template<class Executor, class Enable = void>
-struct executor_shape {};
-
-template<class Executor>
-struct executor_shape<Executor, typename std::enable_if<is_executor<Executor>::value>::type>
-{
-  using type = typename executor_traits<Executor>::shape_type;
-};
-
-template<class Executor>
-using executor_shape_t = typename executor_shape<Executor>::type;
-
-
-template<class Executor, class Enable = void>
-struct executor_index {};
-
-template<class Executor>
-struct executor_index<Executor, typename std::enable_if<is_executor<Executor>::value>::type>
-{
-  using type = typename executor_traits<Executor>::index_type;
-};
-
-template<class Executor>
-using executor_index_t = typename executor_index<Executor>::type;
-
-
 } // end detail
 } // end agency
 

@@ -36,11 +36,11 @@ class executor_array
   public:
     using execution_category = scoped_execution_tag<outer_execution_category,inner_execution_category>;
 
-    using outer_shape_type = new_executor_shape_t<outer_executor_type>;
-    using inner_shape_type = new_executor_shape_t<inner_executor_type>;
+    using outer_shape_type = executor_shape_t<outer_executor_type>;
+    using inner_shape_type = executor_shape_t<inner_executor_type>;
 
-    using outer_index_type = new_executor_index_t<outer_executor_type>;
-    using inner_index_type = new_executor_index_t<inner_executor_type>;
+    using outer_index_type = executor_index_t<outer_executor_type>;
+    using inner_index_type = executor_index_t<inner_executor_type>;
 
     using shape_type = detail::scoped_shape_t<outer_execution_category,inner_execution_category,outer_shape_type,inner_shape_type>;
     using index_type = detail::scoped_index_t<outer_execution_category,inner_execution_category,outer_index_type,inner_index_type>;
