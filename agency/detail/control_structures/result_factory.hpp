@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/detail/executor_traits/container_factory.hpp>
+#include <agency/execution/executor/detail/utility/executor_container_or_void.hpp>
 #include <type_traits>
 
 namespace agency
@@ -32,7 +33,7 @@ struct result_container
   using type = typename std::conditional<
     detail::is_scope_result<ResultOfFunction>::value,
     typename detail::scope_result_to_scope_result_container<ResultOfFunction, Executor>::type,
-    executor_result_t<Executor,ResultOfFunction>
+    detail::executor_container_or_void_t<Executor,ResultOfFunction>
   >::type;
 };
 

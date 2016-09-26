@@ -460,22 +460,6 @@ template<class Executor, class T>
 using executor_future_t = typename executor_future<Executor,T>::type;
 
 
-template<class Executor, class T>
-struct executor_result
-{
-  using type = typename executor_traits<Executor>::template container<T>;
-};
-
-template<class Executor>
-struct executor_result<Executor,void>
-{
-  using type = void;
-};
-
-template<class Executor, class T>
-using executor_result_t = typename executor_result<Executor,T>::type;
-
-
 } // end detail
 } // end agency
 

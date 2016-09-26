@@ -6,6 +6,7 @@
 #include <agency/execution/executor/new_executor_traits/detail/member_container_or.hpp>
 #include <agency/execution/executor/new_executor_traits/executor_index.hpp>
 #include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/new_executor_traits/executor_allocator.hpp>
 #include <agency/detail/array.hpp>
 
 
