@@ -13,7 +13,7 @@ void test(Executor exec)
 
   size_t shape = 10;
   
-  auto result = agency::detail::bulk_execute_with_collected_result(exec,
+  auto f = agency::detail::bulk_async_execute_with_collected_result(exec,
     [](index_type idx, std::vector<int>& shared_arg)
     {
       return shared_arg[idx];
@@ -22,6 +22,8 @@ void test(Executor exec)
     [=]{ return std::vector<int>(shape); },    // results
     [=]{ return std::vector<int>(shape, 13); } // shared_arg
   );
+
+  auto result = f.get();
   
   assert(std::vector<int>(shape, 13) == result);
 }
@@ -37,7 +39,7 @@ void test2(Executor exec)
 
   using container_type = agency::new_executor_container_t<Executor,int>;
   
-  auto result = agency::detail::bulk_execute_with_collected_result(exec,
+  auto f = agency::detail::bulk_async_execute_with_collected_result(exec,
     [] __host__ __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
     {
       return outer_shared_arg + inner_shared_arg;
@@ -47,9 +49,12 @@ void test2(Executor exec)
     [] __host__ __device__  { return 7; },                     // outer_shared_arg
     [] __host__ __device__  { return 13; }                     // inner_shared_arg
   );
+
+  auto result = f.get();
   
   assert(container_type(shape, 7 + 13) == result);
 }
+
 
 int main()
 {

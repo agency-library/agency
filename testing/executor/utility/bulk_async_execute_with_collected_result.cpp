@@ -12,7 +12,7 @@ void test(Executor exec)
 
   size_t shape = 10;
   
-  auto result = agency::detail::bulk_execute_with_collected_result(exec,
+  auto f = agency::detail::bulk_async_execute_with_collected_result(exec,
     [](index_type idx, std::vector<int>& shared_arg)
     {
       return shared_arg[idx];
@@ -21,6 +21,8 @@ void test(Executor exec)
     [=]{ return std::vector<int>(shape); },    // results
     [=]{ return std::vector<int>(shape, 13); } // shared_arg
   );
+
+  auto result = f.get();
   
   assert(std::vector<int>(shape, 13) == result);
 }
