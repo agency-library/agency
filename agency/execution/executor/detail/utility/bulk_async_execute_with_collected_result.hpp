@@ -46,7 +46,7 @@ executor_future_t<E,result_of_t<ResultFactory()>>
 {
   using namespace bulk_async_execute_with_collected_result_detail;
 
-  // wrap f in a functor that will collect f's result and call bulk_async()
+  // wrap f in a functor that will collect f's result and call bulk_async_execute()
   return agency::bulk_async_execute(exec, invoke_and_collect_result<Function>{f}, shape, result_factory, shared_factories...);
 }
 

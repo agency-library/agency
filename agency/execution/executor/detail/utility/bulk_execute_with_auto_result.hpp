@@ -2,7 +2,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/detail/factory.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/execution/executor/detail/utility/bulk_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_execute_with_collected_result.hpp>
@@ -33,7 +32,7 @@ namespace bulk_execute_with_auto_result_detail
 {
 
 
-// XXX this redundant with detail::construct<T>
+// XXX this is redundant with detail::construct<T>
 //     we're including it because detail::construct<T>
 //     is currently producing __host__ __device__ warnings
 //     with nvcc
