@@ -52,7 +52,7 @@ executor_future_t<E,void> bulk_async_execute_with_void_result(E& exec, Function 
   executor_future_t<E,unit> intermediate_future = agency::bulk_async_execute(exec, g, shape, unit_factory(), factories...);
 
   // cast the intermediate_future to void
-  // XXX we may with to allow the executor to participate in this cast
+  // XXX we may wish to allow the executor to participate in this cast
   return future_traits<executor_future_t<E,unit>>::template cast<void>(intermediate_future);
 }
 
