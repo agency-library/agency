@@ -5,6 +5,8 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/execution/executor/detail/utility/executor_container_or_void.hpp>
+#include <agency/execution/executor/detail/utility/bulk_execute_with_void_result.hpp>
+#include <agency/execution/executor/detail/utility/bulk_execute_with_collected_result.hpp>
 #include <agency/detail/control_structures/executor_functions/bind_agent_local_parameters.hpp>
 #include <agency/detail/control_structures/executor_functions/unpack_shared_parameters_from_executor_and_invoke.hpp>
 #include <agency/detail/control_structures/scope_result.hpp>
@@ -19,30 +21,17 @@ namespace detail
 {
 
 
-// this overload handles the general case where the user function returns a normal result
-template<class Executor, class Function, class Factory, class Tuple, size_t... TupleIndices>
-result_of_t<Factory(executor_shape_t<Executor>)>
+// this overload handles the general case where the user function returns a non-void result
+template<class Executor, class Function, class ResultFactory, class Tuple, size_t... TupleIndices>
+result_of_t<ResultFactory()>
   bulk_invoke_executor_impl(Executor& exec,
                             Function f,
-                            Factory result_factory,
+                            ResultFactory result_factory,
                             typename executor_traits<Executor>::shape_type shape,
-                            Tuple&& factory_tuple,
+                            Tuple&& shared_factory_tuple,
                             detail::index_sequence<TupleIndices...>)
 {
-  return executor_traits<Executor>::execute(exec, f, result_factory, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
-}
-
-// this overload handles the special case where the user function returns a scope_result
-template<class Executor, class Function, size_t scope, class T, class Tuple, size_t... TupleIndices>
-typename detail::scope_result_container<scope,T,Executor>::result_type
-  bulk_invoke_executor_impl(Executor& exec,
-                            Function f,
-                            detail::executor_traits_detail::container_factory<detail::scope_result_container<scope,T,Executor>> result_factory,
-                            typename executor_traits<Executor>::shape_type shape,
-                            Tuple&& factory_tuple,
-                            detail::index_sequence<TupleIndices...>)
-{
-  return executor_traits<Executor>::execute(exec, f, result_factory, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
+  return detail::bulk_execute_with_collected_result(exec, f, shape, result_factory, detail::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
 }
 
 // this overload handles the special case where the user function returns void
@@ -54,7 +43,7 @@ void bulk_invoke_executor_impl(Executor& exec,
                                Tuple&& factory_tuple,
                                detail::index_sequence<TupleIndices...>)
 {
-  return executor_traits<Executor>::execute(exec, f, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
+  return detail::bulk_execute_with_void_result(exec, f, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
 }
 
 
@@ -105,7 +94,7 @@ bulk_invoke_executor_result_t<Executor, Function, Args...>
   using result_of_f = result_of_t<Function(executor_index_t<Executor>,decay_parameter_t<Args>...)>;
 
   // based on the type of f's result, make a factory that will create the appropriate type of container to store f's results
-  auto result_factory = detail::make_result_factory<result_of_f>(exec);
+  auto result_factory = detail::new_make_result_factory<result_of_f>(exec, shape);
 
   return detail::bulk_invoke_executor_impl(exec, h, result_factory, shape, factory_tuple, detail::make_index_sequence<execution_depth>());
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/detail/executor_traits/container_factory.hpp>
 #include <agency/execution/executor/detail/utility/executor_container_or_void.hpp>
 #include <type_traits>
@@ -27,13 +28,24 @@ void_factory make_result_factory(const Executor&)
 }
 
 
+template<class ResultOfFunction, class Executor,
+         class = typename std::enable_if<
+           std::is_void<ResultOfFunction>::value
+         >::type>
+__AGENCY_ANNOTATION
+void_factory new_make_result_factory(const Executor&, const executor_shape_t<Executor>&)
+{
+  return void_factory{};
+}
+
+
 template<class Executor, class ResultOfFunction>
 struct result_container
 {
   using type = typename std::conditional<
-    detail::is_scope_result<ResultOfFunction>::value,
-    typename detail::scope_result_to_scope_result_container<ResultOfFunction, Executor>::type,
-    detail::executor_container_or_void_t<Executor,ResultOfFunction>
+    is_scope_result<ResultOfFunction>::value,
+    typename scope_result_to_scope_result_container<ResultOfFunction, Executor>::type,
+    new_executor_container_t<Executor,ResultOfFunction>
   >::type;
 };
 
@@ -54,6 +66,22 @@ detail::executor_traits_detail::container_factory<result_container_t<Executor,Re
 
   // create a factory for the result container
   return detail::executor_traits_detail::container_factory<container_type>();
+}
+
+
+template<class ResultOfFunction, class Executor,
+         class = typename std::enable_if<
+           !std::is_void<ResultOfFunction>::value
+         >::type>
+__AGENCY_ANNOTATION
+construct<result_container_t<Executor,ResultOfFunction>, executor_shape_t<Executor>>
+  new_make_result_factory(const Executor&, const executor_shape_t<Executor>& shape)
+{
+  // compute the type of container to use to store results
+  using container_type = result_container_t<Executor,ResultOfFunction>;
+
+  // create a factory for the result container that calls the container's constructor with the given shape
+  return make_construct<container_type>(shape);
 }
 
 
