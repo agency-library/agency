@@ -437,11 +437,10 @@ class executor_array
     template<class Function, class... InnerFactories>
     struct lazy_bulk_then_execute_functor
     {
-      // XXX this should probably not be a reference
-      executor_array& exec;
+      mutable executor_array exec;
       outer_shape_type outer_shape;
       inner_shape_type inner_shape;
-      Function f;
+      mutable Function f;
       detail::tuple<InnerFactories...> inner_factories;
 
       template<class... OuterArgs>
