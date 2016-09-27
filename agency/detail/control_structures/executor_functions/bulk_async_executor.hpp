@@ -5,6 +5,8 @@
 #include <agency/execution/executor/new_executor_traits/executor_future.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
+#include <agency/execution/executor/detail/utility/bulk_async_execute_with_void_result.hpp>
+#include <agency/execution/executor/detail/utility/bulk_async_execute_with_collected_result.hpp>
 #include <agency/detail/control_structures/executor_functions/bind_agent_local_parameters.hpp>
 #include <agency/detail/control_structures/executor_functions/unpack_shared_parameters_from_executor_and_invoke.hpp>
 #include <agency/detail/control_structures/executor_functions/bulk_invoke_executor.hpp>
@@ -21,46 +23,48 @@ namespace detail
 
 
 // this overload handles the general case where the user function returns a normal result
-template<class Executor, class Function, class Factory, class Tuple, size_t... TupleIndices>
-executor_future_t<Executor, result_of_t<Factory(executor_shape_t<Executor>)>>
-  bulk_async_executor_impl(Executor& exec,
+template<class E, class Function, class ResultFactory, class Tuple, size_t... TupleIndices>
+executor_future_t<E, result_of_t<ResultFactory()>>
+  bulk_async_executor_impl(E& exec,
                            Function f,
-                           Factory result_factory,
-                           typename executor_traits<Executor>::shape_type shape,
-                           Tuple&& factory_tuple,
+                           ResultFactory result_factory,
+                           executor_shape_t<E> shape,
+                           Tuple&& shared_factory_tuple,
                            detail::index_sequence<TupleIndices...>)
 {
-  return executor_traits<Executor>::async_execute(exec, f, result_factory, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
+  return detail::bulk_async_execute_with_collected_result(exec, f, shape, result_factory, detail::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
 }
 
 // this overload handles the special case where the user function returns a scope_result
-template<class Executor, class Function, size_t scope, class T, class Tuple, size_t... TupleIndices>
-executor_future_t<Executor, typename detail::scope_result_container<scope,T,Executor>::result_type>
-  bulk_async_executor_impl(Executor& exec,
+template<class E, class Function, size_t scope, class T, class Tuple, size_t... TupleIndices>
+executor_future_t<E, typename detail::scope_result_container<scope,T,E>::result_type>
+  bulk_async_executor_impl(E& exec,
                            Function f,
-                           detail::executor_traits_detail::container_factory<detail::scope_result_container<scope,T,Executor>> result_factory,
-                           typename executor_traits<Executor>::shape_type shape,
-                           Tuple&& factory_tuple,
+                           construct<detail::scope_result_container<scope,T,E>, executor_shape_t<E>> result_factory,
+                           executor_shape_t<E> shape,
+                           Tuple&& shared_factory_tuple,
                            detail::index_sequence<TupleIndices...>)
 {
-  auto intermediate_future = executor_traits<Executor>::async_execute(exec, f, result_factory, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
+  auto intermediate_future = detail::bulk_async_execute_with_collected_result(exec, f, shape, result_factory, detail::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
 
-  using result_type = typename detail::scope_result_container<scope,T,Executor>::result_type;
+  using result_type = typename detail::scope_result_container<scope,T,E>::result_type;
 
-  return executor_traits<Executor>::template future_cast<result_type>(exec, intermediate_future);
+  // cast the intermediate_future to result_type
+  // XXX we may wish to allow the executor to participate in this cast
+  return future_traits<decltype(intermediate_future)>::template cast<result_type>(intermediate_future);
 }
 
 // this overload handles the special case where the user function returns void
-template<class Executor, class Function, class Tuple, size_t... TupleIndices>
-executor_future_t<Executor,void>
-  bulk_async_executor_impl(Executor& exec,
+template<class E, class Function, class Tuple, size_t... TupleIndices>
+executor_future_t<E,void>
+  bulk_async_executor_impl(E& exec,
                            Function f,
                            void_factory,
-                           typename executor_traits<Executor>::shape_type shape,
+                           executor_shape_t<E> shape,
                            Tuple&& factory_tuple,
                            detail::index_sequence<TupleIndices...>)
 {
-  return executor_traits<Executor>::async_execute(exec, f, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
+  return detail::bulk_async_execute_with_void_result(exec, f, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
 }
 
 
@@ -102,7 +106,7 @@ bulk_async_executor_result_t<Executor, Function, Args...>
   using result_of_f = result_of_t<Function(executor_index_t<Executor>,decay_parameter_t<Args>...)>;
 
   // based on the type of f's result, make a factory that will create the appropriate type of container to store f's results
-  auto result_factory = detail::make_result_factory<result_of_f>(exec);
+  auto result_factory = detail::new_make_result_factory<result_of_f>(exec, shape);
 
   return detail::bulk_async_executor_impl(exec, h, result_factory, shape, factory_tuple, detail::make_index_sequence<execution_depth>());
 }
