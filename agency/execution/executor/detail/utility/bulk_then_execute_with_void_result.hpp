@@ -3,9 +3,9 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/customization_points/bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/utility/invoke_functors.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/factory.hpp>
-#include <agency/detail/invoke.hpp>
 #include <agency/future.hpp>
 
 
@@ -13,43 +13,6 @@ namespace agency
 {
 namespace detail
 {
-namespace bulk_then_execute_with_void_result_detail
-{
-
-
-// this is the general case when the predecessor future is non-void
-template<class Function, class Predecessor>
-struct ignore_unit_result_parameter_and_invoke
-{
-  mutable Function f;
-
-  // this is the case when the predecessor type is non-void
-  template<class Index, class... SharedParameters>
-  __AGENCY_ANNOTATION
-  void operator()(const Index& idx, Predecessor& predecessor, unit&, SharedParameters&... shared_parameters) const
-  {
-    agency::detail::invoke(f, idx, predecessor, shared_parameters...);
-  }
-};
-
-
-// this is specialization when the predecessor future is void
-template<class Function>
-struct ignore_unit_result_parameter_and_invoke<Function,void>
-{
-  mutable Function f;
-
-  // this is the case when the predecessor type is void
-  template<class Index, class... SharedParameters>
-  __AGENCY_ANNOTATION
-  void operator()(const Index& idx, unit&, SharedParameters&... shared_parameters) const
-  {
-    agency::detail::invoke(f, idx, shared_parameters...);
-  }
-};
-
-
-} // end bulk_then_execute_with_void_result_detail
 
 
 __agency_exec_check_disable__
@@ -61,8 +24,6 @@ __AGENCY_ANNOTATION
 executor_future_t<E,void>
   bulk_then_execute_with_void_result(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
-  using namespace bulk_then_execute_with_void_result_detail;
-
   using predecessor_type = future_value_t<Future>;
 
   // wrap f in a functor that will ignore the unit object we pass to it
