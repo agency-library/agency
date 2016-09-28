@@ -127,8 +127,6 @@ class flattened_executor
     using base_execution_category = new_executor_execution_category_t<Executor>;
     constexpr static auto execution_depth = executor_execution_depth<Executor>::value - 1;
 
-    using base_traits = executor_traits<Executor>;
-
   public:
     using base_executor_type = Executor;
     using execution_category = detail::flattened_execution_tag<base_execution_category>;
@@ -230,7 +228,7 @@ class flattened_executor
     shape_type max_shape_dimensions() const
     {
       // to flatten the base executor's shape we merge the two front dimensions together
-      return detail::merge_front_shape_elements(base_traits::max_shape_dimensions(base_executor()));
+      return detail::merge_front_shape_elements(agency::max_shape_dimensions(base_executor()));
     }
 
   private:
@@ -260,7 +258,7 @@ class flattened_executor
       size_t outer_granularity = detail::shape_head_size(base_executor_shape);
       size_t inner_granularity = detail::shape_size(detail::get<1>(base_executor_shape));
 
-      base_shape_type base_executor_max_sizes = detail::max_sizes(base_traits::max_shape_dimensions(base_executor()));
+      base_shape_type base_executor_max_sizes = detail::max_sizes(agency::max_shape_dimensions(base_executor()));
 
       size_t outer_max_size = detail::shape_head(base_executor_max_sizes);
       size_t inner_max_size = detail::get<1>(base_executor_max_sizes);

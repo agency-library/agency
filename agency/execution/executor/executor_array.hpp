@@ -781,9 +781,9 @@ class executor_array
     shape_type max_shape_dimensions() const
     {
       // XXX might want to multiply shape() * max_shape_dimensions(outer_executor())
-      auto outer_max_shape = outer_traits::max_shape_dimensions(outer_executor());
+      auto outer_max_shape = agency::max_shape_dimensions(outer_executor());
 
-      auto inner_max_shape = inner_traits::max_shape_dimensions(inner_executor(0));
+      auto inner_max_shape = agency::max_shape_dimensions(inner_executor(0));
 
       return make_shape(outer_max_shape, inner_max_shape);
     }
