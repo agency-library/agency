@@ -4,6 +4,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/unit.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/integer_sequence.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -31,18 +32,35 @@ class construct
       : args_(args)
     {}
 
+    __agency_exec_check_disable__
+    template<size_t... Indices>
+    __AGENCY_ANNOTATION
+    T impl(index_sequence<Indices...>) const &
+    {
+      return T(detail::get<Indices>(args_)...);
+    }
+
+    __agency_exec_check_disable__
+    template<size_t... Indices>
+    __AGENCY_ANNOTATION
+    T impl(index_sequence<Indices...>) &&
+    {
+      return T(detail::get<Indices>(std::move(args_))...);
+    }
+
+
     // XXX eliminate me!
     __AGENCY_ANNOTATION
     T make() const &
     {
-      return __tu::make_from_tuple<T>(args_);
+      return impl(make_index_sequence<sizeof...(Args)>());
     }
 
     // XXX eliminate me!
     __AGENCY_ANNOTATION
     T make() &&
     {
-      return __tu::make_from_tuple<T>(std::move(args_));
+      return std::move(*this).impl(make_index_sequence<sizeof...(Args)>());
     }
 
     __AGENCY_ANNOTATION
