@@ -4,6 +4,7 @@
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
+#include <agency/execution/executor/customization_points/future_cast.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_collected_result.hpp>
 #include <agency/detail/control_structures/executor_functions/bind_agent_local_parameters.hpp>
@@ -52,8 +53,7 @@ executor_future_t<E, typename detail::scope_result_container<scope,T,E>::result_
   using result_type = typename detail::scope_result_container<scope,T,E>::result_type;
 
   // cast the intermediate_future to result_type
-  // XXX we may wish to allow the executor to participate in this cast
-  return future_traits<decltype(intermediate_future)>::template cast<result_type>(intermediate_future);
+  return agency::future_cast<result_type>(exec, intermediate_future);
 }
 
 // this overload handles the special case where the user function returns void

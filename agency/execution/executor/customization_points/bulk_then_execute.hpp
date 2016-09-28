@@ -225,7 +225,9 @@ bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predec
   auto intermediate_fut = future_traits<Future>::then(predecessor, std::move(functor));
   using result_type = detail::result_of_t<ResultFactory()>;
 
-  // XXX we may wish to allow the executor to participate in this cast operation
+  // XXX we may wish to allow the executor to participate in this cast operation via agency::future_cast()
+  //     however, #including future_cast.hpp causes circular inclusion problems.
+  //     so, just use future_traits for now
   return future_traits<decltype(intermediate_fut)>::template cast<result_type>(intermediate_fut);
 }
 

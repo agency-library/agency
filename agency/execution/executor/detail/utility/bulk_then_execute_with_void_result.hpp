@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
+#include <agency/execution/executor/customization_points/future_cast.hpp>
 #include <agency/execution/executor/customization_points/bulk_then_execute.hpp>
 #include <agency/execution/executor/detail/utility/invoke_functors.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
@@ -33,8 +34,7 @@ executor_future_t<E,void>
   executor_future_t<E,unit> intermediate_future = agency::bulk_then_execute(exec, g, shape, predecessor, unit_factory(), factories...);
 
   // cast the intermediate_future to void
-  // XXX we may wish to allow the executor to participate in this cast
-  return future_traits<executor_future_t<E,unit>>::template cast<void>(intermediate_future);
+  return agency::future_cast<void>(exec, intermediate_future);
 }
 
 
