@@ -40,7 +40,7 @@ template<class E, class Function, class Future, class... Factories,
         >
 __AGENCY_ANNOTATION
 executor_future_t<E,
-  new_executor_container_t<E,
+  executor_container_t<E,
     result_of_continuation_t<Function,executor_index_t<E>,Future,result_of_t<Factories()>&...>
   >
 >
@@ -50,7 +50,7 @@ executor_future_t<E,
   using result_type = result_of_continuation_t<Function,executor_index_t<E>,Future,result_of_t<Factories()>&...>;
 
   // compute the type of container that will store f's results
-  using container_type = new_executor_container_t<E,result_type>;
+  using container_type = executor_container_t<E,result_type>;
   
   // create a factory that will construct this type of container for us
   auto result_factory = detail::make_construct<container_type>(shape);

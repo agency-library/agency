@@ -29,10 +29,10 @@ struct executor_allocator_impl<BulkExecutor,T,true>
 
 
 template<class BulkExecutor, class T>
-struct new_executor_allocator : detail::executor_allocator_impl<BulkExecutor,T> {};
+struct executor_allocator : detail::executor_allocator_impl<BulkExecutor,T> {};
 
 template<class BulkExecutor, class T>
-using new_executor_allocator_t = typename new_executor_allocator<BulkExecutor,T>::type;
+using executor_allocator_t = typename executor_allocator<BulkExecutor,T>::type;
 
 
 } // end agency

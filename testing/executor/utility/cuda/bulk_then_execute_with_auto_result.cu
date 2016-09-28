@@ -63,7 +63,7 @@ void test_with_void_predecessor_returning_results(Executor exec)
   
   auto result = f.get();
   
-  using container_type = agency::new_executor_container_t<Executor,int>;
+  using container_type = agency::executor_container_t<Executor,int>;
   assert(container_type(shape, 13) == result);
 }
 
@@ -122,7 +122,7 @@ void test_with_non_void_predecessor_returning_results(Executor exec)
   
   auto result = f.get();
   
-  using container_type = agency::new_executor_container_t<Executor,int>;
+  using container_type = agency::executor_container_t<Executor,int>;
   assert(container_type(shape, 7 + 13) == result);
 }
 
@@ -177,7 +177,7 @@ void test_with_void_predecessor_returning_results2(Executor exec)
   
   auto result = f.get();
   
-  using container_type = agency::new_executor_container_t<Executor,int>;
+  using container_type = agency::executor_container_t<Executor,int>;
   assert(container_type(shape, 7 + 13) == result);
 }
 
@@ -230,7 +230,7 @@ void test_with_non_void_predecessor_returning_results2(Executor exec)
   
   auto result = fut.get();
   
-  using container_type = agency::new_executor_container_t<Executor,int>;
+  using container_type = agency::executor_container_t<Executor,int>;
   assert(container_type(shape, 42 + 7 + 13) == result);
 }
 

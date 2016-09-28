@@ -73,7 +73,7 @@ void test_with_non_void_predecessor2(TwoLevelExecutor exec)
 
   shape_type shape{10,10};
 
-  using container_type = agency::new_executor_container_t<TwoLevelExecutor, int>;
+  using container_type = agency::executor_container_t<TwoLevelExecutor, int>;
   
   auto f = agency::bulk_then_execute(exec,
     [] __device__ (index_type idx, int& predecessor, container_type& results, int& outer_shared_arg, int& inner_shared_arg)
@@ -103,7 +103,7 @@ void test_with_void_predecessor2(TwoLevelExecutor exec)
 
   shape_type shape{10,10};
 
-  using container_type = agency::new_executor_container_t<TwoLevelExecutor, int>;
+  using container_type = agency::executor_container_t<TwoLevelExecutor, int>;
   
   auto f = agency::bulk_then_execute(exec,
     [] __device__ (index_type idx, container_type& results, int& outer_shared_arg, int& inner_shared_arg)

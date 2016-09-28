@@ -36,7 +36,7 @@ struct result_container
   using type = typename std::conditional<
     is_scope_result<ResultOfFunction>::value,
     typename scope_result_to_scope_result_container<ResultOfFunction, Executor>::type,
-    new_executor_container_t<Executor,ResultOfFunction>
+    executor_container_t<Executor,ResultOfFunction>
   >::type;
 };
 

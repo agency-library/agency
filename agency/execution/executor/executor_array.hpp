@@ -74,7 +74,7 @@ class executor_array
     using future = executor_future_t<outer_executor_type,T>;
 
     template<class T>
-    using allocator = new_executor_allocator_t<outer_executor_type,T>;
+    using allocator = executor_allocator_t<outer_executor_type,T>;
 
     template<class T>
     using container = agency::detail::array<T, shape_type, allocator<T>, index_type>;

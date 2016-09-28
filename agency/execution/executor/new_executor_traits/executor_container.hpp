@@ -25,7 +25,7 @@ template<class BulkExecutor, class T>
 struct executor_container_impl<BulkExecutor,T,true>
 {
   template<class U>
-  using default_container = agency::detail::array<T, executor_shape_t<BulkExecutor>, new_executor_allocator_t<BulkExecutor,T>, executor_index_t<BulkExecutor>>;
+  using default_container = agency::detail::array<T, executor_shape_t<BulkExecutor>, executor_allocator_t<BulkExecutor,T>, executor_index_t<BulkExecutor>>;
 
   using type = member_container_or_t<BulkExecutor,T,default_container>;
 };
@@ -35,10 +35,10 @@ struct executor_container_impl<BulkExecutor,T,true>
 
 
 template<class BulkExecutor, class T>
-struct new_executor_container : detail::executor_container_impl<BulkExecutor,T> {};
+struct executor_container : detail::executor_container_impl<BulkExecutor,T> {};
 
 template<class BulkExecutor, class T>
-using new_executor_container_t = typename new_executor_container<BulkExecutor,T>::type;
+using executor_container_t = typename executor_container<BulkExecutor,T>::type;
 
 
 } // end agency

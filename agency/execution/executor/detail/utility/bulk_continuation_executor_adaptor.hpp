@@ -32,7 +32,7 @@ class bulk_continuation_executor_adaptor<BulkExecutor,true>
     using future = executor_future_t<BulkExecutor,T>;
 
     template<class T>
-    using allocator = new_executor_allocator_t<BulkExecutor,T>;
+    using allocator = executor_allocator_t<BulkExecutor,T>;
 
     __AGENCY_ANNOTATION
     bulk_continuation_executor_adaptor() = default;

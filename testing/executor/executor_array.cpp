@@ -33,7 +33,7 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 
   using shape_type = executor_shape_t<executor_array_type>;
   using index_type = executor_index_t<executor_array_type>;
-  using result_type = new_executor_container_t<executor_array_type, int>;
+  using result_type = executor_container_t<executor_array_type, int>;
 
   {
     // test .bulk_then_execute() with non-void predecessor
