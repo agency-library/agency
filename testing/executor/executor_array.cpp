@@ -29,6 +29,9 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
   static_assert(detail::is_detected_exact<executor_future_t<OuterExecutor,int>, executor_future_t, executor_array_type, int>::value,
     "executor_array should have the same future type as OuterExecutor");
 
+  static_assert(detail::is_detected_exact<executor_allocator_t<OuterExecutor,int>, executor_allocator_t, executor_array_type, int>::value,
+    "executor_array should have the same allocator type as OuterExecutor");
+
   executor_array_type exec(10, inner_exec);
 
   using shape_type = executor_shape_t<executor_array_type>;

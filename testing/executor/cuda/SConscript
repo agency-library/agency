@@ -1,5 +1,3 @@
-import os
-
 Import('env')
 env = env.Clone()
 
@@ -7,10 +5,7 @@ env = env.Clone()
 programs = env.ProgramPerSourceInCurrentDirectory()
 
 # recurse into all SConscripts in immediate child directories and add their programs to our collection 
-programs.extend(env.SConscript('cuda/SConscript', exports='env'))
-programs.extend(env.SConscript('customization_points/SConscript', exports='env'))
-programs.extend(env.SConscript('executor_traits/SConscript', exports='env'))
-programs.extend(env.SConscript('utility/SConscript', exports='env'))
+programs.extend(env.SConscript(env.Glob('*/SConscript'), exports='env'))
 
 # create unit tests for these programs and run them when "run_tests" is given as a scons command line option
 env.RunPrograms(programs, 'run_tests')
