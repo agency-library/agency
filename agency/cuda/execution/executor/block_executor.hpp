@@ -92,19 +92,19 @@ struct new_block_executor_helper_functor
   mutable Function f_;
 
   // this is the form of operator() for bulk_then_execute() with a non-void predecessor future
-  template<class Arg1, class Arg2>
+  template<class Predecessor, class Result, class InnerSharedArg>
   __device__
-  void operator()(grid_executor::index_type idx, Arg1& predecessor, agency::detail::unit, Arg2& inner_shared_param) const
+  void operator()(grid_executor::index_type idx, Predecessor& predecessor, Result& result, agency::detail::unit, InnerSharedArg& inner_shared_arg) const
   {
-    agency::detail::invoke(f_, agency::detail::get<1>(idx), predecessor, inner_shared_param);
+    agency::detail::invoke(f_, agency::detail::get<1>(idx), predecessor, result, inner_shared_arg);
   }
 
-  // this is the form of operator() for then_execute() with a void predecessor future
-  template<class Arg>
+  // this is the form of operator() for bulk_then_execute() with a void predecessor future
+  template<class Result, class InnerSharedArg>
   __device__
-  void operator()(grid_executor::index_type idx, agency::detail::unit, Arg& inner_shared_param) const
+  void operator()(grid_executor::index_type idx, Result& result, agency::detail::unit, InnerSharedArg& inner_shared_arg) const
   {
-    agency::detail::invoke(f_, agency::detail::get<1>(idx), inner_shared_param);
+    agency::detail::invoke(f_, agency::detail::get<1>(idx), result, inner_shared_arg);
   }
 };
 
