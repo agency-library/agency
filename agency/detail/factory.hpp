@@ -14,10 +14,6 @@ namespace detail
 {
 
 
-template<class Factory>
-using result_of_factory_t = result_of_t<Factory()>;
-
-
 // construct is a type of Factory
 // which creates a T by calling T's constructor with the given Args...
 template<class T, class... Args>
@@ -48,31 +44,16 @@ class construct
       return T(detail::get<Indices>(std::move(args_))...);
     }
 
-
-    // XXX eliminate me!
-    __AGENCY_ANNOTATION
-    T make() const &
-    {
-      return impl(make_index_sequence<sizeof...(Args)>());
-    }
-
-    // XXX eliminate me!
-    __AGENCY_ANNOTATION
-    T make() &&
-    {
-      return std::move(*this).impl(make_index_sequence<sizeof...(Args)>());
-    }
-
     __AGENCY_ANNOTATION
     T operator()() const &
     {
-      return make();
+      return impl(make_index_sequence<sizeof...(Args)>());
     }
 
     __AGENCY_ANNOTATION
     T operator()() &&
     {
-      return std::move(*this).make();
+      return std::move(*this).impl(make_index_sequence<sizeof...(Args)>());
     }
 
   private:
@@ -168,7 +149,7 @@ struct zip_factory
   template<size_t... Indices>
   __AGENCY_ANNOTATION
   agency::detail::tuple<
-    result_of_factory_t<Factories>...
+    result_of_t<Factories()>...
   >
     impl(agency::detail::index_sequence<Indices...>)
   {
@@ -177,7 +158,7 @@ struct zip_factory
 
   __AGENCY_ANNOTATION
   agency::detail::tuple<
-    result_of_factory_t<Factories>...
+    result_of_t<Factories()>...
   >
     operator()()
   {

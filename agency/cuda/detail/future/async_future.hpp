@@ -401,7 +401,7 @@ class async_future
       using result_type = agency::detail::result_of_t<Factory(Shape)>;
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory(shape));
       
-      using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
+      using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
       auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
       
       // create a functor to implement this bulk_then()
@@ -476,7 +476,7 @@ class async_future
     {
       using result_type = agency::detail::result_of_t<Factory(Shape)>;
       using result_state_type = detail::asynchronous_state<result_type>;
-      using outer_future_type = async_future<agency::detail::result_of_factory_t<OuterFactory>>;
+      using outer_future_type = async_future<agency::detail::result_of_t<OuterFactory()>>;
 
       using bulk_then_functor_type = decltype(detail::make_bulk_then_functor(std::declval<result_state_type>().data(), f, index_function, std::declval<async_future>().data(), std::declval<outer_future_type>().data(), inner_factory));
 
@@ -502,7 +502,7 @@ class async_future
       using result_type = agency::detail::result_of_t<Factory(Shape)>;
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory(shape));
       
-      using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
+      using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
       auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
       
       auto g = detail::make_bulk_then_functor(result_state.data(), f, index_function, data(), outer_arg.data(), inner_factory);

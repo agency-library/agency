@@ -248,8 +248,8 @@ class basic_grid_executor
                Function,
                index_type,
                async_future<T>,
-               agency::detail::result_of_factory_t<Factory2>&,
-               agency::detail::result_of_factory_t<Factory3>&
+               agency::detail::result_of_t<Factory2()>&,
+               agency::detail::result_of_t<Factory3()>&
              >
             >
     __host__ __device__
@@ -265,8 +265,8 @@ class basic_grid_executor
                Function,
                index_type,
                shared_future<T>,
-               agency::detail::result_of_factory_t<Factory2>&,
-               agency::detail::result_of_factory_t<Factory3>&
+               agency::detail::result_of_t<Factory2()>&,
+               agency::detail::result_of_t<Factory3()>&
              >
             >
     async_future<agency::detail::result_of_t<Factory1(shape_type)>>

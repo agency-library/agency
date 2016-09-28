@@ -152,7 +152,7 @@ class block_executor : private grid_executor
                Function,
                index_type,
                async_future<T>,
-               agency::detail::result_of_factory_t<Factory2>&
+               agency::detail::result_of_t<Factory2()>&
              >
             >
     async_future<agency::detail::result_of_t<Factory1(shape_type)>>

@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/factory.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <tuple>
 #include <utility>
 #include <type_traits>
@@ -18,7 +19,7 @@ class shared_parameter
 {
   public:
     using factory_type = Factory;
-    using value_type = detail::result_of_factory_t<factory_type>;
+    using value_type = result_of_t<factory_type()>;
 
     __AGENCY_ANNOTATION
     shared_parameter(const factory_type& factory)

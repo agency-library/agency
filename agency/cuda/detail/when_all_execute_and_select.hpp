@@ -278,7 +278,7 @@ async_future<when_all_execute_and_select_result_t<agency::detail::index_sequence
                                    const device_id& device)
 {
   // create a future to contain the outer argument
-  using outer_arg_type = agency::detail::result_of_factory_t<OuterFactory>;
+  using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
   auto outer_arg_future = agency::cuda::make_ready_async_future<outer_arg_type>(outer_factory());
 
   // join the events
