@@ -5,7 +5,7 @@
 #include <agency/execution/executor/new_executor_traits/executor_container.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_collected_result.hpp>
-#include <agency/detail/invoke.hpp>
+#include <agency/detail/factory.hpp>
 
 
 namespace agency
@@ -29,32 +29,6 @@ executor_future_t<E,void>
 }
 
 
-namespace bulk_then_execute_with_auto_result_detail
-{
-
-
-// XXX this is redundant with detail::construct<T>
-//     we're including it because detail::construct<T>
-//     is currently producing __host__ __device__ warnings
-//     with nvcc
-//
-//     once we eliminate those warnings, eliminate container_factory
-template<class Executor, class T>
-struct container_factory
-{
-  executor_shape_t<Executor> shape;
-
-  __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
-  new_executor_container_t<Executor,T> operator()() const
-  {
-    return new_executor_container_t<Executor,T>(shape);
-  }
-};
-
-} // end bulk_then_execute_with_auto_result_detail
-
-
 // this is the case for when Function returns non-void
 // when Function does not return void, this function collects
 // the results of each invocation into a container
@@ -75,14 +49,11 @@ executor_future_t<E,
   // compute the type of f's result
   using result_type = result_of_continuation_t<Function,executor_index_t<E>,Future,result_of_t<Factories()>&...>;
 
-  // XXX temporarily workaround __host__ __device__ warnings
-  //// compute the type of container that will store f's results
-  //using container_type = new_executor_container_t<E,result_type>;
-  //
-  //// create a factory that will construct this type of container for us
-  //auto result_factory = detail::make_construct<container_type>(shape);
-
-  auto result_factory = bulk_then_execute_with_auto_result_detail::container_factory<E,result_type>{shape};
+  // compute the type of container that will store f's results
+  using container_type = new_executor_container_t<E,result_type>;
+  
+  // create a factory that will construct this type of container for us
+  auto result_factory = detail::make_construct<container_type>(shape);
 
   // lower onto bulk_execute_with_collected_result() with this result_factory
   return detail::bulk_then_execute_with_collected_result(exec, f, shape, predecessor, result_factory, factories...);
