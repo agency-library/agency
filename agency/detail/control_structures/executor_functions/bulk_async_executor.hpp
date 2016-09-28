@@ -36,6 +36,8 @@ executor_future_t<E, result_of_t<ResultFactory()>>
 }
 
 // this overload handles the special case where the user function returns a scope_result
+// the reason we need this case cannot be handled by the overload above is because, unlike the above case,
+// there is an intermediate future which must be converted to the right type of result fututre 
 template<class E, class Function, size_t scope, class T, class Tuple, size_t... TupleIndices>
 executor_future_t<E, typename detail::scope_result_container<scope,T,E>::result_type>
   bulk_async_executor_impl(E& exec,
