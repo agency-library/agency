@@ -426,7 +426,7 @@ class future
 
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
-    struct bulk_then_visitor
+    struct old_bulk_then_visitor
     {
       Function f;
       Factory result_factory;
@@ -442,22 +442,22 @@ class future
       >
         operator()(Future& fut)
       {
-        return fut.bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory);
+        return fut.old_bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory);
       }
     };
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __AGENCY_ANNOTATION
     future<agency::detail::result_of_t<Factory(Shape)>>
-      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
+      old_bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
     {
-      auto visitor = bulk_then_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
+      auto visitor = old_bulk_then_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
       return agency::detail::visit(visitor, variant_);
     }
 
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
-    struct bulk_then_and_leave_valid_visitor
+    struct old_bulk_then_and_leave_valid_visitor
     {
       Function f;
       Factory result_factory;
@@ -474,23 +474,23 @@ class future
       >
         operator()(Future& fut)
       {
-        return fut.bulk_then_and_leave_valid(f, result_factory, shape, index_function, outer_factory, inner_factory, device);
+        return fut.old_bulk_then_and_leave_valid(f, result_factory, shape, index_function, outer_factory, inner_factory, device);
       }
     };
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __AGENCY_ANNOTATION
     future<agency::detail::result_of_t<Factory(Shape)>>
-      bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
+      old_bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
     {
-      auto visitor = bulk_then_and_leave_valid_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
+      auto visitor = old_bulk_then_and_leave_valid_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
       return agency::detail::visit(visitor, variant_);
     }
 
 
 
     template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
-    struct new_bulk_then_and_leave_valid_visitor
+    struct bulk_then_and_leave_valid_visitor
     {
       Function f;
       Shape shape;
@@ -507,7 +507,7 @@ class future
       >
         operator()(Future& fut)
       {
-        return fut.new_bulk_then_and_leave_valid(f, shape, index_function, result_factory, outer_factory, inner_factory, device);
+        return fut.bulk_then_and_leave_valid(f, shape, index_function, result_factory, outer_factory, inner_factory, device);
       }
     };
 
@@ -515,9 +515,9 @@ class future
     template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
     future<agency::detail::result_of_t<ResultFactory()>>
-      new_bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+      bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
-      auto visitor = new_bulk_then_and_leave_valid_visitor<Function,Shape,IndexFunction,ResultFactory,OuterFactory,InnerFactory>{f,shape,index_function,result_factory,outer_factory,inner_factory,device};
+      auto visitor = bulk_then_and_leave_valid_visitor<Function,Shape,IndexFunction,ResultFactory,OuterFactory,InnerFactory>{f,shape,index_function,result_factory,outer_factory,inner_factory,device};
       return agency::detail::visit(visitor, variant_);
     }
 

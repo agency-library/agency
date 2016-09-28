@@ -218,7 +218,7 @@ class basic_grid_executor
     async_future<agency::detail::result_of_t<ResultFactory()>>
       bulk_then_execute(Function f, shape_type shape, future<T>& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory)
     {
-      return predecessor.new_bulk_then(f, shape, this_index_function_type(), result_factory, outer_factory, inner_factory, device());
+      return predecessor.bulk_then(f, shape, this_index_function_type(), result_factory, outer_factory, inner_factory, device());
     }
 
 
@@ -229,7 +229,7 @@ class basic_grid_executor
     {
       using result_future_type = async_future<agency::detail::result_of_t<ResultFactory()>>;
 
-      auto intermediate_future = predecessor.new_bulk_then(f, shape, this_index_function_type(), result_factory, outer_factory, inner_factory, device());
+      auto intermediate_future = predecessor.bulk_then(f, shape, this_index_function_type(), result_factory, outer_factory, inner_factory, device());
 
       // convert the intermediate future into the type of future we need to return
       return std::move(intermediate_future.template get<result_future_type>());
@@ -261,7 +261,7 @@ class basic_grid_executor
     async_future<agency::detail::result_of_t<Factory1(shape_type)>>
       then_execute(Function f, Factory1 result_factory, shape_type shape, async_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
     {
-      return fut.bulk_then(f, result_factory, shape, this_index_function_type(), outer_factory, inner_factory, device());
+      return fut.old_bulk_then(f, result_factory, shape, this_index_function_type(), outer_factory, inner_factory, device());
     }
 
 

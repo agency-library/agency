@@ -69,7 +69,7 @@ using element_type_is_not_unit = std::integral_constant<
 // XXX it would be nice to refactor this functor such that IndexFunction was not a template parameter
 //     any reindexing of the CUDA built-ins would happen inside of Function
 template<class ContainerPointer, class Function, class IndexFunction, class PastParameterPointer, class OuterParameterPointer, class InnerFactory>
-struct bulk_then_functor
+struct old_bulk_then_functor
 {
   ContainerPointer      container_ptr_;
   Function              f_;
@@ -120,15 +120,15 @@ struct bulk_then_functor
 
 template<class ContainerPointer, class Function, class IndexFunction, class PastParameterPointer, class OuterParameterPointer, class InnerFactory>
 __host__ __device__
-bulk_then_functor<ContainerPointer,Function,IndexFunction,PastParameterPointer,OuterParameterPointer,InnerFactory>
-  make_bulk_then_functor(ContainerPointer container_ptr, Function f, IndexFunction index_function, PastParameterPointer past_param_ptr, OuterParameterPointer outer_param_ptr, InnerFactory inner_factory)
+old_bulk_then_functor<ContainerPointer,Function,IndexFunction,PastParameterPointer,OuterParameterPointer,InnerFactory>
+  make_old_bulk_then_functor(ContainerPointer container_ptr, Function f, IndexFunction index_function, PastParameterPointer past_param_ptr, OuterParameterPointer outer_param_ptr, InnerFactory inner_factory)
 {
-  return bulk_then_functor<ContainerPointer,Function,IndexFunction,PastParameterPointer,OuterParameterPointer,InnerFactory>{container_ptr, f, index_function, past_param_ptr, outer_param_ptr, inner_factory};
+  return old_bulk_then_functor<ContainerPointer,Function,IndexFunction,PastParameterPointer,OuterParameterPointer,InnerFactory>{container_ptr, f, index_function, past_param_ptr, outer_param_ptr, inner_factory};
 }
 
 
 template<class Function, class IndexFunction, class PredecessorPointer, class ResultPointer, class OuterParameterPointer, class InnerFactory>
-struct new_bulk_then_functor
+struct bulk_then_functor
 {
   Function              f_;
   IndexFunction         index_function_;
@@ -178,10 +178,10 @@ struct new_bulk_then_functor
 
 template<class Function, class IndexFunction, class PredecessorPointer, class ResultPointer, class OuterParameterPointer, class InnerFactory>
 __host__ __device__
-new_bulk_then_functor<Function,IndexFunction,PredecessorPointer,ResultPointer,OuterParameterPointer,InnerFactory>
-  make_new_bulk_then_functor(Function f, IndexFunction index_function, PredecessorPointer predecessor_ptr, ResultPointer result_ptr, OuterParameterPointer outer_param_ptr, InnerFactory inner_factory)
+bulk_then_functor<Function,IndexFunction,PredecessorPointer,ResultPointer,OuterParameterPointer,InnerFactory>
+  make_bulk_then_functor(Function f, IndexFunction index_function, PredecessorPointer predecessor_ptr, ResultPointer result_ptr, OuterParameterPointer outer_param_ptr, InnerFactory inner_factory)
 {
-  return new_bulk_then_functor<Function,IndexFunction,PredecessorPointer,ResultPointer,OuterParameterPointer,InnerFactory>{f, index_function, predecessor_ptr, result_ptr, outer_param_ptr, inner_factory};
+  return bulk_then_functor<Function,IndexFunction,PredecessorPointer,ResultPointer,OuterParameterPointer,InnerFactory>{f, index_function, predecessor_ptr, result_ptr, outer_param_ptr, inner_factory};
 }
 
 
@@ -396,7 +396,7 @@ class async_future
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     async_future<agency::detail::result_of_t<Factory(Shape)>>
-      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+      old_bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       using result_type = agency::detail::result_of_t<Factory(Shape)>;
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory(shape));
@@ -404,8 +404,8 @@ class async_future
       using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
       auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
       
-      // create a functor to implement this bulk_then()
-      auto g = detail::make_bulk_then_functor(result_state.data(), f, index_function, data(), outer_arg.data(), inner_factory);
+      // create a functor to implement this old_bulk_then()
+      auto g = detail::make_old_bulk_then_functor(result_state.data(), f, index_function, data(), outer_arg.data(), inner_factory);
 
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
@@ -428,7 +428,7 @@ class async_future
     template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
     async_future<agency::detail::result_of_t<ResultFactory()>>
-      new_bulk_then(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+      bulk_then(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       using result_type = agency::detail::result_of_t<ResultFactory()>;
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory());
@@ -437,7 +437,7 @@ class async_future
       auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
       
       // create a functor to implement this bulk_then()
-      auto g = detail::make_new_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg.data(), inner_factory);
+      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg.data(), inner_factory);
 
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
@@ -459,45 +459,45 @@ class async_future
     template<class Function, class Factory, class Shape, class IndexFunction>
     __host__ __device__
     async_future<agency::detail::result_of_t<Factory(Shape)>>
-      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, device_id device)
+      old_bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, device_id device)
     {
       auto outer_factory = agency::detail::unit_factory{};
       auto inner_factory = agency::detail::unit_factory{};
       auto g = agency::detail::take_first_two_parameters_and_invoke<Function>{f};
 
-      return this->bulk_then(g, result_factory, shape, index_function, outer_factory, inner_factory, device);
+      return this->old_bulk_then(g, result_factory, shape, index_function, outer_factory, inner_factory, device);
     }
 
-    // these functions returns a pointer to the kernel used to implement the corresponding call to bulk_then()
-    // XXX there might not actually be implemented a corresponding bulk_then() for each of these bulk_then_kernel() functions
+    // these functions returns a pointer to the kernel used to implement the corresponding call to old_bulk_then()
+    // XXX there might not actually be implemented a corresponding old_bulk_then() for each of these old_bulk_then_kernel() functions
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
-    static void* bulk_then_kernel(const Function& f, const Factory& result_factory, const Shape& s, const IndexFunction& index_function, const OuterFactory&, const InnerFactory& inner_factory, const device_id&)
+    static void* old_bulk_then_kernel(const Function& f, const Factory& result_factory, const Shape& s, const IndexFunction& index_function, const OuterFactory&, const InnerFactory& inner_factory, const device_id&)
     {
       using result_type = agency::detail::result_of_t<Factory(Shape)>;
       using result_state_type = detail::asynchronous_state<result_type>;
       using outer_future_type = async_future<agency::detail::result_of_t<OuterFactory()>>;
 
-      using bulk_then_functor_type = decltype(detail::make_bulk_then_functor(std::declval<result_state_type>().data(), f, index_function, std::declval<async_future>().data(), std::declval<outer_future_type>().data(), inner_factory));
+      using old_bulk_then_functor_type = decltype(detail::make_old_bulk_then_functor(std::declval<result_state_type>().data(), f, index_function, std::declval<async_future>().data(), std::declval<outer_future_type>().data(), inner_factory));
 
-      return detail::event::then_on_kernel<bulk_then_functor_type>();
+      return detail::event::then_on_kernel<old_bulk_then_functor_type>();
     }
 
     template<class Function, class Factory, class Shape, class IndexFunction>
     __host__ __device__
-    static void* bulk_then_kernel(const Function& f, const Factory& result_factory, const Shape& s, const IndexFunction& index_function, const device_id& device)
+    static void* old_bulk_then_kernel(const Function& f, const Factory& result_factory, const Shape& s, const IndexFunction& index_function, const device_id& device)
     {
       auto outer_factory = agency::detail::unit_factory{};
       auto inner_factory = agency::detail::unit_factory{};
       auto g = agency::detail::take_first_two_parameters_and_invoke<Function>{f};
 
-      return bulk_then_kernel(f, result_factory, s, index_function, outer_factory, inner_factory, device);
+      return old_bulk_then_kernel(f, result_factory, s, index_function, outer_factory, inner_factory, device);
     }
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     async_future<agency::detail::result_of_t<Factory(Shape)>>
-      bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+      old_bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       using result_type = agency::detail::result_of_t<Factory(Shape)>;
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory(shape));
@@ -505,7 +505,7 @@ class async_future
       using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
       auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
       
-      auto g = detail::make_bulk_then_functor(result_state.data(), f, index_function, data(), outer_arg.data(), inner_factory);
+      auto g = detail::make_old_bulk_then_functor(result_state.data(), f, index_function, data(), outer_arg.data(), inner_factory);
 
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
@@ -522,7 +522,7 @@ class async_future
     template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
     async_future<agency::detail::result_of_t<ResultFactory()>>
-      new_bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+      bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       using result_type = agency::detail::result_of_t<ResultFactory()>;
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory());
@@ -531,7 +531,7 @@ class async_future
       auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
       
       // create a functor to implement this bulk_then()
-      auto g = detail::make_new_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg.data(), inner_factory);
+      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg.data(), inner_factory);
 
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
