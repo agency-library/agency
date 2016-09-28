@@ -192,7 +192,7 @@ auto bind_agent_local_parameters_for_bulk_then(Function f, Args&&... args) ->
 
 template<class Executor, class Function, class Future, class... Args>
 bulk_then_executor_result_t<Executor,Function,Future,Args...>
-  bulk_then_executor(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Future& fut, Args&&... args)
+  bulk_then_executor(Executor& exec, executor_shape_t<Executor> shape, Function f, Future& fut, Args&&... args)
 {
   // bind f and the agent local parameters in args... into a functor g
   auto g = detail::bind_agent_local_parameters_for_bulk_then<Future>(f, std::forward<Args>(args)...);

@@ -5,7 +5,7 @@
 #include <agency/detail/array.hpp>
 #include <agency/detail/index.hpp>
 #include <agency/detail/shape.hpp>
-#include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <utility>
 #include <tuple>
 #include <type_traits>
@@ -118,7 +118,7 @@ class scope_result_container
   : public detail::array<
       T,
       shape_take_t<scope, executor_shape_t<Executor>>,
-      typename executor_traits<Executor>::template allocator<T>,
+      executor_allocator_t<Executor, T>,
       index_take_t<scope, executor_index_t<Executor>>
     >
 {
@@ -126,19 +126,19 @@ class scope_result_container
     using super_t = detail::array<
       T,
       shape_take_t<scope, executor_shape_t<Executor>>,
-      typename executor_traits<Executor>::template allocator<T>,
+      executor_allocator_t<Executor, T>,
       index_take_t<scope, executor_index_t<Executor>>
     >;
 
     using base_index_type = typename super_t::index_type;
 
   public:
-    static_assert(scope < executor_traits<Executor>::execution_depth, "scope_result_container: scope must be less than Executor's execution_depth");
+    static_assert(scope < executor_execution_depth<Executor>::value, "scope_result_container: scope must be less than Executor's execution_depth");
 
     using result_type = super_t;
 
-    using shape_type = typename executor_traits<Executor>::shape_type;
-    using index_type = typename executor_traits<Executor>::index_type;
+    using shape_type = executor_shape_t<Executor>;
+    using index_type = executor_index_t<Executor>;
 
     __agency_exec_check_disable__
     scope_result_container()
@@ -194,8 +194,8 @@ class scope_result_container<0, T, Executor>
     T single_element_;
 
   public:
-    using shape_type = typename executor_traits<Executor>::shape_type;
-    using index_type = typename executor_traits<Executor>::index_type;
+    using shape_type = executor_shape_t<Executor>;
+    using index_type = executor_index_t<Executor>;
 
     using result_type = T;
 

@@ -27,7 +27,7 @@ result_of_t<ResultFactory()>
   bulk_invoke_executor_impl(Executor& exec,
                             Function f,
                             ResultFactory result_factory,
-                            typename executor_traits<Executor>::shape_type shape,
+                            executor_shape_t<Executor> shape,
                             Tuple&& shared_factory_tuple,
                             detail::index_sequence<TupleIndices...>)
 {
@@ -39,7 +39,7 @@ template<class Executor, class Function, class Tuple, size_t... TupleIndices>
 void bulk_invoke_executor_impl(Executor& exec,
                                Function f,
                                void_factory,
-                               typename executor_traits<Executor>::shape_type shape,
+                               executor_shape_t<Executor> shape,
                                Tuple&& factory_tuple,
                                detail::index_sequence<TupleIndices...>)
 {
@@ -71,7 +71,7 @@ using bulk_invoke_executor_result_t = typename bulk_invoke_executor_result<Execu
 
 template<class Executor, class Function, class... Args>
 bulk_invoke_executor_result_t<Executor, Function, Args...>
-  bulk_invoke_executor(Executor& exec, typename executor_traits<Executor>::shape_type shape, Function f, Args&&... args)
+  bulk_invoke_executor(Executor& exec, executor_shape_t<Executor> shape, Function f, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
   auto g = detail::bind_agent_local_parameters_workaround_nvbug1754712(std::integral_constant<size_t,1>(), f, detail::placeholders::_1, std::forward<Args>(args)...);
