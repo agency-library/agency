@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/cuda/execution/executor/grid_executor.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
@@ -116,27 +117,25 @@ class block_executor : private grid_executor
 {
   private:
     using super_t = grid_executor;
-    using super_traits = executor_traits<super_t>;
-    using traits = executor_traits<block_executor>;
 
   public:
     using execution_category = concurrent_execution_tag;
 
-    using shape_type = std::tuple_element<1, super_traits::shape_type>::type;
-    using index_type = std::tuple_element<1, super_traits::index_type>::type;
+    using shape_type = std::tuple_element<1, executor_shape_t<super_t>>::type;
+    using index_type = std::tuple_element<1, executor_index_t<super_t>>::type;
 
     template<class T>
-    using future = super_traits::future<T>;
+    using future = typename super_t::template future<T>;
 
+    template<class T>
+    using allocator = typename super_t::template allocator<T>;
+
+    // XXX eliminate this superfluous type once we eliminate agency::executor_traits
     template<class T>
     using container = detail::array<T, shape_type>;
 
-    future<void> make_ready_future()
-    {
-      return super_traits::template make_ready_future<void>(*this);
-    }
-
     using super_t::super_t;
+    using super_t::make_ready_future;
     using super_t::device;
 
     template<class Function>
@@ -164,7 +163,7 @@ class block_executor : private grid_executor
       // wrap result_factory with a factory which creates a container with indices that grid_executor produces
       auto wrapped_result_factory = detail::block_executor_helper_container_factory<Factory1>{result_factory};
 
-      return super_traits::then_execute(*this, wrapped_f, wrapped_result_factory, super_t::shape_type{1,shape}, fut, agency::detail::unit_factory(), shared_factory);
+      return executor_traits<super_t>::then_execute(*this, wrapped_f, wrapped_result_factory, super_t::shape_type{1,shape}, fut, agency::detail::unit_factory(), shared_factory);
     }
 
 
