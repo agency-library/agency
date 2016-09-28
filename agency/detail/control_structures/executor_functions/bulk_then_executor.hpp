@@ -1,16 +1,15 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/executor/executor_traits.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_future.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_collected_result.hpp>
 #include <agency/detail/control_structures/executor_functions/bind_agent_local_parameters.hpp>
 #include <agency/detail/control_structures/executor_functions/bulk_async_executor.hpp>
+#include <agency/detail/control_structures/executor_functions/result_factory.hpp>
 #include <agency/detail/control_structures/scope_result.hpp>
-#include <agency/detail/control_structures/result_factory.hpp>
 #include <agency/detail/control_structures/decay_parameter.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <type_traits>
@@ -201,10 +200,8 @@ bulk_then_executor_result_t<Executor,Function,Future,Args...>
   // make a tuple of the shared args
   auto shared_arg_tuple = detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
 
-  using traits = executor_traits<Executor>;
-
   // package up the shared parameters for the executor
-  const size_t execution_depth = traits::execution_depth;
+  const size_t execution_depth = executor_execution_depth<Executor>::value;
 
   // create a tuple of factories to use for shared parameters for the executor
   auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<execution_depth>(shared_arg_tuple);
@@ -216,7 +213,7 @@ bulk_then_executor_result_t<Executor,Function,Future,Args...>
   auto h = detail::make_unpack_shared_parameters_from_then_execute_and_invoke<result_of_f,Future>(g);
 
   // based on the type of f's result, make a factory that will create the appropriate type of container to store f's results
-  auto result_factory = detail::new_make_result_factory<result_of_f>(exec, shape);
+  auto result_factory = detail::make_result_factory<result_of_f>(exec, shape);
 
   return detail::bulk_then_executor_impl(exec, h, result_factory, shape, fut, factory_tuple, detail::make_index_sequence<execution_depth>());
 }

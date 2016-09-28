@@ -1,8 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/executor/executor_traits.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_future.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/execution/executor/detail/utility/bulk_async_execute_with_void_result.hpp>
@@ -10,8 +9,8 @@
 #include <agency/detail/control_structures/executor_functions/bind_agent_local_parameters.hpp>
 #include <agency/detail/control_structures/executor_functions/unpack_shared_parameters_from_executor_and_invoke.hpp>
 #include <agency/detail/control_structures/executor_functions/bulk_invoke_executor.hpp>
+#include <agency/detail/control_structures/executor_functions/result_factory.hpp>
 #include <agency/detail/control_structures/scope_result.hpp>
-#include <agency/detail/control_structures/result_factory.hpp>
 #include <agency/detail/control_structures/decay_parameter.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <type_traits>
@@ -85,7 +84,7 @@ using bulk_async_executor_result_t = typename bulk_async_executor_result<Executo
 
 template<class Executor, class Function, class... Args>
 bulk_async_executor_result_t<Executor, Function, Args...>
-  bulk_async_executor(Executor& exec, typename executor_traits<typename std::decay<Executor>::type>::shape_type shape, Function f, Args&&... args)
+  bulk_async_executor(Executor& exec, executor_shape_t<Executor> shape, Function f, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
   auto g = detail::bind_agent_local_parameters_workaround_nvbug1754712(std::integral_constant<size_t,1>(), f, detail::placeholders::_1, std::forward<Args>(args)...);
@@ -93,10 +92,8 @@ bulk_async_executor_result_t<Executor, Function, Args...>
   // make a tuple of the shared args
   auto shared_arg_tuple = detail::forward_shared_parameters_as_tuple(std::forward<Args>(args)...);
 
-  using traits = executor_traits<Executor>;
-
   // package up the shared parameters for the executor
-  const size_t execution_depth = traits::execution_depth;
+  const size_t execution_depth = executor_execution_depth<Executor>::value;
 
   // create a tuple of factories to use for shared parameters for the executor
   auto factory_tuple = agency::detail::make_shared_parameter_factory_tuple<execution_depth>(shared_arg_tuple);
@@ -108,7 +105,7 @@ bulk_async_executor_result_t<Executor, Function, Args...>
   using result_of_f = result_of_t<Function(executor_index_t<Executor>,decay_parameter_t<Args>...)>;
 
   // based on the type of f's result, make a factory that will create the appropriate type of container to store f's results
-  auto result_factory = detail::new_make_result_factory<result_of_f>(exec, shape);
+  auto result_factory = detail::make_result_factory<result_of_f>(exec, shape);
 
   return detail::bulk_async_executor_impl(exec, h, result_factory, shape, factory_tuple, detail::make_index_sequence<execution_depth>());
 }

@@ -63,7 +63,7 @@ executor_future_t<E, result_of_t<ResultFactory()>>
   bulk_async_execute_without_shared_parameters(E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory)
 {
   return bulk_async_execute_without_shared_parameters_detail::bulk_async_execute_without_shared_parameters_impl(
-    detail::make_index_sequence<new_executor_execution_depth<E>::value>(),
+    detail::make_index_sequence<executor_execution_depth<E>::value>(),
     exec,
     f,
     shape,

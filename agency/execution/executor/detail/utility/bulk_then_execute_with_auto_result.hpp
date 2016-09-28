@@ -18,7 +18,7 @@ namespace detail
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class... Factories,
          __AGENCY_REQUIRES(BulkExecutor<E>()),
-         __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories)),
+         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories)),
          __AGENCY_REQUIRES(std::is_void<result_of_continuation_t<Function, executor_index_t<E>, Future, result_of_t<Factories()>&...>>::value)
         >
 __AGENCY_ANNOTATION
@@ -35,7 +35,7 @@ executor_future_t<E,void>
 // this container is returned through a future
 template<class E, class Function, class Future, class... Factories,
          __AGENCY_REQUIRES(BulkExecutor<E>()),
-         __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(Factories)),
+         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories)),
          __AGENCY_REQUIRES(!std::is_void<result_of_continuation_t<Function, executor_index_t<E>, Future, result_of_t<Factories()>&...>>::value)
         >
 __AGENCY_ANNOTATION

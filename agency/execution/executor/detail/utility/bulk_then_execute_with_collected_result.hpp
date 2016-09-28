@@ -18,7 +18,7 @@ namespace detail
 
 template<class E, class Function, class Future, class ResultFactory, class... SharedFactories,
          __AGENCY_REQUIRES(BulkExecutor<E>()),
-         __AGENCY_REQUIRES(new_executor_execution_depth<E>::value == sizeof...(SharedFactories)),
+         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(SharedFactories)),
          __AGENCY_REQUIRES(!std::is_void<result_of_continuation_t<Function, executor_index_t<E>, Future, result_of_t<SharedFactories()>&...>>::value)
         >
 __AGENCY_ANNOTATION

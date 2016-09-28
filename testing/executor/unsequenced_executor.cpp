@@ -27,6 +27,9 @@ int main()
   static_assert(detail::is_detected_exact<std::future<int>, executor_future_t, unsequenced_executor, int>::value,
     "unsequenced_executor should have std::future furture");
 
+  static_assert(executor_execution_depth<unsequenced_executor>::value == 1,
+    "unsequenced_executor should have execution_depth == 1");
+
   unsequenced_executor exec;
 
   size_t shape = 10;

@@ -82,7 +82,7 @@ executor_future_t<E, result_of_t<ResultFactory()>>
   bulk_then_execute_without_shared_parameters(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory)
 {
   return bulk_then_execute_without_shared_parameters_detail::bulk_then_execute_without_shared_parameters_impl(
-    detail::make_index_sequence<new_executor_execution_depth<E>::value>(),
+    detail::make_index_sequence<executor_execution_depth<E>::value>(),
     exec,
     f,
     shape,

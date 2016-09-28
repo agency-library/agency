@@ -28,6 +28,9 @@ int main()
   static_assert(detail::is_detected_exact<std::future<int>, executor_future_t, concurrent_executor, int>::value,
     "concurrent_executor should have std::future future");
 
+  static_assert(executor_execution_depth<concurrent_executor>::value == 1,
+    "concurrent_executor should have execution_depth == 1");
+
   concurrent_executor exec;
 
   std::future<int> fut = agency::make_ready_future<int>(exec, 7);

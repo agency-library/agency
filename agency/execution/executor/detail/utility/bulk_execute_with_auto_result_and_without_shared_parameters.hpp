@@ -73,7 +73,7 @@ auto bulk_execute_with_auto_result_and_without_shared_parameters(E& exec,
                                                                  executor_shape_t<E> shape) ->
   decltype(
     bulk_execute_with_auto_result_and_without_shared_parameters_detail::bulk_execute_with_auto_result_and_without_shared_parameters_impl(
-      detail::make_index_sequence<new_executor_execution_depth<E>::value>(),
+      detail::make_index_sequence<executor_execution_depth<E>::value>(),
       exec,
       f,
       shape
@@ -83,7 +83,7 @@ auto bulk_execute_with_auto_result_and_without_shared_parameters(E& exec,
   namespace ns = bulk_execute_with_auto_result_and_without_shared_parameters_detail;
 
   return ns::bulk_execute_with_auto_result_and_without_shared_parameters_impl(
-    detail::make_index_sequence<new_executor_execution_depth<E>::value>(),
+    detail::make_index_sequence<executor_execution_depth<E>::value>(),
     exec,
     f,
     shape

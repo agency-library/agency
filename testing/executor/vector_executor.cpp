@@ -27,6 +27,9 @@ int main()
   static_assert(detail::is_detected_exact<std::future<int>, executor_future_t, vector_executor, int>::value,
     "vector_executor should have std::future furture");
 
+  static_assert(executor_execution_depth<vector_executor>::value == 1,
+    "vector_executor should have execution_depth == 1");
+
   vector_executor exec;
 
   size_t shape = 10;

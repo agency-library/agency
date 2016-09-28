@@ -31,7 +31,7 @@ class executor_array
     using outer_execution_category = new_executor_execution_category_t<outer_executor_type>;
     using inner_execution_category = new_executor_execution_category_t<inner_executor_type>;
 
-    constexpr static size_t inner_depth = new_executor_execution_depth<inner_executor_type>::value;
+    constexpr static size_t inner_depth = executor_execution_depth<inner_executor_type>::value;
 
   public:
     using execution_category = scoped_execution_tag<outer_execution_category,inner_execution_category>;

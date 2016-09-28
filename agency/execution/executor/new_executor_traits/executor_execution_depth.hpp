@@ -23,7 +23,7 @@ struct executor_execution_depth_impl<BulkExecutor,true>
 
 
 template<class BulkExecutor>
-struct new_executor_execution_depth : detail::executor_execution_depth_impl<BulkExecutor> {};
+struct executor_execution_depth : detail::executor_execution_depth_impl<BulkExecutor> {};
 
 
 } // end agency

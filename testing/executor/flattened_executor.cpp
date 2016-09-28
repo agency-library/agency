@@ -28,6 +28,11 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
   static_assert(detail::is_detected_exact<executor_future_t<OuterExecutor,int>, executor_future_t, flattened_executor_type, int>::value,
     "flattened_executor should have the same future type as OuterExecutor");
 
+  const size_t scoped_depth = executor_execution_depth<scoped_executor_type>::value;
+
+  static_assert(executor_execution_depth<flattened_executor_type>::value == scoped_depth - 1,
+    "flattened_executor should have execution_depth == scoped_depth - 1");
+
   flattened_executor_type exec(scoped_executor_type(outer_exec,inner_exec));
 
   std::future<int> fut = make_ready_future<int>(exec, 7);

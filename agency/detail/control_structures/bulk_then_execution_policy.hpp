@@ -6,7 +6,6 @@
 #include <agency/detail/control_structures/executor_functions/bulk_then_executor.hpp>
 #include <agency/detail/control_structures/decay_parameter.hpp>
 #include <agency/detail/control_structures/single_result.hpp>
-#include <agency/detail/control_structures/result_factory.hpp>
 #include <agency/detail/control_structures/shared_parameter.hpp>
 #include <agency/detail/control_structures/bulk_invoke_execution_policy.hpp>
 #include <agency/detail/is_call_possible.hpp>
