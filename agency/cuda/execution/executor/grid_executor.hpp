@@ -177,6 +177,11 @@ class basic_grid_executor
 
 
     template<class T>
+    using allocator = cuda::allocator<T>;
+
+
+    // XXX eliminate this superfluous type once we eliminate agency::executor_traits
+    template<class T>
     using container = detail::array<T, shape_type>;
 
 
