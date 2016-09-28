@@ -7,7 +7,6 @@
 #include <agency/detail/shape.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/execution_categories.hpp>
-#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/detail/flatten_index_and_invoke.hpp>
@@ -120,33 +119,35 @@ class flattened_executor
 {
   // probably shouldn't insist on a scoped executor
   static_assert(
-    detail::is_scoped_execution_category<typename executor_traits<Executor>::execution_category>::value,
+    detail::is_scoped_execution_category<new_executor_execution_category_t<Executor>>::value,
     "Execution category of Executor must be scoped."
   );
 
   private:
+    using base_execution_category = new_executor_execution_category_t<Executor>;
+    constexpr static auto execution_depth = executor_execution_depth<Executor>::value - 1;
+
     using base_traits = executor_traits<Executor>;
-    using base_execution_category = typename base_traits::execution_category;
-    constexpr static auto execution_depth = base_traits::execution_depth - 1;
 
   public:
     using base_executor_type = Executor;
     using execution_category = detail::flattened_execution_tag<base_execution_category>;
-    using shape_type = detail::flattened_shape_type_t<typename base_traits::shape_type>;
-    using index_type = detail::flattened_index_type_t<typename base_traits::index_type>;
+    using shape_type = detail::flattened_shape_type_t<executor_shape_t<base_executor_type>>;
+    using index_type = detail::flattened_index_type_t<executor_shape_t<base_executor_type>>;
 
     template<class T>
-    using future = typename base_traits::template future<T>;
+    using future = executor_future_t<base_executor_type, T>;
 
     template<class T>
-    using allocator = typename base_traits::template allocator<T>;
+    using allocator = executor_allocator_t<base_executor_type, T>;
 
+    // XXX eliminate this superfluous type when we eliminate executor_traits
     template<class T>
     using container = detail::array<T, shape_type, allocator<T>, index_type>;
 
     future<void> make_ready_future()
     {
-      return executor_traits<base_executor_type>::make_ready_future(base_executor());
+      return agency::make_ready_future<void>(base_executor());
     }
 
     flattened_executor(const base_executor_type& base_executor = base_executor_type())
@@ -166,7 +167,7 @@ class flattened_executor
       detail::guarded_container_factory<Factory1,shape_type> intermediate_result_factory{result_factory,shape};
 
       // create a function to execute
-      using base_index_type = typename executor_traits<base_executor_type>::index_type;
+      using base_index_type = executor_index_t<base_executor_type>;
       using future_value_type = typename future_traits<Future>::value_type;
       auto execute_me = detail::make_flatten_index_and_invoke<base_index_type,future_value_type>(f, base_shape, shape);
 
@@ -183,7 +184,7 @@ class flattened_executor
 
       // cast the intermediate result to the type of result expected by the caller
       using result_type = detail::result_of_t<Factory1(shape_type)>;
-      return executor_traits<base_executor_type>::template future_cast<result_type>(base_executor(), intermediate_fut);
+      return agency::future_cast<result_type>(base_executor(), intermediate_fut);
     }
 
 
@@ -233,7 +234,7 @@ class flattened_executor
     }
 
   private:
-    using base_shape_type = typename base_traits::shape_type;
+    using base_shape_type = executor_shape_t<base_executor_type>;
 
     static_assert(detail::is_tuple<base_shape_type>::value, "The shape_type of flattened_executor's base_executor must be a tuple.");
 
