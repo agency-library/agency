@@ -10,7 +10,7 @@
 #include <agency/detail/control_structures/bulk_invoke_execution_policy.hpp>
 #include <agency/detail/is_call_possible.hpp>
 #include <agency/execution/execution_agent.hpp>
-#include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
 #include <agency/execution/detail/execution_policy_traits.hpp>
 #include <utility>
 
@@ -20,7 +20,7 @@ namespace detail
 {
 
 
-template<class ExecutorTraits, class AgentTraits, class Function, class Future, size_t... UserArgIndices>
+template<class Executor, class AgentTraits, class Function, class Future, size_t... UserArgIndices>
 struct then_execute_agent_functor
 {
   // XXX should just make the future's value_type a parameter of this functor and try to use it SFINAE the operator()s below
@@ -30,7 +30,7 @@ struct then_execute_agent_functor
   using agent_shape_type  = decltype(std::declval<agent_domain_type>().shape());
   using agent_execution_category = typename AgentTraits::execution_category;
 
-  using executor_shape_type = typename ExecutorTraits::shape_type;
+  using executor_shape_type = executor_shape_t<Executor>;
 
   agent_param_type    agent_param_;
   agent_shape_type    agent_shape_;
@@ -38,7 +38,7 @@ struct then_execute_agent_functor
   Function            f_;
 
   using agent_index_type    = typename AgentTraits::index_type;
-  using executor_index_type = typename ExecutorTraits::index_type;
+  using executor_index_type = executor_index_t<Executor>;
 
   template<class OtherFunction, class Tuple, size_t... Indices>
   __AGENCY_ANNOTATION
@@ -157,14 +157,13 @@ bulk_then_execution_policy_result_t<
   auto agent_shared_parameter_factory_tuple = detail::make_agent_shared_parameter_factory_tuple<agent_type>(param);
 
   using executor_type = typename ExecutionPolicy::executor_type;
-  using executor_traits = agency::executor_traits<executor_type>;
 
   // convert the shape of the agent into the type of the executor's shape
-  using executor_shape_type = typename executor_traits::shape_type;
+  using executor_shape_type = executor_shape_t<executor_type>;
   executor_shape_type executor_shape = detail::shape_cast<executor_shape_type>(agent_shape);
 
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
-  auto lambda = then_execute_agent_functor<executor_traits,agent_traits,Function,Future,UserArgIndices...>{param, agent_shape, executor_shape, f};
+  auto lambda = then_execute_agent_functor<executor_type,agent_traits,Function,Future,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
   return detail::bulk_then_executor(
     policy.executor(),

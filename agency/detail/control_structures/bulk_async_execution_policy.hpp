@@ -9,7 +9,7 @@
 #include <agency/detail/control_structures/shared_parameter.hpp>
 #include <agency/detail/control_structures/agent_shared_parameter_factory_tuple.hpp>
 #include <agency/execution/execution_agent.hpp>
-#include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
 #include <agency/execution/detail/execution_policy_traits.hpp>
 #include <utility>
 
@@ -53,14 +53,13 @@ bulk_async_execution_policy_result_t<
   auto agent_shared_parameter_factory_tuple = detail::make_agent_shared_parameter_factory_tuple<agent_type>(param);
 
   using executor_type = typename ExecutionPolicy::executor_type;
-  using executor_traits = agency::executor_traits<executor_type>;
 
   // convert the shape of the agent into the type of the executor's shape
-  using executor_shape_type = typename executor_traits::shape_type;
+  using executor_shape_type = executor_shape_t<executor_type>;
   executor_shape_type executor_shape = detail::shape_cast<executor_shape_type>(agent_shape);
 
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
-  auto lambda = execute_agent_functor<executor_traits,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
+  auto lambda = execute_agent_functor<executor_type,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
   return detail::bulk_async_executor(
     policy.executor(),

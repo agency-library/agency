@@ -5,6 +5,8 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/invoke.hpp>
+#include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/new_executor_traits/executor_index.hpp>
 #include <utility>
 
 namespace agency
@@ -13,7 +15,7 @@ namespace detail
 {
 
 
-template<class ExecutorTraits, class AgentTraits, class Function, size_t... UserArgIndices>
+template<class Executor, class AgentTraits, class Function, size_t... UserArgIndices>
 struct execute_agent_functor
 {
   using agent_type        = typename AgentTraits::execution_agent_type;
@@ -22,7 +24,7 @@ struct execute_agent_functor
   using agent_shape_type  = decltype(std::declval<agent_domain_type>().shape());
   using agent_execution_category = typename AgentTraits::execution_category;
 
-  using executor_shape_type = typename ExecutorTraits::shape_type;
+  using executor_shape_type = executor_shape_t<Executor>;
 
   agent_param_type    agent_param_;
   agent_shape_type    agent_shape_;
@@ -30,7 +32,7 @@ struct execute_agent_functor
   Function            f_;
 
   using agent_index_type    = typename AgentTraits::index_type;
-  using executor_index_type = typename ExecutorTraits::index_type;
+  using executor_index_type = executor_index_t<Executor>;
 
   template<class OtherFunction, class Tuple, size_t... Indices>
   __AGENCY_ANNOTATION
