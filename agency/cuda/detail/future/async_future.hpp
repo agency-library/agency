@@ -188,9 +188,12 @@ bulk_then_functor<Function,IndexFunction,PredecessorPointer,ResultPointer,OuterP
 } // end detail
 
 
-// forward declaration for async_future<T>'s benefit
+// forward declarations for async_future<T>'s benefit
 template<class T>
 class shared_future;
+
+template<class T>
+class future;
 
 
 template<class T>
@@ -333,8 +336,17 @@ class async_future
     //     because it needs access to shared_future<T>'s class definition
     shared_future<T> share();
 
-  // XXX stuff beneath here should be private but the implementation of when_all_execute_and_select() uses it
-  //private:
+    // implement swap to avoid depending on thrust::swap
+    template<class U>
+    __host__ __device__
+    static void swap(U& a, U& b)
+    {
+      U tmp{a};
+      a = b;
+      b = tmp;
+    }
+
+  private:
     template<class U>
     __host__ __device__
     static U get_ref_impl(agency::detail::empty_type_ptr<U> ptr)
@@ -546,6 +558,7 @@ class async_future
     }
 
     template<class U> friend class async_future;
+    template<class U> friend class agency::cuda::future;
     template<class Shape, class Index> friend class agency::cuda::detail::basic_grid_executor;
 
     __host__ __device__
@@ -561,16 +574,6 @@ class async_future
     async_future(detail::event&& e, Args&&... ready_args)
       : async_future(std::move(e), detail::asynchronous_state<T>(agency::detail::construct_ready, std::forward<Args>(ready_args)...))
     {}
-
-    // implement swap to avoid depending on thrust::swap
-    template<class U>
-    __host__ __device__
-    static void swap(U& a, U& b)
-    {
-      U tmp{a};
-      a = b;
-      b = tmp;
-    }
 
     template<class... Types>
     friend __host__ __device__

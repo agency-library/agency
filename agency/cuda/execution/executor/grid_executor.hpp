@@ -9,7 +9,6 @@
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
-#include <agency/cuda/detail/when_all_execute_and_select.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/shape_cast.hpp>
@@ -229,18 +228,6 @@ class basic_grid_executor
       return std::move(intermediate_future.template get<result_future_type>());
     }
 
-
-    template<size_t... Indices, class Function, class TupleOfFutures, class Factory1, class Factory2>
-    __host__ __device__
-    async_future<detail::when_all_execute_and_select_result_t<agency::detail::index_sequence<Indices...>, agency::detail::decay_t<TupleOfFutures>>>
-      when_all_execute_and_select(Function f,
-                                  shape_type shape,
-                                  TupleOfFutures&& tuple_of_futures,
-                                  Factory1 outer_factory,
-                                  Factory2 inner_factory)
-    {
-      return detail::when_all_execute_and_select<Indices...>(f, shape, this_index_function_type(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory, device());
-    }
 
     template<class Function, class Factory1, class T, class Factory2, class Factory3,
              class = agency::detail::result_of_continuation_t<

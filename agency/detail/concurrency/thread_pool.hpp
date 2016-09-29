@@ -229,59 +229,6 @@ class thread_pool_executor
       }
     }
 
-    template<size_t... Indices, class Function, class... Futures>
-    std::future<
-      detail::when_all_and_select_result_t<
-        detail::index_sequence<Indices...>, typename std::decay<Futures>::type...
-      >
-    >
-      when_all_execute_and_select_impl_impl(index_sequence<Indices...>, Function&& f, Futures&&... futures)
-    {
-      return system_thread_pool().async(when_all_execute_and_select_functor<Indices...>(), std::forward<Function>(f), std::move(futures)...);
-    }
-
-    template<size_t... SelectedIndices, size_t... TupleIndices, class Function, class TupleOfFutures>
-    std::future<
-      detail::when_all_execute_and_select_result_t<
-        index_sequence<SelectedIndices...>,
-        decay_t<TupleOfFutures>
-      >
-    >
-      when_all_execute_and_select_impl(index_sequence<SelectedIndices...> indices, index_sequence<TupleIndices...>, Function&& f, TupleOfFutures&& futures)
-    {
-      return when_all_execute_and_select_impl_impl(indices, std::forward<Function>(f), detail::get<TupleIndices>(std::forward<TupleOfFutures>(futures))...);
-    }
-
-
-    // XXX the reason we implemented single-agent when_all_execute_and_select
-    //     is to fix #246 -- bulk_async(par, ...) was executing synchronously
-    //     this is because:
-    //       * parallel_executor is implemented by flattening an executor_array
-    //       * executor_array::then_execute() is implemented with when_all_execute_and_select() on the outer executor
-    //         * in this case, the outer executor is a thread_pool_executor
-    //       * because thread_pool_executor did not previously have when_all_execute_and_select(), the asynchrony was created via std::async(std::launch::deferred, ...)
-    // XXX what we need to do in the future is something like this:
-    //       * implement a fix to #248
-    //       * simplify executor_array::then_execute() to use outer_executor().bulk_then_execute()
-    //       * implement bulk_execute(), bulk_async_execute(), and bulk_then_execute() for thread_pool_executor
-    template<size_t... Indices, class Function, class TupleOfFutures>
-    std::future<
-      detail::when_all_execute_and_select_result_t<
-        index_sequence<Indices...>,
-        decay_t<TupleOfFutures>
-      >
-    >
-      when_all_execute_and_select(Function&& f, TupleOfFutures&& futures)
-    {
-      return when_all_execute_and_select_impl(
-        index_sequence<Indices...>(),
-        make_tuple_indices(futures),
-        std::forward<Function>(f),
-        std::forward<TupleOfFutures>(futures)
-      );
-    }
-
-
   private:
     // this deleter fulfills a promise just before
     // it deletes its argument
