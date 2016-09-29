@@ -229,41 +229,6 @@ class basic_grid_executor
     }
 
 
-    template<class Function, class Factory1, class T, class Factory2, class Factory3,
-             class = agency::detail::result_of_continuation_t<
-               Function,
-               index_type,
-               async_future<T>,
-               agency::detail::result_of_t<Factory2()>&,
-               agency::detail::result_of_t<Factory3()>&
-             >
-            >
-    __host__ __device__
-    async_future<agency::detail::result_of_t<Factory1(shape_type)>>
-      then_execute(Function f, Factory1 result_factory, shape_type shape, async_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
-    {
-      return fut.old_bulk_then(f, result_factory, shape, this_index_function_type(), outer_factory, inner_factory, device());
-    }
-
-
-    template<class Function, class Factory1, class T, class Factory2, class Factory3,
-             class = agency::detail::result_of_continuation_t<
-               Function,
-               index_type,
-               shared_future<T>,
-               agency::detail::result_of_t<Factory2()>&,
-               agency::detail::result_of_t<Factory3()>&
-             >
-            >
-    async_future<agency::detail::result_of_t<Factory1(shape_type)>>
-      then_execute(Function f, Factory1 result_factory, shape_type shape, shared_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
-    {
-      using result_type = async_future<agency::detail::result_of_t<Factory1(shape_type)>>;
-      auto intermediate_future = fut.bulk_then(f, result_factory, shape, this_index_function_type(), outer_factory, inner_factory, device());
-      return std::move(intermediate_future.template get<result_type>());
-    }
-
-
   private:
     device_id device_;
 };
