@@ -1,6 +1,7 @@
 #include <iostream>
 #include <type_traits>
 #include <vector>
+#include <cassert>
 
 #include <agency/future.hpp>
 #include <agency/execution/executor/customization_points.hpp>

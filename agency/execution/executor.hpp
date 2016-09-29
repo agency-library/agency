@@ -4,7 +4,6 @@
 #include <agency/execution/executor/concurrent_executor.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/execution/executor/executor_array.hpp>
-#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/flattened_executor.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/execution/executor/parallel_executor.hpp>

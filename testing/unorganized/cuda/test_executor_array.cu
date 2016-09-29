@@ -66,9 +66,9 @@ int main()
   {
     // test executor_array then_execute()
     using executor_type = executor_array<inner_executor_type, outer_executor_type>;
-    using traits = agency::executor_traits<executor_type>;
-    using shape_type = typename traits::shape_type;
-    using index_type = typename traits::index_type;
+    using shape_type = executor_shape_t<executor_type>;
+    using index_type = executor_index_t<executor_type>;
+    using container_type = executor_container_t<executor_type,int>;
 
     executor_type exec(num_devices);
 
@@ -79,84 +79,20 @@ int main()
 
     auto shape = exec.make_shape(exec.size(),{2,2});
 
-    auto past = traits::make_ready_future<int>(exec, 13);
+    auto past = agency::make_ready_future<int>(exec, 13);
 
-    auto f = exec.then_execute([=] __host__ __device__ (const index_type& idx, int& past, int& outer_shared, int& inner_shared, int& inner_inner_shared)
+    auto f = exec.bulk_then_execute([=] __host__ __device__ (const index_type& idx, int& past, container_type& results, int& outer_shared, int& inner_shared, int& inner_inner_shared)
     {
       printf("hello from agent %d %d %d\n", (int)agency::detail::get<0>(idx), (int)agency::detail::get<1>(idx), (int)agency::detail::get<2>(idx));
-      return past + outer_shared + inner_shared + inner_inner_shared;
-    },
-    [](shape_type shape)
-    {
-      return traits::container<int>(shape);
+      results[idx] = past + outer_shared + inner_shared + inner_inner_shared;
     },
     shape,
     past,
+    [=] __host__ __device__ { return container_type(shape); },
     make_7(),
     make_42(),
-    make_1());
-
-    auto results = f.get();
-
-    assert(results.size() == agency::detail::shape_size(shape));
-    assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 7 + 42 + 1; }));
-  }
-
-  {
-    // test executor_array then_execute() returning void
-    using executor_type = executor_array<inner_executor_type, outer_executor_type>;
-    using traits = agency::executor_traits<executor_type>;
-    using shape_type = typename traits::shape_type;
-
-    executor_type exec(num_devices);
-
-    auto past = traits::make_ready_future<int>(exec,13);
-
-    auto shape = exec.make_shape(3,5);
-
-    result = 0;
-
-    auto f = traits::then_execute(exec,
-    functor{&result},
-    shape,
-    past,
-    make_7(),
-    make_42(),
-    make_1());
-
-    f.wait();
-
-    assert(result == agency::detail::shape_size(shape) * (13 + 7 + 42 + 1));
-  }
-
-  {
-    // test executor_array async_execute()
-    using executor_type = executor_array<inner_executor_type, outer_executor_type>;
-    using traits = agency::executor_traits<executor_type>;
-    using shape_type = typename traits::shape_type;
-    using index_type = typename traits::index_type;
-
-    executor_type exec(num_devices);
-
-    for(size_t i = 0; i < exec.size(); ++i)
-    {
-      exec[i].device(i);
-    }
-
-    auto shape = exec.make_shape(exec.size(),{2,2});
-
-    auto f = traits::async_execute(exec, [] __host__ __device__ (const index_type& idx, int& outer_shared, int& inner_shared, int& inner_inner_shared)
-    {
-      return 13 + outer_shared + inner_shared + inner_inner_shared;
-    },
-    [](shape_type shape)
-    {
-      return traits::container<int>(shape);
-    },
-    shape,
-    make_7(),
-    make_42(),
-    make_1());
+    make_1()
+    );
 
     auto results = f.get();
 
@@ -169,9 +105,9 @@ int main()
     using executor_array_type = executor_array<inner_executor_type, outer_executor_type>;
     using executor_type = flattened_executor<executor_array_type>;
 
-    using traits = agency::executor_traits<executor_type>;
-    using shape_type = typename traits::shape_type;
-    using index_type = typename traits::index_type;
+    using shape_type = executor_shape_t<executor_type>;
+    using index_type = executor_index_t<executor_type>;
+    using container_type = executor_container_t<executor_type,int>;
 
     executor_array_type exec_array(num_devices);
 
@@ -184,20 +120,18 @@ int main()
 
     shape_type shape{exec_array.size(), 2};
 
-    auto ready = traits::make_ready_future<void>(exec);
+    auto ready = agency::make_ready_future<void>(exec);
 
-    auto f = exec.then_execute([] __host__ __device__ (const index_type& idx, int& outer_shared, int& inner_shared)
+    auto f = exec.bulk_then_execute([] __host__ __device__ (const index_type& idx, container_type& results, int& outer_shared, int& inner_shared)
     {
-      return 13 + outer_shared + inner_shared;
-    },
-    [](shape_type shape)
-    {
-      return traits::container<int>(shape);
+      results[idx] = 13 + outer_shared + inner_shared;
     },
     shape,
     ready,
+    [=] __host__ __device__ { return container_type(shape); },
     make_7(),
-    make_42());
+    make_42()
+    );
 
     auto results = f.get();
 

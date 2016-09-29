@@ -130,10 +130,6 @@ class block_executor : private grid_executor
     template<class T>
     using allocator = typename super_t::template allocator<T>;
 
-    // XXX eliminate this superfluous type once we eliminate agency::executor_traits
-    template<class T>
-    using container = detail::array<T, shape_type>;
-
     using super_t::super_t;
     using super_t::make_ready_future;
     using super_t::device;
@@ -143,28 +139,6 @@ class block_executor : private grid_executor
     {
       return super_t::max_shape_dimensions()[1];
     }
-
-    // XXX eliminate this once we finish scrubbing use of the old-style executor_traits
-    template<class Function, class Factory1, class T, class Factory2,
-             class = agency::detail::result_of_continuation_t<
-               Function,
-               index_type,
-               async_future<T>,
-               agency::detail::result_of_t<Factory2()>&
-             >
-            >
-    async_future<agency::detail::result_of_t<Factory1(shape_type)>>
-      then_execute(Function f, Factory1 result_factory, shape_type shape, async_future<T>& fut, Factory2 shared_factory)
-    {
-      // wrap f with a functor which accepts indices which grid_executor produces
-      auto wrapped_f = detail::block_executor_helper_functor<Function>{f};
-
-      // wrap result_factory with a factory which creates a container with indices that grid_executor produces
-      auto wrapped_result_factory = detail::block_executor_helper_container_factory<Factory1>{result_factory};
-
-      return executor_traits<super_t>::then_execute(*this, wrapped_f, wrapped_result_factory, super_t::shape_type{1,shape}, fut, agency::detail::unit_factory(), shared_factory);
-    }
-
 
     template<class Function, class T, class ResultFactory, class SharedFactory,
              class = agency::detail::result_of_continuation_t<

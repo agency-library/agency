@@ -32,7 +32,7 @@ void test(ExecutionPolicy policy)
   {
     // non-void future and no parameters
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     auto f = agency::bulk_then(policy,
       wrap<int>([] __device__ (agent& self, int& return_me)
@@ -44,7 +44,7 @@ void test(ExecutionPolicy policy)
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     auto shape = agent_traits::domain(policy.param()).shape();
 
@@ -57,7 +57,7 @@ void test(ExecutionPolicy policy)
   {
     // void future and no parameters
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     auto f = agency::bulk_then(policy,
       wrap<int>([] __device__ (agent& self)
@@ -69,7 +69,7 @@ void test(ExecutionPolicy policy)
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     auto shape = agent_traits::domain(policy.param()).shape();
 
@@ -82,7 +82,7 @@ void test(ExecutionPolicy policy)
   {
     // non-void future and one parameter
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     int val = 13;
 
@@ -97,7 +97,7 @@ void test(ExecutionPolicy policy)
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     auto shape = agent_traits::domain(policy.param()).shape();
 
@@ -110,7 +110,7 @@ void test(ExecutionPolicy policy)
   {
     // void future and one parameter
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     int val = 13;
 
@@ -125,7 +125,7 @@ void test(ExecutionPolicy policy)
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     auto shape = agent_traits::domain(policy.param()).shape();
 
@@ -138,7 +138,7 @@ void test(ExecutionPolicy policy)
   {
     // non-void future and one shared parameter
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     int val = 13;
 
@@ -153,7 +153,7 @@ void test(ExecutionPolicy policy)
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     auto shape = agent_traits::domain(policy.param()).shape();
 
@@ -166,7 +166,7 @@ void test(ExecutionPolicy policy)
   {
     // void future and one shared parameter
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     int val = 13;
 
@@ -181,7 +181,7 @@ void test(ExecutionPolicy policy)
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     auto shape = agent_traits::domain(policy.param()).shape();
 

@@ -18,7 +18,7 @@ void test()
     });
 
     using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     assert(container_type(10,7) == result);
   }
@@ -38,7 +38,7 @@ void test()
     val);
 
     using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     assert(container_type(10,val) == result);
   }
@@ -58,7 +58,7 @@ void test()
     agency::share(val));
 
     using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     assert(container_type(10,val) == result);
   }

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <type_traits>
 #include <vector>
+#include <cassert>
 
 #include <agency/execution/executor/executor_array.hpp>
 #include "test_executors.hpp"

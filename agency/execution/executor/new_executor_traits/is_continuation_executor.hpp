@@ -2,8 +2,8 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/new_executor_traits/detail/member_future_or.hpp>
+#include <agency/future.hpp>
 #include <future>
 #include <type_traits>
 #include <utility>

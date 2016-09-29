@@ -3,7 +3,6 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>
-#include <agency/execution/executor/executor_traits.hpp>
 #include <type_traits>
 
 
@@ -63,16 +62,6 @@ executor_shape_t<E> unit_shape(const E& exec)
 {
   // by default, an executor's unit shape contains a single point
   return detail::shape_cast<executor_shape_t<E>>(1);
-}
-
-
-// this overload handles legacy executors which use .shape()
-template<class E,
-         __AGENCY_REQUIRES(!detail::Executor<E>())
-        >
-typename executor_traits<E>::shape_type unit_shape(const E& exec)
-{
-  return executor_traits<E>::shape(exec);
 }
 
 

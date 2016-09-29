@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_array.hpp>
 #include <agency/execution/executor/flattened_executor.hpp>
+#include <agency/execution/executor/new_executor_traits.hpp>
 #include <agency/cuda/execution/executor/grid_executor.hpp>
 #include <agency/cuda/execution/executor/parallel_executor.hpp>
 #include <numeric>
@@ -56,11 +57,11 @@ class supergrid_executor : public executor_array<grid_executor, this_thread::par
 
 
 using spanning_grid_executor = flattened_executor<supergrid_executor>;
-static_assert(is_executor<spanning_grid_executor>::value, "spanning_grid_executor is not an executor!");
+static_assert(new_is_executor<spanning_grid_executor>::value, "spanning_grid_executor is not an executor!");
 
 
 using multidevice_executor = flattened_executor<spanning_grid_executor>;
-static_assert(is_executor<multidevice_executor>::value, "multidevice_executor is not an executor!");
+static_assert(new_is_executor<multidevice_executor>::value, "multidevice_executor is not an executor!");
 
 
 } // end cuda

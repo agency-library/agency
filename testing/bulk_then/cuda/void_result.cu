@@ -18,7 +18,7 @@ void test()
 
     counter = 0;
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     auto f = agency::bulk_then(policy(10),
       [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& past_arg)
@@ -43,7 +43,7 @@ void test()
 
     counter = 0;
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     auto f = agency::bulk_then(policy(10),
       [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self)
@@ -66,7 +66,7 @@ void test()
     execution_policy_type policy;
     auto exec = policy.executor();
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     int val = 13;
 
@@ -96,7 +96,7 @@ void test()
 
     counter = 0;
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     int val = 13;
 
@@ -124,7 +124,7 @@ void test()
 
     counter = 0;
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     int val = 13;
 
@@ -152,7 +152,7 @@ void test()
 
     counter = 0;
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     int val = 13;
 

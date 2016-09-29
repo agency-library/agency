@@ -1,7 +1,6 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/cuda/detail/tuple.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
@@ -180,11 +179,6 @@ class basic_grid_executor
     using allocator = cuda::allocator<T>;
 
 
-    // XXX eliminate this superfluous type once we eliminate agency::executor_traits
-    template<class T>
-    using container = detail::array<T, shape_type>;
-
-
     __host__ __device__
     explicit basic_grid_executor(device_id device = detail::current_device())
       : device_(device)
@@ -283,40 +277,6 @@ class basic_grid_executor
     }
 
 
-    // XXX we should eliminate these functions below since executor_traits implements them for us
-
-    template<class Function>
-    __host__ __device__
-    async_future<void> async_execute(Function f, shape_type shape)
-    {
-      auto ready = make_ready_future();
-      return agency::executor_traits<basic_grid_executor>::then_execute(*this, f, shape, ready);
-    }
-    
-
-    template<class Function, class Factory1, class Factory2>
-    __host__ __device__
-    async_future<void> async_execute(Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory)
-    {
-      auto ready = make_ready_future();
-      return agency::executor_traits<basic_grid_executor>::then_execute(*this, f, shape, ready, outer_factory, inner_factory);
-    }
-
-
-    template<class Function>
-    __host__ __device__
-    void execute(Function f, shape_type shape)
-    {
-      this->async_execute(f, shape).wait();
-    }
-
-    template<class Function, class Factory1, class Factory2>
-    __host__ __device__
-    void execute(Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory)
-    {
-      this->async_execute(f, shape, outer_factory, inner_factory).wait();
-    }
-
   private:
     device_id device_;
 };
@@ -334,13 +294,6 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2>
     shape_type unit_shape() const
     {
       return shape_type{detail::number_of_multiprocessors(device()), 256};
-    }
-
-    // XXX eliminate this when we eliminate executor_traits
-    __host__ __device__
-    shape_type shape() const
-    {
-      return unit_shape();
     }
 
     __host__ __device__

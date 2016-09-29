@@ -1,6 +1,7 @@
 #include <iostream>
 #include <type_traits>
 #include <vector>
+#include <cassert>
 
 #include <agency/execution/executor/concurrent_executor.hpp>
 #include <agency/execution/executor/new_executor_traits.hpp>

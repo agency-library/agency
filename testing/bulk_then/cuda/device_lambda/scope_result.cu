@@ -34,7 +34,7 @@ void test(ExecutionPolicy1 outer, ExecutionPolicy2 inner)
   {
     // bulk_then with non-void future and no parameters
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     auto f = agency::bulk_then(policy,
       wrap<agency::scope_result<1,int>>([] __device__ (agent& self, int& past_arg)
@@ -57,7 +57,7 @@ void test(ExecutionPolicy1 outer, ExecutionPolicy2 inner)
   {
     // bulk_then with void future and no parameters
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     auto f = agency::bulk_then(policy,
       wrap<agency::scope_result<1,int>>([] __device__ (agent& self)
@@ -80,7 +80,7 @@ void test(ExecutionPolicy1 outer, ExecutionPolicy2 inner)
   {
     // bulk_then with non-void future and one parameter
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     int val = 13;
 
@@ -106,7 +106,7 @@ void test(ExecutionPolicy1 outer, ExecutionPolicy2 inner)
   {
     // bulk_then with void future and one parameter
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     int val = 13;
 
@@ -132,7 +132,7 @@ void test(ExecutionPolicy1 outer, ExecutionPolicy2 inner)
   {
     // bulk_then with non-void future and one shared parameter
     
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     int val = 13;
 
@@ -159,7 +159,7 @@ void test(ExecutionPolicy1 outer, ExecutionPolicy2 inner)
   {
     // bulk_then with void future and one shared parameter
     
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     int val = 13;
 

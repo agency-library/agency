@@ -139,7 +139,6 @@ class flattened_executor
     template<class T>
     using allocator = executor_allocator_t<base_executor_type, T>;
 
-    // XXX eliminate this superfluous type when we eliminate executor_traits
     template<class T>
     using container = detail::array<T, shape_type, allocator<T>, index_type>;
 
@@ -151,40 +150,6 @@ class flattened_executor
     flattened_executor(const base_executor_type& base_executor = base_executor_type())
       : base_executor_(base_executor)
     {}
-
-    template<class Function, class Factory1, class Future, class Factory2, class... Factories,
-             class = typename std::enable_if<
-               sizeof...(Factories) == execution_depth - 1
-             >::type>
-    future<detail::result_of_t<Factory1(shape_type)>>
-      then_execute(Function f, Factory1 result_factory, shape_type shape, Future& dependency, Factory2 outer_factory, Factories... inner_factories)
-    {
-      base_shape_type base_shape = partition_into_base_shape(shape);
-
-      // store results into an intermediate result
-      detail::guarded_container_factory<Factory1,shape_type> intermediate_result_factory{result_factory,shape};
-
-      // create a function to execute
-      using base_index_type = executor_index_t<base_executor_type>;
-      using future_value_type = typename future_traits<Future>::value_type;
-      auto execute_me = detail::make_flatten_index_and_invoke<base_index_type,future_value_type>(f, base_shape, shape);
-
-
-      // then_execute with the base_executor
-      auto intermediate_fut = executor_traits<base_executor_type>::then_execute(
-        base_executor(),
-        execute_me,
-        intermediate_result_factory,
-        base_shape,
-        dependency,
-        outer_factory, agency::detail::unit_factory(), inner_factories...
-      );
-
-      // cast the intermediate result to the type of result expected by the caller
-      using result_type = detail::result_of_t<Factory1(shape_type)>;
-      return agency::future_cast<result_type>(base_executor(), intermediate_fut);
-    }
-
 
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories,
              __AGENCY_REQUIRES(sizeof...(InnerFactories) == execution_depth - 1)
@@ -217,12 +182,6 @@ class flattened_executor
     {
       // to flatten the base executor's shape we merge the two front dimensions together
       return detail::merge_front_shape_elements(agency::unit_shape(base_executor()));
-    }
-
-    // XXX eliminate this when we eliminate executor_traits
-    shape_type shape() const
-    {
-      return unit_shape();
     }
 
     shape_type max_shape_dimensions() const
