@@ -136,17 +136,17 @@ class thread_pool_executor
   public:
     using execution_category = parallel_execution_tag;
 
-    template<class Factory1, class Function, class Factory2>
-    result_of_t<Factory1(size_t)>
-      execute(Function f, Factory1 result_factory, size_t n, Factory2 shared_factory)
+    template<class Function, class ResultFactory, class SharedFactory>
+    result_of_t<ResultFactory()>
+      bulk_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
     {
-      auto result = result_factory(n);
+      auto result = result_factory();
       auto shared_arg = shared_factory();
 
       // XXX we might prefer to unconditionally execute task 0 inline
       if(n <= 1)
       {
-        if(n == 1) result[0] = f(0, shared_arg);
+        if(n == 1) f(0, result, shared_arg);
       }
       else
       {
@@ -156,7 +156,7 @@ class thread_pool_executor
         {
           system_thread_pool().submit([=,&result,&shared_arg,&work_remaining] () mutable
           {
-            result[idx] = f(idx, shared_arg);
+            f(idx, result, shared_arg);
 
             work_remaining.count_down(1);
           });
@@ -167,66 +167,6 @@ class thread_pool_executor
       }
 
       return std::move(result);
-    }
-
-    template<class Function, class Factory,
-             class = typename std::enable_if<
-               std::is_void<
-                 result_of_t<Function(size_t, result_of_t<Factory()>&)>
-               >::value
-             >::type>
-    void execute(Function f, size_t n, Factory shared_factory)
-    {
-      auto shared_arg = shared_factory();
-
-      // execute small workloads immediately
-      if(n <= 1)
-      {
-        if(n == 1) f(0, shared_arg);
-      }
-      else
-      {
-        agency::detail::latch work_remaining(n);
-  
-        for(size_t idx = 0; idx < n; ++idx)
-        {
-          system_thread_pool().submit([=,&shared_arg,&work_remaining]() mutable
-          {
-            f(idx, shared_arg);
-  
-            work_remaining.count_down(1);
-          });
-        }
-  
-        // wait for all the work to complete
-        work_remaining.wait();
-      }
-    }
-
-    template<class Function>
-    void execute(Function f, size_t n)
-    {
-      // execute small workloads immediately
-      if(n <= 1)
-      {
-        if(n == 1) f(0);
-      }
-      else
-      {
-        agency::detail::latch work_remaining(n);
-  
-        for(size_t idx = 0; idx < n; ++idx)
-        {
-          system_thread_pool().submit([=,&work_remaining]() mutable
-          {
-            f(idx);
-            work_remaining.count_down(1);
-          });
-        }
-  
-        // wait for all the work to complete
-        work_remaining.wait();
-      }
     }
 
   private:
@@ -361,12 +301,6 @@ class thread_pool_executor
     size_t unit_shape() const
     {
       return system_thread_pool().size();
-    }
-
-    // XXX eliminate this when we eliminate executor_traits
-    size_t shape() const
-    {
-      return unit_shape();
     }
 };
 
