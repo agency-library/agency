@@ -5,11 +5,11 @@
 #include <agency/detail/factory.hpp>
 #include <agency/detail/array.hpp>
 #include <agency/detail/shape.hpp>
+#include <agency/detail/index.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/execution_categories.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
-#include <agency/execution/executor/detail/flatten_index_and_invoke.hpp>
 #include <agency/execution/executor/detail/utility/bulk_continuation_executor_adaptor.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 
@@ -42,6 +42,133 @@ struct flattened_execution_tag_impl<scoped_execution_tag<OuterCategory, scoped_e
 
 template<class ExecutionCategory>
 using flattened_execution_tag = typename flattened_execution_tag_impl<ExecutionCategory>::type;
+
+
+template<class ShapeTuple>
+using flattened_shape_type_t = merge_front_shape_elements_t<ShapeTuple>;
+
+
+// XXX might not want to use a alias template here
+template<class IndexTuple>
+using flattened_index_type_t = merge_front_shape_elements_t<IndexTuple>;
+
+
+// flatten_index_and_invoke is used by flattened_executor::bulk_then_execute()
+// this definition is for the general case when the predecessor future's type is non-void
+template<class Index, class Predecessor, class Function, class Shape>
+struct flatten_index_and_invoke
+{
+  using index_type = Index;
+  using shape_type = Shape;
+
+  using flattened_index_type = flattened_index_type_t<Index>;
+  using flattened_shape_type = flattened_shape_type_t<Shape>;
+
+  mutable Function     f_;
+  shape_type           shape_;
+  flattened_shape_type flattened_shape_;
+
+  __AGENCY_ANNOTATION
+  flatten_index_and_invoke(const Function& f, shape_type shape, flattened_shape_type flattened_shape)
+    : f_(f),
+      shape_(shape),
+      flattened_shape_(flattened_shape)
+  {}
+
+  __AGENCY_ANNOTATION
+  flattened_index_type flatten_index(const Index& idx) const
+  {
+    return detail::merge_front_index_elements(idx, shape_);
+  }
+
+  __AGENCY_ANNOTATION
+  bool in_domain(const flattened_index_type& idx) const
+  {
+    // idx is in the domain of f_ if idx is contained within the
+    // axis-aligned bounded box from extremal corners at the origin
+    // and flattened_shape_. the "hyper-interval" is half-open, so
+    // the origin is contained within the box but the corner at
+    // flattened_shape_ is not.
+    return detail::is_bounded_by(idx, flattened_shape_);
+  }
+
+  template<class Result, class OuterArg, class... InnerArgs>
+  __AGENCY_ANNOTATION
+  void operator()(const Index& idx, Predecessor& predecessor, Result& result, OuterArg& outer_arg, detail::unit, InnerArgs&... inner_args) const
+  {
+    flattened_index_type flattened_idx = flatten_index(idx);
+
+    if(in_domain(flattened_idx))
+    {
+      f_(flattened_idx, predecessor, result, outer_arg, inner_args...);
+    }
+  }
+};
+
+
+// this specialization is for when the predecessor future's type is void
+template<class Index, class Function, class Shape>
+struct flatten_index_and_invoke<Index,void,Function,Shape>
+{
+  using index_type = Index;
+  using shape_type = Shape;
+
+  using flattened_index_type = flattened_index_type_t<Index>;
+  using flattened_shape_type = flattened_shape_type_t<Shape>;
+
+  mutable Function     f_;
+  shape_type           shape_;
+  flattened_shape_type flattened_shape_;
+
+  __AGENCY_ANNOTATION
+  flatten_index_and_invoke(const Function& f, shape_type shape, flattened_shape_type flattened_shape)
+    : f_(f),
+      shape_(shape),
+      flattened_shape_(flattened_shape)
+  {}
+
+  __AGENCY_ANNOTATION
+  flattened_index_type flatten_index(const Index& idx) const
+  {
+    return detail::merge_front_index_elements(idx, shape_);
+  }
+
+  __AGENCY_ANNOTATION
+  bool in_domain(const flattened_index_type& idx) const
+  {
+    // idx is in the domain of f_ if idx is contained within the
+    // axis-aligned bounded box from extremal corners at the origin
+    // and flattened_shape_. the "hyper-interval" is half-open, so
+    // the origin is contained within the box but the corner at
+    // flattened_shape_ is not.
+    return detail::is_bounded_by(idx, flattened_shape_);
+  }
+
+  // note that because the predecessor future type is void, no predecessor argument
+  // appears in operator()'s parameter list
+  template<class Result, class OuterArg, class... InnerArgs>
+  __AGENCY_ANNOTATION
+  void operator()(const Index& idx, Result& result, OuterArg& outer_arg, detail::unit, InnerArgs&... inner_args) const
+  {
+    flattened_index_type flattened_idx = flatten_index(idx);
+
+    if(in_domain(flattened_idx))
+    {
+      f_(flattened_idx, result, outer_arg, inner_args...);
+    }
+  }
+};
+
+
+template<class Index, class Predecessor, class Function, class Shape>
+__AGENCY_ANNOTATION
+flatten_index_and_invoke<Index,Predecessor,Function,Shape>
+  make_flatten_index_and_invoke(Function f,
+                                Shape higher_dimensional_shape,
+                                typename flatten_index_and_invoke<Index,Predecessor,Function,Shape>::flattened_shape_type lower_dimensional_shape)
+{
+  return flatten_index_and_invoke<Index,Predecessor,Function,Shape>{f,higher_dimensional_shape,lower_dimensional_shape};
+}
 
 
 } // end detail
@@ -94,7 +221,7 @@ class flattened_executor
 
       using base_index_type = executor_index_t<base_executor_type>;
       using future_value_type = detail::future_value_t<Future>;
-      auto execute_me = detail::make_new_flatten_index_and_invoke<base_index_type,future_value_type>(f, base_shape, shape);
+      auto execute_me = detail::make_flatten_index_and_invoke<base_index_type,future_value_type>(f, base_shape, shape);
 
       detail::bulk_continuation_executor_adaptor<base_executor_type> adapted_executor(base_executor());
 
