@@ -26,16 +26,16 @@ int main()
 {
   using namespace agency;
 
-  static_assert(!detail::is_detected<new_executor_execution_category_t, not_an_executor>::value,
+  static_assert(!detail::is_detected<executor_execution_category_t, not_an_executor>::value,
     "executor_execution_category_t<not_an_executor> should not be detected");
 
-  static_assert(detail::is_detected_exact<unsequenced_execution_tag, new_executor_execution_category_t, bulk_executor_without_category>::value,
+  static_assert(detail::is_detected_exact<unsequenced_execution_tag, executor_execution_category_t, bulk_executor_without_category>::value,
     "bulk_executor_without_category should have unsequenced_execution_tag execution_category");
 
-  static_assert(detail::is_detected_exact<sequenced_execution_tag, new_executor_execution_category_t, bulk_executor_with_category>::value,
+  static_assert(detail::is_detected_exact<sequenced_execution_tag, executor_execution_category_t, bulk_executor_with_category>::value,
     "bulk_executor_with_category should have sequenced_execution_tag execution_category");
 
-  static_assert(detail::is_detected_exact<scoped_execution_tag<parallel_execution_tag,concurrent_execution_tag>, new_executor_execution_category_t, cuda::grid_executor>::value,
+  static_assert(detail::is_detected_exact<scoped_execution_tag<parallel_execution_tag,concurrent_execution_tag>, executor_execution_category_t, cuda::grid_executor>::value,
     "grid_executor should have scoped_execution_tag<parallel_execution_tag,concurrent_execution_tag> execution_category");
 
   std::cout << "OK" << std::endl;

@@ -17,9 +17,9 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
   static_assert(is_bulk_continuation_executor<scoped_executor_type>::value,
     "scoped_executor should be a bulk continuation executor");
 
-  using expected_category = scoped_execution_tag<new_executor_execution_category_t<OuterExecutor>, new_executor_execution_category_t<InnerExecutor>>;
+  using expected_category = scoped_execution_tag<executor_execution_category_t<OuterExecutor>, executor_execution_category_t<InnerExecutor>>;
 
-  static_assert(detail::is_detected_exact<expected_category, new_executor_execution_category_t, scoped_executor_type>::value,
+  static_assert(detail::is_detected_exact<expected_category, executor_execution_category_t, scoped_executor_type>::value,
     "scoped_executor should have expected_category execution_category");
 
   static_assert(detail::is_detected_exact<detail::tuple<size_t,size_t>, executor_shape_t, scoped_executor_type>::value,

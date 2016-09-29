@@ -27,10 +27,10 @@ struct executor_execution_category_impl<BulkExecutor,true>
 
 
 template<class BulkExecutor>
-struct new_executor_execution_category : detail::executor_execution_category_impl<BulkExecutor> {};
+struct executor_execution_category : detail::executor_execution_category_impl<BulkExecutor> {};
 
 template<class BulkExecutor>
-using new_executor_execution_category_t = typename new_executor_execution_category<BulkExecutor>::type;
+using executor_execution_category_t = typename executor_execution_category<BulkExecutor>::type;
 
 
 } // end agency

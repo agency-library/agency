@@ -15,7 +15,7 @@ int main()
   static_assert(is_bulk_executor<unsequenced_executor>::value,
     "unsequenced_executor should be a bulk executor");
 
-  static_assert(detail::is_detected_exact<unsequenced_execution_tag, new_executor_execution_category_t, unsequenced_executor>::value,
+  static_assert(detail::is_detected_exact<unsequenced_execution_tag, executor_execution_category_t, unsequenced_executor>::value,
     "unsequenced_executor should have unsequenced_execution_tag execution_category");
 
   static_assert(detail::is_detected_exact<size_t, executor_shape_t, unsequenced_executor>::value,

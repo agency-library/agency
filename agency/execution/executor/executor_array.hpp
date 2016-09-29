@@ -28,8 +28,8 @@ class executor_array
     using inner_traits = executor_traits<inner_executor_type>;
     using outer_traits = executor_traits<outer_executor_type>;
 
-    using outer_execution_category = new_executor_execution_category_t<outer_executor_type>;
-    using inner_execution_category = new_executor_execution_category_t<inner_executor_type>;
+    using outer_execution_category = executor_execution_category_t<outer_executor_type>;
+    using inner_execution_category = executor_execution_category_t<inner_executor_type>;
 
     constexpr static size_t inner_depth = executor_execution_depth<inner_executor_type>::value;
 

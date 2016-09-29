@@ -393,26 +393,6 @@ struct executor_traits
 }; // end executor_traits
 
 
-namespace detail
-{
-
-
-// convenience metafunctions for accessing types associated with executors
-
-template<class Executor, class Enable = void>
-struct executor_execution_category {};
-
-template<class Executor>
-struct executor_execution_category<Executor, typename std::enable_if<is_executor<Executor>::value>::type>
-{
-  using type = typename executor_traits<Executor>::execution_category;
-};
-
-template<class Executor>
-using executor_execution_category_t = typename executor_execution_category<Executor>::type;
-
-
-} // end detail
 } // end agency
 
 #include <agency/execution/executor/detail/executor_traits/make_ready_future.hpp>

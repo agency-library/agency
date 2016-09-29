@@ -119,12 +119,12 @@ class flattened_executor
 {
   // probably shouldn't insist on a scoped executor
   static_assert(
-    detail::is_scoped_execution_category<new_executor_execution_category_t<Executor>>::value,
+    detail::is_scoped_execution_category<executor_execution_category_t<Executor>>::value,
     "Execution category of Executor must be scoped."
   );
 
   private:
-    using base_execution_category = new_executor_execution_category_t<Executor>;
+    using base_execution_category = executor_execution_category_t<Executor>;
     constexpr static auto execution_depth = executor_execution_depth<Executor>::value - 1;
 
   public:
