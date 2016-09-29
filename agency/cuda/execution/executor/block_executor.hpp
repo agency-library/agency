@@ -138,11 +138,10 @@ class block_executor : private grid_executor
     using super_t::make_ready_future;
     using super_t::device;
 
-    template<class Function>
     __host__ __device__
-    shape_type max_shape(Function f) const
+    shape_type max_shape_dimensions() const
     {
-      return super_t::max_shape(f).y;
+      return super_t::max_shape_dimensions()[1];
     }
 
     // XXX eliminate this once we finish scrubbing use of the old-style executor_traits
