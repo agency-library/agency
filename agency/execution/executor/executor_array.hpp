@@ -190,7 +190,7 @@ class executor_array
         detail::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_exec(inner_exec);
 
         // XXX avoid lambdas to workaround nvcc limitations
-        //detail::bulk_execute_with_void_result(adapted_exec, [=,&predecessor,&result,&outer_shared_arg](const inner_index_type& inner_idx, detail::result_of_t<InnerFactories()>&... inner_shared_args)
+        //detail::bulk_sync_execute_with_void_result(adapted_exec, [=,&predecessor,&result,&outer_shared_arg](const inner_index_type& inner_idx, detail::result_of_t<InnerFactories()>&... inner_shared_args)
         //{
         //  index_type idx = make_index(outer_idx, inner_idx);
 
@@ -201,7 +201,7 @@ class executor_array
 
         inner_functor<OuterArgs...> execute_me{f, outer_idx, detail::forward_as_tuple(outer_args...)};
 
-        detail::bulk_execute_with_void_result(adapted_exec, execute_me, inner_shape, detail::get<Indices>(inner_factories)...);
+        detail::bulk_sync_execute_with_void_result(adapted_exec, execute_me, inner_shape, detail::get<Indices>(inner_factories)...);
       }
 
       template<class... OuterArgs>
@@ -233,7 +233,7 @@ class executor_array
       //{
       //  auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
 
-      //  bulk_execute_with_void_result(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx, auto&... inner_args)
+      //  bulk_sync_execute_with_void_result(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx, auto&... inner_args)
       //  {
       //    index_type idx = make_index(outer_idx, inner_idx);
       //    f(idx, outer_args..., inner_args...); 
@@ -377,7 +377,7 @@ class executor_array
       using future_container = decltype(shared_predecessor_futures);
 
       // XXX avoid lambdas to workaround nvcc limitations as well as lack of polymorphic lambda
-      //auto inner_futures = bulk_execute_with_auto_result_and_without_shared_parameters(outer_executor(), [=,&past_futures](const outer_index_type& outer_idx) mutable
+      //auto inner_futures = bulk_sync_execute_with_auto_result_and_without_shared_parameters(outer_executor(), [=,&past_futures](const outer_index_type& outer_idx) mutable
       //{
       //  auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
 
@@ -393,7 +393,7 @@ class executor_array
       //outer_shape);
 
       auto functor = eager_bulk_then_execute_functor<Function,future_container,result_type,outer_shared_arg_type,InnerFactories...>{*this, f, shared_predecessor_futures, results_raw_ptr, outer_shared_arg_raw_ptr, detail::make_tuple(inner_factories...), outer_shape, inner_shape};
-      auto inner_futures = detail::bulk_execute_with_auto_result_and_without_shared_parameters(outer_executor(), functor, outer_shape);
+      auto inner_futures = detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(outer_executor(), functor, outer_shape);
 
       // create a continuation to synchronize the futures and return the result
       auto continuation = make_wait_for_futures_and_move_result(std::move(inner_futures), std::move(results_ptr), std::move(outer_shared_arg_ptr));

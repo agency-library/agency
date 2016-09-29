@@ -55,7 +55,7 @@ executor_future_t<E,
   // create a factory that will construct this type of container for us
   auto result_factory = detail::make_construct<container_type>(shape);
 
-  // lower onto bulk_execute_with_collected_result() with this result_factory
+  // lower onto bulk_sync_execute_with_collected_result() with this result_factory
   return detail::bulk_then_execute_with_collected_result(exec, f, shape, predecessor, result_factory, factories...);
 }
 

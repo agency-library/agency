@@ -12,7 +12,7 @@ void test_returning_void(Executor exec)
   
   int increment_me = 0;
   std::mutex mut;
-  agency::detail::bulk_execute_with_auto_result_and_without_shared_parameters(exec, [&](size_t idx)
+  agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [&](size_t idx)
   {
     mut.lock();
     increment_me += 1;
@@ -32,7 +32,7 @@ void test_returning_results(Executor exec)
 
   size_t shape = 10;
   
-  auto result = agency::detail::bulk_execute_with_auto_result_and_without_shared_parameters(exec, [](index_type idx)
+  auto result = agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [](index_type idx)
   {
     return 13;
   },

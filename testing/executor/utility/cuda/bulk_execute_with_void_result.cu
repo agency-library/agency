@@ -16,7 +16,7 @@ void test(Executor exec)
 
   shape_type shape{10};
   
-  agency::detail::bulk_execute_with_void_result(exec,
+  agency::detail::bulk_sync_execute_with_void_result(exec,
     [&](index_type idx, int& shared_arg)
     {
       counter += shared_arg;
@@ -41,7 +41,7 @@ void test2(Executor exec)
 
   increment_me = 0;
   
-  agency::detail::bulk_execute_with_void_result(exec,
+  agency::detail::bulk_sync_execute_with_void_result(exec,
     [] __device__ (index_type idx, int& outer_arg, int& inner_arg)
     {
       atomicAdd(&increment_me, outer_arg + inner_arg);

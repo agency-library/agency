@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
-#include <agency/execution/executor/customization_points/bulk_execute.hpp>
+#include <agency/execution/executor/customization_points/bulk_sync_execute.hpp>
 #include <agency/detail/invoke.hpp>
 
 
@@ -45,9 +45,9 @@ class bulk_synchronous_executor_adaptor<BulkExecutor,true>
     template<class Function, class ResultFactory, class... SharedFactories>
     __AGENCY_ANNOTATION
     result_of_t<ResultFactory()>
-      bulk_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
+      bulk_sync_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
     {
-      return agency::bulk_execute(adapted_executor_, f, shape, result_factory, shared_factories...);
+      return agency::bulk_sync_execute(adapted_executor_, f, shape, result_factory, shared_factories...);
     }
 };
 

@@ -9,7 +9,7 @@ struct bulk_executor_without_category
 {
   template<class Function, class ResultFactory, class SharedFactory>
   typename std::result_of<ResultFactory()>::type
-  bulk_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
+  bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
 };
 
 struct bulk_executor_with_category
@@ -18,7 +18,7 @@ struct bulk_executor_with_category
 
   template<class Function, class ResultFactory, class SharedFactory>
   typename std::result_of<ResultFactory()>::type
-  bulk_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
+  bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
 };
 
 

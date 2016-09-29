@@ -105,7 +105,7 @@ struct bulk_then_execute_functor<Function,SharedFuture,true>
 } // end detail
 
 
-// this case handles executors which have .bulk_async_execute() and may or may not have .bulk_execute()
+// this case handles executors which have .bulk_async_execute() and may or may not have .bulk_sync_execute()
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class ResultFactory, class... Factories,
          __AGENCY_REQUIRES(!detail::BulkContinuationExecutor<E>() && detail::BulkAsynchronousExecutor<E>()),
@@ -132,10 +132,10 @@ namespace detail
 {
 
 
-// this functor is used by the implementation of bulk_then_execute() below which calls .then() with a nested bulk_execute() inside
+// this functor is used by the implementation of bulk_then_execute() below which calls .then() with a nested bulk_sync_execute() inside
 // this definition is for the general case, when the predecessor Future type is non-void
 template<class Executor, class Function, class Predecessor, class ResultFactory, class... SharedFactories>
-struct then_with_nested_bulk_execute_functor
+struct then_with_nested_bulk_sync_execute_functor
 {
   mutable Executor exec;
   mutable Function f;
@@ -143,9 +143,9 @@ struct then_with_nested_bulk_execute_functor
   mutable ResultFactory result_factory;
   mutable detail::tuple<SharedFactories...> shared_factories;
 
-  // this functor is passed to bulk_execute() below
+  // this functor is passed to bulk_sync_execute() below
   // it has a reference to the predecessor future to use as a parameter to f
-  struct functor_for_bulk_execute
+  struct functor_for_bulk_sync_execute
   {
     mutable Function f;
     Predecessor& predecessor;
@@ -163,9 +163,9 @@ struct then_with_nested_bulk_execute_functor
   __AGENCY_ANNOTATION
   result_of_t<ResultFactory()> impl(detail::index_sequence<Indices...>, Predecessor& predecessor) const
   {
-    functor_for_bulk_execute functor{f, predecessor};
+    functor_for_bulk_sync_execute functor{f, predecessor};
 
-    return exec.bulk_execute(functor, shape, result_factory, detail::get<Indices>(shared_factories)...);
+    return exec.bulk_sync_execute(functor, shape, result_factory, detail::get<Indices>(shared_factories)...);
   }
 
   __AGENCY_ANNOTATION
@@ -178,7 +178,7 @@ struct then_with_nested_bulk_execute_functor
 
 // this specialization is for the case when the predecessor Future type is void
 template<class Executor, class Function, class ResultFactory, class... SharedFactories>
-struct then_with_nested_bulk_execute_functor<Executor,Function,void,ResultFactory,SharedFactories...>
+struct then_with_nested_bulk_sync_execute_functor<Executor,Function,void,ResultFactory,SharedFactories...>
 {
   mutable Executor exec;
   mutable Function f;
@@ -191,7 +191,7 @@ struct then_with_nested_bulk_execute_functor<Executor,Function,void,ResultFactor
   __AGENCY_ANNOTATION
   result_of_t<ResultFactory()> impl(detail::index_sequence<Indices...>) const
   {
-    return exec.bulk_execute(f, shape, result_factory, detail::get<Indices>(shared_factories)...);
+    return exec.bulk_sync_execute(f, shape, result_factory, detail::get<Indices>(shared_factories)...);
   }
 
   // the predecessor future is void, so operator() receives no parameter
@@ -206,7 +206,7 @@ struct then_with_nested_bulk_execute_functor<Executor,Function,void,ResultFactor
 } // end detail
 
 
-// this case handles executors which only have .bulk_execute()
+// this case handles executors which only have .bulk_sync_execute()
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class ResultFactory, class... Factories,
          __AGENCY_REQUIRES(!detail::BulkContinuationExecutor<E>() && !detail::BulkAsynchronousExecutor<E>()),
@@ -220,7 +220,7 @@ executor_future_t<
 bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   using predecessor_type = detail::future_value_t<Future>;
-  detail::then_with_nested_bulk_execute_functor<E,Function,predecessor_type,ResultFactory,Factories...> functor{exec,f,shape,result_factory,detail::make_tuple(shared_factories...)};
+  detail::then_with_nested_bulk_sync_execute_functor<E,Function,predecessor_type,ResultFactory,Factories...> functor{exec,f,shape,result_factory,detail::make_tuple(shared_factories...)};
 
   auto intermediate_fut = future_traits<Future>::then(predecessor, std::move(functor));
   using result_type = detail::result_of_t<ResultFactory()>;

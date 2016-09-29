@@ -15,7 +15,7 @@ void test(Executor exec)
 
   shape_type shape{10};
   
-  agency::detail::bulk_execute_with_void_result(exec,
+  agency::detail::bulk_sync_execute_with_void_result(exec,
     [&](index_type idx, int& shared_arg)
     {
       counter += shared_arg;

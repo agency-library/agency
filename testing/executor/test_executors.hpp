@@ -213,7 +213,7 @@ class bulk_synchronous_executor
   public:
     template<class Function, class ResultFactory, class SharedFactory>
     typename std::result_of<ResultFactory()>::type
-    bulk_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
+    bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
     {
       auto result = result_factory();
       auto shared_parm = shared_factory();
@@ -267,7 +267,7 @@ struct bulk_executor_without_shape_type
 {
   template<class Function, class ResultFactory, class SharedFactory>
   typename std::result_of<ResultFactory()>::type
-  bulk_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
+  bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
 };
 
 struct bulk_executor_with_shape_type
@@ -279,6 +279,6 @@ struct bulk_executor_with_shape_type
 
   template<class Function, class ResultFactory, class SharedFactory>
   typename std::result_of<ResultFactory()>::type
-  bulk_execute(Function f, shape_type n, ResultFactory result_factory, SharedFactory shared_factory);
+  bulk_sync_execute(Function f, shape_type n, ResultFactory result_factory, SharedFactory shared_factory);
 };
 

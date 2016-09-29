@@ -17,7 +17,7 @@ void test(Executor exec)
 
   shape_type shape = 10;
   
-  auto result = agency::bulk_execute(exec,
+  auto result = agency::bulk_sync_execute(exec,
     [](index_type idx, std::vector<int>& results, std::vector<int>& shared_arg)
     {
       results[idx] = 7 + shared_arg[idx];

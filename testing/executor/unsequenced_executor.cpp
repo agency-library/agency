@@ -35,7 +35,7 @@ int main()
 
   size_t shape = 10;
   
-  auto result = exec.bulk_execute(
+  auto result = exec.bulk_sync_execute(
     [](size_t idx, std::vector<int>& results, std::vector<int>& shared_arg)
     {
       results[idx] = shared_arg[idx];

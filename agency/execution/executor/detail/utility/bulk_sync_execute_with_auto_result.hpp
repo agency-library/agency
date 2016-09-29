@@ -3,8 +3,8 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
-#include <agency/execution/executor/detail/utility/bulk_execute_with_void_result.hpp>
-#include <agency/execution/executor/detail/utility/bulk_execute_with_collected_result.hpp>
+#include <agency/execution/executor/detail/utility/bulk_sync_execute_with_void_result.hpp>
+#include <agency/execution/executor/detail/utility/bulk_sync_execute_with_collected_result.hpp>
 #include <agency/detail/factory.hpp>
 
 
@@ -22,9 +22,9 @@ template<class E, class Function, class... Factories,
          __AGENCY_REQUIRES(std::is_void<result_of_t<Function(executor_index_t<E>, result_of_t<Factories()>&...)>>::value)
         >
 __AGENCY_ANNOTATION
-void bulk_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
+void bulk_sync_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
 {
-  return detail::bulk_execute_with_void_result(exec, f, shape, factories...);
+  return detail::bulk_sync_execute_with_void_result(exec, f, shape, factories...);
 }
 
 
@@ -41,7 +41,7 @@ __AGENCY_ANNOTATION
 executor_container_t<E,
   result_of_t<Function(executor_index_t<E>,result_of_t<Factories()>&...)>
 >
-  bulk_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
+  bulk_sync_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
 {
   // compute the type of f's result
   using result_type = result_of_t<Function(executor_index_t<E>,result_of_t<Factories()>&...)>;
@@ -52,8 +52,8 @@ executor_container_t<E,
   // create a factory that will construct this type of container for us
   auto result_factory = detail::make_construct<container_type>(shape);
 
-  // lower onto bulk_execute_with_collected_result() with this result_factory
-  return detail::bulk_execute_with_collected_result(exec, f, shape, result_factory, factories...);
+  // lower onto bulk_sync_execute_with_collected_result() with this result_factory
+  return detail::bulk_sync_execute_with_collected_result(exec, f, shape, result_factory, factories...);
 }
 
 

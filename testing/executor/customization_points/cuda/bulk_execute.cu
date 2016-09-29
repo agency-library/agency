@@ -17,7 +17,7 @@ void test(Executor exec)
 
   shape_type shape = 10;
   
-  auto result = agency::bulk_execute(exec,
+  auto result = agency::bulk_sync_execute(exec,
     [](index_type idx, std::vector<int>& results, std::vector<int>& shared_arg)
     {
       results[idx] = 7 + shared_arg[idx];
@@ -41,7 +41,7 @@ void test2(TwoLevelExecutor exec)
 
   using container_type = agency::executor_container_t<TwoLevelExecutor, int>;
   
-  auto result = agency::bulk_execute(exec,
+  auto result = agency::bulk_sync_execute(exec,
     [] __device__ (index_type idx, container_type& results, int& outer_shared_arg, int& inner_shared_arg)
     {
       results[idx] = outer_shared_arg + inner_shared_arg;
