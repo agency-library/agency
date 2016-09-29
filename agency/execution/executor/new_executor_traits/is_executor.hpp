@@ -10,7 +10,7 @@ namespace agency
 
 
 template<class T>
-using new_is_executor = agency::detail::disjunction<
+using is_executor = agency::detail::disjunction<
   is_simple_executor<T>,
   is_bulk_executor<T>
 >;
@@ -24,7 +24,7 @@ namespace detail
 template<class T>
 constexpr bool Executor()
 {
-  return new_is_executor<T>();
+  return is_executor<T>();
 }
 
 
