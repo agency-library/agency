@@ -4,7 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/customization_points/bulk_execute.hpp>
 #include <agency/execution/executor/detail/utility/invoke_functors.hpp>
-#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 
 

@@ -5,8 +5,8 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/invoke.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_index.hpp>
+#include <agency/execution/executor/executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/executor_traits/executor_index.hpp>
 #include <utility>
 
 namespace agency

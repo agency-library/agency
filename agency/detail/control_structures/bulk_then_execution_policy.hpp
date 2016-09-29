@@ -10,7 +10,7 @@
 #include <agency/detail/control_structures/bulk_invoke_execution_policy.hpp>
 #include <agency/detail/is_call_possible.hpp>
 #include <agency/execution/execution_agent.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/executor_traits/executor_shape.hpp>
 #include <agency/execution/detail/execution_policy_traits.hpp>
 #include <utility>
 

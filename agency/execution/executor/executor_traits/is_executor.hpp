@@ -2,8 +2,8 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/new_executor_traits/is_simple_executor.hpp>
-#include <agency/execution/executor/new_executor_traits/is_bulk_executor.hpp>
+#include <agency/execution/executor/executor_traits/is_simple_executor.hpp>
+#include <agency/execution/executor/executor_traits/is_bulk_executor.hpp>
 
 namespace agency
 {

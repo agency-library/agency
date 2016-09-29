@@ -4,7 +4,7 @@
 
 // XXX use parallel_executor.hpp instead of thread_pool.hpp due to circular #inclusion problems
 #include <agency/execution/executor/parallel_executor.hpp>
-#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 
 int main()

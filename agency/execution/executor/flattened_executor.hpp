@@ -7,7 +7,7 @@
 #include <agency/detail/shape.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/execution_categories.hpp>
-#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/detail/flatten_index_and_invoke.hpp>
 #include <agency/execution/executor/detail/utility/bulk_continuation_executor_adaptor.hpp>

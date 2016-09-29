@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/execution/executor/customization_points/future_cast.hpp>

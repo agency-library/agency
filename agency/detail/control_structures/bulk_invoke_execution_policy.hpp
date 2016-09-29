@@ -10,7 +10,7 @@
 #include <agency/detail/control_structures/shared_parameter.hpp>
 #include <agency/detail/control_structures/agent_shared_parameter_factory_tuple.hpp>
 #include <agency/execution/execution_agent.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/detail/utility/executor_container_or_void.hpp>
 #include <agency/execution/detail/execution_policy_traits.hpp>
 #include <utility>

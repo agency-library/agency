@@ -5,7 +5,7 @@
 #include <agency/cuda/memory/allocator.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/cuda/execution/executor/grid_executor.hpp>
-#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 
 int main()
 {

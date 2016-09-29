@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/cuda.hpp>
 #include "../../test_executors.hpp"
 

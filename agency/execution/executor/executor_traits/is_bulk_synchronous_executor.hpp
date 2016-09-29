@@ -3,11 +3,9 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/execution/executor/new_executor_traits/detail/executor_execution_depth_or.hpp>
-#include <agency/execution/executor/new_executor_traits/detail/member_shape_type_or.hpp>
-#include <agency/execution/executor/new_executor_traits/detail/member_future_or.hpp>
-#include <agency/execution/executor/new_executor_traits/detail/member_index_type_or.hpp>
-#include <future>
+#include <agency/execution/executor/executor_traits/detail/executor_execution_depth_or.hpp>
+#include <agency/execution/executor/executor_traits/detail/member_shape_type_or.hpp>
+#include <agency/execution/executor/executor_traits/detail/member_index_type_or.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -18,27 +16,24 @@ namespace detail
 
 
 template<class Executor, class Function, class Shape,
-         class Future,
          class ResultFactory,
          class... SharedFactories
         >
-struct has_bulk_then_execute_impl
+struct has_bulk_execute_impl
 {
-  using result_type = result_of_t<ResultFactory()>;
-  using expected_future_type = member_future_or_t<Executor,result_type,std::future>;
+  using expected_return_type = result_of_t<ResultFactory()>;
 
   template<class Executor1,
            class ReturnType = decltype(
-             std::declval<Executor1>().bulk_then_execute(
+             std::declval<Executor1>().bulk_execute(
                std::declval<Function>(),
                std::declval<Shape>(),
-               std::declval<Future&>(),
                std::declval<ResultFactory>(),
                std::declval<SharedFactories>()...
              )
            ),
            class = typename std::enable_if<
-             std::is_same<ReturnType,expected_future_type>::value
+             std::is_same<ReturnType,expected_return_type>::value
            >::type>
   static std::true_type test(int);
 
@@ -50,40 +45,36 @@ struct has_bulk_then_execute_impl
 
 
 template<class Executor, class Function, class Shape,
-         class Future,
          class ResultFactory,
          class... SharedFactories
         >
-using has_bulk_then_execute = typename has_bulk_then_execute_impl<Executor, Function, Shape, Future, ResultFactory, SharedFactories...>::type;
+using has_bulk_execute = typename has_bulk_execute_impl<Executor, Function, Shape, ResultFactory, SharedFactories...>::type;
 
 
 template<class T, class IndexSequence>
-struct is_bulk_continuation_executor_impl;
+struct is_bulk_synchronous_executor_impl;
 
 template<class T, size_t... Indices>
-struct is_bulk_continuation_executor_impl<T, index_sequence<Indices...>>
+struct is_bulk_synchronous_executor_impl<T, index_sequence<Indices...>>
 {
   // executor properties
   using shape_type = member_shape_type_or_t<T,size_t>;
   using index_type = member_index_type_or_t<T,shape_type>;
 
-  // types related to functions passed to .bulk_then_execute()
+  // types related to functions passed to .bulk_execute()
   using result_type = int;
-  using predecessor_type = int;
-  using predecessor_future_type = member_future_or_t<T,predecessor_type,std::future>;
-
   template<size_t>
   using shared_type = int;
 
-  // the functions we'll pass to .bulk_then_execute() to test
-
+  // the functions we'll pass to .bulk_execute() to test
+  
   // XXX WAR nvcc 8.0 bug
-  //using test_function = std::function<void(index_type, predecessor_type&, result_type&, shared_type<Indices>&...)>;
+  //using test_function = std::function<void(index_type, result_type&, shared_type<Indices>&...)>;
   //using test_result_factory = std::function<result_type()>;
 
   struct test_function
   {
-    void operator()(index_type, predecessor_type&, result_type&, shared_type<Indices>&...);
+    void operator()(index_type, result_type&, shared_type<Indices>&...);
   };
 
   struct test_result_factory
@@ -101,11 +92,10 @@ struct is_bulk_continuation_executor_impl<T, index_sequence<Indices...>>
     shared_type<I> operator()();
   };
 
-  using type = has_bulk_then_execute<
+  using type = has_bulk_execute<
     T,
     test_function,
     shape_type,
-    predecessor_future_type,
     test_result_factory,
     test_shared_factory<Indices>...
   >;
@@ -116,7 +106,7 @@ struct is_bulk_continuation_executor_impl<T, index_sequence<Indices...>>
 
 
 template<class T>
-using is_bulk_continuation_executor = typename detail::is_bulk_continuation_executor_impl<
+using is_bulk_synchronous_executor = typename detail::is_bulk_synchronous_executor_impl<
   T,
   detail::make_index_sequence<
     detail::executor_execution_depth_or<T>::value
@@ -130,9 +120,9 @@ namespace detail
 
 // a fake Concept to use with __AGENCY_REQUIRES
 template<class T>
-constexpr bool BulkContinuationExecutor()
+constexpr bool BulkSynchronousExecutor()
 {
-  return is_bulk_continuation_executor<T>();
+  return is_bulk_synchronous_executor<T>();
 }
 
 

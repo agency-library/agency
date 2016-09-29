@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/detail/shape.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/executor_traits/executor_shape.hpp>
 #include <utility>
 #include <type_traits>
 

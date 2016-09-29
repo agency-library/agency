@@ -4,7 +4,7 @@
 #include <cassert>
 
 #include <agency/execution/executor/scoped_executor.hpp>
-#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 #include "test_executors.hpp"
 

@@ -2,11 +2,11 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/new_executor_traits/is_bulk_executor.hpp>
-#include <agency/execution/executor/new_executor_traits/detail/member_container_or.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_index.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_shape.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_allocator.hpp>
+#include <agency/execution/executor/executor_traits/is_bulk_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/member_container_or.hpp>
+#include <agency/execution/executor/executor_traits/executor_index.hpp>
+#include <agency/execution/executor/executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/executor_traits/executor_allocator.hpp>
 #include <agency/detail/array.hpp>
 
 

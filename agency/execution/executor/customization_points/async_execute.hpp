@@ -5,7 +5,7 @@
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/utility/bulk_async_execute_with_one_shared_parameter.hpp>
-#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 
 
 namespace agency

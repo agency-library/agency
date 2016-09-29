@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/has_member.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_future.hpp>
+#include <agency/execution/executor/executor_traits/executor_future.hpp>
 
 namespace agency
 {

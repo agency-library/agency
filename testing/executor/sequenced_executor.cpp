@@ -4,7 +4,7 @@
 #include <cassert>
 
 #include <agency/execution/executor/sequenced_executor.hpp>
-#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 
 int main()
 {

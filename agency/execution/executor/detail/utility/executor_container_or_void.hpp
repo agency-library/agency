@@ -1,8 +1,8 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/executor/new_executor_traits/is_bulk_executor.hpp>
-#include <agency/execution/executor/new_executor_traits/executor_container.hpp>
+#include <agency/execution/executor/executor_traits/is_bulk_executor.hpp>
+#include <agency/execution/executor/executor_traits/executor_container.hpp>
 #include <agency/detail/type_traits.hpp>
 
 namespace agency

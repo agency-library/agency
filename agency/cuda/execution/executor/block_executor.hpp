@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/cuda/execution/executor/grid_executor.hpp>
-#include <agency/execution/executor/new_executor_traits.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
