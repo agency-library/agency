@@ -1,6 +1,6 @@
 #pragma once
 
-#include <utility>
+#include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_array.hpp>
 
 namespace agency

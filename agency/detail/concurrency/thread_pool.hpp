@@ -15,6 +15,8 @@
 #include <thread>
 #include <vector>
 #include <algorithm>
+#include <memory>
+#include <future>
 
 
 namespace agency
@@ -134,17 +136,17 @@ class thread_pool_executor
   public:
     using execution_category = parallel_execution_tag;
 
-    template<class Factory1, class Function, class Factory2>
-    result_of_t<Factory1(size_t)>
-      execute(Function f, Factory1 result_factory, size_t n, Factory2 shared_factory)
+    template<class Function, class ResultFactory, class SharedFactory>
+    result_of_t<ResultFactory()>
+      bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
     {
-      auto result = result_factory(n);
+      auto result = result_factory();
       auto shared_arg = shared_factory();
 
       // XXX we might prefer to unconditionally execute task 0 inline
       if(n <= 1)
       {
-        if(n == 1) result[0] = f(0, shared_arg);
+        if(n == 1) f(0, result, shared_arg);
       }
       else
       {
@@ -154,7 +156,7 @@ class thread_pool_executor
         {
           system_thread_pool().submit([=,&result,&shared_arg,&work_remaining] () mutable
           {
-            result[idx] = f(idx, shared_arg);
+            f(idx, result, shared_arg);
 
             work_remaining.count_down(1);
           });
@@ -167,119 +169,136 @@ class thread_pool_executor
       return std::move(result);
     }
 
-    template<class Function, class Factory,
-             class = typename std::enable_if<
-               std::is_void<
-                 result_of_t<Function(size_t, result_of_t<Factory()>&)>
-               >::value
-             >::type>
-    void execute(Function f, size_t n, Factory shared_factory)
+  private:
+    // this deleter fulfills a promise just before
+    // it deletes its argument
+    template<class ResultType>
+    struct fulfill_promise_and_delete
     {
-      auto shared_arg = shared_factory();
+      std::shared_ptr<std::promise<ResultType>> shared_promise_ptr;
 
-      // execute small workloads immediately
-      if(n <= 1)
+      void operator()(ResultType* ptr_to_result)
       {
-        if(n == 1) f(0, shared_arg);
+        // move the result object into the promise
+        shared_promise_ptr->set_value(std::move(*ptr_to_result));
+
+        // delete the pointer
+        delete ptr_to_result;
       }
-      else
+    };
+    
+
+  public:
+    // this is the overload of bulk_then_execute for non-void Future
+    template<class Function, class Future, class ResultFactory, class SharedFactory,
+             __AGENCY_REQUIRES(!std::is_void<future_value_t<Future>>::value)
+            >
+    std::future<
+      result_of_t<ResultFactory()>
+    >
+      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+    {
+      using result_type = result_of_t<ResultFactory()>;
+
+      // create a shared promise to fulfill the result
+      auto shared_promise_ptr = std::make_shared<std::promise<result_type>>();
+
+      // get the shared promise's future
+      auto result_future = shared_promise_ptr->get_future();
+
+      // create a deleter which fulfills the promise with the result and then deletes the result
+      fulfill_promise_and_delete<result_type> deleter{std::move(shared_promise_ptr)};
+
+      // create the shared state for the result
+      // note that we use our special deleter with this state
+      auto shared_result_ptr = std::shared_ptr<result_type>(new result_type(result_factory()), std::move(deleter));
+
+      // create the shared state for the shared parameter
+      using shared_arg_type = result_of_t<SharedFactory()>;
+      auto shared_arg_ptr = std::make_shared<shared_arg_type>(shared_factory());
+
+      // share the incoming future
+      auto shared_predecessor = future_traits<Future>::share(predecessor);
+
+      // submit n tasks to the thread pool
+      for(size_t idx = 0; idx < n; ++idx)
       {
-        agency::detail::latch work_remaining(n);
-  
-        for(size_t idx = 0; idx < n; ++idx)
+        system_thread_pool().submit([=]() mutable
         {
-          system_thread_pool().submit([=,&shared_arg,&work_remaining]() mutable
-          {
-            f(idx, shared_arg);
-  
-            work_remaining.count_down(1);
-          });
-        }
-  
-        // wait for all the work to complete
-        work_remaining.wait();
+          // get the predecessor future's value
+          using predecessor_type = future_value_t<Future>;
+          predecessor_type& predecessor_arg = const_cast<predecessor_type&>(shared_predecessor.get());
+
+          // call the user's function
+          f(idx, predecessor_arg, *shared_result_ptr, *shared_arg_ptr);
+
+          // we explicitly release shared_result_ptr because even though this
+          // lambda's invocation is complete, the lambda's lifetime
+          // (and therefore shared_result_ptr's lifetime) is not necessarily complete
+          // this .reset() is what fulfills the promise via shared_result_ptr's deleter
+          shared_result_ptr.reset();
+        });
       }
+
+      // return the result future
+      return std::move(result_future);
     }
 
-    template<class Function>
-    void execute(Function f, size_t n)
+
+    // this is the overload of bulk_then_execute for void Future
+    template<class Function, class Future, class ResultFactory, class SharedFactory,
+             __AGENCY_REQUIRES(std::is_void<future_value_t<Future>>::value)
+            >
+    std::future<
+      result_of_t<ResultFactory()>
+    >
+      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
     {
-      // execute small workloads immediately
-      if(n <= 1)
+      using result_type = result_of_t<ResultFactory()>;
+
+      // create a shared promise to fulfill the result
+      auto shared_promise_ptr = std::make_shared<std::promise<result_type>>();
+
+      // get the shared promise's future
+      auto result_future = shared_promise_ptr->get_future();
+
+      // create a deleter which fulfills the promise with the result and then deletes the result
+      fulfill_promise_and_delete<result_type> deleter{std::move(shared_promise_ptr)};
+
+      // create the shared state for the result
+      auto shared_result_ptr = std::shared_ptr<result_type>(new result_type(result_factory()), std::move(deleter));
+
+      // create the shared state for the shared parameter
+      using shared_arg_type = result_of_t<SharedFactory()>;
+      auto shared_arg_ptr = std::make_shared<shared_arg_type>(shared_factory());
+
+      // share the incoming future
+      auto shared_predecessor = future_traits<Future>::share(predecessor);
+
+      // submit n tasks to the thread pool
+      for(size_t idx = 0; idx < n; ++idx)
       {
-        if(n == 1) f(0);
-      }
-      else
-      {
-        agency::detail::latch work_remaining(n);
-  
-        for(size_t idx = 0; idx < n; ++idx)
+        system_thread_pool().submit([=]() mutable
         {
-          system_thread_pool().submit([=,&work_remaining]() mutable
-          {
-            f(idx);
-            work_remaining.count_down(1);
-          });
-        }
-  
-        // wait for all the work to complete
-        work_remaining.wait();
+          // wait on the predecessor future
+          shared_predecessor.wait();
+
+          // call the user's function
+          f(idx, *shared_result_ptr, *shared_arg_ptr);
+
+          // we explicitly release shared_result_ptr because even though this
+          // lambda's invocation is complete, the lambda's lifetime
+          // (and therefore shared_result_ptr's lifetime) is not necessarily complete
+          // this .reset() is what fulfills the promise via shared_result_ptr's deleter
+          shared_result_ptr.reset();
+        });
       }
+
+      // return the result future
+      return std::move(result_future);
     }
 
-    template<size_t... Indices, class Function, class... Futures>
-    std::future<
-      detail::when_all_and_select_result_t<
-        detail::index_sequence<Indices...>, typename std::decay<Futures>::type...
-      >
-    >
-      when_all_execute_and_select_impl_impl(index_sequence<Indices...>, Function&& f, Futures&&... futures)
-    {
-      return system_thread_pool().async(when_all_execute_and_select_functor<Indices...>(), std::forward<Function>(f), std::move(futures)...);
-    }
-
-    template<size_t... SelectedIndices, size_t... TupleIndices, class Function, class TupleOfFutures>
-    std::future<
-      detail::when_all_execute_and_select_result_t<
-        index_sequence<SelectedIndices...>,
-        decay_t<TupleOfFutures>
-      >
-    >
-      when_all_execute_and_select_impl(index_sequence<SelectedIndices...> indices, index_sequence<TupleIndices...>, Function&& f, TupleOfFutures&& futures)
-    {
-      return when_all_execute_and_select_impl_impl(indices, std::forward<Function>(f), detail::get<TupleIndices>(std::forward<TupleOfFutures>(futures))...);
-    }
-
-
-    // XXX the reason we implemented single-agent when_all_execute_and_select
-    //     is to fix #246 -- bulk_async(par, ...) was executing synchronously
-    //     this is because:
-    //       * parallel_executor is implemented by flattening an executor_array
-    //       * executor_array::then_execute() is implemented with when_all_execute_and_select() on the outer executor
-    //         * in this case, the outer executor is a thread_pool_executor
-    //       * because thread_pool_executor did not previously have when_all_execute_and_select(), the asynchrony was created via std::async(std::launch::deferred, ...)
-    // XXX what we need to do in the future is something like this:
-    //       * implement a fix to #248
-    //       * simplify executor_array::then_execute() to use outer_executor().bulk_then_execute()
-    //       * implement bulk_execute(), bulk_async_execute(), and bulk_then_execute() for thread_pool_executor
-    template<size_t... Indices, class Function, class TupleOfFutures>
-    std::future<
-      detail::when_all_execute_and_select_result_t<
-        index_sequence<Indices...>,
-        decay_t<TupleOfFutures>
-      >
-    >
-      when_all_execute_and_select(Function&& f, TupleOfFutures&& futures)
-    {
-      return when_all_execute_and_select_impl(
-        index_sequence<Indices...>(),
-        make_tuple_indices(futures),
-        std::forward<Function>(f),
-        std::forward<TupleOfFutures>(futures)
-      );
-    }
-
-    size_t shape() const
+    size_t unit_shape() const
     {
       return system_thread_pool().size();
     }

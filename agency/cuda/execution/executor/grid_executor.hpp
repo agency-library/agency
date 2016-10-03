@@ -1,7 +1,6 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/cuda/detail/tuple.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
@@ -10,7 +9,6 @@
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/on_chip_shared_parameter.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
-#include <agency/cuda/detail/when_all_execute_and_select.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/shape_cast.hpp>
@@ -177,7 +175,7 @@ class basic_grid_executor
 
 
     template<class T>
-    using container = detail::array<T, shape_type>;
+    using allocator = cuda::allocator<T>;
 
 
     __host__ __device__
@@ -206,133 +204,30 @@ class basic_grid_executor
       return cuda::make_ready_async_future();
     }
 
-    template<size_t... Indices, class Function, class TupleOfFutures, class Factory1, class Factory2>
+
+    // this overload of bulk_then_execute() consumes a future<T> predecessor
+    template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
-    async_future<detail::when_all_execute_and_select_result_t<agency::detail::index_sequence<Indices...>, agency::detail::decay_t<TupleOfFutures>>>
-      when_all_execute_and_select(Function f,
-                                  shape_type shape,
-                                  TupleOfFutures&& tuple_of_futures,
-                                  Factory1 outer_factory,
-                                  Factory2 inner_factory)
+    async_future<agency::detail::result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, shape_type shape, future<T>& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory)
     {
-      return detail::when_all_execute_and_select<Indices...>(f, shape, this_index_function_type(), std::forward<TupleOfFutures>(tuple_of_futures), outer_factory, inner_factory, device());
-    }
-
-    template<class Function, class Factory1, class T, class Factory2, class Factory3,
-             class = agency::detail::result_of_continuation_t<
-               Function,
-               index_type,
-               async_future<T>,
-               agency::detail::result_of_factory_t<Factory2>&,
-               agency::detail::result_of_factory_t<Factory3>&
-             >
-            >
-    __host__ __device__
-    async_future<agency::detail::result_of_t<Factory1(shape_type)>>
-      then_execute(Function f, Factory1 result_factory, shape_type shape, async_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
-    {
-      return fut.bulk_then(f, result_factory, shape, this_index_function_type(), outer_factory, inner_factory, device());
+      return predecessor.bulk_then(f, shape, this_index_function_type(), result_factory, outer_factory, inner_factory, device());
     }
 
 
-    template<class Function, class Factory1, class T, class Factory2, class Factory3,
-             class = agency::detail::result_of_continuation_t<
-               Function,
-               index_type,
-               shared_future<T>,
-               agency::detail::result_of_factory_t<Factory2>&,
-               agency::detail::result_of_factory_t<Factory3>&
-             >
-            >
-    async_future<agency::detail::result_of_t<Factory1(shape_type)>>
-      then_execute(Function f, Factory1 result_factory, shape_type shape, shared_future<T>& fut, Factory2 outer_factory, Factory3 inner_factory)
+    // this overload of bulk_then_execute() consumes a shared_future<T> predecessor
+    template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
+    async_future<agency::detail::result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, shape_type shape, shared_future<T>& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory)
     {
-      using result_type = async_future<agency::detail::result_of_t<Factory1(shape_type)>>;
-      auto intermediate_future = fut.bulk_then(f, result_factory, shape, this_index_function_type(), outer_factory, inner_factory, device());
-      return std::move(intermediate_future.template get<result_type>());
+      using result_future_type = async_future<agency::detail::result_of_t<ResultFactory()>>;
+
+      auto intermediate_future = predecessor.bulk_then(f, shape, this_index_function_type(), result_factory, outer_factory, inner_factory, device());
+
+      // convert the intermediate future into the type of future we need to return
+      return std::move(intermediate_future.template get<result_future_type>());
     }
 
-
-    // this is exposed because it's necessary if a client wants to compute occupancy
-    // alternatively, cuda_executor could report occupancy of a Function for a given block size
-    // XXX probably shouldn't expose this -- max_shape() seems good enough
-
-    template<class Function, class Factory1, class T, class OuterFactory, class InnerFactory>
-    __host__ __device__
-    void* then_execute_kernel(const Function& f, const Factory1& result_factory, const async_future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
-    {
-      return fut.bulk_then_kernel(f, result_factory, shape_type{}, this_index_function_type(), outer_factory, inner_factory, device());
-    }
-
-    template<class Container, class Function, class T, class OuterFactory, class InnerFactory>
-    __host__ __device__
-    void* then_execute_kernel(const Function& f, const async_future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
-    {
-      agency::detail::construct<Container> result_factory;
-      return then_execute_kernel(f, result_factory, fut, outer_factory, inner_factory);
-    }
-
-    template<class Function, class T, class OuterFactory, class InnerFactory>
-    __host__ __device__
-    void* then_execute_kernel(const Function& f, const async_future<T>& fut, const OuterFactory& outer_factory, const InnerFactory& inner_factory) const
-    {
-      using container_type = agency::detail::executor_traits_detail::discarding_container;
-      auto g = agency::detail::invoke_and_return_unit<Function>{f};
-      return then_execute_kernel<container_type>(g, fut, outer_factory, inner_factory);
-    }
-
-    template<class Function, class T>
-    __host__ __device__
-    static void* then_execute_kernel(const Function& f, const async_future<T>& fut)
-    {
-      // XXX if T is void, then we only want to take the first parameter and invoke, because there is no second parameter
-      //     so what we really want is something like take_at_most_first_two_parameters_and_invoke<Function>
-      auto g = agency::detail::take_first_two_parameters_and_invoke<Function>{f};
-      return then_execute_kernel(g, fut, agency::detail::unit_factory(), agency::detail::unit_factory());
-    }
-
-
-    template<class Function>
-    __host__ __device__
-    static void* then_execute_kernel(const Function& f)
-    {
-      return then_execute_kernel(f, async_future<void>());
-    }
-
-
-    // XXX we should eliminate these functions below since executor_traits implements them for us
-
-    template<class Function>
-    __host__ __device__
-    async_future<void> async_execute(Function f, shape_type shape)
-    {
-      auto ready = make_ready_future();
-      return agency::executor_traits<basic_grid_executor>::then_execute(*this, f, shape, ready);
-    }
-    
-
-    template<class Function, class Factory1, class Factory2>
-    __host__ __device__
-    async_future<void> async_execute(Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory)
-    {
-      auto ready = make_ready_future();
-      return agency::executor_traits<basic_grid_executor>::then_execute(*this, f, shape, ready, outer_factory, inner_factory);
-    }
-
-
-    template<class Function>
-    __host__ __device__
-    void execute(Function f, shape_type shape)
-    {
-      this->async_execute(f, shape).wait();
-    }
-
-    template<class Function, class Factory1, class Factory2>
-    __host__ __device__
-    void execute(Function f, shape_type shape, Factory1 outer_factory, Factory2 inner_factory)
-    {
-      this->async_execute(f, shape, outer_factory, inner_factory).wait();
-    }
 
   private:
     device_id device_;
@@ -347,80 +242,8 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2>
   public:
     using detail::basic_grid_executor<agency::uint2>::basic_grid_executor;
 
-  private:
-    inline __host__ __device__
-    shape_type max_shape_impl(void* fun_ptr) const
-    {
-      shape_type result = {0,0};
-
-      detail::workaround_unused_variable_warning(fun_ptr);
-
-#if __cuda_lib_has_cudart
-      // record the current device
-      int current_device = 0;
-      detail::throw_on_error(cudaGetDevice(&current_device), "cuda::grid_executor::max_shape(): cudaGetDevice()");
-      if(current_device != device().native_handle())
-      {
-#  ifndef __CUDA_ARCH__
-        detail::throw_on_error(cudaSetDevice(device().native_handle()), "cuda::grid_executor::max_shape(): cudaSetDevice()");
-#  else
-        detail::throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
-#  endif // __CUDA_ARCH__
-      }
-
-      size_t max_grid_dimension_x = detail::maximum_grid_size_x(device());
-
-      cudaFuncAttributes attr{};
-      detail::throw_on_error(cudaFuncGetAttributes(&attr, fun_ptr),
-                             "cuda::grid_executor::max_shape(): cudaFuncGetAttributes");
-
-      // restore current device
-      if(current_device != device().native_handle())
-      {
-#  ifndef __CUDA_ARCH__
-        detail::throw_on_error(cudaSetDevice(current_device), "cuda::grid_executor::max_shape(): cudaSetDevice()");
-#  else
-        detail::throw_on_error(cudaErrorNotSupported, "cuda::grid_executor::max_shape(): cudaSetDevice only allowed in __host__ code");
-#  endif // __CUDA_ARCH__
-      }
-
-      result = shape_type{static_cast<unsigned int>(max_grid_dimension_x), static_cast<unsigned int>(attr.maxThreadsPerBlock)};
-#endif // __cuda_lib_has_cudart
-
-      return result;
-    }
-
-  public:
-    template<class Function>
     __host__ __device__
-    shape_type max_shape(const Function& f) const
-    {
-      return max_shape_impl(then_execute_kernel(f));
-    }
-
-    template<class Function, class T>
-    __host__ __device__
-    shape_type max_shape(const Function& f, const async_future<T>& fut)
-    {
-      return max_shape_impl(then_execute_kernel(f,fut));
-    }
-
-    template<class T, class Function, class Factory1, class Factory2>
-    __host__ __device__
-    shape_type max_shape(const Function& f, const async_future<T>& fut, const Factory1& outer_factory, const Factory2& inner_factory) const
-    {
-      return max_shape_impl(then_execute_kernel(f, fut, outer_factory, inner_factory));
-    }
-
-    template<class Function, class Factory1, class T, class Factory2, class Factory3>
-    __host__ __device__
-    shape_type max_shape(const Function& f, const Factory1& result_factory, const async_future<T>& fut, const Factory2& outer_factory, const Factory3& inner_factory) const
-    {
-      return max_shape_impl(then_execute_kernel(f, result_factory, fut, outer_factory, inner_factory));
-    }
-
-    __host__ __device__
-    shape_type shape() const
+    shape_type unit_shape() const
     {
       return shape_type{detail::number_of_multiprocessors(device()), 256};
     }
@@ -438,7 +261,7 @@ class grid_executor_2d : public detail::basic_grid_executor<point<agency::uint2,
   public:
     using detail::basic_grid_executor<point<agency::uint2,2>>::basic_grid_executor;
 
-    // XXX implement max_shape()
+    // XXX implement max_shape_dimensions()
 };
 
 

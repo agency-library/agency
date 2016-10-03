@@ -740,7 +740,7 @@ class deferred_future
     }
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
-    struct bulk_then_functor
+    struct old_bulk_then_functor
     {
       Function f;
       Factory result_factory;
@@ -758,7 +758,7 @@ class deferred_future
       {
         auto ready = async_future<U>::make_ready(std::move(past_arg));
 
-        return ready.bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory, device).get();
+        return ready.old_bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory, device).get();
       }
 
       // operator() for void past_arg
@@ -768,16 +768,16 @@ class deferred_future
       {
         auto ready = async_future<void>::make_ready();
 
-        return ready.bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory, device).get();
+        return ready.old_bulk_then(f, result_factory, shape, index_function, outer_factory, inner_factory, device).get();
       }
     };
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     deferred_future<agency::detail::result_of_t<Factory(Shape)>>
-      bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+      old_bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
-      bulk_then_functor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory> continuation{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
+      old_bulk_then_functor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory> continuation{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
 
       return then(continuation);
     }
@@ -817,11 +817,22 @@ class deferred_future
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
     deferred_future<agency::detail::result_of_t<Factory(Shape)>>
-      bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+      old_bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       printf("deferred_future::bulk_then_and_leave_valid(): Unimplemented.\n");
 
       return deferred_future<agency::detail::result_of_t<Factory(Shape)>>();
+    }
+
+
+    template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
+    __host__ __device__
+    deferred_future<agency::detail::result_of_t<ResultFactory()>>
+      bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+    {
+      printf("deferred_future::bulk_then_and_leave_valid(): Unimplemented.\n");
+
+      return deferred_future<agency::detail::result_of_t<ResultFactory()>>();
     }
 };
 

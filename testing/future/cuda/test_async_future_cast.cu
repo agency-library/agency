@@ -33,7 +33,7 @@ int main()
   }
 
   {
-    // empty -> void via executor_traits
+    // empty -> void via future_cast()
     using future_type1 = agency::cuda::async_future<empty>;
     future_type1 f1 = agency::cuda::make_ready_async_future(empty());
 
@@ -41,7 +41,7 @@ int main()
 
     agency::cuda::grid_executor exec;
 
-    future_type2 f2 = agency::executor_traits<agency::cuda::grid_executor>::future_cast<void>(exec, f1);
+    future_type2 f2 = agency::future_cast<void>(exec, f1);
 
     assert(!f1.valid());
     assert(f2.valid());
@@ -61,7 +61,7 @@ int main()
   }   
 
   {
-    // unsigned int -> int via executor_traits
+    // unsigned int -> int via future_cast()
     using future_type1 = agency::cuda::async_future<unsigned int>;
     future_type1 f1 = agency::cuda::make_ready_async_future(13u);
 
@@ -69,7 +69,7 @@ int main()
 
     agency::cuda::grid_executor exec;
 
-    future_type2 f2 = agency::executor_traits<agency::cuda::grid_executor>::future_cast<int>(exec, f1);
+    future_type2 f2 = agency::future_cast<int>(exec, f1);
 
     // XXX fut.then() needs to invalidate fut
     //assert(!f1.valid());

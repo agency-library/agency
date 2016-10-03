@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_array.hpp>
 #include <agency/execution/executor/flattened_executor.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 #include <agency/cuda/execution/executor/grid_executor.hpp>
 #include <agency/cuda/execution/executor/parallel_executor.hpp>
 #include <numeric>

@@ -209,7 +209,7 @@ class basic_execution_policy
     // validate that it makes sense to execute the agent's requirements using the executor's guarantees
     static_assert(detail::is_weaker_than<
                     typename execution_agent_traits<ExecutionAgent>::execution_category,
-                    detail::executor_execution_category_t<Executor>
+                    executor_execution_category_t<Executor>
                   >::value,
                   "basic_execution_policy: ExecutionAgent's forward progress requirements cannot be satisfied by Executor's guarantees."
     );
@@ -462,7 +462,7 @@ basic_execution_policy<
 replace_executor(const ExecutionPolicy& policy, const Executor& exec)
 {
   using policy_category = detail::execution_policy_execution_category_t<ExecutionPolicy>;
-  using executor_category = detail::executor_execution_category_t<Executor>;
+  using executor_category = executor_execution_category_t<Executor>;
 
   static_assert(detail::is_weaker_than<policy_category, executor_category>::value, "replace_executor(): Execution policy's forward progress requirements cannot be satisfied by executor's guarantees.");
 

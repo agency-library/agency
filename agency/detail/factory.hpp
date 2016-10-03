@@ -4,6 +4,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/unit.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/integer_sequence.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -11,10 +12,6 @@ namespace agency
 {
 namespace detail
 {
-
-
-template<class Factory>
-using result_of_factory_t = result_of_t<Factory()>;
 
 
 // construct is a type of Factory
@@ -31,30 +28,32 @@ class construct
       : args_(args)
     {}
 
-    // XXX eliminate me!
+    __agency_exec_check_disable__
+    template<size_t... Indices>
     __AGENCY_ANNOTATION
-    T make() const &
+    T impl(index_sequence<Indices...>) const &
     {
-      return __tu::make_from_tuple<T>(args_);
+      return T(detail::get<Indices>(args_)...);
     }
 
-    // XXX eliminate me!
+    __agency_exec_check_disable__
+    template<size_t... Indices>
     __AGENCY_ANNOTATION
-    T make() &&
+    T impl(index_sequence<Indices...>) &&
     {
-      return __tu::make_from_tuple<T>(std::move(args_));
+      return T(detail::get<Indices>(std::move(args_))...);
     }
 
     __AGENCY_ANNOTATION
     T operator()() const &
     {
-      return make();
+      return impl(make_index_sequence<sizeof...(Args)>());
     }
 
     __AGENCY_ANNOTATION
     T operator()() &&
     {
-      return std::move(*this).make();
+      return std::move(*this).impl(make_index_sequence<sizeof...(Args)>());
     }
 
   private:
@@ -81,6 +80,61 @@ construct<T,T> make_copy_construct(const T& arg)
 struct unit_factory : construct<unit> {};
 
 
+// a moving_factory is a factory which moves an object when it is called
+template<class T>
+class moving_factory
+{
+  public:
+    __AGENCY_ANNOTATION
+    moving_factory(moving_factory&& other) = default;
+
+    // this constructor moves other's value into value_
+    // so, it acts like a move constructor
+    __AGENCY_ANNOTATION
+    moving_factory(const moving_factory& other)
+      : value_(std::move(other.value_))
+    {}
+
+    // XXX this code causes nvcc 8.0 to produce an error message
+    //     
+    //__agency_exec_check_disable__
+    //template<class U,
+    //         class = typename std::enable_if<
+    //           std::is_constructible<T,U&&>::value
+    //         >::type>
+    //__AGENCY_ANNOTATION
+    //moving_factory(U&& value)
+    //  : value_(std::forward<U>(value))
+    //{}
+    
+    // XXX in order to WAR the nvcc 8.0 error above,
+    //     instead of perfectly forwarding the value in,
+    //     move construct it into value_ instead.
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    moving_factory(T&& value)
+      : value_(std::move(value))
+    {}
+
+    __AGENCY_ANNOTATION
+    T operator()() const
+    {
+      return std::move(value_);
+    }
+
+  private:
+    mutable T value_;
+};
+
+
+template<class T>
+__AGENCY_ANNOTATION
+moving_factory<decay_t<T>> make_moving_factory(T&& value)
+{
+  return moving_factory<decay_t<T>>(std::forward<T>(value));
+}
+
+
 // a zip_factory is a type of Factory which takes a list of Factories
 // and creates a tuple whose elements are the results of the given Factories
 template<class... Factories>
@@ -95,7 +149,7 @@ struct zip_factory
   template<size_t... Indices>
   __AGENCY_ANNOTATION
   agency::detail::tuple<
-    result_of_factory_t<Factories>...
+    result_of_t<Factories()>...
   >
     impl(agency::detail::index_sequence<Indices...>)
   {
@@ -104,7 +158,7 @@ struct zip_factory
 
   __AGENCY_ANNOTATION
   agency::detail::tuple<
-    result_of_factory_t<Factories>...
+    result_of_t<Factories()>...
   >
     operator()()
   {

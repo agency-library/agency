@@ -5,83 +5,19 @@
 #include <agency/detail/factory.hpp>
 #include <agency/detail/array.hpp>
 #include <agency/detail/shape.hpp>
+#include <agency/detail/index.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/execution_categories.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
-#include <agency/execution/executor/detail/flatten_index_and_invoke.hpp>
+#include <agency/execution/executor/detail/utility/bulk_continuation_executor_adaptor.hpp>
+#include <agency/execution/executor/customization_points.hpp>
+
 
 namespace agency
 {
 namespace detail
 {
-
-
-// XXX we should find a better home for this functionality because grid_executor.hpp replicates this code
-template<class Container>
-struct guarded_container : Container
-{
-  using Container::Container;
-
-  __AGENCY_ANNOTATION
-  guarded_container()
-    : Container()
-  {}
-
-  __AGENCY_ANNOTATION
-  guarded_container(Container&& other)
-    : Container(std::move(other))
-  {}
-
-  struct reference
-  {
-    Container& self_;
-
-    template<class OptionalValueAndIndex>
-    __AGENCY_ANNOTATION
-    void operator=(OptionalValueAndIndex&& opt)
-    {
-      if(opt)
-      {
-        auto idx = opt.value().index;
-        self_[idx] = std::forward<OptionalValueAndIndex>(opt).value().value;
-      }
-    }
-  };
-
-  template<class Index>
-  __AGENCY_ANNOTATION
-  reference operator[](const Index&)
-  {
-    return reference{*this};
-  }
-};
-
-
-template<class Container>
-__AGENCY_ANNOTATION
-guarded_container<typename std::decay<Container>::type> make_guarded_container(Container&& value)
-{
-  return guarded_container<typename std::decay<Container>::type>(std::forward<Container>(value));
-}
-
-
-template<class Factory, class Shape>
-struct guarded_container_factory
-{
-  Factory factory_;
-  Shape shape_;
-
-  using container_type = detail::result_of_t<Factory(Shape)>;
-
-  __agency_exec_check_disable__
-  template<class Arg>
-  __AGENCY_ANNOTATION
-  guarded_container<container_type> operator()(const Arg&)
-  {
-    return agency::detail::make_guarded_container(factory_(shape_));
-  }
-};
 
 
 template<class ExecutionCategory>
@@ -108,6 +44,133 @@ template<class ExecutionCategory>
 using flattened_execution_tag = typename flattened_execution_tag_impl<ExecutionCategory>::type;
 
 
+template<class ShapeTuple>
+using flattened_shape_type_t = merge_front_shape_elements_t<ShapeTuple>;
+
+
+// XXX might not want to use a alias template here
+template<class IndexTuple>
+using flattened_index_type_t = merge_front_shape_elements_t<IndexTuple>;
+
+
+// flatten_index_and_invoke is used by flattened_executor::bulk_then_execute()
+// this definition is for the general case when the predecessor future's type is non-void
+template<class Index, class Predecessor, class Function, class Shape>
+struct flatten_index_and_invoke
+{
+  using index_type = Index;
+  using shape_type = Shape;
+
+  using flattened_index_type = flattened_index_type_t<Index>;
+  using flattened_shape_type = flattened_shape_type_t<Shape>;
+
+  mutable Function     f_;
+  shape_type           shape_;
+  flattened_shape_type flattened_shape_;
+
+  __AGENCY_ANNOTATION
+  flatten_index_and_invoke(const Function& f, shape_type shape, flattened_shape_type flattened_shape)
+    : f_(f),
+      shape_(shape),
+      flattened_shape_(flattened_shape)
+  {}
+
+  __AGENCY_ANNOTATION
+  flattened_index_type flatten_index(const Index& idx) const
+  {
+    return detail::merge_front_index_elements(idx, shape_);
+  }
+
+  __AGENCY_ANNOTATION
+  bool in_domain(const flattened_index_type& idx) const
+  {
+    // idx is in the domain of f_ if idx is contained within the
+    // axis-aligned bounded box from extremal corners at the origin
+    // and flattened_shape_. the "hyper-interval" is half-open, so
+    // the origin is contained within the box but the corner at
+    // flattened_shape_ is not.
+    return detail::is_bounded_by(idx, flattened_shape_);
+  }
+
+  template<class Result, class OuterArg, class... InnerArgs>
+  __AGENCY_ANNOTATION
+  void operator()(const Index& idx, Predecessor& predecessor, Result& result, OuterArg& outer_arg, detail::unit, InnerArgs&... inner_args) const
+  {
+    flattened_index_type flattened_idx = flatten_index(idx);
+
+    if(in_domain(flattened_idx))
+    {
+      f_(flattened_idx, predecessor, result, outer_arg, inner_args...);
+    }
+  }
+};
+
+
+// this specialization is for when the predecessor future's type is void
+template<class Index, class Function, class Shape>
+struct flatten_index_and_invoke<Index,void,Function,Shape>
+{
+  using index_type = Index;
+  using shape_type = Shape;
+
+  using flattened_index_type = flattened_index_type_t<Index>;
+  using flattened_shape_type = flattened_shape_type_t<Shape>;
+
+  mutable Function     f_;
+  shape_type           shape_;
+  flattened_shape_type flattened_shape_;
+
+  __AGENCY_ANNOTATION
+  flatten_index_and_invoke(const Function& f, shape_type shape, flattened_shape_type flattened_shape)
+    : f_(f),
+      shape_(shape),
+      flattened_shape_(flattened_shape)
+  {}
+
+  __AGENCY_ANNOTATION
+  flattened_index_type flatten_index(const Index& idx) const
+  {
+    return detail::merge_front_index_elements(idx, shape_);
+  }
+
+  __AGENCY_ANNOTATION
+  bool in_domain(const flattened_index_type& idx) const
+  {
+    // idx is in the domain of f_ if idx is contained within the
+    // axis-aligned bounded box from extremal corners at the origin
+    // and flattened_shape_. the "hyper-interval" is half-open, so
+    // the origin is contained within the box but the corner at
+    // flattened_shape_ is not.
+    return detail::is_bounded_by(idx, flattened_shape_);
+  }
+
+  // note that because the predecessor future type is void, no predecessor argument
+  // appears in operator()'s parameter list
+  template<class Result, class OuterArg, class... InnerArgs>
+  __AGENCY_ANNOTATION
+  void operator()(const Index& idx, Result& result, OuterArg& outer_arg, detail::unit, InnerArgs&... inner_args) const
+  {
+    flattened_index_type flattened_idx = flatten_index(idx);
+
+    if(in_domain(flattened_idx))
+    {
+      f_(flattened_idx, result, outer_arg, inner_args...);
+    }
+  }
+};
+
+
+template<class Index, class Predecessor, class Function, class Shape>
+__AGENCY_ANNOTATION
+flatten_index_and_invoke<Index,Predecessor,Function,Shape>
+  make_flatten_index_and_invoke(Function f,
+                                Shape higher_dimensional_shape,
+                                typename flatten_index_and_invoke<Index,Predecessor,Function,Shape>::flattened_shape_type lower_dimensional_shape)
+{
+  return flatten_index_and_invoke<Index,Predecessor,Function,Shape>{f,higher_dimensional_shape,lower_dimensional_shape};
+}
+
+
 } // end detail
 
 
@@ -116,70 +179,53 @@ class flattened_executor
 {
   // probably shouldn't insist on a scoped executor
   static_assert(
-    detail::is_scoped_execution_category<typename executor_traits<Executor>::execution_category>::value,
+    detail::is_scoped_execution_category<executor_execution_category_t<Executor>>::value,
     "Execution category of Executor must be scoped."
   );
 
   private:
-    using base_traits = executor_traits<Executor>;
-    using base_execution_category = typename base_traits::execution_category;
-    constexpr static auto execution_depth = base_traits::execution_depth - 1;
+    using base_execution_category = executor_execution_category_t<Executor>;
+    constexpr static auto execution_depth = executor_execution_depth<Executor>::value - 1;
 
   public:
     using base_executor_type = Executor;
     using execution_category = detail::flattened_execution_tag<base_execution_category>;
-    using shape_type = detail::flattened_shape_type_t<typename base_traits::shape_type>;
-    using index_type = detail::flattened_index_type_t<typename base_traits::index_type>;
+    using shape_type = detail::flattened_shape_type_t<executor_shape_t<base_executor_type>>;
+    using index_type = detail::flattened_index_type_t<executor_shape_t<base_executor_type>>;
 
     template<class T>
-    using future = typename base_traits::template future<T>;
+    using future = executor_future_t<base_executor_type, T>;
 
     template<class T>
-    using allocator = typename base_traits::template allocator<T>;
+    using allocator = executor_allocator_t<base_executor_type, T>;
 
     template<class T>
     using container = detail::array<T, shape_type, allocator<T>, index_type>;
 
     future<void> make_ready_future()
     {
-      return executor_traits<base_executor_type>::make_ready_future(base_executor());
+      return agency::make_ready_future<void>(base_executor());
     }
 
     flattened_executor(const base_executor_type& base_executor = base_executor_type())
       : base_executor_(base_executor)
     {}
 
-    template<class Function, class Factory1, class Future, class Factory2, class... Factories,
-             class = typename std::enable_if<
-               sizeof...(Factories) == execution_depth - 1
-             >::type>
-    future<detail::result_of_t<Factory1(shape_type)>>
-      then_execute(Function f, Factory1 result_factory, shape_type shape, Future& dependency, Factory2 outer_factory, Factories... inner_factories)
+    template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories,
+             __AGENCY_REQUIRES(sizeof...(InnerFactories) == execution_depth - 1)
+            >
+    future<detail::result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
     {
       base_shape_type base_shape = partition_into_base_shape(shape);
 
-      // store results into an intermediate result
-      detail::guarded_container_factory<Factory1,shape_type> intermediate_result_factory{result_factory,shape};
-
-      // create a function to execute
-      using base_index_type = typename executor_traits<base_executor_type>::index_type;
-      using future_value_type = typename future_traits<Future>::value_type;
+      using base_index_type = executor_index_t<base_executor_type>;
+      using future_value_type = detail::future_value_t<Future>;
       auto execute_me = detail::make_flatten_index_and_invoke<base_index_type,future_value_type>(f, base_shape, shape);
 
+      detail::bulk_continuation_executor_adaptor<base_executor_type> adapted_executor(base_executor());
 
-      // then_execute with the base_executor
-      auto intermediate_fut = executor_traits<base_executor_type>::then_execute(
-        base_executor(),
-        execute_me,
-        intermediate_result_factory,
-        base_shape,
-        dependency,
-        outer_factory, agency::detail::unit_factory(), inner_factories...
-      );
-
-      // cast the intermediate result to the type of result expected by the caller
-      using result_type = detail::result_of_t<Factory1(shape_type)>;
-      return executor_traits<base_executor_type>::template future_cast<result_type>(base_executor(), intermediate_fut);
+      return adapted_executor.bulk_then_execute(execute_me, base_shape, predecessor, result_factory, outer_factory, agency::detail::unit_factory(), inner_factories...);
     }
 
     const base_executor_type& base_executor() const
@@ -192,20 +238,20 @@ class flattened_executor
       return base_executor_;
     }
 
-    shape_type shape() const
+    shape_type unit_shape() const
     {
       // to flatten the base executor's shape we merge the two front dimensions together
-      return detail::merge_front_shape_elements(base_traits::shape(base_executor()));
+      return detail::merge_front_shape_elements(agency::unit_shape(base_executor()));
     }
 
     shape_type max_shape_dimensions() const
     {
       // to flatten the base executor's shape we merge the two front dimensions together
-      return detail::merge_front_shape_elements(base_traits::max_shape_dimensions(base_executor()));
+      return detail::merge_front_shape_elements(agency::max_shape_dimensions(base_executor()));
     }
 
   private:
-    using base_shape_type = typename base_traits::shape_type;
+    using base_shape_type = executor_shape_t<base_executor_type>;
 
     static_assert(detail::is_tuple<base_shape_type>::value, "The shape_type of flattened_executor's base_executor must be a tuple.");
 
@@ -227,11 +273,11 @@ class flattened_executor
         return head_partition_type{};
       }
 
-      base_shape_type base_executor_shape = base_traits::shape(base_executor());
+      base_shape_type base_executor_shape = agency::unit_shape(base_executor());
       size_t outer_granularity = detail::shape_head_size(base_executor_shape);
       size_t inner_granularity = detail::shape_size(detail::get<1>(base_executor_shape));
 
-      base_shape_type base_executor_max_sizes = detail::max_sizes(base_traits::max_shape_dimensions(base_executor()));
+      base_shape_type base_executor_max_sizes = detail::max_sizes(agency::max_shape_dimensions(base_executor()));
 
       size_t outer_max_size = detail::shape_head(base_executor_max_sizes);
       size_t inner_max_size = detail::get<1>(base_executor_max_sizes);

@@ -2,6 +2,8 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/unit.hpp>
+#include <agency/detail/requires.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <utility>
 
 namespace agency
@@ -17,6 +19,27 @@ auto invoke(F&& f, Args&&... args) ->
   decltype(std::forward<F>(f)(std::forward<Args>(args)...))
 {
   return std::forward<F>(f)(std::forward<Args>(args)...);
+}
+
+
+template<class F, class... Args,
+         __AGENCY_REQUIRES(std::is_void<result_of_t<F(Args...)>>::value)
+        >
+inline __AGENCY_ANNOTATION
+unit invoke_and_return_unit_if_void_result(F&& f, Args&&... args)
+{
+  invoke(std::forward<F>(f), std::forward<Args>(args)...);
+  return unit();
+}
+
+
+template<class F, class... Args,
+         __AGENCY_REQUIRES(!std::is_void<result_of_t<F(Args...)>>::value)
+        >
+inline __AGENCY_ANNOTATION
+result_of_t<F(Args...)> invoke_and_return_unit_if_void_result(F&& f, Args&&... args)
+{
+  return invoke(std::forward<F>(f), std::forward<Args>(args)...);
 }
 
 

@@ -13,7 +13,7 @@ void test()
     
     execution_policy_type policy;
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     auto f = agency::bulk_then(policy(10),
       [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& return_me)
@@ -25,7 +25,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     assert(container_type(10,7) == result);
   }
@@ -35,7 +35,7 @@ void test()
     
     execution_policy_type policy;
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     auto f = agency::bulk_then(policy(10),
       [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self)
@@ -47,7 +47,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     assert(container_type(10,7) == result);
   }
@@ -57,7 +57,7 @@ void test()
     
     execution_policy_type policy;
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     int val = 13;
 
@@ -72,7 +72,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     assert(container_type(10,7 + 13) == result);
   }
@@ -82,7 +82,7 @@ void test()
     
     execution_policy_type policy;
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     int val = 13;
 
@@ -97,7 +97,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     assert(container_type(10,13) == result);
   }
@@ -107,7 +107,7 @@ void test()
     
     execution_policy_type policy;
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<int>(policy.executor(), 7);
+    auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     int val = 13;
 
@@ -122,7 +122,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     assert(container_type(10,7 + 13) == result);
   }
@@ -132,7 +132,7 @@ void test()
     
     execution_policy_type policy;
 
-    auto fut = agency::executor_traits<executor_type>::template make_ready_future<void>(policy.executor());
+    auto fut = agency::make_ready_future<void>(policy.executor());
 
     int val = 13;
 
@@ -147,7 +147,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = typename agency::executor_traits<executor_type>::template container<int>;
+    using container_type = agency::executor_container_t<executor_type,int>;
 
     assert(container_type(10,13) == result);
   }

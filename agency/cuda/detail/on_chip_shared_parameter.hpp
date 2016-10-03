@@ -17,8 +17,8 @@ template<class Factory>
 struct result_of_factory_is_empty
   : std::integral_constant<
       bool,
-      (std::is_empty<agency::detail::result_of_factory_t<Factory>>::value ||
-      agency::detail::is_empty_tuple<agency::detail::result_of_factory_t<Factory>>::value)
+      (std::is_empty<agency::detail::result_of_t<Factory()>>::value ||
+      agency::detail::is_empty_tuple<agency::detail::result_of_t<Factory()>>::value)
     >
 {};
 
@@ -26,7 +26,7 @@ struct result_of_factory_is_empty
 template<class Factory, bool = result_of_factory_is_empty<Factory>::value>
 struct on_chip_shared_parameter
 {
-  using value_type = agency::detail::result_of_factory_t<Factory>;
+  using value_type = agency::detail::result_of_t<Factory()>;
 
   __device__
   on_chip_shared_parameter(bool is_leader, Factory factory)
@@ -71,7 +71,7 @@ struct on_chip_shared_parameter
 template<class Factory>
 struct on_chip_shared_parameter<Factory,true>
 {
-  using value_type = agency::detail::result_of_factory_t<Factory>;
+  using value_type = agency::detail::result_of_t<Factory()>;
 
   __device__
   on_chip_shared_parameter(bool is_leader_, Factory) {}

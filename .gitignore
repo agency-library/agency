@@ -22,3 +22,6 @@
 # ignore files introduced by doxygen
 *.log
 
+# ignore files produced by compiler diagnostics (typically named errors.txt)
+*.txt
+
