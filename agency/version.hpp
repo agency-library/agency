@@ -24,7 +24,7 @@
 //  AGENCY_VERSION / 100000 is the major version
 
 // XXX there are no leading zeros on AGENCY_VERSION because that is interpreted as an octal value
-#define AGENCY_VERSION 200
+#define AGENCY_VERSION 100
 
 #define AGENCY_MAJOR_VERSION     (AGENCY_VERSION / 100000)
 
