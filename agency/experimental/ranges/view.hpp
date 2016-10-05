@@ -1,5 +1,8 @@
 #pragma once
 
+// XXX we should rename this file something like range_view.hpp
+//     and move all() into its own header
+
 #include <agency/detail/config.hpp>
 #include <agency/experimental/array.hpp>
 #include <agency/experimental/span.hpp>
