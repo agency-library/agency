@@ -43,6 +43,16 @@ using range_value_t = typename range_value<Range>::type;
 
 
 template<class Range>
+struct range_reference
+{
+  using type = typename std::iterator_traits<range_iterator_t<Range>>::reference;
+};
+
+template<class Range>
+using range_reference_t = typename range_reference<Range>::type;
+
+
+template<class Range>
 struct range_difference
 {
   using type = typename std::iterator_traits<range_iterator_t<Range>>::difference_type;
