@@ -28,10 +28,10 @@ class flatten_view
 
   public:
     using difference_type = range_difference_t<all_t>;
+    using size_type = range_size_t<all_t>;
     using value_type = range_value_t<all_t>;
-    using reference = value_type&;
+    using reference = range_reference_t<all_t>;
 
-    __AGENCY_ANNOTATION
     flatten_view(const flatten_view&) = default;
 
     template<class RangeOfRanges,
@@ -44,7 +44,6 @@ class flatten_view
                >::value
              )
             >
-    __AGENCY_ANNOTATION
     flatten_view(RangeOfRanges&& ranges)
     {
       segments_.reserve(ranges.size());
@@ -56,8 +55,7 @@ class flatten_view
     }
 
   private:
-    __AGENCY_ANNOTATION
-    reference bracket_operator(size_t element_idx, size_t current_segment_idx) const
+    reference bracket_operator(size_type element_idx, size_t current_segment_idx) const
     {
       auto& segment = segments_[current_segment_idx];
       auto size = segment.size();
@@ -72,8 +70,7 @@ class flatten_view
     }
 
   public:
-    __AGENCY_ANNOTATION
-    reference operator[](size_t i) const
+    reference operator[](size_type i) const
     {
       // seems like we have to do a linear search through the segments
       // so, it't not clear this can be computed in O(1)
@@ -81,10 +78,9 @@ class flatten_view
       return bracket_operator(i, 0);
     }
 
-    __AGENCY_ANNOTATION
-    size_t size() const
+    size_type size() const
     {
-      size_t result = 0;
+      size_type result = 0;
       for(auto& segment : segments_)
       {
         result += segment.size();
@@ -93,13 +89,139 @@ class flatten_view
       return result;
     }
 
+    class iterator
+    {
+      public:
+        using value_type = typename flatten_view::value_type;
+        using reference = typename flatten_view::reference;
+        using difference_type = typename flatten_view::difference_type;
+        using pointer = value_type*;
+        using iterator_category = std::random_access_iterator_tag;
+
+        // dereference
+        reference operator*() const
+        {
+          return self_[current_position_];
+        }
+
+        // pre-increment
+        iterator operator++()
+        {
+          ++current_position_;
+          return *this;
+        }
+
+        // pre-decrement
+        iterator operator--()
+        {
+          --current_position_;
+          return *this;
+        }
+
+        // post-increment
+        iterator operator++(int)
+        {
+          iterator result = *this;
+          current_position_++;
+          return result;
+        }
+
+        // post-decrement
+        iterator operator--(int)
+        {
+          iterator result = *this;
+          current_position_--;
+          return result;
+        }
+
+        // add-assign
+        iterator operator+=(size_type n)
+        {
+          current_position_ += n;
+          return *this;
+        }
+
+        // minus-assign
+        iterator operator-=(size_type n)
+        {
+          current_position_ -= n;
+          return *this;
+        }
+
+        // add
+        iterator operator+(size_type n)
+        {
+          iterator result = *this;
+          result += n;
+          return result;
+        }
+
+        // minus
+        iterator operator-(size_type n)
+        {
+          iterator result = *this;
+          result -= n;
+          return result;
+        }
+
+        // bracket
+        reference operator[](size_type n)
+        {
+          iterator tmp = *this + n;
+          return *tmp;
+        }
+
+        // equal
+        bool operator==(const iterator& rhs) const
+        {
+          return (&self_ == &rhs.self_) && (current_position_ == rhs.current_position_);
+        }
+
+        // not equal
+        bool operator!=(const iterator& rhs) const
+        {
+          return !(*this == rhs);
+        }
+
+        // difference
+        difference_type operator-(const iterator& rhs) const
+        {
+          return current_position_ - rhs.current_position_;
+        }
+
+      private:
+        friend flatten_view;
+
+        iterator(size_type current_position, const flatten_view& self)
+          : current_position_(current_position),
+            self_(self)
+        {}
+
+        // XXX a more efficient implementation would track the current segment
+        // XXX and the current position within the segment
+        //     could keep an iterator to the current segment
+        //     would make operator- and operator+= less efficient because they would involve linear searches
+        size_type current_position_;
+        const flatten_view& self_;
+    };
+
+    iterator begin() const
+    {
+      return iterator(0, *this);
+    }
+
+    iterator end() const
+    {
+      return iterator(size(), *this);
+    }
+
   private:
+    // XXX we may wish to use agency::detail::array so that we can use __AGENCY_ANNOTATION
     std::vector<all_t> segments_;
 };
 
 
 template<class RangeOfRanges>
-__AGENCY_ANNOTATION
 flatten_view<range_value_t<RangeOfRanges>> flatten(RangeOfRanges&& ranges)
 {
   return flatten_view<range_value_t<RangeOfRanges>>(std::forward<RangeOfRanges>(ranges));
