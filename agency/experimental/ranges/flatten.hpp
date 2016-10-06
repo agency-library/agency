@@ -26,11 +26,15 @@ class flatten_view
       agency::experimental::all(std::declval<Range&>())
     );
 
+    template<class> friend class flatten_view;
+
   public:
     using difference_type = range_difference_t<all_t>;
     using size_type = range_size_t<all_t>;
     using value_type = range_value_t<all_t>;
     using reference = range_reference_t<all_t>;
+
+    flatten_view() = default;
 
     flatten_view(const flatten_view&) = default;
 
@@ -53,6 +57,18 @@ class flatten_view
         segments_.push_back(all(rng));
       }
     }
+
+    // converting copy constructor
+    template<class OtherRange,
+             __AGENCY_REQUIRES(
+               std::is_constructible<
+                 all_t,
+                 typename flatten_view<OtherRange>::all_t
+               >::value
+             )>
+    flatten_view(const flatten_view<OtherRange>& other)
+      : segments_(other.segments_.begin(), other.segments_.end())
+    {}
 
   private:
     reference bracket_operator(size_type element_idx, size_t current_segment_idx) const
@@ -174,7 +190,9 @@ class flatten_view
         // equal
         bool operator==(const iterator& rhs) const
         {
-          return (&self_ == &rhs.self_) && (current_position_ == rhs.current_position_);
+          // we assume that *this and rhs came from the same flattened_view,
+          // so we do not compare their self_ members
+          return current_position_ == rhs.current_position_;
         }
 
         // not equal
@@ -202,7 +220,11 @@ class flatten_view
         //     could keep an iterator to the current segment
         //     would make operator- and operator+= less efficient because they would involve linear searches
         size_type current_position_;
-        const flatten_view& self_;
+
+        // it's expensive to keep a copy of the flatten_view from whence
+        // this iterator came, but it'too common for the original flatten_view's
+        // lifetime to end while this iterator is still alive
+        const flatten_view self_;
     };
 
     iterator begin() const
@@ -221,6 +243,8 @@ class flatten_view
 };
 
 
+// XXX I think this should actually return something like
+// flatten_view<range_reference_t<RangeOfRanges>
 template<class RangeOfRanges>
 flatten_view<range_value_t<RangeOfRanges>> flatten(RangeOfRanges&& ranges)
 {

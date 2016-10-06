@@ -52,6 +52,19 @@ void test()
   }
 
   {
+    // test converting copy construction
+    flatten_view<const std::vector<int>> flattened2 = flattened;
+
+    std::vector<int> expected_values(flattened.size());
+    std::iota(expected_values.begin(), expected_values.end(), 0);
+
+    for(size_t i = 0; i < flattened2.size(); ++i)
+    {
+      assert(flattened2[i] == expected_values[i]);
+    }
+  }
+
+  {
     // test iterator traits
 
     using iterator = decltype(flattened.begin());
@@ -76,12 +89,7 @@ void test()
 
   {
     // test iterator inequality
-
-    std::vector<std::vector<int>> v(1, std::vector<int>(4));
-
-    auto flattened2 = flatten(v);
-
-    assert(flattened.begin() != flattened2.begin());
+    assert(!(flattened.begin() != flattened.begin()));
   }
 
   {
