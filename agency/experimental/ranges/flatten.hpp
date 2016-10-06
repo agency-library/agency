@@ -238,7 +238,9 @@ class flatten_view
     }
 
   private:
-    // XXX we may wish to use agency::detail::array so that we can use __AGENCY_ANNOTATION
+    // XXX i think we want to avoid storing a vector here -- it causes too many problems should
+    //     this view's life time end before its iterators
+    //     what we want instead is probably a view of the original RangeOfRanges
     std::vector<all_t> segments_;
 };
 
