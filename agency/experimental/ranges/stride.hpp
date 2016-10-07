@@ -229,7 +229,7 @@ template<class Range, class Difference>
 __AGENCY_ANNOTATION
 auto stride(Range&& rng, Difference stride) ->
   stride_view<
-    decltype(all(std::forward<Range>(rng))),
+    all_t<Range&&>,
     Difference
   >
 {

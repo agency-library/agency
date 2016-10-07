@@ -22,9 +22,7 @@ template<class Range>
 class flatten_view
 {
   private:
-    using all_t = decltype(
-      agency::experimental::all(std::declval<Range&>())
-    );
+    using all_t = agency::experimental::all_t<Range&>;
 
     template<class> friend class flatten_view;
 
