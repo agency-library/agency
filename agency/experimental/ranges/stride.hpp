@@ -227,11 +227,7 @@ class stride_view
 
 template<class Range, class Difference>
 __AGENCY_ANNOTATION
-auto stride(Range&& rng, Difference stride) ->
-  stride_view<
-    all_t<Range&&>,
-    Difference
-  >
+stride_view<all_t<Range&&>,Difference> stride(Range&& rng, Difference stride)
 {
   auto view_of_rng = all(std::forward<Range>(rng));
   return stride_view<decltype(view_of_rng), Difference>(view_of_rng, stride);
