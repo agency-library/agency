@@ -53,7 +53,7 @@ void test()
 
   {
     // test converting copy construction
-    flatten_view<const std::vector<int>> flattened2 = flattened;
+    flatten_view<const std::vector<std::vector<int>>> flattened2 = flattened;
 
     std::vector<int> expected_values(flattened.size());
     std::iota(expected_values.begin(), expected_values.end(), 0);

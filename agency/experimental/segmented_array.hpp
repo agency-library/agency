@@ -88,20 +88,18 @@ class segmented_array
     segments_container segments_;
 
   public:
-    using all_t = flatten_view<segment_type>;
+    using all_t = flatten_view<segments_container>;
 
     all_t all()
     {
       return flatten(segments_);
     }
 
-    using const_all_t = flatten_view<const segment_type>;
+    using const_all_t = flatten_view<const segments_container>;
 
     const_all_t all() const
     {
-      // XXX this doesn't compile right now due to the note about the return type of flatten()
-      //return flatten(segments_);
-      return flatten_view<const segment_type>(segments_);
+      return flatten(segments_);
     }
 
     size_type size() const

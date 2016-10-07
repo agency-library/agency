@@ -18,54 +18,47 @@ namespace experimental
 // operator[] and size() would have more efficient implementations if
 // we made that assumption
 // we should consider another kind of fancy range that would "un-tile" a collection of tiles
-template<class Range>
+template<class RangeOfRanges>
 class flatten_view
 {
   private:
-    using all_t = agency::experimental::all_t<Range&>;
+    using inner_range_type = range_reference_t<RangeOfRanges>;
+    using all_t = agency::experimental::all_t<RangeOfRanges&>;
 
     template<class> friend class flatten_view;
 
   public:
-    using difference_type = range_difference_t<all_t>;
-    using size_type = range_size_t<all_t>;
-    using value_type = range_value_t<all_t>;
-    using reference = range_reference_t<all_t>;
+    using difference_type = range_difference_t<inner_range_type>;
+    using size_type = range_size_t<inner_range_type>;
+    using value_type = range_value_t<inner_range_type>;
+    using reference = range_reference_t<inner_range_type>;
 
     flatten_view() = default;
 
     flatten_view(const flatten_view&) = default;
 
-    template<class RangeOfRanges,
+    template<class OtherRangeOfRanges,
              __AGENCY_REQUIRES(
                std::is_convertible<
-                 // XXX for some reason, range_value_t isn't SFINAE friendly, so workaround it
-                 //range_value_t<RangeOfRanges>,
-                 decltype(*std::declval<RangeOfRanges>().begin()),
+                 experimental::all_t<OtherRangeOfRanges>,
                  all_t
                >::value
              )
             >
-    flatten_view(RangeOfRanges&& ranges)
-    {
-      segments_.reserve(ranges.size());
-
-      for(auto& rng : ranges)
-      {
-        segments_.push_back(all(rng));
-      }
-    }
+    flatten_view(OtherRangeOfRanges&& ranges)
+      : segments_(all(ranges))
+    {}
 
     // converting copy constructor
-    template<class OtherRange,
+    template<class OtherRangeOfRanges,
              __AGENCY_REQUIRES(
                std::is_constructible<
                  all_t,
-                 typename flatten_view<OtherRange>::all_t
+                 typename flatten_view<OtherRangeOfRanges>::all_t
                >::value
              )>
-    flatten_view(const flatten_view<OtherRange>& other)
-      : segments_(other.segments_.begin(), other.segments_.end())
+    flatten_view(const flatten_view<OtherRangeOfRanges>& other)
+      : segments_(other.segments_)
     {}
 
   private:
@@ -219,10 +212,7 @@ class flatten_view
         //     would make operator- and operator+= less efficient because they would involve linear searches
         size_type current_position_;
 
-        // it's expensive to keep a copy of the flatten_view from whence
-        // this iterator came, but it'too common for the original flatten_view's
-        // lifetime to end while this iterator is still alive
-        const flatten_view self_;
+        flatten_view self_;
     };
 
     iterator begin() const
@@ -236,19 +226,14 @@ class flatten_view
     }
 
   private:
-    // XXX i think we want to avoid storing a vector here -- it causes too many problems should
-    //     this view's life time end before its iterators
-    //     what we want instead is probably a view of the original RangeOfRanges
-    std::vector<all_t> segments_;
+    all_t segments_;
 };
 
 
-// XXX I think this should actually return something like
-// flatten_view<range_reference_t<RangeOfRanges>
 template<class RangeOfRanges>
-flatten_view<range_value_t<RangeOfRanges>> flatten(RangeOfRanges&& ranges)
+flatten_view<RangeOfRanges> flatten(RangeOfRanges&& ranges)
 {
-  return flatten_view<range_value_t<RangeOfRanges>>(std::forward<RangeOfRanges>(ranges));
+  return flatten_view<RangeOfRanges>(std::forward<RangeOfRanges>(ranges));
 }
 
 
