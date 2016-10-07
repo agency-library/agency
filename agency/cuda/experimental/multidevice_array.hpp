@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/memory/managed_allocator.hpp>
 #include <agency/experimental/span.hpp>
-#include <agency/experimental/ranges/view.hpp>
+#include <agency/experimental/ranges/all.hpp>
 #include <vector>
 #include <array>
 

@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
+#include <agency/experimental/ranges/all.hpp>
 #include <type_traits>
 #include <iterator>
 
@@ -228,11 +229,11 @@ template<class Range, class Difference>
 __AGENCY_ANNOTATION
 auto stride(Range&& rng, Difference stride) ->
   stride_view<
-    decltype(experimental::all(std::forward<Range>(rng))),
+    decltype(all(std::forward<Range>(rng))),
     Difference
   >
 {
-  auto view_of_rng = experimental::all(std::forward<Range>(rng));
+  auto view_of_rng = all(std::forward<Range>(rng));
   return stride_view<decltype(view_of_rng), Difference>(view_of_rng, stride);
 }
 

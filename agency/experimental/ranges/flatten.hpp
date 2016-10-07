@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
-#include <agency/experimental/ranges/view.hpp> // for all()
+#include <agency/experimental/ranges/all.hpp>
 #include <type_traits>
 #include <utility>
 

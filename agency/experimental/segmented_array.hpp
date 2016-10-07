@@ -4,7 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
 #include <agency/experimental/ranges/flatten.hpp>
-#include <agency/experimental/ranges/view.hpp>
+#include <agency/experimental/ranges/all.hpp>
 #include <agency/experimental/array.hpp>
 #include <memory>
 #include <vector>
