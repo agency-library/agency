@@ -58,7 +58,7 @@ span<ElementType,Extent> all(span<ElementType,Extent> s)
 }
 
 
-// note the dilberate use of ADL when calling all() here
+// note the diliberate use of ADL when calling all() here
 template<class Range>
 using all_t = agency::detail::decay_t<decltype(all(std::declval<Range>()))>;
 
