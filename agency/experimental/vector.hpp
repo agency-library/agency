@@ -29,7 +29,7 @@ template<class Allocator, class Iterator1, class Iterator2>
 __AGENCY_ANNOTATION
 Iterator2 uninitialized_move(Allocator& alloc, Iterator1 first, Iterator1 last, Iterator2 result)
 {
-  for(; first != last; ++result)
+  for(; first != last; ++first, ++result)
   {
     agency::detail::allocator_traits<Allocator>::construct(alloc, &*result, std::move(*first));
   }
@@ -93,22 +93,26 @@ class storage
 {
   public:
     __AGENCY_ANNOTATION
-    storage(const Allocator& allocator)
-      : size_(0),
-        allocator_(allocator)
-    {}
-
-    __AGENCY_ANNOTATION
     storage(size_t count, const Allocator& allocator)
-      : size_(count),
+      : data_(nullptr),
+        size_(count),
         allocator_(allocator)
     {
-      data_ = allocator_.allocate(count);
-      if(data_ == nullptr)
+      if(count > 0)
       {
-        detail::throw_bad_alloc();
+        data_ = allocator_.allocate(count);
+        if(data_ == nullptr)
+        {
+          detail::throw_bad_alloc();
+        }
       }
     }
+
+    __AGENCY_ANNOTATION
+    storage(const Allocator& allocator)
+      : storage(0, allocator)
+    {}
+
 
     __AGENCY_ANNOTATION
     ~storage()
@@ -187,7 +191,7 @@ class vector
     vector(size_type count, const T& value, const Allocator& alloc = Allocator())
       : storage_(alloc), end_(nullptr)
     {
-      fill_insert(end(), count, value);
+      insert(end(), count, value);
     }
 
     __AGENCY_ANNOTATION
@@ -248,6 +252,12 @@ class vector
     bool empty() const
     {
       return cbegin() == cend();
+    }
+
+    __AGENCY_ANNOTATION
+    iterator insert(const_iterator position, size_type count, const T& value)
+    {
+      return fill_insert(position, count, value);
     }
 
   private:
@@ -321,7 +331,7 @@ class vector
 
           result = new_end;
 
-          // construct newly inserted elements
+          // construct new elements
           new_end = detail::uninitialized_fill_n(new_storage.allocator(), new_end, count, value);
 
           // move elements after the insertion to the end of the new storage
