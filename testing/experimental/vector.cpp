@@ -36,9 +36,10 @@ void test_fill_insert()
   using namespace agency::experimental;
 
   {
+    // test fill insert at the beginning of vector
+    
     size_t num_initial_elements = 10;
 
-    // test fill insert at the beginning of vector
     vector<int> v(num_initial_elements, 13);
 
     size_t num_elements_to_insert = 5;
@@ -48,6 +49,22 @@ void test_fill_insert()
     assert(v.size() == num_initial_elements + num_elements_to_insert);
     assert(std::count(result, result + num_elements_to_insert, 7) == num_elements_to_insert);
     assert(std::count(result + num_elements_to_insert, v.end(), 13) == num_initial_elements);
+  }
+
+  {
+    // test fill insert at the end of vector
+    
+    size_t num_initial_elements = 10;
+
+    vector<int> v(num_initial_elements, 13);
+
+    size_t num_elements_to_insert = 5;
+    auto result = v.insert(v.end(), num_elements_to_insert, 7);
+
+    assert(result == v.end() - num_elements_to_insert);
+    assert(v.size() == num_initial_elements + num_elements_to_insert);
+    assert(std::count(result, result + num_elements_to_insert, 7) == num_elements_to_insert);
+    assert(std::count(v.begin(), result, 13) == num_initial_elements);
   }
 }
 
