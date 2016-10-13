@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/memory.hpp>
+#include <agency/detail/memory/allocator_traits.hpp>
 #include <agency/detail/utility.hpp>
 #include <memory>
 
@@ -27,11 +27,11 @@ namespace detail
 
 template<class Allocator, class Iterator1, class Iterator2>
 __AGENCY_ANNOTATION
-Iterator2 uninitialized_move(const Allocator& alloc, Iterator1 first, Iterator1 last, Iterator2 result)
+Iterator2 uninitialized_move(Allocator& alloc, Iterator1 first, Iterator1 last, Iterator2 result)
 {
   for(; first != last; ++result)
   {
-    detail::allocator_traits<Allocator>::construct(alloc, *result, std::move(*first));
+    agency::detail::allocator_traits<Allocator>::construct(alloc, &*result, std::move(*first));
   }
 
   return result;
@@ -40,11 +40,11 @@ Iterator2 uninitialized_move(const Allocator& alloc, Iterator1 first, Iterator1 
 
 template<class Allocator, class Iterator, class Size, class T>
 __AGENCY_ANNOTATION
-Iterator uninitialized_fill_n(const Allocator& alloc, Iterator first, Size n, const T& value)
+Iterator uninitialized_fill_n(Allocator& alloc, Iterator first, Size n, const T& value)
 {
-  for(Size i = 0; i < n; ++i, ++result)
+  for(Size i = 0; i < n; ++i, ++first)
   {
-    detail::allocator_traits<Allocator>::construct(alloc, *result, value);
+    agency::detail::allocator_traits<Allocator>::construct(alloc, &*first, value);
   }
 
   return first;
@@ -55,11 +55,11 @@ Iterator uninitialized_fill_n(const Allocator& alloc, Iterator first, Size n, co
 
 template<class Allocator, class Iterator>
 __AGENCY_ANNOTATION
-void destroy_each(const Allocator& alloc, Iterator first, Iterator last)
+void destroy_each(Allocator& alloc, Iterator first, Iterator last)
 {
   for(; first != last; ++first)
   {
-    detail::allocator_traits<Allocator>::destroy(alloc, *first);
+    agency::detail::allocator_traits<Allocator>::destroy(alloc, &*first);
   }
 }
 
@@ -99,11 +99,11 @@ class storage
     {}
 
     __AGENCY_ANNOTATION
-    storage(size_type count, const Allocator& allocator)
+    storage(size_t count, const Allocator& allocator)
       : size_(count),
         allocator_(allocator)
     {
-      data_ = allocator.allocate(count);
+      data_ = allocator_.allocate(count);
       if(data_ == nullptr)
       {
         detail::throw_bad_alloc();
@@ -149,9 +149,9 @@ class storage
     __AGENCY_ANNOTATION
     void swap(storage& other)
     {
-      detail::adl_swap(data_, other.data_);
-      detail::adl_swap(size_, other.size_);
-      detail::adl_swap(allocator_, other.allocator_);
+      agency::detail::adl_swap(data_, other.data_);
+      agency::detail::adl_swap(size_, other.size_);
+      agency::detail::adl_swap(allocator_, other.allocator_);
     }
 
   private:
@@ -168,17 +168,17 @@ template<class T, class Allocator = std::allocator<T>>
 class vector
 {
   private:
-    using storage_type = storage<T,Allocator>;
+    using storage_type = detail::storage<T,Allocator>;
 
   public:
-    using allocator_type = Allocator;
-    using value_type = typename detail::allocator_traits<allocator_type>::value_type;
-    using size_type = typename detail::allocator_traits<allocator_type>::size_type;
-    using difference_type = typename detail::allocator_type<allocator_type>::difference_type;
-    using reference = value_type&;
+    using allocator_type  = Allocator;
+    using value_type      = typename agency::detail::allocator_traits<allocator_type>::value_type;
+    using size_type       = typename agency::detail::allocator_traits<allocator_type>::size_type;
+    using difference_type = typename agency::detail::allocator_traits<allocator_type>::difference_type;
+    using reference       = value_type&;
     using const_reference = const value_type&;
-    using pointer = typename detail::allocator_traits<allocator_type>::pointer;
-    using const_pointer = typename detail::allocator_traits<allocator_type>::const_pointer;
+    using pointer         = typename agency::detail::allocator_traits<allocator_type>::pointer;
+    using const_pointer   = typename agency::detail::allocator_traits<allocator_type>::const_pointer;
 
     using iterator = pointer;
     using const_iterator = const_pointer;
@@ -199,7 +199,7 @@ class vector
     __AGENCY_ANNOTATION
     size_type max_size() const
     {
-      return detail::allocator_traits<allocator_type>::max_size(allocator());
+      return agency::detail::allocator_traits<allocator_type>::max_size(storage_.allocator());
     }
 
     __AGENCY_ANNOTATION
@@ -221,27 +221,41 @@ class vector
     }
 
     __AGENCY_ANNOTATION
-    const_iterator begin() const
+    const_iterator cbegin() const
     {
       return storage_.data();
     }
 
     __AGENCY_ANNOTATION
-    const_iterator end() const
+    const_iterator begin() const
+    {
+      return cbegin();
+    }
+
+    __AGENCY_ANNOTATION
+    const_iterator cend() const
     {
       return end_;
     }
 
     __AGENCY_ANNOTATION
+    const_iterator end() const
+    {
+      return cend();
+    }
+
+    __AGENCY_ANNOTATION
     bool empty() const
     {
-      return begin() == end();
+      return cbegin() == cend();
     }
 
   private:
     __AGENCY_ANNOTATION
-    iterator fill_insert(const_iterator position, size_type count, const T& value)
+    iterator fill_insert(const_iterator position_, size_type count, const T& value)
     {
+      // convert the const_iterator to an iterator
+      iterator position = begin() + (position_ - cbegin());
       iterator result = position;
 
       if(count < (capacity() - size()))
@@ -282,20 +296,20 @@ class vector
         size_type old_size = size();
 
         // compute the new capacity after the allocation
-        size_type new_capacity = old_size + detail::max(old_size, n);
+        size_type new_capacity = old_size + std::max(old_size, count);
 
         // allocate exponentially larger new storage
-        new_capacity = detail::max(new_capacity, size_type(2) * capacity());
+        new_capacity = std::max(new_capacity, size_type(2) * capacity());
 
         // do not exceed maximum storage
-        new_capacity = detail::min(new_capacity, max_size());
+        new_capacity = std::min(new_capacity, max_size());
 
         if(new_capacity > max_size())
         {
           detail::throw_length_error("insert(): insertion exceeds max_size().");
         }
 
-        storage_type new_storage(new_capacity, allocator());
+        storage_type new_storage(new_capacity, storage_.allocator());
 
         // record how many constructors we invoke in the try block below
         iterator new_end = new_storage.data();
@@ -335,7 +349,6 @@ class vector
 };
 
 
-} // end detail
 } // end experimental
 } // end agency
 

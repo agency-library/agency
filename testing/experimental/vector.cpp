@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <agency/experimental/vector.hpp>
 
 void test_fill_construct()
 {
@@ -7,7 +8,7 @@ void test_fill_construct()
 
   {
     // test fill construct empty vector
-    std::vector<int> v(0, 13);
+    vector<int> v(0, 13);
 
     assert(v.empty());
   }
