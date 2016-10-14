@@ -5,6 +5,7 @@
 #include <agency/detail/memory/allocator_traits.hpp>
 #include <agency/detail/utility.hpp>
 #include <memory>
+#include <initializer_list>
 
 namespace agency
 {
@@ -313,6 +314,9 @@ class vector
     using iterator = pointer;
     using const_iterator = const_pointer;
 
+    using reverse_iterator = void;
+    using const_reverse_iterator = void;
+
     __AGENCY_ANNOTATION
     vector()
       : storage_(), end_(nullptr)
@@ -323,6 +327,145 @@ class vector
       : storage_(alloc), end_(nullptr)
     {
       insert(end(), count, value);
+    }
+
+    __AGENCY_ANNOTATION
+    ~vector()
+    {
+      clear();
+    }
+
+    __AGENCY_ANNOTATION
+    vector& operator=(const vector& other);
+
+    __AGENCY_ANNOTATION
+    void assign(size_type count, const T& value);
+
+    template<class InputIterator>
+    __AGENCY_ANNOTATION
+    void assign(InputIterator first, InputIterator last);
+
+    __AGENCY_ANNOTATION
+    void assign(std::initializer_list<T> ilist);
+
+    __AGENCY_ANNOTATION
+    allocator_type get_allocator() const
+    {
+      return storage_.allocator();
+    }
+
+    // element access
+    
+    __AGENCY_ANNOTATION
+    reference at(size_type pos);
+
+    __AGENCY_ANNOTATION
+    const_reference at(size_type post) const;
+
+    __AGENCY_ANNOTATION
+    reference operator[](size_type pos);
+
+    __AGENCY_ANNOTATION
+    const_reference operator[](size_type post) const;
+
+    __AGENCY_ANNOTATION
+    reference front();
+
+    __AGENCY_ANNOTATION
+    const_reference front() const;
+
+    __AGENCY_ANNOTATION
+    reference back();
+
+    __AGENCY_ANNOTATION
+    const_reference back() const;
+
+    __AGENCY_ANNOTATION
+    T* data()
+    {
+      return storage_.data();
+    }
+
+    __AGENCY_ANNOTATION
+    const T* data() const
+    {
+      return storage_.data();
+    }
+    
+    // iterators
+
+    __AGENCY_ANNOTATION
+    iterator begin()
+    {
+      return storage_.data();
+    }
+
+    __AGENCY_ANNOTATION
+    const_iterator begin() const
+    {
+      return cbegin();
+    }
+
+    __AGENCY_ANNOTATION
+    const_iterator cbegin() const
+    {
+      return storage_.data();
+    }
+
+    __AGENCY_ANNOTATION
+    iterator end()
+    {
+      return end_;
+    }
+
+    __AGENCY_ANNOTATION
+    const_iterator end() const
+    {
+      return cend();
+    }
+
+    __AGENCY_ANNOTATION
+    const_iterator cend() const
+    {
+      return end_;
+    }
+
+    __AGENCY_ANNOTATION
+    reverse_iterator rbegin();
+
+    __AGENCY_ANNOTATION
+    const_reverse_iterator rbegin() const;
+
+    __AGENCY_ANNOTATION
+    const_reverse_iterator crbegin() const;
+
+    __AGENCY_ANNOTATION
+    reverse_iterator rend();
+
+    __AGENCY_ANNOTATION
+    const_reverse_iterator rend() const;
+
+    __AGENCY_ANNOTATION
+    const_reverse_iterator crend() const;
+
+    // capacity
+
+    __AGENCY_ANNOTATION
+    bool empty() const
+    {
+      return cbegin() == cend();
+    }
+
+    __AGENCY_ANNOTATION
+    size_type size() const
+    {
+      return end() - begin();
+    }
+
+    __AGENCY_ANNOTATION
+    size_type max_size() const
+    {
+      return agency::detail::allocator_traits<allocator_type>::max_size(storage_.allocator());
     }
 
     __AGENCY_ANNOTATION
@@ -347,64 +490,31 @@ class vector
     }
 
     __AGENCY_ANNOTATION
-    size_type size() const
-    {
-      return end() - begin();
-    }
-
-    __AGENCY_ANNOTATION
-    size_type max_size() const
-    {
-      return agency::detail::allocator_traits<allocator_type>::max_size(storage_.allocator());
-    }
-
-    __AGENCY_ANNOTATION
     size_type capacity() const
     {
       return storage_.size();
     }
 
     __AGENCY_ANNOTATION
-    iterator begin()
+    void shrink_to_fit()
     {
-      return storage_.data();
+      vector(*this).swap(*this);
+    }
+
+    // modifiers
+    
+    __AGENCY_ANNOTATION
+    void clear()
+    {
+      detail::destroy_each(storage_.allocator(), begin(), end());
+      end_ = begin();
     }
 
     __AGENCY_ANNOTATION
-    iterator end()
-    {
-      return end_;
-    }
+    iterator insert(const_iterator position, const T& value);
 
     __AGENCY_ANNOTATION
-    const_iterator cbegin() const
-    {
-      return storage_.data();
-    }
-
-    __AGENCY_ANNOTATION
-    const_iterator begin() const
-    {
-      return cbegin();
-    }
-
-    __AGENCY_ANNOTATION
-    const_iterator cend() const
-    {
-      return end_;
-    }
-
-    __AGENCY_ANNOTATION
-    const_iterator end() const
-    {
-      return cend();
-    }
-
-    __AGENCY_ANNOTATION
-    bool empty() const
-    {
-      return cbegin() == cend();
-    }
+    iterator insert(const_iterator position, T&& value);
 
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, size_type count, const T& value)
@@ -518,10 +628,76 @@ class vector
       return result;
     }
 
+    __AGENCY_ANNOTATION
+    iterator insert(const_iterator pos, std::initializer_list<T> ilist);
+
+    template<class... Args>
+    __AGENCY_ANNOTATION
+    iterator emplace(const_iterator pos, Args&&... args);
+
+    __AGENCY_ANNOTATION
+    iterator erase(const_iterator pos);
+
+    __AGENCY_ANNOTATION
+    iterator erase(const_iterator first, const_iterator last);
+
+    __AGENCY_ANNOTATION
+    void push_back(T&& value);
+
+    template<class... Args>
+    __AGENCY_ANNOTATION
+    reference emplace_back(Args&&... args);
+
+    __AGENCY_ANNOTATION
+    void pop_back();
+
+    __AGENCY_ANNOTATION
+    void resize(size_type new_size)
+    {
+      if(new_size < size())
+      {
+        detail::destroy_each(begin() + new_size, end());
+        end_ = begin() + new_size;
+      }
+      else
+      {
+        insert(end(), new_size - size(), T());
+      }
+    }
+
+    __AGENCY_ANNOTATION
+    void resize(size_type new_size, const value_type& value)
+    {
+      if(new_size < size())
+      {
+        detail::destroy_each(begin() + new_size, end());
+        end_ = begin() + new_size;
+      }
+      else
+      {
+        insert(end(), new_size - size(), value);
+      }
+    }
+
+    __AGENCY_ANNOTATION
+    void swap(vector& other)
+    {
+      storage_.swap(other.storage_);
+      agency::detail::adl_swap(end_, other.end_);
+    }
+
   private:
     storage_type storage_;
     iterator end_;
 };
+
+
+template<class T, class Allocator>
+__AGENCY_ANNOTATION
+void swap(vector<T,Allocator>& a, vector<T,Allocator>& b)
+{
+  a.swap(b);
+}
 
 
 } // end experimental
