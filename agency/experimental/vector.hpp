@@ -56,6 +56,8 @@ template<class Allocator, class Iterator1, class Iterator2>
 __AGENCY_ANNOTATION
 Iterator2 uninitialized_copy(Allocator& alloc, Iterator1 first, Iterator1 last, Iterator2 result)
 {
+  using T = typename std::iterator_traits<Iterator2>::value_type;
+
   for(; first != last; ++first, ++result)
   {
     agency::detail::allocator_traits<Allocator>::construct(alloc, &*result, *first);
@@ -127,6 +129,10 @@ class storage
       : storage(0, allocator)
     {}
 
+    __AGENCY_ANNOTATION
+    storage()
+      : storage(Allocator())
+    {}
 
     __AGENCY_ANNOTATION
     ~storage()
@@ -202,10 +208,36 @@ class vector
     using const_iterator = const_pointer;
 
     __AGENCY_ANNOTATION
+    vector()
+      : storage_(), end_(nullptr)
+    {}
+
+    __AGENCY_ANNOTATION
     vector(size_type count, const T& value, const Allocator& alloc = Allocator())
       : storage_(alloc), end_(nullptr)
     {
       insert(end(), count, value);
+    }
+
+    __AGENCY_ANNOTATION
+    void reserve(size_type new_capacity)
+    {
+      if(new_capacity > capacity())
+      {
+        if(new_capacity > max_size())
+        {
+          detail::throw_length_error("reserve(): new capacity exceeds max_size().");
+        }
+
+        // create a new storage object
+        storage_type new_storage(new_capacity, storage_.allocator());
+
+        // copy our elements into the new storage
+        end_ = detail::uninitialized_copy(new_storage.allocator(), begin(), end(), new_storage.data());
+
+        // swap out our storage
+        storage_.swap(new_storage);
+      }
     }
 
     __AGENCY_ANNOTATION
