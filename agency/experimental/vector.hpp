@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
 #include <agency/detail/utility.hpp>
 #include <memory>
@@ -13,7 +14,7 @@ namespace detail
 {
 
 
-// XXX these need to lower onto construct_each()
+// XXX all of these uninitialized_* algorithms ought to lower onto construct_each()
 // maybe construct_each() could look like this:
 //
 // template<class Iterator, class... Iterators>
@@ -48,6 +49,19 @@ Iterator uninitialized_fill_n(Allocator& alloc, Iterator first, Size n, const T&
   }
 
   return first;
+}
+
+
+template<class Allocator, class Iterator1, class Iterator2>
+__AGENCY_ANNOTATION
+Iterator2 uninitialized_copy(Allocator& alloc, Iterator1 first, Iterator1 last, Iterator2 result)
+{
+  for(; first != last; ++first, ++result)
+  {
+    agency::detail::allocator_traits<Allocator>::construct(alloc, &*result, *first);
+  }
+
+  return result;
 }
 
 
@@ -260,7 +274,117 @@ class vector
       return fill_insert(position, count, value);
     }
 
+    template<class InputIterator>
+    __AGENCY_ANNOTATION
+    iterator insert(const_iterator position, InputIterator first, InputIterator last)
+    {
+      return copy_insert(position, first, last);
+    }
+
   private:
+    template<class RandomAccessIterator,
+             __AGENCY_REQUIRES(
+               std::is_convertible<
+                 typename std::iterator_traits<RandomAccessIterator>::iterator_category,
+                 std::random_access_iterator_tag
+               >::value
+             )
+            >
+    __AGENCY_ANNOTATION
+    iterator copy_insert(const_iterator position_, RandomAccessIterator first, RandomAccessIterator last)
+    {
+      // convert the const_iterator to an iterator
+      iterator position = begin() + (position_ - cbegin());
+      iterator result = position;
+
+      size_type count = last - first;
+
+      if(count < (capacity() - size()))
+      {
+        assert(0);
+        //// we've got room for all of the new elements
+        //// how many existing elements will we displace?
+        //size_type num_displaced_elements = end() - position;
+        //iterator old_end = end();
+
+        //if(num_displaced_elements > count)
+        //{
+        //  // move n displaced elements to newly constructed elements following the insertion
+        //  end_ = detail::uninitialized_move(storage_.allocator(), end() - n, end(), end());
+
+        //  // copy num_displaced_elements - n elements to existing elements
+        //  // this copy overlaps
+        //  size_type copy_length = (old_end - n) - position;
+        //  detail::overlapped_copy(position, old_end - n, old_end - copy_length);
+
+        //  // finally, fill the range to the insertion point
+        //  detail::uninitialized_fill_n(storage_.allocator(), position, n, value);
+        //}
+        //else
+        //{
+        //  // construct new elements at the end of the vector
+        //  end_ = detail::uninitialized_fill_n(storage_.allocator(), end(), n - num_displaced_elements, value);
+
+        //  // move the displaced elements
+        //  end_ = detail::uninitialized_move(storage_.allocator(), position, old_end, end());
+
+        //  // fill to elements which already existed
+        //  detail::uninitialized_fill(storage_.allocator(), position, old_end, value);
+        //}
+      }
+      else
+      {
+        size_type old_size = size();
+
+        // compute the new capacity after the allocation
+        size_type new_capacity = old_size + std::max(old_size, count);
+
+        // allocate exponentially larger new storage
+        new_capacity = std::max(new_capacity, size_type(2) * capacity());
+
+        // do not exceed maximum storage
+        new_capacity = std::min(new_capacity, max_size());
+
+        if(new_capacity > max_size())
+        {
+          detail::throw_length_error("insert(): insertion exceeds max_size().");
+        }
+
+        storage_type new_storage(new_capacity, storage_.allocator());
+
+        // record how many constructors we invoke in the try block below
+        iterator new_end = new_storage.data();
+
+        try
+        {
+          // move elements before the insertion to the beginning of the new storage
+          new_end = detail::uninitialized_move(new_storage.allocator(), begin(), position, new_storage.data());
+
+          result = new_end;
+
+          // copy construct new elements
+          new_end = detail::uninitialized_copy(new_storage.allocator(), first, last, new_end);
+
+          // move elements after the insertion to the end of the new storage
+          new_end = detail::uninitialized_move(new_storage.allocator(), position, end(), new_end);
+        }
+        catch(...)
+        {
+          // something went wrong, so destroy as many new elements as were constructed
+          detail::destroy_each(new_storage.allocator(), new_storage.data(), new_end);
+
+          // rethrow
+          throw;
+        }
+
+        // record the vector's new state
+        storage_.swap(new_storage);
+        end_ = new_end;
+      }
+
+      return result;
+    }
+
     __AGENCY_ANNOTATION
     iterator fill_insert(const_iterator position_, size_type count, const T& value)
     {
