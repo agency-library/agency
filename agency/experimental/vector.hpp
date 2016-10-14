@@ -318,16 +318,58 @@ class vector
     using const_reverse_iterator = void;
 
     __AGENCY_ANNOTATION
-    vector()
-      : storage_(), end_(nullptr)
+    vector() : vector(Allocator()) {}
+
+    __AGENCY_ANNOTATION
+    explicit vector(const Allocator& alloc)
+      : storage_(alloc), end_(begin())
     {}
 
     __AGENCY_ANNOTATION
     vector(size_type count, const T& value, const Allocator& alloc = Allocator())
-      : storage_(alloc), end_(nullptr)
+      : vector(detail::constant_iterator<T>(value), detail::constant_iterator<T>(value,count), alloc)
+    {}
+
+    __AGENCY_ANNOTATION
+    explicit vector(size_type count, const Allocator& alloc = Allocator())
+      : vector(count, T(), alloc)
+    {}
+
+    // XXX generalize this to work with all iterator types
+    template<class RandomAccessIterator,
+             __AGENCY_REQUIRES(
+               std::is_convertible<
+                 typename std::iterator_traits<RandomAccessIterator>::iterator_category,
+                 std::random_access_iterator_tag
+               >::value
+             )>
+    __AGENCY_ANNOTATION
+    vector(RandomAccessIterator first, RandomAccessIterator last, const Allocator& alloc = Allocator())
+      : storage_(last - first, alloc), // initialize the capacity of the storage
+        end_(begin())                  // initialize end_ to begin()
     {
-      insert(end(), count, value);
+      insert(end(), first, last);
     }
+
+    // TODO
+    __AGENCY_ANNOTATION
+    vector(const vector& other);
+
+    // TODO
+    __AGENCY_ANNOTATION
+    vector(const vector& other, const Allocator& alloc);
+
+    // TODO
+    __AGENCY_ANNOTATION
+    vector(vector&& other);
+
+    // TODO
+    __AGENCY_ANNOTATION
+    vector(vector&& other, const Allocator& alloc);
+
+    // TODO
+    __AGENCY_ANNOTATION
+    vector(std::initializer_list<T> init, const Allocator& alloc = Allocator());
 
     __AGENCY_ANNOTATION
     ~vector()
@@ -335,16 +377,20 @@ class vector
       clear();
     }
 
+    // TODO
     __AGENCY_ANNOTATION
     vector& operator=(const vector& other);
 
+    // TODO
     __AGENCY_ANNOTATION
     void assign(size_type count, const T& value);
 
+    // TODO
     template<class InputIterator>
     __AGENCY_ANNOTATION
     void assign(InputIterator first, InputIterator last);
 
+    // TODO
     __AGENCY_ANNOTATION
     void assign(std::initializer_list<T> ilist);
 
@@ -356,27 +402,35 @@ class vector
 
     // element access
     
+    // TODO
     __AGENCY_ANNOTATION
     reference at(size_type pos);
 
+    // TODO
     __AGENCY_ANNOTATION
     const_reference at(size_type post) const;
 
+    // TODO
     __AGENCY_ANNOTATION
     reference operator[](size_type pos);
 
+    // TODO
     __AGENCY_ANNOTATION
     const_reference operator[](size_type post) const;
 
+    // TODO
     __AGENCY_ANNOTATION
     reference front();
 
+    // TODO
     __AGENCY_ANNOTATION
     const_reference front() const;
 
+    // TODO
     __AGENCY_ANNOTATION
     reference back();
 
+    // TODO
     __AGENCY_ANNOTATION
     const_reference back() const;
 
@@ -430,21 +484,27 @@ class vector
       return end_;
     }
 
+    // TODO
     __AGENCY_ANNOTATION
     reverse_iterator rbegin();
 
+    // TODO
     __AGENCY_ANNOTATION
     const_reverse_iterator rbegin() const;
 
+    // TODO
     __AGENCY_ANNOTATION
     const_reverse_iterator crbegin() const;
 
+    // TODO
     __AGENCY_ANNOTATION
     reverse_iterator rend();
 
+    // TODO
     __AGENCY_ANNOTATION
     const_reverse_iterator rend() const;
 
+    // TODO
     __AGENCY_ANNOTATION
     const_reverse_iterator crend() const;
 
@@ -510,9 +570,11 @@ class vector
       end_ = begin();
     }
 
+    // TODO
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, const T& value);
 
+    // TODO
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, T&& value);
 
@@ -628,26 +690,33 @@ class vector
       return result;
     }
 
+    // TODO
     __AGENCY_ANNOTATION
     iterator insert(const_iterator pos, std::initializer_list<T> ilist);
 
+    // TODO
     template<class... Args>
     __AGENCY_ANNOTATION
     iterator emplace(const_iterator pos, Args&&... args);
 
+    // TODO
     __AGENCY_ANNOTATION
     iterator erase(const_iterator pos);
 
+    // TODO
     __AGENCY_ANNOTATION
     iterator erase(const_iterator first, const_iterator last);
 
+    // TODO
     __AGENCY_ANNOTATION
     void push_back(T&& value);
 
+    // TODO
     template<class... Args>
     __AGENCY_ANNOTATION
     reference emplace_back(Args&&... args);
 
+    // TODO
     __AGENCY_ANNOTATION
     void pop_back();
 
