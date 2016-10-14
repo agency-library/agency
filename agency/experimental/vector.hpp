@@ -410,21 +410,30 @@ class vector
     __AGENCY_ANNOTATION
     const_reference at(size_type post) const;
 
-    // TODO
     __AGENCY_ANNOTATION
-    reference operator[](size_type pos);
+    reference operator[](size_type pos)
+    {
+      return begin()[pos];
+    }
 
-    // TODO
     __AGENCY_ANNOTATION
-    const_reference operator[](size_type post) const;
+    const_reference operator[](size_type pos) const
+    {
+      return begin()[pos];
+    }
 
-    // TODO
     __AGENCY_ANNOTATION
-    reference front();
+    reference front()
+    {
+      return *begin();
+    }
 
-    // TODO
     __AGENCY_ANNOTATION
-    const_reference front() const;
+    const_reference front() const
+    {
+      return *begin();
+    }
+
 
     // TODO
     __AGENCY_ANNOTATION
