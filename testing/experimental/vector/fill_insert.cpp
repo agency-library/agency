@@ -8,6 +8,20 @@ void test_reallocating_fill_insert()
   using namespace agency::experimental;
 
   {
+    // test fill insert into empty vector
+
+    vector<int> v;
+
+    size_t num_elements_to_insert = 5;
+
+    auto result = v.insert(v.begin(), num_elements_to_insert, 7);
+
+    assert(result == v.begin());
+    assert(v.size() == num_elements_to_insert);
+    assert(std::count(v.begin(), v.end(), 7) == num_elements_to_insert);
+  }
+
+  {
     // test fill insert at the beginning of vector
     
     size_t num_initial_elements = 10;

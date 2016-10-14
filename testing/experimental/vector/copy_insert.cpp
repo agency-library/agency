@@ -10,6 +10,22 @@ void test_reallocating_copy_insert()
   using namespace agency::experimental;
 
   {
+    // test copy insert into empty vector
+
+    vector<int> v;
+
+    size_t num_elements_to_insert = 5;
+    std::vector<int> items(num_elements_to_insert);
+    std::iota(items.begin(), items.end(), 0);
+
+    auto result = v.insert(v.begin(), items.begin(), items.end());
+
+    assert(result == v.begin());
+    assert(v.size() == num_elements_to_insert);
+    assert(std::equal(v.begin(), v.end(), items.begin()));
+  }
+
+  {
     // test copy insert at the beginning of vector
 
     size_t num_initial_elements = 10;
