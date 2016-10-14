@@ -3,35 +3,7 @@
 #include <algorithm>
 #include <agency/experimental/vector.hpp>
 
-void test_fill_construct()
-{
-  using namespace agency::experimental;
-
-  {
-    // test fill construct empty vector
-    vector<int> v(0, 13);
-
-    assert(v.begin() == v.end());
-    assert(v.cbegin() == v.cend());
-    assert(v.size() == 0);
-    assert(v.empty());
-  }
-
-  {
-    size_t num_elements = 10;
-
-    // test fill construct vector
-    vector<int> v(num_elements, 13);
-
-    assert(v.end() - v.begin() == num_elements);
-    assert(v.cend() - v.cbegin() == num_elements);
-    assert(v.size() == num_elements);
-    assert(!v.empty());
-    assert(std::count(v.begin(), v.end(), 13) == 10);
-  }
-}
-
-void test_fill_insert()
+void test_reallocating_fill_insert()
 {
   using namespace agency::experimental;
 
@@ -69,6 +41,7 @@ void test_fill_insert()
 
   {
     // test fill insert in the middle of vector
+
     size_t num_initial_elements = 10;
 
     vector<int> v(num_initial_elements, 13);
@@ -91,8 +64,7 @@ void test_fill_insert()
 
 int main()
 {
-  test_fill_construct();
-  test_fill_insert();
+  test_reallocating_fill_insert();
 
   std::cout << "OK" << std::endl;
 
