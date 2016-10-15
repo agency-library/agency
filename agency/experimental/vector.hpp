@@ -351,15 +351,15 @@ class vector
       insert(end(), first, last);
     }
 
-    // TODO
     __AGENCY_ANNOTATION
     vector(const vector& other)
-      : vector(other.begin(), other.end(), other.get_allocator())
+      : vector(other, other.get_allocator())
     {}
 
-    // TODO
     __AGENCY_ANNOTATION
-    vector(const vector& other, const Allocator& alloc);
+    vector(const vector& other, const Allocator& alloc)
+      : vector(other.begin(), other.end(), alloc)
+    {}
 
     // TODO
     __AGENCY_ANNOTATION
