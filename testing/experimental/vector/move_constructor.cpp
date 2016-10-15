@@ -1,17 +1,18 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
+#include <utility>
 #include <agency/experimental/vector.hpp>
 
-void test_copy_constructor()
+void test_move_constructor()
 {
   using namespace agency::experimental;
 
   {
-    // test copy construct empty vector
+    // test move construct empty vector
     vector<int> other;
 
-    vector<int> v = other;
+    vector<int> v = std::move(other);
 
     assert(other.begin() == other.end());
     assert(other.cbegin() == other.cend());
@@ -25,19 +26,18 @@ void test_copy_constructor()
   }
 
   {
-    // test copy construct non-empty vector
+    // test move construct non-empty vector
     
     size_t num_elements = 10;
 
     vector<int> other(num_elements, 13);
 
-    vector<int> v = other;
+    vector<int> v = std::move(other);
 
-    assert(other.end() - other.begin() == num_elements);
-    assert(other.cend() - other.cbegin() == num_elements);
-    assert(other.size() == num_elements);
-    assert(!other.empty());
-    assert(std::count(other.begin(), other.end(), 13) == 10);
+    assert(other.begin() == other.end());
+    assert(other.cbegin() == other.cend());
+    assert(other.size() == 0);
+    assert(other.empty());
 
     assert(v.end() - v.begin() == num_elements);
     assert(v.cend() - v.cbegin() == num_elements);
@@ -49,7 +49,7 @@ void test_copy_constructor()
 
 int main()
 {
-  test_copy_constructor();
+  test_move_constructor();
 
   std::cout << "OK" << std::endl;
 

@@ -361,9 +361,12 @@ class vector
       : vector(other.begin(), other.end(), alloc)
     {}
 
-    // TODO
     __AGENCY_ANNOTATION
-    vector(vector&& other);
+    vector(vector&& other)
+      : vector()
+    {
+      swap(other);
+    }
 
     // TODO
     __AGENCY_ANNOTATION
