@@ -353,7 +353,9 @@ class vector
 
     // TODO
     __AGENCY_ANNOTATION
-    vector(const vector& other);
+    vector(const vector& other)
+      : vector(other.begin(), other.end(), other.get_allocator())
+    {}
 
     // TODO
     __AGENCY_ANNOTATION

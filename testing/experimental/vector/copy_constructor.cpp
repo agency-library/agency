@@ -3,13 +3,15 @@
 #include <algorithm>
 #include <agency/experimental/vector.hpp>
 
-void test_fill_construct()
+void test_copy_constructor()
 {
   using namespace agency::experimental;
 
   {
-    // test fill construct empty vector
-    vector<int> v(0, 13);
+    // test copy construct empty vector
+    vector<int> other;
+
+    vector<int> v = other;
 
     assert(v.begin() == v.end());
     assert(v.cbegin() == v.cend());
@@ -18,11 +20,13 @@ void test_fill_construct()
   }
 
   {
-    // test fill construct vector
+    // test copy construct non-empty vector
     
     size_t num_elements = 10;
 
-    vector<int> v(num_elements, 13);
+    vector<int> other(num_elements, 13);
+
+    vector<int> v = other;
 
     assert(v.end() - v.begin() == num_elements);
     assert(v.cend() - v.cbegin() == num_elements);
@@ -34,7 +38,7 @@ void test_fill_construct()
 
 int main()
 {
-  test_fill_construct();
+  test_copy_constructor();
 
   std::cout << "OK" << std::endl;
 

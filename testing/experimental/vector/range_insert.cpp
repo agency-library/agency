@@ -5,12 +5,12 @@
 #include <vector>
 #include <agency/experimental/vector.hpp>
 
-void test_reallocating_copy_insert()
+void test_reallocating_range_insert()
 {
   using namespace agency::experimental;
 
   {
-    // test copy insert into empty vector
+    // test range insert into empty vector
 
     vector<int> v;
 
@@ -26,7 +26,7 @@ void test_reallocating_copy_insert()
   }
 
   {
-    // test copy insert at the beginning of vector
+    // test range insert at the beginning of vector
 
     size_t num_initial_elements = 10;
     vector<int> v(num_initial_elements, 13);
@@ -44,7 +44,7 @@ void test_reallocating_copy_insert()
   }
 
   {
-    // test copy insert at the end of vector
+    // test range insert at the end of vector
     
     size_t num_initial_elements = 10;
 
@@ -64,7 +64,7 @@ void test_reallocating_copy_insert()
   }
 
   {
-    // test copy insert in the middle of vector
+    // test range insert in the middle of vector
 
     size_t num_initial_elements = 10;
 
@@ -90,12 +90,12 @@ void test_reallocating_copy_insert()
 }
 
 
-void test_nonreallocating_copy_insert()
+void test_nonreallocating_range_insert()
 {
   using namespace agency::experimental;
 
   {
-    // test copy insert into beginning of vector
+    // test range insert into beginning of vector
 
     size_t num_initial_elements = 10;
 
@@ -116,7 +116,7 @@ void test_nonreallocating_copy_insert()
   }
   
   {
-    // test copy insert at the end of vector
+    // test range insert at the end of vector
 
     size_t num_initial_elements = 10;
 
@@ -137,7 +137,7 @@ void test_nonreallocating_copy_insert()
   }
 
   {
-    // test copy insert in the middle of vector
+    // test range insert in the middle of vector
 
     size_t num_initial_elements = 10;
 
@@ -167,8 +167,8 @@ void test_nonreallocating_copy_insert()
 
 int main()
 {
-  //test_reallocating_copy_insert();
-  test_nonreallocating_copy_insert();
+  test_reallocating_range_insert();
+  test_nonreallocating_range_insert();
 
   std::cout << "OK" << std::endl;
 
