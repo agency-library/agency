@@ -161,6 +161,33 @@ class storage
     }
 
     __AGENCY_ANNOTATION
+    storage(size_t count, Allocator&& allocator)
+      : data_(nullptr),
+        size_(count),
+        allocator_(std::move(allocator))
+    {
+      if(count > 0)
+      {
+        data_ = allocator_.allocate(count);
+        if(data_ == nullptr)
+        {
+          detail::throw_bad_alloc();
+        }
+      }
+    }
+
+    __AGENCY_ANNOTATION
+    storage(storage&& other)
+      : data_(other.data_),
+        size_(other.size_),
+        allocator_(std::move(other.allocator_))
+    {
+      // leave the other storage in a valid state
+      other.data_ = nullptr;
+      other.size_ = 0;
+    }
+
+    __AGENCY_ANNOTATION
     storage(const Allocator& allocator)
       : storage(0, allocator)
     {}
@@ -363,9 +390,11 @@ class vector
 
     __AGENCY_ANNOTATION
     vector(vector&& other)
-      : vector()
+      : storage_(std::move(other.storage_)),
+        end_(other.end_)
     {
-      swap(other);
+      // leave the other vector in a valid state
+      other.end_ = other.begin();
     }
 
     // TODO
