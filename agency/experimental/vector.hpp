@@ -4,6 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
 #include <agency/detail/utility.hpp>
+#include <agency/detail/iterator/constant_iterator.hpp>
 #include <memory>
 #include <initializer_list>
 
@@ -248,77 +249,6 @@ class storage
 };
 
 
-template<class T>
-class constant_iterator
-{
-  public:
-    using value_type = T;
-    using reference = const value_type&;
-    using pointer = const value_type*;
-    using difference_type = std::ptrdiff_t;
-    using iterator_category = std::random_access_iterator_tag;
-
-    __AGENCY_ANNOTATION
-    constant_iterator(const T& value, size_t position)
-      : value_(value), position_(position)
-    {}
-
-    __AGENCY_ANNOTATION
-    constant_iterator(const T& value)
-      : constant_iterator(value, 0)
-    {}
-
-    // dereference
-    __AGENCY_ANNOTATION
-    reference operator*() const
-    {
-      return value_;
-    }
-
-    // not equal
-    __AGENCY_ANNOTATION
-    bool operator!=(const constant_iterator& rhs) const
-    {
-      return position_ != rhs.position_;
-    }
-
-    // pre-increment
-    __AGENCY_ANNOTATION
-    constant_iterator& operator++()
-    {
-      ++position_;
-      return *this;
-    }
-
-    // pre-decrement
-    __AGENCY_ANNOTATION
-    constant_iterator& operator--()
-    {
-      --position_;
-      return *this;
-    }
-
-    // plus-equal
-    __AGENCY_ANNOTATION
-    constant_iterator& operator+=(difference_type n)
-    {
-      position_ += n;
-      return *this;
-    }
-
-    // difference
-    __AGENCY_ANNOTATION
-    difference_type operator-(const constant_iterator& rhs)
-    {
-      return position_ - rhs.position_;
-    }
-
-  private:
-    T value_;
-    size_t position_;
-};
-
-
 } // end detail
 
 
@@ -354,7 +284,7 @@ class vector
 
     __AGENCY_ANNOTATION
     vector(size_type count, const T& value, const Allocator& alloc = Allocator())
-      : vector(detail::constant_iterator<T>(value), detail::constant_iterator<T>(value,count), alloc)
+      : vector(agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count), alloc)
     {}
 
     __AGENCY_ANNOTATION
@@ -624,7 +554,7 @@ class vector
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, size_type count, const T& value)
     {
-      return insert(position, detail::constant_iterator<T>(value, 0), detail::constant_iterator<T>(value, count));
+      return insert(position, agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count));
     }
 
     // XXX should be able to relax this to work with all iterators

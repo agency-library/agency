@@ -194,12 +194,12 @@ class caching_allocator
       resource_->deallocate(ptr, n * sizeof(value_type));
     }
 
-    template<class Iterator, class... Args>
+    template<class Iterator, class... Iterators>
     __AGENCY_ANNOTATION
-    Iterator construct_each(Iterator first, Iterator last, Args&&... args)
+    Iterator construct_each(Iterator first, Iterator last, Iterators... iters)
     {
       using allocator_type = typename resource_type::allocator_type;
-      return allocator_traits<allocator_type>::construct_each(resource_->get_allocator(), first, last, std::forward<Args>(args)...);
+      return allocator_traits<allocator_type>::construct_each(resource_->get_allocator(), first, last, iters...);
     }
 
     __agency_exec_check_disable__

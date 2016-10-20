@@ -79,14 +79,14 @@ class split_allocator
 #endif
     }
 
-    template<class Iterator, class... Args>
+    template<class Iterator, class... Iterators>
     __host__ __device__
-    Iterator construct_each(Iterator first, Iterator last, Args&&... args)
+    Iterator construct_each(Iterator first, Iterator last, Iterators... iters)
     {
 #ifndef __CUDA_ARCH__
-      return agency::detail::allocator_traits<host_allocator>::construct_each(host_alloc_, first, last, std::forward<Args>(args)...);
+      return agency::detail::allocator_traits<host_allocator>::construct_each(host_alloc_, first, last, iters...);
 #else
-      return agency::detail::allocator_traits<device_allocator>::construct_each(device_alloc_, first, last, std::forward<Args>(args)...);
+      return agency::detail::allocator_traits<device_allocator>::construct_each(device_alloc_, first, last, iters...);
 #endif
     }
 

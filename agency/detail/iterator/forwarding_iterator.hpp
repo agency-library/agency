@@ -1,0 +1,104 @@
+#pragma once
+
+#include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
+#include <memory>
+
+namespace agency
+{
+namespace detail
+{
+
+
+template<class Iterator, class Reference = typename std::iterator_traits<Iterator>::reference>
+class forwarding_iterator
+{
+  public:
+    using value_type = typename std::iterator_traits<Iterator>::value_type;
+    using reference = Reference;
+    using pointer = typename std::iterator_traits<Iterator>::pointer;
+    using difference_type = typename std::iterator_traits<Iterator>::difference_type;
+    using iterator_category = typename std::iterator_traits<Iterator>::iterator_category;
+
+    __AGENCY_ANNOTATION
+    forwarding_iterator() = default;
+
+    __AGENCY_ANNOTATION
+    explicit forwarding_iterator(Iterator x)
+      : current_(x)
+    {}
+
+    template<class U, class UReference>
+    __AGENCY_ANNOTATION
+    forwarding_iterator(const forwarding_iterator<U,UReference>& other)
+      : current_(other.current_)
+    {}
+
+    // dereference
+    __AGENCY_ANNOTATION
+    reference operator*() const
+    {
+      return static_cast<reference>(*current_);
+    }
+
+    // not equal
+    __AGENCY_ANNOTATION
+    bool operator!=(const forwarding_iterator& rhs) const
+    {
+      return current_ != rhs.current_;
+    }
+
+    // pre-increment
+    __AGENCY_ANNOTATION
+    forwarding_iterator& operator++()
+    {
+      ++current_;
+      return *this;
+    }
+
+    // pre-decrement
+    __AGENCY_ANNOTATION
+    forwarding_iterator& operator--()
+    {
+      --current_;
+      return *this;
+    }
+
+    // plus-equal
+    __AGENCY_ANNOTATION
+    forwarding_iterator& operator+=(difference_type n)
+    {
+      current_ += n;
+      return *this;
+    }
+
+    // difference
+    __AGENCY_ANNOTATION
+    difference_type operator-(const forwarding_iterator& rhs)
+    {
+      return current_ - rhs.current_;
+    }
+
+  private:
+    Iterator current_;
+};
+
+
+//template<class Reference, class Iterator,
+//         __AGENCY_REQUIRES(
+//           std::is_convertible<
+//             typename std::iterator_traits<Iterator>::reference,
+//             Reference
+//           >::value
+//         )>
+template<class Reference, class Iterator>
+__AGENCY_ANNOTATION
+forwarding_iterator<Iterator,Reference> make_forwarding_iterator(Iterator i)
+{
+  return forwarding_iterator<Iterator,Reference>(i);
+}
+
+
+} // end detail
+} // end agency
+

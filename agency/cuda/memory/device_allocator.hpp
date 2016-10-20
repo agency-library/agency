@@ -74,10 +74,10 @@ class device_allocator
     }
 
     // XXX this should be implemented with a kernel launch or something
-    template<class Iterator, class... Args>
-    Iterator construct_each(Iterator first, Iterator last, Args&&... args)
+    template<class Iterator, class... Iterators>
+    Iterator construct_each(Iterator first, Iterator last, Iterators... iters)
     {
-      //new(ptr) U(std::forward<Args>(args)...);
+      //new(ptr) U(*iters...);
     }
 };
 

@@ -35,16 +35,16 @@ template<class Alloc, class T, class... Args>
 using has_construct = typename has_construct_impl<Alloc,T*,Args...>::type;
 
 
-template<class Alloc, class Iterator, class... Args>
+template<class Alloc, class Iterator, class... Iterators>
 struct has_construct_each_impl
 {
   template<
     class Alloc1,
     class Result = decltype(
-      std::declval<Alloc1*>()->construct_each(
+      std::declval<Alloc1&>().construct_each(
         std::declval<Iterator>(),
         std::declval<Iterator>(),
-        std::declval<Args>()...
+        std::declval<Iterators>()...
       )
     ),
     class = typename std::enable_if<
@@ -59,8 +59,8 @@ struct has_construct_each_impl
   using type = decltype(test<Alloc>(0));
 };
 
-template<class Alloc, class Iterator, class... Args>
-using has_construct_each = typename has_construct_each_impl<Alloc,Iterator,Args...>::type;
+template<class Alloc, class Iterator, class... Iterators>
+using has_construct_each = typename has_construct_each_impl<Alloc,Iterator,Iterators...>::type;
 
 
 } // end allocator_traits_detail

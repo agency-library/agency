@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
 #include <agency/detail/memory/allocator_traits/check_for_member_functions.hpp>
+#include <agency/detail/iterator/forwarding_iterator.hpp>
 #include <memory>
 
 namespace agency
@@ -32,7 +33,7 @@ typename std::enable_if<
 >::type
   construct(Alloc& a, T* p, Args&&... args)
 {
-  allocator_traits<Alloc>::construct_each(a, p, p + 1, std::forward<Args>(args)...);
+  allocator_traits<Alloc>::construct_each(a, p, p + 1, detail::make_forwarding_iterator<Args&&>(&args)...);
 } // end construct()
 
 

@@ -25,6 +25,11 @@ class managed_allocator
       return device_;
     }
 
+    template<class... Args>
+    static void swallow(Args&&...)
+    {
+    }
+
   public:
     using value_type = T;
 
@@ -73,17 +78,17 @@ class managed_allocator
       }
     }
 
-    template<class Iterator, class... Args>
-    Iterator construct_each(Iterator first, Iterator last, Args&&... args)
+    template<class Iterator, class... Iterators>
+    Iterator construct_each(Iterator first, Iterator last, Iterators... iters)
     {
       using value_type = typename std::iterator_traits<Iterator>::value_type;
 
       // we need to synchronize with all devices before touching the ptr
       detail::wait(detail::all_devices());
 
-      for(; first != last; ++first)
+      for(; first != last; ++first, swallow(++iters...))
       {
-        new(&*first) value_type(std::forward<Args>(args)...);
+        new(&*first) value_type(*iters...);
       }
 
       return first;

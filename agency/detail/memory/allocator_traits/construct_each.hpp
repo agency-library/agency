@@ -13,6 +13,13 @@ namespace allocator_traits_detail
 {
 
 
+template<class... Args>
+__AGENCY_ANNOTATION
+void swallow(Args&&...)
+{
+}
+
+
 // construct_each algorithm:
 // 1. If a.construct_each(...) is well-formed, use it. otherwise
 // 2. If a.construct(...) is well-formed, use it in a for loop. otherwise
@@ -20,30 +27,30 @@ namespace allocator_traits_detail
 
 
 __agency_exec_check_disable__
-template<class Alloc, class Iterator, class... Args>
+template<class Alloc, class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  has_construct_each<Alloc,Iterator,Args...>::value,
+  has_construct_each<Alloc,Iterator,Iterators...>::value,
   Iterator
 >::type
-  construct_each_impl1(Alloc& a, Iterator first, Iterator last, Args&&... args)
+  construct_each_impl1(Alloc& a, Iterator first, Iterator last, Iterators... iters)
 {
-  return a.construct_each(first, last, std::forward<Args>(args)...);
+  return a.construct_each(first, last, iters...);
 } // end construct_each_impl1()
 
 
 __agency_exec_check_disable__
-template<class Alloc, class Iterator, class... Args>
+template<class Alloc, class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  has_construct<Alloc,typename std::iterator_traits<Iterator>::pointer, Args...>::value,
+  has_construct<Alloc,typename std::iterator_traits<Iterator>::pointer, typename std::iterator_traits<Iterators>::reference...>::value,
   Iterator
 >::type
-  construct_each_impl2(Alloc& a, Iterator first, Iterator last, Args&&... args)
+  construct_each_impl2(Alloc& a, Iterator first, Iterator last, Iterators... iters)
 {
-  for(; first != last; ++first)
+  for(; first != last; ++first, swallow(++iters...))
   {
-    a.construct(&*first, std::forward<Args>(args)...);
+    a.construct(&*first, *iters...);
   }
 
   return first;
@@ -51,34 +58,34 @@ typename std::enable_if<
 
 
 __agency_exec_check_disable__
-template<class Alloc, class Iterator, class... Args>
+template<class Alloc, class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  !has_construct<Alloc,typename std::iterator_traits<Iterator>::pointer, Args...>::value,
+  !has_construct<Alloc,typename std::iterator_traits<Iterator>::pointer, typename std::iterator_traits<Iterators>::reference...>::value,
   Iterator
 >::type
-  construct_each_impl2(Alloc& a, Iterator first, Iterator last, Args&&... args)
+  construct_each_impl2(Alloc& a, Iterator first, Iterator last, Iterators... iters)
 {
   using value_type = typename std::iterator_traits<Iterator>::value_type;
 
-  for(; first != last; ++first)
+  for(; first != last; ++first, swallow(++iters...))
   {
-    new(&*first) value_type(std::forward<Args>(args)...);
+    new(&*first) value_type(*iters...);
   }
 
   return first;
 } // end construct_each_impl2()
 
 
-template<class Alloc, class Iterator, class... Args>
+template<class Alloc, class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  !has_construct_each<Alloc,Iterator,Args...>::value,
+  !has_construct_each<Alloc,Iterator,Iterators...>::value,
   Iterator
 >::type
-  construct_each_impl1(Alloc& a, Iterator first, Iterator last, Args&&... args)
+  construct_each_impl1(Alloc& a, Iterator first, Iterator last, Iterators... iters)
 {
-  return construct_each_impl2(a, first, last, std::forward<Args>(args)...);
+  return construct_each_impl2(a, first, last, iters...);
 } // end construct_each_impl1()
 
 
@@ -86,12 +93,12 @@ typename std::enable_if<
 
 
 template<class Alloc>
-  template<class Iterator, class... Args>
+  template<class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
 Iterator allocator_traits<Alloc>
-  ::construct_each(Alloc& alloc, Iterator first, Iterator last, Args&&... args)
+  ::construct_each(Alloc& alloc, Iterator first, Iterator last, Iterators... iters)
 {
-  return allocator_traits_detail::construct_each_impl1(alloc, first, last, std::forward<Args>(args)...);
+  return allocator_traits_detail::construct_each_impl1(alloc, first, last, iters...);
 } // end allocator_traits::construct_each()
 
 
