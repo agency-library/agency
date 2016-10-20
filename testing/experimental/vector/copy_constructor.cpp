@@ -31,8 +31,6 @@ void test_copy_constructor()
 
     vector<int> other(num_elements, 13);
 
-    std::cout << "other.size(): " << other.size() << std::endl;
-
     vector<int> v = other;
 
     assert(other.end() - other.begin() == num_elements);

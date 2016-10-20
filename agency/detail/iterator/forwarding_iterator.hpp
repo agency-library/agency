@@ -79,6 +79,12 @@ class forwarding_iterator
       return current_ - rhs.current_;
     }
 
+    __AGENCY_ANNOTATION
+    Iterator base() const
+    {
+      return current_;
+    }
+
   private:
     Iterator current_;
 };

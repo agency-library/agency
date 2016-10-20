@@ -5,6 +5,7 @@
 #include <agency/detail/memory/allocator_traits.hpp>
 #include <agency/detail/utility.hpp>
 #include <agency/detail/iterator/constant_iterator.hpp>
+#include <agency/detail/iterator/move_iterator.hpp>
 #include <memory>
 #include <initializer_list>
 
@@ -16,28 +17,12 @@ namespace detail
 {
 
 
-// XXX all of these uninitialized_* algorithms ought to lower onto construct_each()
-// maybe construct_each() could look like this:
-//
-// template<class Iterator, class... Iterators>
-// void construct_each(allocator_type& alloc, Iterator first, Iterator last, Iterators... iters)
-// {
-//   for(; first != last; ++first, ++iters...)
-//   {
-//     allocator_traits<Allocator>::construct(alloc, *first, *iters...);
-//   }
-// }
-
 template<class Allocator, class Iterator1, class Iterator2>
 __AGENCY_ANNOTATION
 Iterator2 uninitialized_move(Allocator& alloc, Iterator1 first, Iterator1 last, Iterator2 result)
 {
-  for(; first != last; ++first, ++result)
-  {
-    agency::detail::allocator_traits<Allocator>::construct(alloc, &*result, std::move(*first));
-  }
-
-  return result;
+  auto iters = agency::detail::allocator_traits<Allocator>::construct_each(alloc, result, result + (last - first), agency::detail::make_move_iterator(first));
+  return agency::detail::get<0>(iters);
 }
 
 
@@ -45,12 +30,8 @@ template<class Allocator, class Iterator, class Size, class T>
 __AGENCY_ANNOTATION
 Iterator uninitialized_fill_n(Allocator& alloc, Iterator first, Size n, const T& value)
 {
-  for(Size i = 0; i < n; ++i, ++first)
-  {
-    agency::detail::allocator_traits<Allocator>::construct(alloc, &*first, value);
-  }
-
-  return first;
+  auto iters = agency::detail::allocator_traits<Allocator>::construct_each(alloc, first, first + n, agency::detail::constant_iterator<T>(value,0));
+  return agency::detail::get<0>(iters);
 }
 
 
@@ -58,12 +39,8 @@ template<class Allocator, class Iterator1, class Iterator2>
 __AGENCY_ANNOTATION
 Iterator2 uninitialized_copy(Allocator& alloc, Iterator1 first, Iterator1 last, Iterator2 result)
 {
-  for(; first != last; ++first, ++result)
-  {
-    agency::detail::allocator_traits<Allocator>::construct(alloc, &*result, *first);
-  }
-
-  return result;
+  auto iters = agency::detail::allocator_traits<Allocator>::construct_each(alloc, result, result + (last - first), first);
+  return agency::detail::get<0>(iters);
 }
 
 
