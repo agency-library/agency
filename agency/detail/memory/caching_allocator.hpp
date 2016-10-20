@@ -196,7 +196,7 @@ class caching_allocator
 
     template<class Iterator, class... Iterators>
     __AGENCY_ANNOTATION
-    Iterator construct_each(Iterator first, Iterator last, Iterators... iters)
+    detail::tuple<Iterator,Iterators...> construct_each(Iterator first, Iterator last, Iterators... iters)
     {
       using allocator_type = typename resource_type::allocator_type;
       return allocator_traits<allocator_type>::construct_each(resource_->get_allocator(), first, last, iters...);

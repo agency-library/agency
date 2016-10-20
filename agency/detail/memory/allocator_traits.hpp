@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/tuple.hpp>
 #include <memory>
 
 namespace agency
@@ -18,7 +19,7 @@ struct allocator_traits : std::allocator_traits<Alloc>
 
   template<class Iterator, class... Iterators>
   __AGENCY_ANNOTATION
-  static Iterator construct_each(Alloc& alloc, Iterator first, Iterator last, Iterators... iters);
+  static detail::tuple<Iterator,Iterators...> construct_each(Alloc& alloc, Iterator first, Iterator last, Iterators... iters);
 }; // end allocator_traits
 
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/tuple.hpp>
 #include <agency/cuda/device.hpp>
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
@@ -79,7 +80,7 @@ class managed_allocator
     }
 
     template<class Iterator, class... Iterators>
-    Iterator construct_each(Iterator first, Iterator last, Iterators... iters)
+    agency::detail::tuple<Iterator,Iterators...> construct_each(Iterator first, Iterator last, Iterators... iters)
     {
       using value_type = typename std::iterator_traits<Iterator>::value_type;
 
@@ -91,7 +92,7 @@ class managed_allocator
         new(&*first) value_type(*iters...);
       }
 
-      return first;
+      return agency::detail::make_tuple(first, iters...);
     }
 };
 

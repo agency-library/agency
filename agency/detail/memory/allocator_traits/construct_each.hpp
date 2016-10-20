@@ -31,7 +31,7 @@ template<class Alloc, class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
 typename std::enable_if<
   has_construct_each<Alloc,Iterator,Iterators...>::value,
-  Iterator
+  detail::tuple<Iterator,Iterators...>
 >::type
   construct_each_impl1(Alloc& a, Iterator first, Iterator last, Iterators... iters)
 {
@@ -44,7 +44,7 @@ template<class Alloc, class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
 typename std::enable_if<
   has_construct<Alloc,typename std::iterator_traits<Iterator>::pointer, typename std::iterator_traits<Iterators>::reference...>::value,
-  Iterator
+  detail::tuple<Iterator,Iterators...>
 >::type
   construct_each_impl2(Alloc& a, Iterator first, Iterator last, Iterators... iters)
 {
@@ -53,7 +53,7 @@ typename std::enable_if<
     a.construct(&*first, *iters...);
   }
 
-  return first;
+  return detail::make_tuple(first,iters...);
 } // end construct_each_impl2()
 
 
@@ -62,7 +62,7 @@ template<class Alloc, class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
 typename std::enable_if<
   !has_construct<Alloc,typename std::iterator_traits<Iterator>::pointer, typename std::iterator_traits<Iterators>::reference...>::value,
-  Iterator
+  detail::tuple<Iterator,Iterators...>
 >::type
   construct_each_impl2(Alloc& a, Iterator first, Iterator last, Iterators... iters)
 {
@@ -73,7 +73,7 @@ typename std::enable_if<
     new(&*first) value_type(*iters...);
   }
 
-  return first;
+  return detail::make_tuple(first,iters...);
 } // end construct_each_impl2()
 
 
@@ -81,7 +81,7 @@ template<class Alloc, class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
 typename std::enable_if<
   !has_construct_each<Alloc,Iterator,Iterators...>::value,
-  Iterator
+  detail::tuple<Iterator,Iterators...>
 >::type
   construct_each_impl1(Alloc& a, Iterator first, Iterator last, Iterators... iters)
 {
@@ -95,7 +95,7 @@ typename std::enable_if<
 template<class Alloc>
   template<class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
-Iterator allocator_traits<Alloc>
+detail::tuple<Iterator,Iterators...> allocator_traits<Alloc>
   ::construct_each(Alloc& alloc, Iterator first, Iterator last, Iterators... iters)
 {
   return allocator_traits_detail::construct_each_impl1(alloc, first, last, iters...);
