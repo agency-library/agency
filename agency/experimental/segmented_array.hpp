@@ -165,6 +165,16 @@ class segmented_array
     {
       return all()[i];
     }
+
+    void clear()
+    {
+      segments_.clear();
+    }
+
+    bool operator==(const segmented_array& rhs) const
+    {
+      return segments_ == rhs.segments_;
+    }
 };
 
 
