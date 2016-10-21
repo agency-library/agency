@@ -526,9 +526,13 @@ class vector
       return insert(position, 1, value);
     }
 
-    // TODO
     __AGENCY_ANNOTATION
-    iterator insert(const_iterator position, T&& value);
+    iterator insert(const_iterator position, T&& value)
+    {
+      auto first = agency::detail::make_move_iterator(&value);
+      auto last = agency::detail::make_move_iterator(&value + 1);
+      return insert(position, first, last);
+    }
 
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, size_type count, const T& value)
