@@ -349,9 +349,11 @@ class vector
       other.end_ = other.begin();
     }
 
-    // TODO
     __AGENCY_ANNOTATION
-    vector(vector&& other, const Allocator& alloc);
+    vector(vector&& other, const Allocator& alloc)
+      : storage_(std::move(other.storage_), alloc),
+        end_(other.end_)
+    {}
 
     __AGENCY_ANNOTATION
     vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
