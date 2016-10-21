@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/tuple.hpp>
 #include <agency/cuda/device.hpp>
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
@@ -23,6 +24,11 @@ class managed_allocator
     const device_id& device() const
     {
       return device_;
+    }
+
+    template<class... Args>
+    static void swallow(Args&&...)
+    {
     }
 
   public:
@@ -73,20 +79,20 @@ class managed_allocator
       }
     }
 
-    template<class Iterator, class... Args>
-    Iterator construct_each(Iterator first, Iterator last, Args&&... args)
+    template<class Iterator, class... Iterators>
+    agency::detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
     {
       using value_type = typename std::iterator_traits<Iterator>::value_type;
 
       // we need to synchronize with all devices before touching the ptr
       detail::wait(detail::all_devices());
 
-      for(; first != last; ++first)
+      for(size_t i = 0; i < n; ++i, ++first, swallow(++iters...))
       {
-        new(&*first) value_type(std::forward<Args>(args)...);
+        new(&*first) value_type(*iters...);
       }
 
-      return first;
+      return agency::detail::make_tuple(first, iters...);
     }
 };
 

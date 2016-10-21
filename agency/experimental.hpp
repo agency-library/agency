@@ -6,4 +6,5 @@
 #include <agency/experimental/segmented_array.hpp>
 #include <agency/experimental/short_vector.hpp>
 #include <agency/experimental/span.hpp>
+#include <agency/experimental/vector.hpp>
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/tuple.hpp>
 #include <agency/cuda/memory/managed_allocator.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
@@ -79,14 +80,14 @@ class split_allocator
 #endif
     }
 
-    template<class Iterator, class... Args>
+    template<class Iterator, class... Iterators>
     __host__ __device__
-    Iterator construct_each(Iterator first, Iterator last, Args&&... args)
+    agency::detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
     {
 #ifndef __CUDA_ARCH__
-      return agency::detail::allocator_traits<host_allocator>::construct_each(host_alloc_, first, last, std::forward<Args>(args)...);
+      return agency::detail::allocator_traits<host_allocator>::construct_n(host_alloc_, first, n, iters...);
 #else
-      return agency::detail::allocator_traits<device_allocator>::construct_each(device_alloc_, first, last, std::forward<Args>(args)...);
+      return agency::detail::allocator_traits<device_allocator>::construct_n(device_alloc_, first, n, iters...);
 #endif
     }
 
