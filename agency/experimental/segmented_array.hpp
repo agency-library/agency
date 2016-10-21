@@ -66,7 +66,7 @@ class segmented_array
         // just create a segment for each element
         // an alternative would be to create a single segment using the first allocator
         // or choose some minimum segment size
-        // we might a constructor which accepts a segment_size
+        // we might want a constructor which accepts a segment_size
         auto alloc = allocators.begin();
         for(size_type i = 0; i < n; ++i, ++alloc)
         {
