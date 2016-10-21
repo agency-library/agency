@@ -86,6 +86,27 @@ template<class Alloc, class Pointer>
 using has_destroy = typename has_destroy_impl<Alloc,Pointer>::type;
 
 
+template<class Alloc>
+struct has_max_size_impl
+{
+  template<
+    class Alloc1,
+    class = decltype(
+      std::declval<Alloc1>().max_size()
+    )
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Alloc>(0));
+};
+
+template<class Alloc>
+using has_max_size = typename has_max_size_impl<Alloc>::type;
+
+
 } // end allocator_traits_detail
 } // end detail
 } // end agency

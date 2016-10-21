@@ -41,6 +41,9 @@ struct allocator_traits : std::allocator_traits<Alloc>
   template<class T>
   __AGENCY_ANNOTATION
   static void destroy(Alloc& a, T* p);
+
+  __AGENCY_ANNOTATION
+  static size_type max_size(const Alloc& a);
 }; // end allocator_traits
 
 
@@ -50,4 +53,5 @@ struct allocator_traits : std::allocator_traits<Alloc>
 #include <agency/detail/memory/allocator_traits/construct.hpp>
 #include <agency/detail/memory/allocator_traits/construct_n.hpp>
 #include <agency/detail/memory/allocator_traits/destroy.hpp>
+#include <agency/detail/memory/allocator_traits/max_size.hpp>
 
