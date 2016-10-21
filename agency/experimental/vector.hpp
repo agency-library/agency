@@ -403,6 +403,14 @@ class vector
     {
       storage_ = std::move(other.storage_);
       agency::detail::adl_swap(end_, other.end_);
+      return *this;
+    }
+
+    __AGENCY_ANNOTATION
+    vector& operator=(std::initializer_list<T> ilist)
+    {
+      assign(ilist.begin(), ilist.end());
+      return *this;
     }
 
     __AGENCY_ANNOTATION
