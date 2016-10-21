@@ -718,9 +718,11 @@ class vector
       return position;
     }
 
-    // TODO
     __AGENCY_ANNOTATION
-    iterator insert(const_iterator pos, std::initializer_list<T> ilist);
+    iterator insert(const_iterator pos, std::initializer_list<T> ilist)
+    {
+      return insert(pos, ilist.begin(), ilist.end());
+    }
 
     template<class... Args>
     __AGENCY_ANNOTATION
