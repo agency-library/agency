@@ -8,7 +8,6 @@
 #include <agency/experimental/array.hpp>
 #include <agency/experimental/vector.hpp>
 #include <memory>
-#include <vector>
 
 namespace agency
 {
@@ -82,10 +81,10 @@ class segmented_array
     {}
 
   private:
-    using segment_type = std::vector<value_type, InnerAlloc>;
+    using segment_type = vector<value_type, InnerAlloc>;
 
     // XXX will want to parameterize the outer allocator used to store the segments
-    using segments_container = std::vector<segment_type>;
+    using segments_container = vector<segment_type>;
     segments_container segments_;
 
   public:
