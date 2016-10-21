@@ -520,9 +520,11 @@ class vector
       end_ = begin();
     }
 
-    // TODO
     __AGENCY_ANNOTATION
-    iterator insert(const_iterator position, const T& value);
+    iterator insert(const_iterator position, const T& value)
+    {
+      return insert(position, 1, value);
+    }
 
     // TODO
     __AGENCY_ANNOTATION
