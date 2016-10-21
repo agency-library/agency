@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/tuple.hpp>
 #include <agency/cuda/device.hpp>
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
@@ -74,10 +75,11 @@ class device_allocator
     }
 
     // XXX this should be implemented with a kernel launch or something
-    template<class Iterator, class... Args>
-    Iterator construct_each(Iterator first, Iterator last, Args&&... args)
+    template<class Iterator, class... Iterators>
+    detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
     {
-      //new(ptr) U(std::forward<Args>(args)...);
+      //new(ptr) U(*iters...);
+      return detail::make_tuple(first,iters...);
     }
 };
 

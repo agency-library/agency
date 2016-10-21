@@ -5,6 +5,7 @@
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/utility.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
+#include <agency/detail/iterator/constant_iterator.hpp>
 #include <utility>
 #include <memory>
 
@@ -262,11 +263,11 @@ class array
     __agency_exec_check_disable__
     template<class... Args>
     __AGENCY_ANNOTATION
-    static pointer allocate_and_construct_elements(allocator_type& alloc, size_t size, Args&&... args)
+    static pointer allocate_and_construct_elements(allocator_type& alloc, size_t size, const Args&... args)
     {
       pointer result = alloc.allocate(size);
 
-      allocator_traits<allocator_type>::construct_each(alloc, result, result + size, std::forward<Args>(args)...);
+      allocator_traits<allocator_type>::construct_n(alloc, result, size, detail::constant_iterator<Args>(args,0)...);
 
       return result;
     }
