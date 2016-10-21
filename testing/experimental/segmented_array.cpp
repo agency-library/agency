@@ -21,7 +21,7 @@ void test()
 
     size_t segment_size = 5;
 
-    std::vector<std::allocator<int>> allocators(10);
+    std::vector<allocator<int>> allocators(10);
 
     segmented_array<int> array(segment_size * allocators.size(), 13, allocators);
 
@@ -36,7 +36,7 @@ void test()
 
     size_t segment_size = 5;
 
-    std::vector<std::allocator<int>> allocators(10);
+    std::vector<allocator<int>> allocators(10);
 
     size_t num_elements = segment_size * (allocators.size() - 1) + (segment_size - 1);
 
@@ -54,7 +54,7 @@ void test()
     size_t num_elements = 4;
     size_t num_allocators = 10;
 
-    std::vector<std::allocator<int>> allocators(num_allocators);
+    std::vector<allocator<int>> allocators(num_allocators);
 
     segmented_array<int> array(num_elements, 13, allocators);
 
@@ -69,7 +69,7 @@ void test()
 
     size_t segment_size = 5;
 
-    std::vector<std::allocator<int>> allocators(10);
+    std::vector<allocator<int>> allocators(10);
 
     segmented_array<int> array(segment_size * allocators.size(), 13, allocators);
 

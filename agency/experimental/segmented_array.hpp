@@ -6,6 +6,7 @@
 #include <agency/experimental/ranges/flatten.hpp>
 #include <agency/experimental/ranges/all.hpp>
 #include <agency/experimental/array.hpp>
+#include <agency/experimental/vector.hpp>
 #include <memory>
 #include <vector>
 
@@ -16,7 +17,7 @@ namespace experimental
 
 
 // XXX until this thing can resize, call it an array
-template<class T, class InnerAlloc = std::allocator<T>>
+template<class T, class InnerAlloc = allocator<T>>
 class segmented_array
 {
   public:
