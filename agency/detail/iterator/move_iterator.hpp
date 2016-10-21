@@ -18,7 +18,9 @@ struct move_iterator_reference
 
   using type = typename std::conditional<
     std::is_reference<base_reference>::value,
-    typename std::add_lvalue_reference<base_reference>::type,
+    typename std::add_rvalue_reference<
+      typename std::decay<base_reference>::type
+    >::type,
     base_reference
   >::type;
 };

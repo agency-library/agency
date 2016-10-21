@@ -90,13 +90,6 @@ class forwarding_iterator
 };
 
 
-//template<class Reference, class Iterator,
-//         __AGENCY_REQUIRES(
-//           std::is_convertible<
-//             typename std::iterator_traits<Iterator>::reference,
-//             Reference
-//           >::value
-//         )>
 template<class Reference, class Iterator>
 __AGENCY_ANNOTATION
 forwarding_iterator<Iterator,Reference> make_forwarding_iterator(Iterator i)
