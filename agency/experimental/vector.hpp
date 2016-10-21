@@ -177,7 +177,7 @@ class storage
     {
       if(count > 0)
       {
-        data_ = allocator_.allocate(count);
+        data_ = agency::detail::allocator_traits<Allocator>::allocate(allocator_, count);
         if(data_ == nullptr)
         {
           detail::throw_bad_alloc();
@@ -222,10 +222,11 @@ class storage
       : storage(Allocator())
     {}
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     ~storage()
     {
-      allocator_.deallocate(data(), size());
+      agency::detail::allocator_traits<Allocator>::deallocate(allocator_, data(), size());
     }
 
   private:
