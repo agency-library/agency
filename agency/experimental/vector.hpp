@@ -8,6 +8,7 @@
 #include <agency/detail/algorithm/copy.hpp>
 #include <agency/detail/algorithm/copy_n.hpp>
 #include <agency/detail/algorithm/equal.hpp>
+#include <agency/experimental/memory/allocator.hpp>
 #include <memory>
 #include <initializer_list>
 
@@ -139,18 +140,6 @@ void destroy_each(Allocator& alloc, Iterator first, Iterator last)
     agency::detail::allocator_traits<Allocator>::destroy(alloc, &*first);
   }
 }
-
-__AGENCY_ANNOTATION
-inline void throw_bad_alloc()
-{
-#ifdef __CUDA_ARCH__
-  printf("bad_alloc");
-  assert(0);
-#else
-  throw std::bad_alloc();
-#endif
-}
-
 
 __AGENCY_ANNOTATION
 inline void throw_length_error(const char* what_arg)
@@ -287,7 +276,7 @@ class storage
 } // end detail
 
 
-template<class T, class Allocator = std::allocator<T>>
+template<class T, class Allocator = allocator<T>>
 class vector
 {
   private:
