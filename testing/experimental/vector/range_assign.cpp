@@ -97,6 +97,7 @@ void test_nonreallocating_range_assign()
 int main()
 {
   test_reallocating_range_assign();
+  test_nonreallocating_range_assign();
 
   std::cout << "OK" << std::endl;
 
