@@ -774,9 +774,11 @@ class vector
       return *emplace(end(), std::forward<Args>(args)...);
     }
 
-    // TODO
     __AGENCY_ANNOTATION
-    void pop_back();
+    void pop_back()
+    {
+      erase(end()-1, end());
+    }
 
     __AGENCY_ANNOTATION
     void resize(size_type new_size)
