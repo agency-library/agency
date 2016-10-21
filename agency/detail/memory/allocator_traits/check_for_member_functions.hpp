@@ -11,14 +11,14 @@ namespace allocator_traits_detail
 {
 
 
-template<class Alloc, class T, class... Args>
+template<class Alloc, class Pointer, class... Args>
 struct has_construct_impl
 {
   template<
     class Alloc1,
     class = decltype(
       std::declval<Alloc1*>()->construct(
-        std::declval<T*>(),
+        std::declval<Pointer>(),
         std::declval<Args>()...
       )
     )
@@ -31,8 +31,8 @@ struct has_construct_impl
   using type = decltype(test<Alloc>(0));
 };
 
-template<class Alloc, class T, class... Args>
-using has_construct = typename has_construct_impl<Alloc,T*,Args...>::type;
+template<class Alloc, class Pointer, class... Args>
+using has_construct = typename has_construct_impl<Alloc,Pointer,Args...>::type;
 
 
 template<class Alloc, class Iterator, class... Iterators>
@@ -61,6 +61,29 @@ struct has_construct_n_impl
 
 template<class Alloc, class Iterator, class... Iterators>
 using has_construct_n = typename has_construct_n_impl<Alloc,Iterator,Iterators...>::type;
+
+
+template<class Alloc, class Pointer>
+struct has_destroy_impl
+{
+  template<
+    class Alloc1,
+    class = decltype(
+      std::declval<Alloc1&>().destroy(
+        std::declval<Pointer>()
+      )
+    )
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Alloc>(0));
+};
+
+template<class Alloc, class Pointer>
+using has_destroy = typename has_destroy_impl<Alloc,Pointer>::type;
 
 
 } // end allocator_traits_detail

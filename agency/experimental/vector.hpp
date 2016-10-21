@@ -222,7 +222,6 @@ class storage
       : storage(Allocator())
     {}
 
-    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     ~storage()
     {
