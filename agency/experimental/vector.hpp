@@ -371,9 +371,11 @@ class vector
       return *this;
     }
 
-    // TODO
     __AGENCY_ANNOTATION
-    void assign(size_type count, const T& value);
+    void assign(size_type count, const T& value)
+    {
+      assign(agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count));
+    }
 
   private:
     template<class ForwardIterator>

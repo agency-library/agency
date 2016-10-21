@@ -16,10 +16,10 @@ void test_reallocating_range_assign()
   {
     // test range assign into empty vector
 
-    Container v;
+    vector<int> v;
 
     size_t num_elements_to_assign = 5;
-    std::vector<value_type> assign_me(num_elements_to_assign);
+    Container assign_me(num_elements_to_assign);
     std::iota(assign_me.begin(), assign_me.end(), 0);
 
     v.assign(assign_me.begin(), assign_me.end());
@@ -31,10 +31,10 @@ void test_reallocating_range_assign()
   {
     // test range assign into small vector
 
-    Container v(3);
+    vector<int> v(3);
 
     size_t num_elements_to_assign = 5;
-    std::vector<value_type> assign_me(num_elements_to_assign);
+    Container assign_me(num_elements_to_assign);
     std::iota(assign_me.begin(), assign_me.end(), 0);
 
     v.assign(assign_me.begin(), assign_me.end());
@@ -106,8 +106,8 @@ int main()
   test_reallocating_range_assign<std::vector<int>>();
   test_nonreallocating_range_assign<std::vector<int>>();
 
-  //test_reallocating_range_assign<std::list<int>>();
-  //test_nonreallocating_range_assign<std::list<int>>();
+  test_reallocating_range_assign<std::list<int>>();
+  test_nonreallocating_range_assign<std::list<int>>();
 
   std::cout << "OK" << std::endl;
 
