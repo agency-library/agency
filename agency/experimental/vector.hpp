@@ -385,13 +385,17 @@ class vector
     }
 
 
-    // TODO
     __AGENCY_ANNOTATION
-    reference back();
+    reference back()
+    {
+      return *(end()-1);
+    }
 
-    // TODO
     __AGENCY_ANNOTATION
-    const_reference back() const;
+    const_reference back() const
+    {
+      return *(end()-1);
+    }
 
     __AGENCY_ANNOTATION
     T* data()
@@ -581,9 +585,17 @@ class vector
     __AGENCY_ANNOTATION
     iterator erase(const_iterator first, const_iterator last);
 
-    // TODO
     __AGENCY_ANNOTATION
-    void push_back(T&& value);
+    void push_back(const T& value)
+    {
+      emplace_back(value);
+    }
+
+    __AGENCY_ANNOTATION
+    void push_back(T&& value)
+    {
+      emplace_back(std::move(value));
+    }
 
     // TODO
     __AGENCY_ANNOTATION
@@ -638,6 +650,8 @@ class vector
     }
 
   private:
+    // XXX this should be insert_n(position, count, iters...);
+    //     otherwise, we can't implement emplace_back() (with no args)
     template<class RandomAccessIterator, class... RandomAccessIterators>
     __AGENCY_ANNOTATION
     iterator generalized_insert(const_iterator position_, RandomAccessIterator first, RandomAccessIterator last, RandomAccessIterators... iters)
