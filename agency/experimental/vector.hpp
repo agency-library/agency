@@ -536,15 +536,13 @@ class vector
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, const T& value)
     {
-      return insert(position, 1, value);
+      return emplace(position, value);
     }
 
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, T&& value)
     {
-      auto first = agency::detail::make_move_iterator(&value);
-      auto last = agency::detail::make_move_iterator(&value + 1);
-      return insert(position, first, last);
+      return emplace(position, std::move(value));
     }
 
     __AGENCY_ANNOTATION
@@ -565,17 +563,19 @@ class vector
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, RandomAccessIterator first, RandomAccessIterator last)
     {
-      return insert_n(position, last - first, first);
+      return emplace_n(position, last - first, first);
     }
 
     // TODO
     __AGENCY_ANNOTATION
     iterator insert(const_iterator pos, std::initializer_list<T> ilist);
 
-    // TODO
     template<class... Args>
     __AGENCY_ANNOTATION
-    iterator emplace(const_iterator pos, Args&&... args);
+    iterator emplace(const_iterator pos, Args&&... args)
+    {
+      return emplace_n(pos, 1, agency::detail::make_forwarding_iterator<Args&&>(&args)...);
+    }
 
     // TODO
     __AGENCY_ANNOTATION
@@ -601,7 +601,7 @@ class vector
     __AGENCY_ANNOTATION
     reference emplace_back(Args&&... args)
     {
-      return *insert_n(end(), 1, agency::detail::make_forwarding_iterator<Args&&>(&args)...);
+      return *emplace(end(), std::forward<Args>(args)...);
     }
 
     // TODO
@@ -646,7 +646,7 @@ class vector
   private:
     template<class... RandomAccessIterators>
     __AGENCY_ANNOTATION
-    iterator insert_n(const_iterator position_, size_type count, RandomAccessIterators... iters)
+    iterator emplace_n(const_iterator position_, size_type count, RandomAccessIterators... iters)
     {
       // convert the const_iterator to an iterator
       iterator position = begin() + (position_ - cbegin());
