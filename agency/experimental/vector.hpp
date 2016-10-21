@@ -6,6 +6,8 @@
 #include <agency/detail/utility.hpp>
 #include <agency/detail/iterator/constant_iterator.hpp>
 #include <agency/detail/iterator/move_iterator.hpp>
+#include <agency/detail/iterator/forwarding_iterator.hpp>
+#include <agency/detail/algorithm/copy.hpp>
 #include <memory>
 #include <initializer_list>
 
@@ -335,10 +337,52 @@ class vector
     __AGENCY_ANNOTATION
     void assign(size_type count, const T& value);
 
-    // TODO
+  private:
+    template<class RandomAccessIterator>
+    __AGENCY_ANNOTATION
+    void assign(std::random_access_iterator_tag, RandomAccessIterator first, RandomAccessIterator last)
+    {
+      size_type n = last - first;
+
+      if(n > capacity())
+      {
+        // n is too large for capacity, swap with a new vector
+        vector new_vector(first, last);
+        swap(new_vector);
+      }
+      else if(size() >= n)
+      {
+        // we can already accomodate the new range
+        iterator old_end = end();
+        end_ = agency::detail::copy(first, last, begin());
+
+        // destroy the old elements
+        detail::destroy_each(storage_.allocator(), end(), old_end);
+      }
+      else
+      {
+        // range fits inside allocated storage
+
+        // copy to already existing elements
+        RandomAccessIterator mid = first + size();
+        agency::detail::copy(first, mid, begin());
+
+        // construct new elements at the end
+        end_ = detail::uninitialized_copy(storage_.allocator(), mid, last, end());
+      }
+    }
+
     template<class InputIterator>
     __AGENCY_ANNOTATION
-    void assign(InputIterator first, InputIterator last);
+    void assign(std::input_iterator_tag, InputIterator first, InputIterator last);
+
+  public:
+    template<class InputIterator>
+    __AGENCY_ANNOTATION
+    void assign(InputIterator first, InputIterator last)
+    {
+      assign(typename std::iterator_traits<InputIterator>::iterator_category(), first, last);
+    }
 
     // TODO
     __AGENCY_ANNOTATION
@@ -383,7 +427,6 @@ class vector
     {
       return *begin();
     }
-
 
     __AGENCY_ANNOTATION
     reference back()
