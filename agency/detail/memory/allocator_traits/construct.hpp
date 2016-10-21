@@ -33,7 +33,7 @@ typename std::enable_if<
 >::type
   construct(Alloc& a, T* p, Args&&... args)
 {
-  allocator_traits<Alloc>::construct_each(a, p, p + 1, detail::make_forwarding_iterator<Args&&>(&args)...);
+  allocator_traits<Alloc>::construct_n(a, p, 1, detail::make_forwarding_iterator<Args&&>(&args)...);
 } // end construct()
 
 

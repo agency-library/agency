@@ -196,10 +196,10 @@ class caching_allocator
 
     template<class Iterator, class... Iterators>
     __AGENCY_ANNOTATION
-    detail::tuple<Iterator,Iterators...> construct_each(Iterator first, Iterator last, Iterators... iters)
+    detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
     {
       using allocator_type = typename resource_type::allocator_type;
-      return allocator_traits<allocator_type>::construct_each(resource_->get_allocator(), first, last, iters...);
+      return allocator_traits<allocator_type>::construct_n(resource_->get_allocator(), first, n, iters...);
     }
 
     __agency_exec_check_disable__

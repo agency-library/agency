@@ -76,7 +76,7 @@ class device_allocator
 
     // XXX this should be implemented with a kernel launch or something
     template<class Iterator, class... Iterators>
-    detail::tuple<Iterator,Iterators...> construct_each(Iterator first, Iterator last, Iterators... iters)
+    detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
     {
       //new(ptr) U(*iters...);
       return detail::make_tuple(first,iters...);

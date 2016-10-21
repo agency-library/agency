@@ -19,7 +19,7 @@ struct allocator_traits : std::allocator_traits<Alloc>
 
   template<class Iterator, class... Iterators>
   __AGENCY_ANNOTATION
-  static detail::tuple<Iterator,Iterators...> construct_each(Alloc& alloc, Iterator first, Iterator last, Iterators... iters);
+  static detail::tuple<Iterator,Iterators...> construct_n(Alloc& alloc, Iterator first, size_t n, Iterators... iters);
 }; // end allocator_traits
 
 
@@ -27,5 +27,5 @@ struct allocator_traits : std::allocator_traits<Alloc>
 } // end agency
 
 #include <agency/detail/memory/allocator_traits/construct.hpp>
-#include <agency/detail/memory/allocator_traits/construct_each.hpp>
+#include <agency/detail/memory/allocator_traits/construct_n.hpp>
 

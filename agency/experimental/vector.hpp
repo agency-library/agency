@@ -18,30 +18,29 @@ namespace detail
 {
 
 
-template<class Allocator, class Iterator1, class Iterator2>
+template<class Allocator, class Iterator1, class Size, class Iterator2>
 __AGENCY_ANNOTATION
-Iterator2 uninitialized_move(Allocator& alloc, Iterator1 first, Iterator1 last, Iterator2 result)
+Iterator2 uninitialized_move_n(Allocator& alloc, Iterator1 first, Size n, Iterator2 result)
 {
-  auto iters = agency::detail::allocator_traits<Allocator>::construct_each(alloc, result, result + (last - first), agency::detail::make_move_iterator(first));
+  auto iters = agency::detail::allocator_traits<Allocator>::construct_n(alloc, result, n, agency::detail::make_move_iterator(first));
   return agency::detail::get<0>(iters);
 }
 
 
-template<class Allocator, class Iterator, class Size, class T>
+template<class Allocator, class Iterator1, class Size, class Iterator2>
 __AGENCY_ANNOTATION
-Iterator uninitialized_fill_n(Allocator& alloc, Iterator first, Size n, const T& value)
+Iterator2 uninitialized_copy_n(Allocator& alloc, Iterator1 first, Size n, Iterator2 result)
 {
-  auto iters = agency::detail::allocator_traits<Allocator>::construct_each(alloc, first, first + n, agency::detail::constant_iterator<T>(value,0));
+  auto iters = agency::detail::allocator_traits<Allocator>::construct_n(alloc, result, n, first);
   return agency::detail::get<0>(iters);
 }
 
 
-template<class Allocator, class Iterator1, class Iterator2>
+template<class Allocator, class ForwardIterator, class OutputIterator>
 __AGENCY_ANNOTATION
-Iterator2 uninitialized_copy(Allocator& alloc, Iterator1 first, Iterator1 last, Iterator2 result)
+OutputIterator uninitialized_copy(Allocator& alloc, ForwardIterator first, ForwardIterator last, OutputIterator result)
 {
-  auto iters = agency::detail::allocator_traits<Allocator>::construct_each(alloc, result, result + (last - first), first);
-  return agency::detail::get<0>(iters);
+  return detail::uninitialized_copy_n(alloc, first, agency::detail::distance(first,last), result);
 }
 
 
@@ -121,9 +120,9 @@ Iterator overlapped_copy(Iterator first, Iterator last, Iterator result)
 
 template<class Allocator, class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
-Iterator construct_each(Allocator& alloc, Iterator first, Iterator last, Iterators... iters)
+Iterator construct_n(Allocator& alloc, Iterator first, size_t n, Iterators... iters)
 {
-  auto iter_tuple = agency::detail::allocator_traits<Allocator>::construct_each(alloc, first, last, iters...);
+  auto iter_tuple = agency::detail::allocator_traits<Allocator>::construct_n(alloc, first, n, iters...);
   return agency::detail::get<0>(iter_tuple);
 }
 
@@ -402,7 +401,7 @@ class vector
         auto mid_and_end = agency::detail::copy_n(first, size(), begin());
 
         // construct new elements at the end
-        end_ = detail::uninitialized_copy(storage_.allocator(), agency::detail::get<0>(mid_and_end), last, end());
+        end_ = detail::uninitialized_copy_n(storage_.allocator(), agency::detail::get<0>(mid_and_end), n - size(), end());
       }
     }
 
@@ -775,7 +774,7 @@ class vector
         if(num_displaced_elements > count)
         {
           // move n displaced elements to newly constructed elements following the insertion
-          end_ = detail::uninitialized_move(storage_.allocator(), end() - count, end(), end());
+          end_ = detail::uninitialized_move_n(storage_.allocator(), end() - count, count, end());
 
           // copy construct num_displaced_elements - n elements to existing elements
           // this copy overlaps
@@ -783,18 +782,18 @@ class vector
           detail::overlapped_uninitialized_copy(storage_.allocator(), position, old_end - count, old_end - copy_length);
 
           // construct new elements at insertion point
-          detail::construct_each(storage_.allocator(), position, position + count, iters...);
+          detail::construct_n(storage_.allocator(), position, count, iters...);
         }
         else
         {
           // construct copy new elements at the end of the vector
-          end_ = detail::construct_each(storage_.allocator(), end(), end() + (count - num_displaced_elements), iters + num_displaced_elements...);
+          end_ = detail::construct_n(storage_.allocator(), end(), count - num_displaced_elements, iters + num_displaced_elements...);
 
           // move the displaced elements
-          end_ = detail::uninitialized_move(storage_.allocator(), position, old_end, end());
+          end_ = detail::uninitialized_move_n(storage_.allocator(), position, num_displaced_elements, end());
 
           // construct copy at the insertion position
-          detail::construct_each(storage_.allocator(), position, position + num_displaced_elements, iters...);
+          detail::construct_n(storage_.allocator(), position, num_displaced_elements, iters...);
         }
       }
       else
@@ -823,15 +822,15 @@ class vector
         try
         {
           // move elements before the insertion to the beginning of the new storage
-          new_end = detail::uninitialized_move(new_storage.allocator(), begin(), position, new_storage.data());
+          new_end = detail::uninitialized_move_n(new_storage.allocator(), begin(), position - begin(), new_storage.data());
 
           result = new_end;
 
           // copy construct new elements
-          new_end = detail::construct_each(new_storage.allocator(), new_end, new_end + count, iters...);
+          new_end = detail::construct_n(new_storage.allocator(), new_end, count, iters...);
 
           // move elements after the insertion to the end of the new storage
-          new_end = detail::uninitialized_move(new_storage.allocator(), position, end(), new_end);
+          new_end = detail::uninitialized_move_n(new_storage.allocator(), position, end() - position, new_end);
         }
         catch(...)
         {

@@ -267,7 +267,7 @@ class array
     {
       pointer result = alloc.allocate(size);
 
-      allocator_traits<allocator_type>::construct_each(alloc, result, result + size, detail::constant_iterator<Args>(args,0)...);
+      allocator_traits<allocator_type>::construct_n(alloc, result, size, detail::constant_iterator<Args>(args,0)...);
 
       return result;
     }

@@ -36,14 +36,14 @@ using has_construct = typename has_construct_impl<Alloc,T*,Args...>::type;
 
 
 template<class Alloc, class Iterator, class... Iterators>
-struct has_construct_each_impl
+struct has_construct_n_impl
 {
   template<
     class Alloc1,
     class Result = decltype(
-      std::declval<Alloc1&>().construct_each(
+      std::declval<Alloc1&>().construct_n(
         std::declval<Iterator>(),
-        std::declval<Iterator>(),
+        std::declval<size_t>(),
         std::declval<Iterators>()...
       )
     ),
@@ -60,7 +60,7 @@ struct has_construct_each_impl
 };
 
 template<class Alloc, class Iterator, class... Iterators>
-using has_construct_each = typename has_construct_each_impl<Alloc,Iterator,Iterators...>::type;
+using has_construct_n = typename has_construct_n_impl<Alloc,Iterator,Iterators...>::type;
 
 
 } // end allocator_traits_detail

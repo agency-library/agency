@@ -80,14 +80,14 @@ class managed_allocator
     }
 
     template<class Iterator, class... Iterators>
-    agency::detail::tuple<Iterator,Iterators...> construct_each(Iterator first, Iterator last, Iterators... iters)
+    agency::detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
     {
       using value_type = typename std::iterator_traits<Iterator>::value_type;
 
       // we need to synchronize with all devices before touching the ptr
       detail::wait(detail::all_devices());
 
-      for(; first != last; ++first, swallow(++iters...))
+      for(size_t i = 0; i < n; ++i, ++first, swallow(++iters...))
       {
         new(&*first) value_type(*iters...);
       }
