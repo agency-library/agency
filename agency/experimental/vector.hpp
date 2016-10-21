@@ -4,10 +4,9 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
 #include <agency/detail/utility.hpp>
-#include <agency/detail/iterator/constant_iterator.hpp>
-#include <agency/detail/iterator/move_iterator.hpp>
-#include <agency/detail/iterator/forwarding_iterator.hpp>
+#include <agency/detail/iterator.hpp>
 #include <agency/detail/algorithm/copy.hpp>
+#include <agency/detail/algorithm/copy_n.hpp>
 #include <memory>
 #include <initializer_list>
 
@@ -140,7 +139,6 @@ void destroy_each(Allocator& alloc, Iterator first, Iterator last)
     agency::detail::allocator_traits<Allocator>::destroy(alloc, &*first);
   }
 }
-
 
 __AGENCY_ANNOTATION
 inline void throw_bad_alloc()
@@ -375,11 +373,11 @@ class vector
     void assign(size_type count, const T& value);
 
   private:
-    template<class RandomAccessIterator>
+    template<class ForwardIterator>
     __AGENCY_ANNOTATION
-    void assign(std::random_access_iterator_tag, RandomAccessIterator first, RandomAccessIterator last)
+    void assign(std::forward_iterator_tag, ForwardIterator first, ForwardIterator last)
     {
-      size_type n = last - first;
+      size_type n = agency::detail::distance(first, last);
 
       if(n > capacity())
       {
@@ -401,18 +399,38 @@ class vector
         // range fits inside allocated storage
 
         // copy to already existing elements
-        RandomAccessIterator mid = first + size();
-        agency::detail::copy(first, mid, begin());
+        auto mid_and_end = agency::detail::copy_n(first, size(), begin());
 
         // construct new elements at the end
-        end_ = detail::uninitialized_copy(storage_.allocator(), mid, last, end());
+        end_ = detail::uninitialized_copy(storage_.allocator(), agency::detail::get<0>(mid_and_end), last, end());
       }
     }
 
-    // TODO
     template<class InputIterator>
     __AGENCY_ANNOTATION
-    void assign(std::input_iterator_tag, InputIterator first, InputIterator last);
+    void assign(std::input_iterator_tag, InputIterator first, InputIterator last)
+    {
+      iterator current = begin();
+
+      // assign to elements which already exist
+      for(; first != last && current != end(); ++current, ++first)
+      {
+        *current = *first;
+      }
+
+      // either only the input was exhausted or both
+      // the the input and vector elements were exhaused
+      if(first == last)
+      {
+        // if we exhausted the input, erase leftover elements
+        erase(current, end());
+      }
+      else
+      {
+        // insert the rest of the input at the end of the vector
+        insert(end(), first, last);
+      }
+    }
 
   public:
     template<class InputIterator>
