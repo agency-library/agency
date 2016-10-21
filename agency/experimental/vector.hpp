@@ -228,6 +228,30 @@ class storage
       allocator_.deallocate(data(), size());
     }
 
+  private:
+    __AGENCY_ANNOTATION
+    void move_assign_allocator(std::true_type, Allocator& other_allocator)
+    {
+      // propagate the allocator
+      allocator_ = std::move(other_allocator);
+    }
+
+    __AGENCY_ANNOTATION
+    void move_assign_allocator(std::false_type, Allocator&)
+    {
+      // do nothing
+    }
+
+  public:
+    __AGENCY_ANNOTATION
+    storage& operator=(storage&& other)
+    {
+      agency::detail::adl_swap(data_, other.data_);
+      agency::detail::adl_swap(size_, other.size_);
+
+      move_assign_allocator(typename std::allocator_traits<Allocator>::propagate_on_container_move_assignment(), other.allocator());
+    }
+
     __AGENCY_ANNOTATION
     T* data()
     {
@@ -372,6 +396,13 @@ class vector
     {
       assign(other.begin(), other.end());
       return *this;
+    }
+
+    __AGENCY_ANNOTATION
+    vector& operator=(vector&& other)
+    {
+      storage_ = std::move(other.storage_);
+      agency::detail::adl_swap(end_, other.end_);
     }
 
     __AGENCY_ANNOTATION
