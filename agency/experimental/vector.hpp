@@ -324,8 +324,8 @@ class vector
              )>
     __AGENCY_ANNOTATION
     vector(RandomAccessIterator first, RandomAccessIterator last, const Allocator& alloc = Allocator())
-      : storage_(last - first, alloc), // initialize the capacity of the storage
-        end_(begin())                  // initialize end_ to begin()
+      : storage_(alloc), // initialize the storage to empty
+        end_(begin())    // initialize end_ to begin()
     {
       insert(end(), first, last);
     }
