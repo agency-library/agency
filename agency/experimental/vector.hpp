@@ -565,7 +565,7 @@ class vector
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, RandomAccessIterator first, RandomAccessIterator last)
     {
-      return generalized_insert(position, first, last);
+      return insert_n(position, last - first, first);
     }
 
     // TODO
@@ -597,17 +597,11 @@ class vector
       emplace_back(std::move(value));
     }
 
-    // TODO
+    template<class... Args>
     __AGENCY_ANNOTATION
-    reference emplace_back();
-
-    template<class Arg1, class... Args>
-    __AGENCY_ANNOTATION
-    reference emplace_back(Arg1&& arg1, Args&&... args)
+    reference emplace_back(Args&&... args)
     {
-      auto first = agency::detail::make_forwarding_iterator<Arg1&&>(&arg1);
-      auto last = agency::detail::make_forwarding_iterator<Arg1&&>(&arg1 + 1);
-      return *generalized_insert(end(), first, last, agency::detail::make_forwarding_iterator<Args&&>(&args)...);
+      return *insert_n(end(), 1, agency::detail::make_forwarding_iterator<Args&&>(&args)...);
     }
 
     // TODO
@@ -650,17 +644,13 @@ class vector
     }
 
   private:
-    // XXX this should be insert_n(position, count, iters...);
-    //     otherwise, we can't implement emplace_back() (with no args)
-    template<class RandomAccessIterator, class... RandomAccessIterators>
+    template<class... RandomAccessIterators>
     __AGENCY_ANNOTATION
-    iterator generalized_insert(const_iterator position_, RandomAccessIterator first, RandomAccessIterator last, RandomAccessIterators... iters)
+    iterator insert_n(const_iterator position_, size_type count, RandomAccessIterators... iters)
     {
       // convert the const_iterator to an iterator
       iterator position = begin() + (position_ - cbegin());
       iterator result = position;
-
-      size_type count = last - first;
 
       if(count <= (capacity() - size()))
       {
@@ -680,18 +670,18 @@ class vector
           detail::overlapped_uninitialized_copy(storage_.allocator(), position, old_end - count, old_end - copy_length);
 
           // construct new elements at insertion point
-          detail::construct_each(storage_.allocator(), position, position + count, first, iters...);
+          detail::construct_each(storage_.allocator(), position, position + count, iters...);
         }
         else
         {
           // construct copy new elements at the end of the vector
-          end_ = detail::construct_each(storage_.allocator(), end(), end() + (count - num_displaced_elements), first + num_displaced_elements, iters + num_displaced_elements...);
+          end_ = detail::construct_each(storage_.allocator(), end(), end() + (count - num_displaced_elements), iters + num_displaced_elements...);
 
           // move the displaced elements
           end_ = detail::uninitialized_move(storage_.allocator(), position, old_end, end());
 
           // construct copy at the insertion position
-          detail::construct_each(storage_.allocator(), position, position + num_displaced_elements, first, iters...);
+          detail::construct_each(storage_.allocator(), position, position + num_displaced_elements, iters...);
         }
       }
       else
@@ -725,7 +715,7 @@ class vector
           result = new_end;
 
           // copy construct new elements
-          new_end = detail::construct_each(new_storage.allocator(), new_end, new_end + count, first, iters...);
+          new_end = detail::construct_each(new_storage.allocator(), new_end, new_end + count, iters...);
 
           // move elements after the insertion to the end of the new storage
           new_end = detail::uninitialized_move(new_storage.allocator(), position, end(), new_end);

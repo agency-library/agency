@@ -9,6 +9,19 @@ void test_emplace_back()
   using namespace agency::experimental;
 
   {
+    // test no arg emplace_back into empty vector
+    std::vector<int> emplaced_value;
+
+    vector<std::vector<int>> v;
+
+    auto& result = v.emplace_back();
+
+    assert(emplaced_value == result);
+    assert(v.size() == 1);
+    assert(std::count(v.begin(), v.end(), emplaced_value) == 1);
+  }
+
+  {
     // test copying emplace_back into empty vector
     std::vector<int> emplaced_value(1,7);
 
@@ -48,6 +61,23 @@ void test_emplace_back()
     assert(emplaced_value == result);
     assert(v.size() == 1);
     assert(std::count(v.begin(), v.end(), emplaced_value) == 1);
+  }
+
+  {
+    // test no arg emplace_back into non-empty vector
+    std::vector<int> initial_value(1,13);
+    std::vector<int> emplaced_value;
+
+    size_t num_initial_elements = 10;
+
+    vector<std::vector<int>> v(num_initial_elements, initial_value);
+
+    auto& result = v.emplace_back();
+
+    assert(result == emplaced_value);
+    assert(v.size() == num_initial_elements + 1);
+    assert(std::count(v.end()-1, v.end(), emplaced_value) == 1);
+    assert(std::count(v.begin(), v.end()-1, initial_value) == num_initial_elements);
   }
 
   {
