@@ -7,6 +7,7 @@
 #include <agency/detail/iterator.hpp>
 #include <agency/detail/algorithm/copy.hpp>
 #include <agency/detail/algorithm/copy_n.hpp>
+#include <agency/detail/algorithm/equal.hpp>
 #include <memory>
 #include <initializer_list>
 
@@ -363,9 +364,12 @@ class vector
       clear();
     }
 
-    // TODO
     __AGENCY_ANNOTATION
-    vector& operator=(const vector& other);
+    vector& operator=(const vector& other)
+    {
+      assign(other.begin(), other.end());
+      return *this;
+    }
 
     // TODO
     __AGENCY_ANNOTATION
@@ -879,6 +883,14 @@ __AGENCY_ANNOTATION
 void swap(vector<T,Allocator>& a, vector<T,Allocator>& b)
 {
   a.swap(b);
+}
+
+
+template<class T, class Allocator>
+__AGENCY_ANNOTATION
+bool operator==(const vector<T,Allocator>& lhs, const vector<T,Allocator>& rhs)
+{
+  return lhs.size() == rhs.size() && agency::detail::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
 
 
