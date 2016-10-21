@@ -164,6 +164,18 @@ inline void throw_length_error(const char* what_arg)
 }
 
 
+__AGENCY_ANNOTATION
+inline void throw_out_of_range(const char* what_arg)
+{
+#ifdef __CUDA_ARCH__
+  printf("out_of_range: %s\n", what_arg);
+  assert(0);
+#else
+  throw std::out_of_range(what_arg);
+#endif
+}
+
+
 template<class T, class Allocator>
 class storage
 {
@@ -461,13 +473,27 @@ class vector
 
     // element access
     
-    // TODO
     __AGENCY_ANNOTATION
-    reference at(size_type pos);
+    reference at(size_type pos)
+    {
+      if(pos >= size())
+      {
+        detail::throw_out_of_range("pos >= size() in vector::at()");
+      }
 
-    // TODO
+      return operator[](pos);
+    }
+
     __AGENCY_ANNOTATION
-    const_reference at(size_type post) const;
+    const_reference at(size_type pos) const
+    {
+      if(pos >= size())
+      {
+        detail::throw_out_of_range("pos >= size() in vector::at()");
+      }
+
+      return operator[](pos);
+    }
 
     __AGENCY_ANNOTATION
     reference operator[](size_type pos)
