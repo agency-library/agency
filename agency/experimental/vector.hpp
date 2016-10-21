@@ -83,6 +83,43 @@ Iterator overlapped_uninitialized_copy(Allocator& alloc, Iterator first, Iterato
 }
 
 
+template<class Iterator1, class Iterator2>
+__AGENCY_ANNOTATION
+Iterator2 copy_backward(Iterator1 first, Iterator1 last, Iterator2 result)
+{
+  // yes, we preincrement
+  // the ranges are open on the right, i.e. [first, last)
+  while(first != last)
+  {
+    *--result = *--last;
+  }
+
+  return result;
+}
+
+
+template<class Iterator>
+__AGENCY_ANNOTATION
+Iterator overlapped_copy(Iterator first, Iterator last, Iterator result)
+{
+  if(first < last && first <= result && result < last)
+  {
+    // result lies in [first, last)
+    // it's safe to use copy_backward here
+    detail::copy_backward(first, last, result + (last - first));
+    result += (last - first);
+  }
+  else
+  {
+    // result + (last - first) lies in [first, last)
+    // it's safe to use copy here
+    result = agency::detail::copy(first, last, result);
+  } // end else
+
+  return result;
+}
+
+
 template<class Allocator, class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
 Iterator construct_each(Allocator& alloc, Iterator first, Iterator last, Iterators... iters)
@@ -372,6 +409,7 @@ class vector
       }
     }
 
+    // TODO
     template<class InputIterator>
     __AGENCY_ANNOTATION
     void assign(std::input_iterator_tag, InputIterator first, InputIterator last);
@@ -624,9 +662,23 @@ class vector
     __AGENCY_ANNOTATION
     iterator erase(const_iterator pos);
 
-    // TODO
     __AGENCY_ANNOTATION
-    iterator erase(const_iterator first, const_iterator last);
+    iterator erase(const_iterator first_, const_iterator last_)
+    {
+      // get mutable iterators
+      iterator first = begin() + (first_ - begin());
+      iterator last = begin() + (last_ - begin());
+
+      // overlap copy the range [last,end()) to first
+      iterator old_end = end();
+      end_ = detail::overlapped_copy(last, end(), first);
+
+      // destroy everything after end()
+      detail::destroy_each(storage_.allocator(), end(), old_end);
+
+      // return an iterator referring to one past the last erased element
+      return first;
+    }
 
     __AGENCY_ANNOTATION
     void push_back(const T& value)
