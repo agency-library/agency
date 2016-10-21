@@ -8,6 +8,8 @@
 #include <agency/detail/algorithm/copy.hpp>
 #include <agency/detail/algorithm/copy_n.hpp>
 #include <agency/detail/algorithm/equal.hpp>
+#include <agency/detail/algorithm/max.hpp>
+#include <agency/detail/algorithm/min.hpp>
 #include <agency/experimental/memory/allocator.hpp>
 #include <memory>
 #include <initializer_list>
@@ -322,6 +324,7 @@ class vector
     using reverse_iterator = void;
     using const_reverse_iterator = void;
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     vector() : vector(Allocator()) {}
 
@@ -891,13 +894,13 @@ class vector
         size_type old_size = size();
 
         // compute the new capacity after the allocation
-        size_type new_capacity = old_size + std::max(old_size, count);
+        size_type new_capacity = old_size + agency::detail::max(old_size, count);
 
         // allocate exponentially larger new storage
-        new_capacity = std::max(new_capacity, size_type(2) * capacity());
+        new_capacity = agency::detail::max(new_capacity, size_type(2) * capacity());
 
         // do not exceed maximum storage
-        new_capacity = std::min(new_capacity, max_size());
+        new_capacity = agency::detail::min(new_capacity, max_size());
 
         if(new_capacity > max_size())
         {
@@ -909,7 +912,9 @@ class vector
         // record how many constructors we invoke in the try block below
         iterator new_end = new_storage.data();
 
+#ifndef __CUDA_ARCH__
         try
+#endif
         {
           // move elements before the insertion to the beginning of the new storage
           new_end = detail::uninitialized_move_n(new_storage.allocator(), begin(), position - begin(), new_storage.data());
@@ -922,6 +927,7 @@ class vector
           // move elements after the insertion to the end of the new storage
           new_end = detail::uninitialized_move_n(new_storage.allocator(), position, end() - position, new_end);
         }
+#ifndef __CUDA_ARCH__
         catch(...)
         {
           // something went wrong, so destroy as many new elements as were constructed
@@ -930,6 +936,7 @@ class vector
           // rethrow
           throw;
         }
+#endif
 
         // record the vector's new state
         storage_.swap(new_storage);
