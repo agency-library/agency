@@ -16,7 +16,8 @@ namespace experimental
 
 
 // XXX until this thing can resize, call it an array
-template<class T, class InnerAlloc = allocator<T>>
+// XXX probably want to take a single allocator as a parameter instead of two separate allocators
+template<class T, class InnerAlloc = allocator<T>, class OuterAlloc = allocator<vector<T,InnerAlloc>>>
 class segmented_array
 {
   public:
@@ -84,18 +85,18 @@ class segmented_array
     using segment_type = vector<value_type, InnerAlloc>;
 
     // XXX will want to parameterize the outer allocator used to store the segments
-    using segments_container = vector<segment_type>;
-    segments_container segments_;
+    using outer_container = vector<segment_type, OuterAlloc>;
+    outer_container segments_;
 
   public:
-    using all_t = flatten_view<segments_container>;
+    using all_t = flatten_view<outer_container>;
 
     all_t all()
     {
       return flatten(segments_);
     }
 
-    using const_all_t = flatten_view<const segments_container>;
+    using const_all_t = flatten_view<const outer_container>;
 
     const_all_t all() const
     {
@@ -131,7 +132,7 @@ class segmented_array
       return all().end();
     }
 
-    using segments_view = decltype(agency::experimental::all(std::declval<const segments_container&>()));
+    using segments_view = decltype(agency::experimental::all(std::declval<const outer_container&>()));
 
     segments_view segments() const
     {
