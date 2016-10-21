@@ -352,9 +352,10 @@ class vector
     __AGENCY_ANNOTATION
     vector(vector&& other, const Allocator& alloc);
 
-    // TODO
     __AGENCY_ANNOTATION
-    vector(std::initializer_list<T> init, const Allocator& alloc = Allocator());
+    vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
+      : vector(init.begin(), init.end(), alloc)
+    {}
 
     __AGENCY_ANNOTATION
     ~vector()
@@ -438,9 +439,11 @@ class vector
       assign(typename std::iterator_traits<InputIterator>::iterator_category(), first, last);
     }
 
-    // TODO
     __AGENCY_ANNOTATION
-    void assign(std::initializer_list<T> ilist);
+    void assign(std::initializer_list<T> ilist)
+    {
+      assign(ilist.begin(), ilist.end());
+    }
 
     __AGENCY_ANNOTATION
     allocator_type get_allocator() const
