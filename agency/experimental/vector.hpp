@@ -314,16 +314,15 @@ class vector
       : vector(count, T(), alloc)
     {}
 
-    // XXX generalize this to work with all iterator types
-    template<class RandomAccessIterator,
+    template<class InputIterator,
              __AGENCY_REQUIRES(
                std::is_convertible<
-                 typename std::iterator_traits<RandomAccessIterator>::iterator_category,
-                 std::random_access_iterator_tag
+                 typename std::iterator_traits<InputIterator>::iterator_category,
+                 std::input_iterator_tag
                >::value
              )>
     __AGENCY_ANNOTATION
-    vector(RandomAccessIterator first, RandomAccessIterator last, const Allocator& alloc = Allocator())
+    vector(InputIterator first, InputIterator last, const Allocator& alloc = Allocator())
       : storage_(alloc), // initialize the storage to empty
         end_(begin())    // initialize end_ to begin()
     {
@@ -649,19 +648,37 @@ class vector
       return insert(position, agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count));
     }
 
-    // XXX should be able to relax this to work with all iterators
-    template<class RandomAccessIterator,
+    template<class ForwardIterator,
              __AGENCY_REQUIRES(
                std::is_convertible<
-                 typename std::iterator_traits<RandomAccessIterator>::iterator_category,
-                 std::random_access_iterator_tag
+                 typename std::iterator_traits<ForwardIterator>::iterator_category,
+                 std::forward_iterator_tag
                >::value
              )
             >
     __AGENCY_ANNOTATION
-    iterator insert(const_iterator position, RandomAccessIterator first, RandomAccessIterator last)
+    iterator insert(const_iterator position, ForwardIterator first, ForwardIterator last)
     {
-      return emplace_n(position, last - first, first);
+      return emplace_n(position, agency::detail::distance(first, last), first);
+    }
+
+    template<class InputIterator,
+             __AGENCY_REQUIRES(
+               !std::is_convertible<
+                 typename std::iterator_traits<InputIterator>::iterator_category,
+                 std::forward_iterator_tag
+               >::value
+             )
+            >
+    __AGENCY_ANNOTATION
+    iterator insert(const_iterator position, InputIterator first, InputIterator last)
+    {
+      for(; first != last; ++first)
+      {
+        position = insert(position, *first);
+      }
+
+      return position;
     }
 
     // TODO
@@ -756,9 +773,9 @@ class vector
     }
 
   private:
-    template<class... RandomAccessIterators>
+    template<class... InputIterator>
     __AGENCY_ANNOTATION
-    iterator emplace_n(const_iterator position_, size_type count, RandomAccessIterators... iters)
+    iterator emplace_n(const_iterator position_, size_type count, InputIterator... iters)
     {
       // convert the const_iterator to an iterator
       iterator position = begin() + (position_ - cbegin());
@@ -786,14 +803,14 @@ class vector
         }
         else
         {
-          // construct copy new elements at the end of the vector
-          end_ = detail::construct_n(storage_.allocator(), end(), count - num_displaced_elements, iters + num_displaced_elements...);
+          // move already existing, displaced elements to the end of the emplaced range, which is at position + count
+          iterator old_end = end();
+          end_ = detail::uninitialized_move_n(storage_.allocator(), position, num_displaced_elements, position + count);
 
-          // move the displaced elements
-          end_ = detail::uninitialized_move_n(storage_.allocator(), position, num_displaced_elements, end());
+          // XXX we should destroy the elements [position, position + num_displaced_elements) before placement newing new ones
 
-          // construct copy at the insertion position
-          detail::construct_n(storage_.allocator(), position, num_displaced_elements, iters...);
+          // construct new elements at the emplacement position
+          detail::construct_n(storage_.allocator(), position, count, iters...);
         }
       }
       else

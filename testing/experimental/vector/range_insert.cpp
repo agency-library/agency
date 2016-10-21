@@ -3,19 +3,23 @@
 #include <algorithm>
 #include <numeric>
 #include <vector>
+#include <list>
 #include <agency/experimental/vector.hpp>
 
+template<class Container>
 void test_reallocating_range_insert()
 {
   using namespace agency::experimental;
 
+  using value_type = typename Container::value_type;
+
   {
     // test range insert into empty vector
 
-    vector<int> v;
+    vector<value_type> v;
 
     size_t num_elements_to_insert = 5;
-    std::vector<int> items(num_elements_to_insert);
+    Container items(num_elements_to_insert);
     std::iota(items.begin(), items.end(), 0);
 
     auto result = v.insert(v.begin(), items.begin(), items.end());
@@ -29,10 +33,10 @@ void test_reallocating_range_insert()
     // test range insert at the beginning of vector
 
     size_t num_initial_elements = 10;
-    vector<int> v(num_initial_elements, 13);
+    vector<value_type> v(num_initial_elements, 13);
 
     size_t num_elements_to_insert = 5;
-    std::vector<int> items(num_elements_to_insert);
+    Container items(num_elements_to_insert);
     std::iota(items.begin(), items.end(), 0);
 
     auto result = v.insert(v.begin(), items.begin(), items.end());
@@ -48,11 +52,11 @@ void test_reallocating_range_insert()
     
     size_t num_initial_elements = 10;
 
-    vector<int> v(num_initial_elements, 13);
+    vector<value_type> v(num_initial_elements, 13);
 
     size_t num_elements_to_insert = 5;
 
-    std::vector<int> items(num_elements_to_insert);
+    Container items(num_elements_to_insert);
     std::iota(items.begin(), items.end(), 0);
 
     auto result = v.insert(v.end(), items.begin(), items.end());
@@ -68,10 +72,10 @@ void test_reallocating_range_insert()
 
     size_t num_initial_elements = 10;
 
-    vector<int> v(num_initial_elements, 13);
+    vector<value_type> v(num_initial_elements, 13);
 
     size_t num_elements_to_insert = 5;
-    std::vector<int> items(num_elements_to_insert);
+    Container items(num_elements_to_insert);
     std::iota(items.begin(), items.end(), 0);
 
     auto middle = v.begin() + (v.size() / 2);
@@ -90,21 +94,24 @@ void test_reallocating_range_insert()
 }
 
 
+template<class Container>
 void test_nonreallocating_range_insert()
 {
   using namespace agency::experimental;
+
+  using value_type = typename Container::value_type;
 
   {
     // test range insert into beginning of vector
 
     size_t num_initial_elements = 10;
 
-    vector<int> v(num_initial_elements, 13);
+    vector<value_type> v(num_initial_elements, 13);
 
     size_t num_elements_to_insert = 5;
     v.reserve(num_initial_elements + num_elements_to_insert);
 
-    std::vector<int> items(num_elements_to_insert);
+    Container items(num_elements_to_insert);
     std::iota(items.begin(), items.end(), 0);
 
     auto result = v.insert(v.begin(), items.begin(), items.end());
@@ -120,12 +127,12 @@ void test_nonreallocating_range_insert()
 
     size_t num_initial_elements = 10;
 
-    vector<int> v(num_initial_elements, 13);
+    vector<value_type> v(num_initial_elements, 13);
 
     size_t num_elements_to_insert = 5;
     v.reserve(num_initial_elements + num_elements_to_insert);
 
-    std::vector<int> items(num_elements_to_insert);
+    Container items(num_elements_to_insert);
     std::iota(items.begin(), items.end(), 0);
 
     auto result = v.insert(v.end(), items.begin(), items.end());
@@ -141,12 +148,12 @@ void test_nonreallocating_range_insert()
 
     size_t num_initial_elements = 10;
 
-    vector<int> v(num_initial_elements, 13);
+    vector<value_type> v(num_initial_elements, 13);
 
     size_t num_elements_to_insert = 5;
     v.reserve(num_initial_elements + num_elements_to_insert);
 
-    std::vector<int> items(num_elements_to_insert);
+    Container items(num_elements_to_insert);
     std::iota(items.begin(), items.end(), 0);
 
     auto middle = v.begin() + (v.size() / 2);
@@ -167,8 +174,11 @@ void test_nonreallocating_range_insert()
 
 int main()
 {
-  test_reallocating_range_insert();
-  test_nonreallocating_range_insert();
+  test_reallocating_range_insert<std::vector<int>>();
+  test_nonreallocating_range_insert<std::vector<int>>();
+
+  test_reallocating_range_insert<std::list<int>>();
+  test_nonreallocating_range_insert<std::list<int>>();
 
   std::cout << "OK" << std::endl;
 

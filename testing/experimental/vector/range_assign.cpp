@@ -3,19 +3,23 @@
 #include <algorithm>
 #include <numeric>
 #include <vector>
+#include <list>
 #include <agency/experimental/vector.hpp>
 
+template<class Container>
 void test_reallocating_range_assign()
 {
   using namespace agency::experimental;
 
+  using value_type = typename Container::value_type;
+
   {
     // test range assign into empty vector
 
-    vector<int> v;
+    Container v;
 
     size_t num_elements_to_assign = 5;
-    std::vector<int> assign_me(num_elements_to_assign);
+    std::vector<value_type> assign_me(num_elements_to_assign);
     std::iota(assign_me.begin(), assign_me.end(), 0);
 
     v.assign(assign_me.begin(), assign_me.end());
@@ -27,10 +31,10 @@ void test_reallocating_range_assign()
   {
     // test range assign into small vector
 
-    vector<int> v(3);
+    Container v(3);
 
     size_t num_elements_to_assign = 5;
-    std::vector<int> assign_me(num_elements_to_assign);
+    std::vector<value_type> assign_me(num_elements_to_assign);
     std::iota(assign_me.begin(), assign_me.end(), 0);
 
     v.assign(assign_me.begin(), assign_me.end());
@@ -40,19 +44,22 @@ void test_reallocating_range_assign()
   }
 }
 
+template<class Container>
 void test_nonreallocating_range_assign()
 {
   using namespace agency::experimental;
 
+  using value_type = typename Container::value_type;
+
   {
     // test range assign into empty vector with capacity
 
-    vector<int> v;
+    vector<value_type> v;
     
     size_t num_elements_to_assign = 5;
     v.reserve(5);
 
-    std::vector<int> assign_me(num_elements_to_assign);
+    Container assign_me(num_elements_to_assign);
     std::iota(assign_me.begin(), assign_me.end(), 0);
 
     v.assign(assign_me.begin(), assign_me.end());
@@ -64,12 +71,12 @@ void test_nonreallocating_range_assign()
   {
     // test range assign into small vector with capacity
 
-    vector<int> v(3);
+    vector<value_type> v(3);
     
     size_t num_elements_to_assign = 5;
     v.reserve(5);
 
-    std::vector<int> assign_me(num_elements_to_assign);
+    Container assign_me(num_elements_to_assign);
     std::iota(assign_me.begin(), assign_me.end(), 0);
 
     v.assign(assign_me.begin(), assign_me.end());
@@ -82,9 +89,9 @@ void test_nonreallocating_range_assign()
     // test range assign into large vector
     size_t num_elements_to_assign = 5;
     
-    vector<int> v(2 * num_elements_to_assign);
+    vector<value_type> v(2 * num_elements_to_assign);
 
-    std::vector<int> assign_me(num_elements_to_assign);
+    Container assign_me(num_elements_to_assign);
     std::iota(assign_me.begin(), assign_me.end(), 0);
 
     v.assign(assign_me.begin(), assign_me.end());
@@ -96,8 +103,11 @@ void test_nonreallocating_range_assign()
 
 int main()
 {
-  test_reallocating_range_assign();
-  test_nonreallocating_range_assign();
+  test_reallocating_range_assign<std::vector<int>>();
+  test_nonreallocating_range_assign<std::vector<int>>();
+
+  //test_reallocating_range_assign<std::list<int>>();
+  //test_nonreallocating_range_assign<std::list<int>>();
 
   std::cout << "OK" << std::endl;
 
