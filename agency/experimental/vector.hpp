@@ -841,6 +841,8 @@ class vector
           size_type copy_length = (old_end - count) - position;
           detail::overlapped_uninitialized_copy(storage_.allocator(), position, old_end - count, old_end - copy_length);
 
+          // XXX we should destroy the elements [position, position + num_displaced_elements) before constructing new ones
+
           // construct new elements at insertion point
           detail::construct_n(storage_.allocator(), position, count, iters...);
         }
@@ -916,17 +918,46 @@ class vector
 
 template<class T, class Allocator>
 __AGENCY_ANNOTATION
-void swap(vector<T,Allocator>& a, vector<T,Allocator>& b)
+bool operator==(const vector<T,Allocator>& lhs, const vector<T,Allocator>& rhs)
 {
-  a.swap(b);
+  return lhs.size() == rhs.size() && agency::detail::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
 
 
 template<class T, class Allocator>
 __AGENCY_ANNOTATION
-bool operator==(const vector<T,Allocator>& lhs, const vector<T,Allocator>& rhs)
+bool operator!=(const vector<T,Allocator>& lhs, const vector<T,Allocator>& rhs)
 {
-  return lhs.size() == rhs.size() && agency::detail::equal(lhs.begin(), lhs.end(), rhs.begin());
+  return !(lhs == rhs);
+}
+
+
+// TODO
+template<class T, class Allocator>
+__AGENCY_ANNOTATION
+bool operator<(const vector<T,Allocator>& lhs, const vector<T,Allocator>& rhs);
+
+// TODO
+template<class T, class Allocator>
+__AGENCY_ANNOTATION
+bool operator<=(const vector<T,Allocator>& lhs, const vector<T,Allocator>& rhs);
+
+// TODO
+template<class T, class Allocator>
+__AGENCY_ANNOTATION
+bool operator>(const vector<T,Allocator>& lhs, const vector<T,Allocator>& rhs);
+
+// TODO
+template<class T, class Allocator>
+__AGENCY_ANNOTATION
+bool operator>=(const vector<T,Allocator>& lhs, const vector<T,Allocator>& rhs);
+
+
+template<class T, class Allocator>
+__AGENCY_ANNOTATION
+void swap(vector<T,Allocator>& a, vector<T,Allocator>& b)
+{
+  a.swap(b);
 }
 
 
