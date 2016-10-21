@@ -731,9 +731,11 @@ class vector
       return emplace_n(pos, 1, agency::detail::make_forwarding_iterator<Args&&>(&args)...);
     }
 
-    // TODO
     __AGENCY_ANNOTATION
-    iterator erase(const_iterator pos);
+    iterator erase(const_iterator pos)
+    {
+      return erase(pos, pos + 1);
+    }
 
     __AGENCY_ANNOTATION
     iterator erase(const_iterator first_, const_iterator last_)
