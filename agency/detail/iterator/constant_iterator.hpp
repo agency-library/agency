@@ -67,6 +67,15 @@ class constant_iterator
       return *this;
     }
 
+    // plus
+    __AGENCY_ANNOTATION
+    constant_iterator operator+(difference_type n) const
+    {
+      constant_iterator result = *this;
+      result += n;
+      return result;
+    }
+
     // difference
     __AGENCY_ANNOTATION
     difference_type operator-(const constant_iterator& rhs)

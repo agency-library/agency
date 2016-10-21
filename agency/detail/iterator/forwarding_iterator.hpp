@@ -72,6 +72,15 @@ class forwarding_iterator
       return *this;
     }
 
+    // plus
+    __AGENCY_ANNOTATION
+    forwarding_iterator operator+(difference_type n) const
+    {
+      forwarding_iterator result = *this;
+      result += n;
+      return result;
+    }
+
     // difference
     __AGENCY_ANNOTATION
     difference_type operator-(const forwarding_iterator& rhs)

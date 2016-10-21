@@ -48,6 +48,16 @@ class move_iterator : public forwarding_iterator<Iterator, move_iterator_referen
     move_iterator(const move_iterator<U>& other)
       : super_t(other)
     {}
+
+    using difference_type = typename super_t::difference_type;
+
+    __AGENCY_ANNOTATION
+    move_iterator operator+(difference_type n) const
+    {
+      move_iterator result = *this;
+      result += n;
+      return result;
+    }
 };
 
 
