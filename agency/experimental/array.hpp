@@ -187,6 +187,15 @@ void swap(array<T,N>& a, array<T,N>& b)
 }
 
 
+// specialize range_cardinality for array
+template<class Range>
+struct range_cardinality;
+
+
+template<class T, std::size_t N>
+struct range_cardinality<array<T,N>> : std::integral_constant<size_t, N> {};
+
+
 } // end experimental
 } // end agency
 
