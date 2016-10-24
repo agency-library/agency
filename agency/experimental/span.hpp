@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/experimental/array.hpp>
+#include <agency/experimental/ranges/range_traits.hpp>
 #include <cstddef>
 
 namespace agency
@@ -176,6 +177,17 @@ bool operator==(const span<T,Extent>& lhs, const span<T,Extent>& rhs)
 
   return true;
 }
+
+
+// specialize range_cardinality for span<T,Extent>
+template<class Range>
+struct range_cardinality;
+
+template<class T>
+struct range_cardinality<span<T>> : std::integral_constant<cardinality, finite> {};
+
+template<class T, std::ptrdiff_t Extent>
+struct range_cardinality<span<T,Extent>> : std::integral_constant<cardinality, static_cast<cardinality>(Extent)> {};
 
 
 // XXX segmented_span might be a bad name because "span" probably implies contiguous

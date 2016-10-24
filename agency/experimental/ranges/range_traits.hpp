@@ -64,6 +64,36 @@ template<class Range>
 using range_size_t = typename range_size<Range>::type;
 
 
+enum cardinality
+{
+  infinite = -3,
+  unknown = -2,
+  finite = -1,
+  _max_ = std::numeric_limits<int>::max()
+};
+
+
+// by default, assume all ranges are finite
+template<class Range>
+struct range_cardinality : std::integral_constant<cardinality, finite> {};
+
+
+// make range_cardinality automatically decay
+template<class Range>
+struct range_cardinality<const Range>
+  : range_cardinality<Range>
+{};
+
+template<class Range>
+struct range_cardinality<Range&>
+  : range_cardinality<Range>
+{};
+
+
+template<class Range>
+using is_statically_sized_range = std::integral_constant<bool, (range_cardinality<Range>::value > finite)>;
+
+
 } // end experimental
 } // end agency
 
