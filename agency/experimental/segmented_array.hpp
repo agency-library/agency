@@ -17,9 +17,12 @@ namespace experimental
 
 // XXX until this thing can resize, call it an array
 // XXX probably want to take a single allocator as a parameter instead of two separate allocators
-template<class T, class InnerAlloc = allocator<T>, class OuterAlloc = allocator<vector<T,InnerAlloc>>>
+template<class T, template<class> class InnerAlloc = allocator, template<class> class OuterAlloc = allocator>
 class segmented_array
 {
+  private:
+    using inner_allocator_type = InnerAlloc<T>;
+
   public:
     using value_type = T;
     using reference = value_type&;
@@ -34,7 +37,7 @@ class segmented_array
     template<class Range,
              __AGENCY_REQUIRES(
                std::is_constructible<
-                 InnerAlloc,
+                 inner_allocator_type,
                  range_value_t<Range>
                >::value
              )>
@@ -78,14 +81,15 @@ class segmented_array
 
     // constructs a segmented_array with a single segment
     segmented_array(size_type n, const value_type& val = value_type())
-      : segmented_array(n, val, array<InnerAlloc,1>{InnerAlloc()})
+      : segmented_array(n, val, array<inner_allocator_type,1>{inner_allocator_type()})
     {}
 
   private:
-    using segment_type = vector<value_type, InnerAlloc>;
+    using inner_container = vector<value_type, inner_allocator_type>;
 
     // XXX will want to parameterize the outer allocator used to store the segments
-    using outer_container = vector<segment_type, OuterAlloc>;
+    using outer_allocator_type = OuterAlloc<inner_container>;
+    using outer_container = vector<inner_container, outer_allocator_type>;
     outer_container segments_;
 
   public:
@@ -139,7 +143,7 @@ class segmented_array
       return agency::experimental::all(segments_);
     }
 
-    const segment_type& segment(size_type i) const
+    const inner_container& segment(size_type i) const
     {
       return segments()[i];
     }
