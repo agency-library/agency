@@ -79,7 +79,7 @@ class span : private detail::span_base<Extent>
     span() : span(nullptr) {}
 
     __AGENCY_ANNOTATION
-    explicit span(std::nullptr_t) : span(nullptr, 0) {}
+    explicit span(std::nullptr_t) : span(nullptr, index_type{0}) {}
 
     __AGENCY_ANNOTATION
     span(pointer ptr, index_type count)
