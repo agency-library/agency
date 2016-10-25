@@ -261,11 +261,19 @@ class small_untiled_view
 };
 
 
-template<size_t max_num_tiles = 8, class RangeOfRanges>
+template<size_t max_num_tiles, class RangeOfRanges>
 __AGENCY_ANNOTATION
 small_untiled_view<RangeOfRanges, max_num_tiles> untile(size_t tile_size, RangeOfRanges&& tiles)
 {
   return small_untiled_view<RangeOfRanges,max_num_tiles>(tile_size, std::forward<RangeOfRanges>(tiles));
+}
+
+
+template<class RangeOfRanges>
+__AGENCY_ANNOTATION
+small_untiled_view<RangeOfRanges> untile(size_t tile_size, RangeOfRanges&& tiles)
+{
+  return small_untiled_view<RangeOfRanges>(tile_size, std::forward<RangeOfRanges>(tiles));
 }
 
 
