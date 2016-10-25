@@ -16,7 +16,7 @@ namespace experimental
 {
 
 
-template<class RangeOfRanges, size_t max_tile_count = 8>
+template<class RangeOfRanges, size_t max_tile_count_ = 8>
 class small_untiled_view
 {
   private:
@@ -28,6 +28,8 @@ class small_untiled_view
     template<class,size_t> friend class small_untiled_view;
 
   public:
+    static constexpr size_t max_tile_count = max_tile_count_;
+
     using difference_type = range_difference_t<tile_type>;
     using size_type = range_size_t<tile_type>;
     using value_type = range_value_t<tile_type>;
@@ -91,6 +93,8 @@ class small_untiled_view
     __AGENCY_ANNOTATION
     size_t size() const
     {
+      if(tiles_.size() == 0) return 0;
+
       return tile_size_ * (tiles_.size() - 1) + tiles_.back().size();
     }
 
