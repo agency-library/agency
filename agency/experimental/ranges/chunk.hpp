@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
-#include <agency/experimental/ranges/view.hpp>
+#include <agency/experimental/ranges/all.hpp>
 #include <agency/experimental/ranges/counted.hpp>
 #include <agency/experimental/ranges/stride.hpp>
 
@@ -176,9 +176,7 @@ class chunk_view
     {}
 
   private:
-    using all_t = decltype(
-      agency::experimental::all(std::declval<Range>())
-    );
+    using all_t = agency::experimental::all_t<Range>;
 
   public:
     using iterator = detail::chunk_iterator<all_t, difference_type>;

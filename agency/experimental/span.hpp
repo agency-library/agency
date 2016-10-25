@@ -79,7 +79,7 @@ class span : private detail::span_base<Extent>
     span() : span(nullptr) {}
 
     __AGENCY_ANNOTATION
-    explicit span(std::nullptr_t) : span(nullptr, 0) {}
+    explicit span(std::nullptr_t) : span(nullptr, index_type{0}) {}
 
     __AGENCY_ANNOTATION
     span(pointer ptr, index_type count)
@@ -188,50 +188,6 @@ struct range_cardinality<span<T>> : std::integral_constant<cardinality, finite> 
 
 template<class T, std::ptrdiff_t Extent>
 struct range_cardinality<span<T,Extent>> : std::integral_constant<cardinality, static_cast<cardinality>(Extent)> {};
-
-
-// XXX segmented_span might be a bad name because "span" probably implies contiguous
-template<class T, std::ptrdiff_t NumSegments = dynamic_extent>
-class segmented_span
-{
-  public:
-    using element_type = T;
-    using reference = element_type&;
-
-    // XXX should give this thing iterators somehow
-
-    constexpr static std::ptrdiff_t num_segments = NumSegments;
-    static_assert(num_segments == 2, "segmented_span: NumSegments must be 2");
-
-    template<class... Spans,
-             class = typename std::enable_if<
-               sizeof...(Spans) == num_segments
-             >::type>
-    __AGENCY_ANNOTATION
-    segmented_span(Spans... segments)
-      : spans_{segments...}
-    {}
-
-    __AGENCY_ANNOTATION
-    reference operator[](size_t i) const
-    {
-      auto size0 = spans_[0].size();
-      return i < size0 ? spans_[0][i] : spans_[1][i - size0];
-    }
-
-    __AGENCY_ANNOTATION
-    size_t size() const
-    {
-      return spans_[0].size() + spans_[1].size();
-    }
-
-  private:
-    span<T> spans_[num_segments];
-};
-
-// XXX implement this
-template<class T>
-class segmented_span<T, dynamic_extent>;
 
 
 } // end experimental

@@ -187,6 +187,8 @@ class short_vector
     short_vector(Range&& other)
       : size_(other.size())
     {
+      assert(other.size() <= max_size());
+
       // copy construct each element with placement new
       for_loop([&](int i)
       {

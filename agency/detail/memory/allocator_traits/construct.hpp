@@ -18,7 +18,7 @@ __agency_exec_check_disable__
 template<class Alloc, class T, class... Args>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  has_construct<Alloc,T,Args...>::value
+  has_construct<Alloc,T*,Args...>::value
 >::type
   construct(Alloc& a, T* p, Args&&... args)
 {
@@ -29,7 +29,7 @@ typename std::enable_if<
 template<class Alloc, class T, class... Args>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  !has_construct<Alloc,T,Args...>::value
+  !has_construct<Alloc,T*,Args...>::value
 >::type
   construct(Alloc& a, T* p, Args&&... args)
 {
