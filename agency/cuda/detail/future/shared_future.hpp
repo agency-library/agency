@@ -100,13 +100,6 @@ class shared_future
       return underlying_future_->then_and_leave_valid(f);
     }
 
-    template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
-    agency::cuda::future<agency::detail::result_of_t<Factory(Shape)>>
-      old_bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
-    {
-      return underlying_future_->old_bulk_then_and_leave_valid(f, result_factory, shape, index_function, outer_factory, inner_factory, device);
-    }
-
     template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
     agency::cuda::future<agency::detail::result_of_t<ResultFactory()>>
       bulk_then(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
