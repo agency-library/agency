@@ -4,6 +4,7 @@
 #include <agency/cuda/memory/managed_allocator.hpp>
 #include <agency/experimental/span.hpp>
 #include <agency/experimental/ranges/all.hpp>
+#include <agency/experimental/tiled_array.hpp>
 #include <vector>
 #include <array>
 
@@ -13,56 +14,47 @@ namespace cuda
 {
 namespace experimental
 {
+namespace detail
+{
+
+
+// this function returns a std::vector of managed_allocators, one
+// corresponding to each device in the system
+template<class T>
+std::vector<managed_allocator<T>> all_devices_managed_allocators()
+{
+  auto devices = cuda::detail::all_devices();
+
+  std::vector<managed_allocator<T>> result;
+
+  for(auto d : devices)
+  {
+    result.emplace_back(d);
+  }
+
+  return result;
+}
+
+
+} // end detail
 
 
 template<class T>
-class multidevice_array
+class multidevice_array : public agency::experimental::tiled_array<T, managed_allocator, managed_allocator>
 {
-  public:
-    constexpr static size_t num_devices = 2;
-
-    using value_type = T;
-    using allocator_type = agency::cuda::managed_allocator<value_type>;
-
-    multidevice_array(size_t n, const value_type& val = value_type{})
-      : containers_{container(n/num_devices, val, allocator_type(0)), container(n/num_devices, val, allocator_type(1))}
-    {}
-
-    agency::experimental::span<value_type> span(size_t i)
-    {
-      return agency::experimental::all(containers_[i]);
-    }
-
-    agency::experimental::segmented_span<value_type,2> all()
-    {
-      return agency::experimental::segmented_span<value_type,2>(span(0), span(1));
-    }
-
-    value_type& operator[](size_t i)
-    {
-      return span()[i];
-    }
-
-    bool operator==(const multidevice_array& other) const
-    {
-      return containers_ == other.containers_;
-    }
-
-    void clear()
-    {
-      containers_[0].clear();
-      containers_[1].clear();
-    }
-
   private:
-    using container = std::vector<value_type, allocator_type>;
+    using super_t = agency::experimental::tiled_array<T, managed_allocator, managed_allocator>;
 
-    std::array<container,num_devices> containers_;
+  public:
+    multidevice_array(size_t n, const T& val = T{})
+      : super_t(n, val, detail::all_devices_managed_allocators<T>())
+    {}
 };
 
 
 template<class T>
-agency::experimental::segmented_span<T,2> all(multidevice_array<T>& a)
+auto all(multidevice_array<T>& a)
+  -> decltype(a.all())
 {
   return a.all();
 }
