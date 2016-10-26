@@ -7,7 +7,10 @@ TODO
 
 ## New Features
 
-TODO
+### New Experimental Utilities
+
+  * `cuda::experimental::make_async_future`
+  * `cuda::experimental::native_handle`
 
 
 Agency v0.1.0 Changelog
