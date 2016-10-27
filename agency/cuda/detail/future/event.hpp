@@ -39,6 +39,7 @@ class event
 #endif
     }
 
+  public:
     // constructs a new event recorded on the given stream
     __host__ __device__
     event(detail::stream&& s) : event(construct_ready, std::move(s))
@@ -49,8 +50,6 @@ class event
       detail::terminate_with_message("cuda::detail::event ctor requires CUDART");
 #endif
     }
-
-  public:
     // creates an invalid event
     __host__ __device__
     event() : stream_(), e_{0}
@@ -282,8 +281,14 @@ class event
       return e_;
     }
 
+    __host__ __device__
+    const stream& stream() const
+    {
+      return stream_;
+    }
+
   private:
-    stream stream_;
+    detail::stream stream_;
     cudaEvent_t e_;
 
     // this function returns 0 so that we can pass it as an argument to swallow(...)
@@ -302,27 +307,21 @@ class event
     }
 
     __host__ __device__
-    stream& stream()
+    detail::stream& stream()
     {
       return stream_;
     }
 
     // makes the given stream wait on the given event
-    // XXX this should be moved into the implementation of detail::stream
     __host__ __device__
-    static void stream_wait(const detail::stream& s, const detail::event& e)
+    static void stream_wait(detail::stream& s, const detail::event& e)
     {
-#if __cuda_lib_has_cudart
-      // make the next launch wait on the event
-      throw_on_error(cudaStreamWaitEvent(s.native_handle(), e.e_, 0), "cuda::detail::event::stream_wait(): cudaStreamWaitEvent()");
-#else
-      throw_on_error(cudaErrorNotSupported, "cuda::detail::event::stream_wait(): cudaStreamWaitEvent() requires CUDART");
-#endif // __cuda_lib_has_cudart
+      s.wait_on(e.native_handle());
     }
 
     // makes the given stream wait on this event
     __host__ __device__
-    int stream_wait(const detail::stream& s) const
+    int stream_wait(detail::stream& s) const
     {
       stream_wait(s, *this);
 
@@ -332,7 +331,7 @@ class event
     // makes the given stream wait on this event and invalidates this event
     // this function returns 0 so that we can pass it as an argument to swallow(...)
     __host__ __device__
-    int stream_wait_and_invalidate(const detail::stream& s)
+    int stream_wait_and_invalidate(detail::stream& s)
     {
       stream_wait(s);
 

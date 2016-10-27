@@ -88,6 +88,17 @@ class stream
       other.s_ = tmp2;
     }
 
+    inline __host__ __device__
+    void wait_on(cudaEvent_t e)
+    {
+#if __cuda_lib_has_cudart
+      // make the next launch wait on the event
+      throw_on_error(cudaStreamWaitEvent(native_handle(), e, 0), "cuda::detail::stream::wait_on(): cudaStreamWaitEvent()");
+#else
+      throw_on_error(cudaErrorNotSupported, "cuda::detail::stream::wait_on(): cudaStreamWaitEvent() requires CUDART");
+#endif
+    }
+
   private:
     static void callback(cudaStream_t, cudaError_t, void* user_data)
     {

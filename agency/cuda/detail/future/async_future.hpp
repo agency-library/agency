@@ -130,6 +130,18 @@ class shared_future;
 template<class T>
 class future;
 
+template<class T>
+class async_future;
+
+namespace experimental
+{
+
+__host__ __device__
+async_future<void> make_async_future(cudaEvent_t e);
+
+
+} // end experimental
+
 
 template<class T>
 class async_future
@@ -210,8 +222,16 @@ class async_future
       return event_.is_ready();
     } // end is_ready()
 
+    // XXX this should be private
     __host__ __device__
     detail::event& event()
+    {
+      return event_;
+    } // end event()
+
+    // XXX this should be private
+    __host__ __device__
+    const detail::event& event() const
     {
       return event_;
     } // end event()
@@ -228,6 +248,7 @@ class async_future
       return async_future(std::move(ready_event), std::forward<Args>(args)...);
     }
 
+    // XXX this should be private
     __host__ __device__
     auto data() const -> decltype(state_.data())
     {
@@ -349,10 +370,10 @@ class async_future
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory());
       
       using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
-      auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
+      detail::asynchronous_state<outer_arg_type> outer_arg_state(agency::detail::construct_ready, outer_factory());
       
       // create a functor to implement this bulk_then()
-      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg.data(), inner_factory);
+      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg_state.data(), inner_factory);
 
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
@@ -363,8 +384,11 @@ class async_future
       // schedule g on our device and get a handle to the next event
       auto next_event = event().then_on_and_invalidate(g, grid_dim, block_dim, 0, device.native_handle());
 
-      // schedule our state for destruction when the next event is complete
+      // schedule this future's state for destruction when the next event is complete
       detail::invalidate_and_destroy_when(state_, next_event);
+
+      // schedule the outer arg's state for destruction when the next event is complete
+      detail::invalidate_and_destroy_when(outer_arg_state, next_event);
       
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }
@@ -379,10 +403,10 @@ class async_future
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory());
       
       using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
-      auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
+      detail::asynchronous_state<outer_arg_type> outer_arg_state(agency::detail::construct_ready, outer_factory());
       
       // create a functor to implement this bulk_then()
-      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg.data(), inner_factory);
+      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg_state.data(), inner_factory);
 
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
@@ -392,6 +416,9 @@ class async_future
       
       // schedule g on our device and get a handle to the next event
       auto next_event = event().then_on(g, grid_dim, block_dim, 0, device.native_handle());
+
+      // schedule the outer arg's state for destruction when the next event is complete
+      detail::invalidate_and_destroy_when(outer_arg_state, next_event);
       
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }
@@ -399,6 +426,8 @@ class async_future
     template<class U> friend class async_future;
     template<class U> friend class agency::cuda::future;
     template<class Shape, class Index> friend class agency::cuda::detail::basic_grid_executor;
+
+    friend async_future<void> experimental::make_async_future(cudaEvent_t e);
 
     __host__ __device__
     async_future(detail::event&& e, detail::asynchronous_state<T>&& state)
@@ -501,6 +530,61 @@ async_future<T> when_all(async_future<T>& future)
 }
 
 
+namespace experimental
+{
+namespace detail
+{
+
+
+struct async_future_native_handle_type
+{
+  __AGENCY_ANNOTATION
+  async_future_native_handle_type(cudaStream_t s, cudaEvent_t e)
+    : stream(s),
+      event(e)
+  {}
+
+  cudaStream_t stream;
+  cudaEvent_t event;
+};
+
+
+} // end detail
+
+
+// returns the native_handle_type associated with the given async_future
+template<class T>
+__host__ __device__
+detail::async_future_native_handle_type native_handle(const async_future<T>& future)
+{
+  return { future.event().stream().native_handle(), future.event().native_handle() };
+}
+
+// returns an async_future<void> whose readiness depends on the completion of the given event
+__host__ __device__
+inline async_future<void> make_async_future(cudaEvent_t e)
+{
+  // create a new stream on device 0
+  device_id device(0);
+  cuda::detail::stream s{device};
+  assert(s.native_handle() != 0);
+
+  // tell the stream to wait on e
+  s.wait_on(e);
+
+  // create a new event
+  cuda::detail::event event(std::move(s));
+  assert(event.valid());
+
+  // create a new, not ready asynchronous_state
+  cuda::detail::asynchronous_state<void> state(agency::detail::construct_not_ready);
+  assert(state.valid());
+
+  return async_future<void>(std::move(event), std::move(state));
+}
+
+
+} // end experimental
 } // end namespace cuda
 } // end namespace agency
 
