@@ -363,8 +363,11 @@ class async_future
       // schedule g on our device and get a handle to the next event
       auto next_event = event().then_on_and_invalidate(g, grid_dim, block_dim, 0, device.native_handle());
 
-      // schedule our state for destruction when the next event is complete
+      // schedule this future's state for destruction when the next event is complete
       detail::invalidate_and_destroy_when(state_, next_event);
+
+      // schedule the outer arg's state for destruction when the next event is complete
+      detail::invalidate_and_destroy_when(outer_arg_state, next_event);
       
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }
@@ -392,6 +395,9 @@ class async_future
       
       // schedule g on our device and get a handle to the next event
       auto next_event = event().then_on(g, grid_dim, block_dim, 0, device.native_handle());
+
+      // schedule the outer arg's state for destruction when the next event is complete
+      detail::invalidate_and_destroy_when(outer_arg_state, next_event);
       
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }
