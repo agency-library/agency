@@ -9,6 +9,10 @@ TODO
 
 TODO
 
+## Resolved Issues
+
+  * [#289](../../issues/289) `async_future::bulk_then()` needs to schedule the `outer_arg`'s destruction
+
 
 Agency v0.1.0 Changelog
 =======================
