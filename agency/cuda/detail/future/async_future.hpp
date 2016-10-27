@@ -370,10 +370,10 @@ class async_future
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory());
       
       using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
-      auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
+      detail::asynchronous_state<outer_arg_type> outer_arg_state(agency::detail::construct_ready, outer_factory());
       
       // create a functor to implement this bulk_then()
-      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg.data(), inner_factory);
+      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg_state.data(), inner_factory);
 
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
@@ -384,8 +384,11 @@ class async_future
       // schedule g on our device and get a handle to the next event
       auto next_event = event().then_on_and_invalidate(g, grid_dim, block_dim, 0, device.native_handle());
 
-      // schedule our state for destruction when the next event is complete
+      // schedule this future's state for destruction when the next event is complete
       detail::invalidate_and_destroy_when(state_, next_event);
+
+      // schedule the outer arg's state for destruction when the next event is complete
+      detail::invalidate_and_destroy_when(outer_arg_state, next_event);
       
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }
@@ -400,10 +403,10 @@ class async_future
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory());
       
       using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
-      auto outer_arg = async_future<outer_arg_type>::make_ready(outer_factory());
+      detail::asynchronous_state<outer_arg_type> outer_arg_state(agency::detail::construct_ready, outer_factory());
       
       // create a functor to implement this bulk_then()
-      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg.data(), inner_factory);
+      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg_state.data(), inner_factory);
 
       uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
       uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
@@ -413,6 +416,9 @@ class async_future
       
       // schedule g on our device and get a handle to the next event
       auto next_event = event().then_on(g, grid_dim, block_dim, 0, device.native_handle());
+
+      // schedule the outer arg's state for destruction when the next event is complete
+      detail::invalidate_and_destroy_when(outer_arg_state, next_event);
       
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }
