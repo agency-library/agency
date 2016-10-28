@@ -14,6 +14,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/async.hpp>
 #include <agency/bulk_async.hpp>
 #include <agency/bulk_invoke.hpp>
 #include <agency/bulk_then.hpp>

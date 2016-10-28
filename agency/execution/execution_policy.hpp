@@ -249,6 +249,7 @@ class basic_execution_policy
     }
 
     /// \brief Returns this execution policy's associated executor.
+    __AGENCY_ANNOTATION
     executor_type& executor() const
     {
       return executor_;
