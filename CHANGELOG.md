@@ -7,6 +7,10 @@ TODO
 
 ## New Features
 
+### New Control Structures
+
+  * `async`
+
 ### New Experimental Utilities
 
   * `cuda::experimental::make_async_future`
