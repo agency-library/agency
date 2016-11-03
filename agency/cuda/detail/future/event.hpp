@@ -200,26 +200,39 @@ class event
       return then_on_kernel<Function,Args...>();
     }
 
+    // this function returns a new stream on the given device which depends on this event
+    __host__ __device__
+    inline detail::stream make_dependent_stream(const device_id& device) const
+    {
+      // create a new stream
+      detail::stream result(device);
+
+      // make the new stream wait on this event
+      stream_wait(result, *this);
+
+      return std::move(result);
+    }
+
+    // this function returns a new stream on the device associated with this event which depends on this event
+    __host__ __device__
+    inline detail::stream make_dependent_stream() const
+    {
+      return make_dependent_stream(stream().device());
+    }
+
     // this form of then_on() leaves this event in an invalid state afterwards
     template<class Function, class... Args>
     __host__ __device__
     event then_on_and_invalidate(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const device_id& device, const Args&... args)
     {
-      // if device differs from this event's stream's device, we need to create a new one for the launch
-      // otherwise, just reuse this event's stream
-      detail::stream new_stream = (device == stream().device()) ? std::move(stream()) : detail::stream(device);
-
-      // make the new stream wait on this event
-      stream_wait(new_stream, *this);
+      // make a stream for the continuation and invalidate this event
+      detail::stream new_stream = make_dependent_stream_and_invalidate(device);
 
       // get the address of the kernel
       auto kernel = then_on_kernel(f,args...);
 
       // launch the kernel on the new stream
       detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), device.native_handle(), f, args...);
-
-      // invalidate this event
-      *this = event();
 
       // return a new event
       return event(std::move(new_stream));
@@ -231,10 +244,7 @@ class event
     event then_on(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const device_id& device, const Args&... args)
     {
       // create a stream for the kernel on the given device
-      detail::stream new_stream(device);
-
-      // make the new stream wait on this event
-      stream_wait(new_stream, *this);
+      detail::stream new_stream = make_dependent_stream(device);
 
       // get the address of the kernel
       auto kernel = then_on_kernel(f,args...);
@@ -256,11 +266,8 @@ class event
       // if on host, use a stream callback
       // if on device, use then_on()
 
-      // create a stream for the callback on the current device
-      detail::stream new_stream(stream().device());
-
-      // make the new stream wait on this event
-      stream_wait(new_stream, *this);
+      // make a new stream dependent on this event for the callback on this event's device
+      detail::stream new_stream = make_dependent_stream();
 
       // launch f on the new stream
       new_stream.add_callback(f);
@@ -288,6 +295,7 @@ class event
     }
 
   private:
+
     detail::stream stream_;
     cudaEvent_t e_;
 
@@ -304,6 +312,20 @@ class event
 #endif // __cuda_lib_has_cudart
 
       return 0;
+    }
+
+    // Returns: std::move(stream()) if device is the device associated with this event
+    //          otherwise, it returns the result of make_dependent_stream(device)
+    // Post-condition: !valid()
+    __host__ __device__
+    detail::stream make_dependent_stream_and_invalidate(const device_id& device)
+    {
+      detail::stream result = (device == stream().device()) ? std::move(stream()) : make_dependent_stream(device);
+
+      // invalidate this event
+      *this = event();
+
+      return std::move(result);
     }
 
     __host__ __device__
