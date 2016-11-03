@@ -532,33 +532,17 @@ async_future<T> when_all(async_future<T>& future)
 
 namespace experimental
 {
-namespace detail
-{
 
 
-struct async_future_native_handle_type
-{
-  __AGENCY_ANNOTATION
-  async_future_native_handle_type(cudaStream_t s, cudaEvent_t e)
-    : stream(s),
-      event(e)
-  {}
-
-  cudaStream_t stream;
-  cudaEvent_t event;
-};
-
-
-} // end detail
-
-
-// returns the native_handle_type associated with the given async_future
+// returns a new cudaStream_t which depends on the given async_future
+// it is the caller's responsibility to destroy the cudaStream_t with cudaStreamDestroy()
 template<class T>
 __host__ __device__
-detail::async_future_native_handle_type native_handle(const async_future<T>& future)
+cudaStream_t make_dependent_stream(const async_future<T>& future)
 {
-  return { future.event().stream().native_handle(), future.event().native_handle() };
+  return future.event().make_dependent_stream().release();
 }
+
 
 // returns an async_future<void> whose readiness depends on the completion of the given event
 __host__ __device__
