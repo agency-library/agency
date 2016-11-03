@@ -46,10 +46,11 @@ struct has_construct_n_impl
         std::declval<size_t>(),
         std::declval<Iterators>()...
       )
-    ),
-    class = typename std::enable_if<
-      std::is_convertible<Result,Iterator>::value
-    >::type
+    )
+    // XXX really ought to check that the result is convertible to tuple<Iterator,Iterators...>
+    //, class = typename std::enable_if<
+    //  std::is_convertible<...>::value
+    //>::type
   >
   static std::true_type test(int);
 
