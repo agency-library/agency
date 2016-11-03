@@ -16,6 +16,9 @@ namespace cuda
 template<class T>
 class device_allocator
 {
+  // XXX since construct_n() doesn't actually do anything, it might
+  //     be a good idea to static_assert that T is trivially constructible
+
   private:
     template<class> friend class device_allocator;
 

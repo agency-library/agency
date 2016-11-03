@@ -85,6 +85,7 @@ class managed_allocator
       using value_type = typename std::iterator_traits<Iterator>::value_type;
 
       // we need to synchronize with all devices before touching the ptr
+      // XXX we should be able to omit this if all devices are Pascal or better
       detail::wait(detail::all_devices());
 
       for(size_t i = 0; i < n; ++i, ++first, swallow(++iters...))
