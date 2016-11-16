@@ -1,15 +1,5 @@
 Import('env')
 env = env.Clone()
-
-# create a program for each source found in the current directory
-programs = env.ProgramPerSourceInCurrentDirectory()
-
-# recurse into all SConscripts in immediate child directories and add their programs to our collection 
-programs.extend(env.SConscript(env.Glob('*/SConscript'), exports='env'))
-
-# create unit tests for these programs and run them when "run_examples" is given as a scons command line option
-env.RunPrograms(programs, 'run_examples')
-
-# return the entire list of programs to the caller
+programs = env.RecursivelyCreateProgramsAndUnitTestAliases()
 Return('programs')
 

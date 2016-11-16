@@ -5,7 +5,7 @@
 import os
 
 
-def ProgramPerSourceInCurrentDirectory(env):
+def create_a_program_for_each_source_in_the_current_directory(env):
   """Collects all source files in the current directory and creates a program from each of them.
   Returns the list of all such programs created.
   """
@@ -20,13 +20,17 @@ def ProgramPerSourceInCurrentDirectory(env):
 
   programs = []
   for src in sources:
-    programs.append(env.Program(src))
+    # env.Program() always returns a list of targets
+    # but an executable program always has a single target,
+    # so collect the first element of the list
+    program = env.Program(src)[0]
+    programs.append(program)
 
   return programs
 
 
-def RunProgram(env, program, run_program_command):
-  """Creates a unit test by running the given program after it is built."""
+def create_an_alias_to_execute_programs_as_unit_tests(env, programs, run_programs_command):
+  """Creates an alias with a name given by run_programs_command which runs each program in programs after it is built"""
   relative_path_from_root = env.Dir('.').path
 
   # XXX WAR an issue where env.Dir('.').path does not return a relative path for the root directory
@@ -37,20 +41,37 @@ def RunProgram(env, program, run_program_command):
   # elide '.'
   if relative_path_from_root == '.':
     relative_path_from_root = ''
-  alias = env.Alias(os.path.join(relative_path_from_root, run_program_command), [program], program[0].abspath)
+  alias_name = os.path.join(relative_path_from_root, run_programs_command)
+
+  program_absolute_paths = [p.abspath for p in programs]
+  alias = env.Alias(alias_name, programs, program_absolute_paths)
   env.AlwaysBuild(alias)
-  return alias
+  return [alias]
 
 
-def RunPrograms(env, programs, run_programs_command):
-  """Creates a unit test for each program in the given list of programs.
-  Returns a list of aliases where each alias corresponds to a unit test.
-  """
-  aliases = []
-  for p in programs:
-    aliases.append(RunProgram(env, p, run_programs_command))
-  return aliases
+# this is the function each SConscript in the directory tree calls
+# we will add it as a method to the SCons environment that subsidiary SConscripts import
+def RecursivelyCreateProgramsAndUnitTestAliases(env):
+  # create a program for each source found in the current directory
+  programs = create_a_program_for_each_source_in_the_current_directory(env)
 
+  # recurse into all SConscripts in immediate child directories and add their programs to our collection 
+  
+  # we either receive a list of programs or a list of list of programs
+  # when there are multiple child directories, this returns a list of lists of programs
+  # when there are 1 or 0 child directories, this returns a list of programs
+  programs_of_each_child = env.SConscript(env.Glob('*/SConscript'), exports='env')
+  try:
+    for child_programs in programs_of_each_child:
+      programs.extend(child_programs)
+  except:
+    programs.extend(programs_of_each_child)
+  
+  # create unit tests for these programs and run them when "run_tests" is given as a scons command line option
+  create_an_alias_to_execute_programs_as_unit_tests(env, programs, 'run_tests')
+
+  return programs
+  
 
 # this function takes a SCons environment and specifies some compiler
 # flags to use
@@ -75,16 +96,8 @@ env = Environment(variables = vars, tools = ['default', 'nvcc-scons/nvcc'])
 apply_compiler_flags(env)
 
 # add our custom shorthand methods for subsidiary SConscripts' use
-env.AddMethod(ProgramPerSourceInCurrentDirectory)
-env.AddMethod(RunPrograms)
+env.AddMethod(RecursivelyCreateProgramsAndUnitTestAliases)
 
-# recurse into all SConscripts in immediate child directories
-# gather executable programs built by subsidiary SConscripts
-programs = []
-children = env.Glob('*/SConscript')
-for child in children:
-  programs.extend(env.SConscript(child, exports='env'))
-
-# create an alias named 'run_tests' that runs all the executable programs we've built
-env.RunPrograms(programs, 'run_tests')
+# call this directory's SConscript
+env.SConscript('./SConscript', exports = 'env')
 

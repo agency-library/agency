@@ -4,6 +4,7 @@
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/device.hpp>
+#include <agency/detail/utility.hpp>
 #include <memory>
 
 
@@ -44,20 +45,19 @@ class stream
 
     inline __host__ __device__
     stream(stream&& other)
-      : device_(other.device()), s_{}
+      : device_(other.device())
     {
-      s_ = other.s_;
-      other.s_ = 0;
+      s_ = other.release();
     }
 
     inline __host__ __device__
     ~stream()
     {
 #if __cuda_lib_has_cudart
-      if(s_ != 0)
+      if(valid())
       {
         // avoid propagating an exception but report the error if one exists
-        detail::print_error_message_if(cudaStreamDestroy(s_), "cudaStreamDestroy in cuda::detail::stream dtor");
+        detail::print_error_message_if(cudaStreamDestroy(release()), "cudaStreamDestroy in cuda::detail::stream dtor");
       }
 #else
       detail::terminate_with_message("cuda::detail::stream dtor requires CUDART");
@@ -70,10 +70,26 @@ class stream
       return device_;
     }
 
+    // returns the underlying cudaStream_t
     inline __host__ __device__
     cudaStream_t native_handle() const
     {
       return s_;
+    }
+
+    // releases ownership of the underlying cudaStream_t and invalidates this stream
+    inline __host__ __device__
+    cudaStream_t release()
+    {
+      cudaStream_t result = 0;
+      agency::detail::adl_swap(result, s_);
+      return result;
+    }
+
+    inline __host__ __device__
+    bool valid() const
+    {
+      return native_handle() != 0;
     }
 
     inline __host__ __device__

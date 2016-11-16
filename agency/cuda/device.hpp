@@ -4,6 +4,8 @@
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <vector>
+#include <algorithm>
+
 
 namespace agency
 {
@@ -195,6 +197,30 @@ void wait(const Container& devices)
   for(auto& d : devices)
   {
     d.wait();
+  }
+}
+
+
+bool has_concurrent_managed_access(const device_id& device)
+{
+  int result = 0;
+
+#if __cuda_lib_has_cudart
+  throw_on_error(cudaDeviceGetAttribute(&result, cudaDevAttrConcurrentManagedAccess, device.native_handle()), "cuda::detail::has_concurrent_managed_access(): cudaDeviceGetAttribute()");
+#endif
+
+  return result;
+}
+
+
+template<class Container>
+void wait_if_any_lack_concurrent_managed_access(const Container& devices)
+{
+  // if not all of the devices have concurrent managed access...
+  if(!std::all_of(devices.begin(), devices.end(), has_concurrent_managed_access))
+  {
+    // then wait for all of the devices to become idle
+    wait(devices);
   }
 }
 

@@ -24,11 +24,12 @@ int main()
   });
 
   // launch a kernel but make its launch dependent on f's completion
-  cudaStream_t stream = cuda::experimental::native_handle(f).stream;
+  cudaStream_t stream = cuda::experimental::make_dependent_stream(f);
 
   get_global_variable<<<1,1,0,stream>>>(result.data());
 
   cudaStreamSynchronize(stream);
+  cudaStreamDestroy(stream);
 
   assert(result[0] == 7);
 
