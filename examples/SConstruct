@@ -80,7 +80,7 @@ def apply_compiler_flags(env):
   env.MergeFlags(['-O3', '-std=c++11', '-lstdc++', '-lpthread'])
   
   # next, flags for nvcc
-  env.MergeFlags(['--expt-extended-lambda', '-arch=sm_52'])
+  env.MergeFlags(['--expt-extended-lambda', '-arch=' + str(env['arch'])])
 
 
 # script execution begins here
@@ -89,6 +89,10 @@ def apply_compiler_flags(env):
 vars = Variables()
 vars.Add('CXX', 'C++ compiler', 'clang')
 vars.Add('CPPPATH', 'Agency include path', Dir('..'))
+vars.Add(ListVariable('arch', 'Compute capability code generation', 'sm_52',
+                      ['sm_30', 'sm_32', 'sm_35', 'sm_37',
+                       'sm_50', 'sm_52',
+                       'sm_60']))
 
 # create a SCons build environment
 env = Environment(variables = vars, tools = ['default', 'nvcc-scons/nvcc'])

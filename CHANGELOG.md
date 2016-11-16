@@ -11,6 +11,16 @@ TODO
 
   * `async`
 
+### New Execution Policies
+
+  * `omp::parallel_execution_policy`
+  * `omp::unseqenced_execution_policy`
+
+### New Executors
+
+  * `omp::parallel_for_executor` AKA `omp::parallel_executor`
+  * `omp::simd_executor` AKA `omp::unsequenced_executor`
+
 ### New Experimental Utilities
 
   * `cuda::experimental::make_async_future`
