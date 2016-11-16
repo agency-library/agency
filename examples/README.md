@@ -38,6 +38,6 @@ Likewise, the following command will build *and* run the tests programs undernea
 
 The top-level directory named 'examples' contains a `SConstruct` and `SConscript` file. `SContruct` contains definitions of common functionality used by the rest of the build system. `SConscript` describes what targets the build process should build. 
 
-After setting up a SCons build environment, the `SConstruct` sets up a hierarchical build by invoking all subsidiary `SConscript` files in immediate child directories. A typical subsidiary
-calls the `ProgramPerSourceInCurrentDirectory()` method to create an executable program from each source file in the current directory. It recurses into its child directories' `SConscript`s and collects its children's programs. It finishes by returning the composite list of programs to the caller.
+After setting up a SCons build environment, the `SConstruct` sets up a hierarchical build by invoking the top-level `SConscript` files in the root directory.
+The top-level `SConscript` file calls the `RecursivelyCreateProgramsAndUnitTestAliases()` method to recursively traverse the directory tree and create a program and unit test from each source file.
 
