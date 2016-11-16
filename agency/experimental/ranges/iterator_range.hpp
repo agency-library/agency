@@ -12,22 +12,22 @@ namespace experimental
 
 
 template<class Iterator, class Sentinel = Iterator>
-class range_view
+class iterator_range
 {
   public:
     using iterator = Iterator;
     using sentinel = Sentinel;
 
     __AGENCY_ANNOTATION
-    range_view(iterator begin, sentinel end)
+    iterator_range(iterator begin, sentinel end)
       : begin_(begin),
         end_(end)
     {}
 
     template<class Range>
     __AGENCY_ANNOTATION
-    range_view(Range&& rng)
-      : range_view(std::forward<Range>(rng).begin(), std::forward<Range>(rng).end())
+    iterator_range(Range&& rng)
+      : iterator_range(std::forward<Range>(rng).begin(), std::forward<Range>(rng).end())
     {}
 
     __AGENCY_ANNOTATION
@@ -66,10 +66,10 @@ class range_view
     sentinel end_;
 };
 
-// range_views are already views, so don't wrap them
+// iterator_ranges are already views, so don't wrap them
 template<class Iterator, class Sentinel>
 __AGENCY_ANNOTATION
-range_view<Iterator,Sentinel> all(range_view<Iterator,Sentinel> v)
+iterator_range<Iterator,Sentinel> all(iterator_range<Iterator,Sentinel> v)
 {
   return v;
 }
@@ -77,20 +77,20 @@ range_view<Iterator,Sentinel> all(range_view<Iterator,Sentinel> v)
 
 template<class Range>
 __AGENCY_ANNOTATION
-range_view<range_iterator_t<Range>, range_sentinel_t<Range>>
-  make_range_view(Range&& rng)
+iterator_range<range_iterator_t<Range>, range_sentinel_t<Range>>
+  make_iterator_range(Range&& rng)
 {
-  return range_view<range_iterator_t<Range>, range_sentinel_t<Range>>(rng.begin(), rng.end());
+  return iterator_range<range_iterator_t<Range>, range_sentinel_t<Range>>(rng.begin(), rng.end());
 }
 
 
 // create a view of the given range and drop the first n elements from the view
 template<class Range>
 __AGENCY_ANNOTATION
-range_view<range_iterator_t<Range>, range_sentinel_t<Range>>
+iterator_range<range_iterator_t<Range>, range_sentinel_t<Range>>
   drop(Range&& rng, range_difference_t<Range> n)
 {
-  auto result = make_range_view(rng);
+  auto result = make_iterator_range(rng);
   result.drop(n);
   return result;
 }
