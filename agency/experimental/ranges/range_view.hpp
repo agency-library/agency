@@ -24,6 +24,12 @@ class range_view
         end_(end)
     {}
 
+    template<class Range>
+    __AGENCY_ANNOTATION
+    range_view(Range&& rng)
+      : range_view(std::forward<Range>(rng).begin(), std::forward<Range>(rng).end())
+    {}
+
     __AGENCY_ANNOTATION
     iterator begin() const
     {
