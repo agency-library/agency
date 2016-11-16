@@ -10,7 +10,7 @@
 #include <agency/detail/control_structures/agent_shared_parameter_factory_tuple.hpp>
 #include <agency/execution/execution_agent.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
-#include <agency/execution/detail/execution_policy_traits.hpp>
+#include <agency/execution/execution_policy.hpp>
 #include <utility>
 
 namespace agency
@@ -22,7 +22,7 @@ namespace detail
 template<class ExecutionPolicy, class Function, class... Args>
 struct bulk_async_execution_policy_result
 {
-  using type = policy_future_t<
+  using type = execution_policy_future_t<
     ExecutionPolicy,
     bulk_invoke_execution_policy_result_t<ExecutionPolicy,Function,Args...>
   >;
