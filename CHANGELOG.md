@@ -20,6 +20,7 @@ TODO
 
   * `omp::parallel_for_executor` AKA `omp::parallel_executor`
   * `omp::simd_executor` AKA `omp::unsequenced_executor`
+  * `experimental::unrolling_executor`
 
 ### New Experimental Utilities
 
