@@ -126,7 +126,7 @@ struct bulk_then_execution_policy_result
     bulk_invoke_execution_policy_result<ExecutionPolicy,Function,Future,Args...>
   >::type;
 
-  using type = policy_future_t<
+  using type = execution_policy_future_t<
     ExecutionPolicy,
     bulk_invoke_result_type
   >;

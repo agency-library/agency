@@ -14,7 +14,7 @@ TODO
 ### New Execution Policies
 
   * `omp::parallel_execution_policy`
-  * `omp::unseqenced_execution_policy`
+  * `omp::unsequenced_execution_policy`
 
 ### New Executors
 

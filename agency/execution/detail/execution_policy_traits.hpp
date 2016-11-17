@@ -72,20 +72,6 @@ using has_executor = disjunction<
 
 
 
-template<class ExecutionPolicy, class T, class Enable = void>
-struct policy_future {};
-
-template<class ExecutionPolicy, class T>
-struct policy_future<ExecutionPolicy,T,typename std::enable_if<has_executor<ExecutionPolicy>::value>::type>
-{
-  using type = executor_future_t<execution_policy_executor_t<ExecutionPolicy>, T>;
-};
-
-template<class ExecutionPolicy, class T>
-using policy_future_t = typename policy_future<ExecutionPolicy,T>::type;
-
-
-
 // XXX nvcc can't correctly compile this implementation in all cases
 //template<class T>
 //using execution_agent_type_member_t = typename T::execution_agent_type;

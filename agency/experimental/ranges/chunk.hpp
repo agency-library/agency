@@ -172,7 +172,7 @@ class chunk_view
 
     __AGENCY_ANNOTATION
     chunk_view(Range rng, difference_type n)
-      : begin_(agency::experimental::all(rng), n)
+      : begin_(all(rng), n)
     {}
 
   private:
@@ -235,13 +235,9 @@ class chunk_view
 
 template<class Range, class Difference>
 __AGENCY_ANNOTATION
-auto chunk(Range&& rng, Difference chunk_size) ->
-  chunk_view<
-    decltype(experimental::all(std::forward<Range>(rng))),
-    Difference
-  >
+chunk_view<all_t<Range>,Difference> chunk(Range&& rng, Difference chunk_size)
 {
-  auto view_of_rng = experimental::all(std::forward<Range>(rng));
+  auto view_of_rng = all(std::forward<Range>(rng));
   return chunk_view<decltype(view_of_rng),Difference>(view_of_rng, chunk_size);
 }
 

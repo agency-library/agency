@@ -118,9 +118,12 @@ class optional : public detail::optional_base<T>
 
     __AGENCY_ANNOTATION
     optional(const optional& other)
-      : contains_value_(other.contains_value_)
+      : contains_value_(false)
     {
-      emplace(*other);
+      if(other)
+      {
+        emplace(*other);
+      }
     }
 
     __AGENCY_ANNOTATION
