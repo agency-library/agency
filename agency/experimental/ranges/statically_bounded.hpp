@@ -4,6 +4,7 @@
 #include <agency/experimental/ranges/range_traits.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
 #include <agency/experimental/ranges/all.hpp>
+#include <agency/experimental/bounded_integer.hpp>
 #include <iterator>
 
 
@@ -46,11 +47,10 @@ class statically_bounded_view
       : base_(all(std::forward<OtherRange>(other)))
     {}
 
-    __AGENCY_ANNOTATION
     static constexpr std::size_t static_bound = bound;
 
     __AGENCY_ANNOTATION
-    static constexpr size_type max_size() const
+    static constexpr size_type max_size()
     {
       return bounded_size_t<bound>(bound);
     }
