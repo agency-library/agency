@@ -58,7 +58,7 @@ class statically_bounded_view
     __AGENCY_ANNOTATION
     size_type size() const
     {
-      return size_type(all_.size());
+      return size_type(base_.size());
     }
 
     __AGENCY_ANNOTATION
