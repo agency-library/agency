@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
 #include <agency/experimental/ranges/all.hpp>
@@ -25,6 +26,8 @@ class statically_bounded_view
     using value_type = range_value_t<base_type>;
     using reference = range_reference_t<base_type>;
     using difference_type = range_difference_t<base_type>;
+    using iterator = range_iterator_t<base_type>;
+    using sentinel = range_sentinel_t<base_type>;
 
     // note the special size_type
     using size_type = bounded_size_t<bound>;
@@ -62,9 +65,15 @@ class statically_bounded_view
     }
 
     __AGENCY_ANNOTATION
-    statically_bounded_view all() const
+    iterator begin() const
     {
-      return *this;
+      return base_.begin();
+    }
+
+    __AGENCY_ANNOTATION
+    sentinel end() const
+    {
+      return base_.end();
     }
 
     __AGENCY_ANNOTATION
@@ -81,7 +90,7 @@ class statically_bounded_view
 template<class Range, std::size_t bound>
 statically_bounded_view<Range,bound> all(const statically_bounded_view<Range,bound>& rng)
 {
-  return rng.all();
+  return rng;
 }
 
 
