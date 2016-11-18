@@ -19,6 +19,7 @@ namespace bind_detail
 {
 
 
+__agency_exec_check_disable__
 template<typename F, typename Tuple, size_t... I>
 __AGENCY_ANNOTATION
 auto apply_impl(F&& f, Tuple&& t, agency::detail::index_sequence<I...>)
