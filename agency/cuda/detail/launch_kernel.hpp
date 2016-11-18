@@ -58,6 +58,12 @@ cudaError_t triple_chevrons(void* kernel, ::dim3 grid_dim, ::dim3 block_dim, int
   workaround_unused_variable_warning(kernel);
 
 #if __cuda_lib_has_cudart
+  // gracefully ignore empty launches
+  if(grid_dim.x * grid_dim.y * grid_dim.z * block_dim.x * block_dim.y * block_dim.z == 0)
+  {
+    return cudaSuccess;
+  }
+
 #  ifndef __CUDA_ARCH__
   cudaConfigureCall(grid_dim, block_dim, shared_memory_size, stream);
   setup_kernel_arguments(0, args...);
