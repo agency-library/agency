@@ -235,10 +235,9 @@ class chunk_view
 
 template<class Range, class Difference>
 __AGENCY_ANNOTATION
-chunk_view<all_t<Range>,Difference> chunk(Range&& rng, Difference chunk_size)
+chunk_view<Range,Difference> chunk(Range&& rng, Difference chunk_size)
 {
-  auto view_of_rng = all(std::forward<Range>(rng));
-  return chunk_view<decltype(view_of_rng),Difference>(view_of_rng, chunk_size);
+  return {std::forward<Range>(rng), chunk_size};
 }
 
 
