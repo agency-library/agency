@@ -153,6 +153,12 @@ class scope_result_container
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
+    scope_result_container(scope_result_container&& other)
+      : super_t(std::move(other))
+    {}
+
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
     scope_result_container(const shape_type& shape)
       : super_t{detail::shape_take<scope>(shape)}
     {}
