@@ -5,6 +5,10 @@ Agency v0.2.0 Changelog
 
 TODO
 
+### Breaking Changes
+
+  * `cuda::split_allocator` has been renamed `cuda::heterogeneous_allocator`
+
 ## New Features
 
 ### New Control Structures
