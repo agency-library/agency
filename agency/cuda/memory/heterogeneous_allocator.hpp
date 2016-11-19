@@ -52,8 +52,11 @@ class heterogeneous_allocator
     __agency_exec_check_disable__
     __host__ __device__
     heterogeneous_allocator(const host_allocator& host_alloc, const device_allocator& device_alloc = device_allocator())
-      : host_alloc_(host_alloc),
-        device_alloc_(device_alloc)
+#ifndef __CUDA_ARCH__
+      : host_alloc_(host_alloc)
+#else
+      : device_alloc_(device_alloc)
+#endif
     {}
 
     __host__ __device__
@@ -93,8 +96,11 @@ class heterogeneous_allocator
 
     // XXX we might want to derive from these instead of make them members
     //     to get the empty base class optimization
+#ifndef __CUDA_ARCH__
     host_allocator host_alloc_;
+#else
     device_allocator device_alloc_;
+#endif
 }; // end heterogeneous_allocator
 
 
