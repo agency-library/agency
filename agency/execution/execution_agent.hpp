@@ -890,11 +890,17 @@ using static_sequenced_agent = detail::basic_static_execution_agent<agency::sequ
 template<std::size_t group_size, std::size_t grain_size = 1>
 using static_parallel_agent = detail::basic_static_execution_agent<agency::parallel_agent, group_size, grain_size>;
 
-template<std::size_t group_size, std::size_t grain_size = 1>
+__AGENCY_ANNOTATION
+constexpr std::size_t default_heap_size(std::size_t group_size)
+{
+  return group_size * sizeof(int);
+}
+
+template<std::size_t group_size, std::size_t grain_size = 1, std::size_t heap_size = default_heap_size(group_size)>
 using static_concurrent_agent = detail::basic_static_execution_agent<
   agency::detail::basic_concurrent_agent<
     std::size_t,
-    agency::detail::arena_resource<group_size * sizeof(int)>
+    agency::detail::arena_resource<heap_size>
   >,
   group_size,
   grain_size
