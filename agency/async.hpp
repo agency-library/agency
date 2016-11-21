@@ -30,14 +30,14 @@ async(Executor& exec, Function&& f, Args&&... args)
 
 template<class Function, class... Args>
 executor_future_t<
-  parallel_executor,
+  agency::detail::thread_pool_executor,
   detail::result_of_t<
     typename std::decay<Function&&>::type(typename std::decay<Args&&>::type...)
   >
 >
   async(Function&& f, Args&&... args)
 {
-  parallel_executor exec;
+  agency::detail::thread_pool_executor exec;
   return agency::async(exec, std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
