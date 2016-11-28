@@ -23,6 +23,7 @@
 // SOFTWARE.
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/memory/null_resource.hpp>
 #include <new>
 #include <cassert>
 #include <cstddef>
@@ -125,6 +126,34 @@ class arena_resource
     static std::size_t align_up(std::size_t n) noexcept
     {
       return (n + (alignment-1)) & ~(alignment-1);
+    }
+};
+
+
+// in the special case of zero size, use null_resource for efficiency
+// it avoids calling align_up() in allocate() and does not throw an exception
+// XXX we should avoid throwing in arena_resource::allocate() above for consistency
+template<std::size_t alignment>
+class arena_resource<0,alignment> : public null_resource
+{
+  public:
+    using null_resource::null_resource;
+
+    __AGENCY_ANNOTATION
+    static constexpr std::size_t size() noexcept
+    {
+      return 0;
+    }
+
+    __AGENCY_ANNOTATION
+    static constexpr std::size_t used() noexcept
+    {
+      return 0;
+    }
+
+    __AGENCY_ANNOTATION
+    void reset() noexcept
+    {
     }
 };
 

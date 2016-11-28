@@ -45,6 +45,14 @@ void wait_until_equal(const std::atomic<T>& a, const T& value)
 }
 
 
+enum queue_status
+{
+  open_and_empty = 0,
+  open_and_ready = 1,
+  closed = 2
+};
+
+
 template<class T>
 class synchronic_concurrent_queue
 {
@@ -73,21 +81,36 @@ class synchronic_concurrent_queue
       detail::wait_until_equal(num_poppers_, 0);
     }
 
-    template<class... Args>
-    void emplace(Args&&... args)
+    bool is_closed()
     {
       std::unique_lock<std::mutex> lock(mutex_);
+
+      return status_ == closed;
+    }
+
+    template<class... Args>
+    queue_status emplace(Args&&... args)
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+
+      if(status_ == closed)
+      {
+        return queue_status::closed;
+      }
 
       items_.emplace(std::forward<Args>(args)...);
 
       notifier_.notify_one(status_, (int)open_and_ready); 
+
+      return queue_status::open_and_ready;
     }
 
-    void push(const T& item)
+    queue_status push(const T& item)
     {
-      emplace(item);
+      return emplace(item);
     }
 
+    // XXX this should return queue_status
     bool wait_and_pop(T& item)
     {
       scope_bumper<int> popping(num_poppers_);
@@ -174,23 +197,38 @@ class condition_variable_concurrent_queue
       detail::wait_until_equal(num_poppers_, 0);
     }
 
+    bool is_closed()
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+
+      return is_closed_;
+    }
+
     template<class... Args>
-    void emplace(Args&&... args)
+    queue_status emplace(Args&&... args)
     {
       {
         std::unique_lock<std::mutex> lock(mutex_);
+
+        if(is_closed_)
+        {
+          return queue_status::closed;
+        }
 
         items_.emplace(std::forward<Args>(args)...);
       }
 
       wake_up_.notify_one(); 
+
+      return queue_status::open_and_ready;
     }
 
-    void push(const T& item)
+    queue_status push(const T& item)
     {
-      emplace(item);
+      return emplace(item);
     }
 
+    // XXX this should return queue_status
     bool wait_and_pop(T& item)
     {
       scope_bumper<int> popping_(num_poppers_);

@@ -5,6 +5,7 @@
 #include <agency/cuda/memory/allocator.hpp>
 #include <agency/cuda/detail/future/event.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
+#include <agency/async.hpp>
 #include <mutex>
 
 namespace agency
@@ -27,16 +28,35 @@ unique_ptr<T> make_unique(Args&&... args)
 }
 
 
-template<class T, class Deleter>
+template<class T>
 struct release_and_delete_when_functor
 {
   T* ptr;
-  mutable Deleter deleter;
+  mutable typename unique_ptr<T>::deleter_type deleter;
+
+  struct task
+  {
+    T* ptr;
+    mutable typename unique_ptr<T>::deleter_type deleter;
+
+    void operator()() const
+    {
+      deleter(ptr);
+    }
+  };
 
   __host__ __device__
   void operator()() const
   {
+#ifndef __CUDA_ARCH__
+    // this functor is called in a stream callback thread where it's not permitted to make
+    // calls back into CUDART
+    // execute the deletion task on a different thread
+    // XXX agency::async() isn't actually guaranteed to execute the task in a separate thread
+    agency::async(task{ptr,deleter});
+#else
     deleter(ptr);
+#endif
   }
 };
 
@@ -45,7 +65,7 @@ template<class T>
 __host__ __device__
 void release_and_delete_when(unique_ptr<T>& ptr, event& e)
 {
-  auto continuation = release_and_delete_when_functor<T,typename unique_ptr<T>::deleter_type>{ptr.release(), ptr.get_deleter()};
+  auto continuation = release_and_delete_when_functor<T>{ptr.release(), ptr.get_deleter()};
 
   auto delete_event = e.then(continuation);
 

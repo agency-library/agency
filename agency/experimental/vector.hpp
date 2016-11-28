@@ -171,6 +171,7 @@ template<class T, class Allocator>
 class storage
 {
   public:
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     storage(size_t count, const Allocator& allocator)
       : data_(nullptr),
@@ -224,6 +225,7 @@ class storage
       : storage(Allocator())
     {}
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     ~storage()
     {
@@ -358,6 +360,7 @@ class vector
       insert(end(), first, last);
     }
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     vector(const vector& other)
       : vector(other, other.get_allocator())
@@ -496,6 +499,7 @@ class vector
       assign(ilist.begin(), ilist.end());
     }
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     allocator_type get_allocator() const
     {

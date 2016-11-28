@@ -37,7 +37,7 @@ class device_allocator
     {}
 
     device_allocator()
-      : device_allocator(all_devices()[0])
+      : device_allocator(detail::all_devices()[0])
     {}
 
     device_allocator(const device_allocator&) = default;
@@ -50,7 +50,7 @@ class device_allocator
     value_type* allocate(size_t n)
     {
       // switch to our device
-      scoped_current_device set_current_device(device());
+      detail::scoped_current_device set_current_device(device());
 
       value_type* result = nullptr;
   
@@ -67,7 +67,7 @@ class device_allocator
     void deallocate(value_type* ptr, size_t)
     {
       // switch to our device
-      scoped_current_device set_current_device(device());
+      detail::scoped_current_device set_current_device(device());
 
       cudaError_t error = cudaFree(ptr);
   
@@ -79,10 +79,10 @@ class device_allocator
 
     // XXX this should be implemented with a kernel launch or something
     template<class Iterator, class... Iterators>
-    detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
+    agency::detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
     {
       //new(ptr) U(*iters...);
-      return detail::make_tuple(first,iters...);
+      return agency::detail::make_tuple(first,iters...);
     }
 };
 

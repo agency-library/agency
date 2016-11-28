@@ -17,7 +17,7 @@ __agency_exec_check_disable__
 template<class Alloc, class T>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  has_destroy<Alloc,T>::value
+  has_destroy<Alloc,T*>::value
 >::type
   destroy(Alloc& a, T* p)
 {
