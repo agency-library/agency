@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
+#include <agency/detail/system_resource.hpp>
 #include <mutex>
 #include <utility>
 #include <memory>
@@ -108,6 +109,8 @@ struct caching_memory_resource
     using free_blocks_type = std::multimap<size_t, char*>;
     using allocated_blocks_type = std::map<char*, size_t>;
     
+    // XXX the mutex should be factored outside of this class
+    //     and protect access to a global object 
     std::mutex            mutex_;
     free_blocks_type      free_blocks_;
     allocated_blocks_type allocated_blocks_;
@@ -139,27 +142,13 @@ struct caching_memory_resource
 }; // end caching_memory_resource
 
 
-template<class Resource>
-__AGENCY_ANNOTATION
-Resource* get_system_resource()
-{
-#ifndef __CUDA_ARCH__
-  static Resource resource;
-  return &resource;
-#else
-  agency::cuda::detail::terminate_with_message("get_system_resource(): This function is undefined in __device__ code.");
-  return nullptr;
-#endif
-}
-
-
 template<class Alloc>
 class caching_allocator
 {
   public:
     __AGENCY_ANNOTATION
     caching_allocator()
-      : resource_(get_system_resource<resource_type>())
+      : resource_(system_resource<resource_type>())
     {}
 
     using value_type = typename std::allocator_traits<Alloc>::value_type;
@@ -185,21 +174,45 @@ class caching_allocator
     __AGENCY_ANNOTATION
     pointer allocate(size_type n)
     {
-      return reinterpret_cast<pointer>(resource_->allocate(n * sizeof(value_type)));
+      // don't try to use the resource if it doesn't exist
+      return resource_ ? reinterpret_cast<pointer>(resource_->allocate(n * sizeof(value_type))) : nullptr;
     }
 
     __AGENCY_ANNOTATION
     void deallocate(pointer ptr, size_type n)
     {
-      resource_->deallocate(ptr, n * sizeof(value_type));
+      // don't try to use the resource if it doesn't exist
+      if(resource_)
+      {
+        resource_->deallocate(ptr, n * sizeof(value_type));
+      }
     }
 
+    __agency_exec_check_disable__
     template<class Iterator, class... Iterators>
     __AGENCY_ANNOTATION
     detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
     {
-      using allocator_type = typename resource_type::allocator_type;
-      return allocator_traits<allocator_type>::construct_n(resource_->get_allocator(), first, n, iters...);
+      detail::tuple<Iterator,Iterators...> result;
+
+      if(resource_)
+      {
+        using allocator_type = typename resource_type::allocator_type;
+        result = allocator_traits<allocator_type>::construct_n(resource_->get_allocator(), first, n, iters...);
+      }
+      else
+      {
+        for(size_t i = 0; i < n; ++i, ++first)
+        {
+          // we post-increment iters... inside the loop instead of in the
+          // usual place due to limitations of parameter packs
+          new(&*first) value_type(*(iters++)...);
+        }
+
+        result = detail::make_tuple(first,iters...);
+      }
+
+      return result;
     }
 
     __agency_exec_check_disable__
@@ -207,7 +220,19 @@ class caching_allocator
     __AGENCY_ANNOTATION
     void destroy(T* ptr, size_type n)
     {
-      resource_->get_allocator().destroy(ptr, n);
+      // don't try to use the resource if it doesn't exist
+
+      if(resource_)
+      {
+        resource_->get_allocator().destroy(ptr, n);
+      }
+      else
+      {
+        for(size_type i = 0; i < n; ++i)
+        {
+          ptr[i].~T();
+        }
+      }
     }
 
   private:

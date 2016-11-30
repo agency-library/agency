@@ -73,6 +73,9 @@ class synchronic_concurrent_queue
       {
         std::unique_lock<std::mutex> lock(mutex_);
 
+        // don't attempt to close a closed queue
+        if(status_ == closed) return;
+
         // notify that we're closing
         notifier_.notify_all(status_, (int)closed);
       }
@@ -128,20 +131,18 @@ class synchronic_concurrent_queue
             break;
           }
 
-          // if there are no items go back to sleep
-          if(items_.empty())
+          // if there are items, pop the next one
+          if(!items_.empty())
           {
-            continue;
+            // get the next item
+            item = std::move(items_.front());
+            items_.pop();
+
+            notifier_.notify_one(status_, (int)(items_.empty() ? open_and_empty : open_and_ready));
+
+            return true;
           }
-
-          // get the next item
-          item = std::move(items_.front());
-          items_.pop();
-
-          notifier_.notify_one(status_, (int)(items_.empty() ? open_and_empty : open_and_ready));
         }
-
-        return true;
       }
 
       return false;
