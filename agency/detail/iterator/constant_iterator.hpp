@@ -20,6 +20,12 @@ class constant_iterator
     using iterator_category = std::random_access_iterator_tag;
 
     __AGENCY_ANNOTATION
+    constant_iterator() = default;
+
+    __AGENCY_ANNOTATION
+    constant_iterator(const constant_iterator&) = default;
+
+    __AGENCY_ANNOTATION
     constant_iterator(const T& value, size_t position)
       : value_(value), position_(position)
     {}
@@ -51,12 +57,30 @@ class constant_iterator
       return *this;
     }
 
+    // post-increment
+    __AGENCY_ANNOTATION
+    constant_iterator operator++(int)
+    {
+      constant_iterator result = *this;
+      ++position_;
+      return result;
+    }
+
     // pre-decrement
     __AGENCY_ANNOTATION
     constant_iterator& operator--()
     {
       --position_;
       return *this;
+    }
+
+    // post-decrement
+    __AGENCY_ANNOTATION
+    constant_iterator operator--(int)
+    {
+      constant_iterator result = *this;
+      --position_;
+      return result;
     }
 
     // plus-equal
