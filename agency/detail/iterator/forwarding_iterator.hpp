@@ -56,12 +56,30 @@ class forwarding_iterator
       return *this;
     }
 
+    // post-increment
+    __AGENCY_ANNOTATION
+    forwarding_iterator operator++(int)
+    {
+      forwarding_iterator result = *this;
+      ++current_;
+      return result;
+    }
+
     // pre-decrement
     __AGENCY_ANNOTATION
     forwarding_iterator& operator--()
     {
       --current_;
       return *this;
+    }
+
+    // post-decrement
+    __AGENCY_ANNOTATION
+    forwarding_iterator operator--(int)
+    {
+      forwarding_iterator result = *this;
+      --current_;
+      return result;
     }
 
     // plus-equal
