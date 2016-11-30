@@ -27,16 +27,6 @@ void test()
   auto z = zip(v0,v1,v2);
 
   {
-    // test iterator_tuple()
-    auto iter_tuple = z.begin().iterator_tuple();
-    auto expected = agency::detail::make_tuple(v0.begin(), v1.begin(), v2.begin());
-    assert(iter_tuple == expected);
-
-    using tuple_type = decltype(iter_tuple);
-    assert(std::tuple_size<tuple_type>::value == 3);
-  }
-
-  {
     // test iterator equality
     assert(z.begin() == z.begin());
   }
