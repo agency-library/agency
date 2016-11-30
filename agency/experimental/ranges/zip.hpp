@@ -40,7 +40,7 @@ class zip_view : zip_with_view<detail::forward_as_tuple_functor, Range, Ranges..
     template<class OtherRange, class... OtherRanges>
     __AGENCY_ANNOTATION
     zip_view(OtherRange&& rng, OtherRanges&&... rngs)
-      : super_t(std::forward<OtherRange>(rng), std::forward<OtherRanges>(rngs)...)
+      : super_t(detail::forward_as_tuple_functor{}, std::forward<OtherRange>(rng), std::forward<OtherRanges>(rngs)...)
     {}
 
     using super_t::super_t;

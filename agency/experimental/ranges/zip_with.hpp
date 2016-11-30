@@ -140,24 +140,71 @@ class zip_with_iterator
       return *tmp;
     }
 
+    // these operators are implemented as friend functions to allow interoperation with zip_with_iterators whose
+    // constituent iterator types are related to ours
+    // they're implemented with return type deduction to enable/disable them with SFINAE
+
+    // equal with other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
     __AGENCY_ANNOTATION
-    bool operator==(const zip_with_iterator& rhs) const
+    friend auto operator==(const zip_with_iterator& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() == rhs.first_iterator())
     {
-      return first_iterator() == rhs.first_iterator();
+      return lhs.first_iterator() == rhs.first_iterator();
     }
 
+    // not equal with other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
     __AGENCY_ANNOTATION
-    bool operator!=(const zip_with_iterator& rhs) const
+    friend auto operator!=(const zip_with_iterator& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() != rhs.first_iterator())
     {
-      return !(*this == rhs);
+      return lhs.first_iterator() != rhs.first_iterator();
     }
 
-    // XXX should probably insist that Function be constructible from OtherFunction
-    template<class OtherFunction, class OtherIterator, class... OtherIterators>
+    // less than other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
     __AGENCY_ANNOTATION
-    difference_type operator-(const zip_with_iterator<OtherFunction,OtherIterator,OtherIterators...>& rhs) const
+    friend auto operator<(const zip_with_iterator& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() < rhs.first_iterator())
     {
-      return first_iterator() - rhs.first_iterator();
+      return lhs.first_iterator() < rhs.first_iterator();
+    }
+
+    // less than equal with other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator<=(const zip_with_iterator& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() <= rhs.first_iterator())
+    {
+      return lhs.first_iterator() <= rhs.first_iterator();
+    }
+
+    // greater than other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator>(const zip_with_iterator& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() > rhs.first_iterator())
+    {
+      return lhs.first_iterator() > rhs.first_iterator();
+    }
+
+    // greater than equal with other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator>=(const zip_with_iterator& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() >= rhs.first_iterator())
+    {
+      return lhs.first_iterator() >= rhs.first_iterator();
+    }
+
+    // minus other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator-(const zip_with_iterator& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() - rhs.first_iterator())
+    {
+      return lhs.first_iterator() - rhs.first_iterator();
     }
 
   private:
@@ -208,80 +255,89 @@ class zip_with_sentinel
       : zip_with_sentinel(end.first_iterator())
     {}
 
-    // equality comparison with zip_with_sentinel
-    template<class OtherFunction, class OtherIterator, class... OtherIterators>
-    __AGENCY_ANNOTATION
-    auto operator==(const zip_with_sentinel<OtherFunction,OtherIterator,OtherIterators...>& sentinel) const ->
-      decltype(std::declval<Iterator>() == sentinel.base())
-    {
-      return base() == sentinel.base();
-    }
-
-    // equality comparison with zip_with_iterator
-    template<class OtherFunction, class OtherIterator, class... OtherIterators>
-    __AGENCY_ANNOTATION
-    auto operator==(const zip_with_iterator<OtherFunction,OtherIterator,OtherIterators...>& iter) const ->
-      decltype(std::declval<Iterator>() == iter.first_iterator())
-    {
-      return base() == iter.first_iterator();
-    }
-
-    // inequality comparison with zip_with_iterator
-    template<class OtherFunction, class OtherIterator, class... OtherIterators>
-    __AGENCY_ANNOTATION
-    auto operator!=(const zip_with_iterator<OtherFunction,OtherIterator,OtherIterators...>& iter) const ->
-      decltype(std::declval<Iterator>() != iter.first_iterator())
-    {
-      return base() != iter.first_iterator();
-    }
-
-    // difference with zip_with_iterator
-    template<class OtherFunction, class OtherIterator, class... OtherIterators>
-    __AGENCY_ANNOTATION
-    auto operator-(const zip_with_iterator<OtherFunction,OtherIterator,OtherIterators...>& iter) const ->
-      decltype(std::declval<Iterator>() - iter.first_iterator())
-    {
-      return base() - iter.first_iterator();
-    }
-
     __AGENCY_ANNOTATION
     const base_iterator_type& base() const
     {
       return end_;
     }
 
+    // XXX TODO: implement all relational operators as friend functions using SFINAE to enable/disable them
+
+    // equality comparison with other zip_with_sentinel
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator==(const zip_with_sentinel& lhs, const zip_with_sentinel<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() == rhs.base())
+    {
+      return lhs.base() == rhs.base();
+    }
+
+    // equality comparison with other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator==(const zip_with_sentinel& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() == rhs.first_iterator())
+    {
+      return lhs.base() == rhs.first_iterator();
+    }
+
+    // equality comparison with other zip_with_iterator (with sentinel on the right hand side)
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator==(const zip_with_iterator<OtherIterator,OtherIterators...>& lhs, const zip_with_sentinel& rhs) ->
+      decltype(lhs.first_iterator() == std::declval<Iterator>())
+    {
+      return lhs.first_iterator() == rhs.base();
+    }
+
+    // inequality comparison with other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator!=(const zip_with_sentinel& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() != rhs.first_iterator())
+    {
+      return lhs.base() != rhs.first_iterator();
+    }
+
+    // inequality comparison with other zip_with_iterator (with sentinel on the right hand side)
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator!=(const zip_with_iterator<OtherIterator,OtherIterators...>& lhs, const zip_with_sentinel& rhs) ->
+      decltype(lhs.first_iterator() != std::declval<Iterator>())
+    {
+      return lhs.first_iterator() != rhs.base();
+    }
+
+    // less than with other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator<(const zip_with_sentinel& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() < rhs.first_iterator())
+    {
+      return lhs.base() < rhs.first_iterator();
+    }
+
+    // less than equal with other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator<=(const zip_with_sentinel& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() <= rhs.first_iterator())
+    {
+      return lhs.base() <= rhs.first_iterator();
+    }
+
+    // minus other zip_with_iterator
+    template<class OtherIterator, class... OtherIterators>
+    __AGENCY_ANNOTATION
+    friend auto operator-(const zip_with_sentinel& lhs, const zip_with_iterator<OtherIterator,OtherIterators...>& rhs) ->
+      decltype(std::declval<Iterator>() - rhs.first_iterator())
+    {
+      return lhs.base() - rhs.first_iterator();
+    }
+
   private:
     base_iterator_type end_;
 };
-
-
-// XXX in order to make these general, we need something like
-//
-//     template<class Function1, class... Iterators1, class Function2, class... Iterators2>
-//
-// But we're not allowed multiple parameter packs
-//
-// Instead, we could do something like
-//
-//     template<class ZipWithIterator, class ZipWithSentinel>
-//
-// And use enable_if_zip_with_iterator & enable_if_zip_with_sentinel
-//
-// XXX another possibility would be to make these friend functions of zip_with_sentinel
-template<class Function, class... Iterators>
-__AGENCY_ANNOTATION
-bool operator==(const zip_with_iterator<Function,Iterators...>& lhs, const zip_with_sentinel<Function,Iterators...>& rhs)
-{
-  return rhs.operator==(lhs);
-}
-
-
-template<class Function, class... Iterators>
-__AGENCY_ANNOTATION
-bool operator!=(const zip_with_iterator<Function,Iterators...>& lhs, const zip_with_sentinel<Function,Iterators...>& rhs)
-{
-  return rhs.operator!=(lhs);
-}
 
 
 } // end detail
@@ -301,18 +357,27 @@ class zip_with_view
       range_sentinel_t<Ranges>...
     >;
 
-    template<class OtherRange, class... OtherRanges>
+    __AGENCY_ANNOTATION
+    zip_with_view() = default;
+
+    __AGENCY_ANNOTATION
+    zip_with_view(const zip_with_view& other) = default;
+
+    template<class OtherRange, class... OtherRanges,
+             __AGENCY_REQUIRES(
+               std::is_constructible<
+                 iterator,
+                 Function, range_iterator_t<OtherRange>, range_iterator_t<OtherRanges>...
+               >::value &&
+               std::is_constructible<
+                 sentinel,
+                 range_sentinel_t<OtherRange>
+               >::value
+             )>
     __AGENCY_ANNOTATION
     zip_with_view(Function f, OtherRange&& rng, OtherRanges&&... rngs)
       : begin_(f, rng.begin(), rngs.begin()...),
         end_(rng.end())
-    {}
-
-
-    template<class OtherRange, class... OtherRanges>
-    __AGENCY_ANNOTATION
-    zip_with_view(OtherRange&& rng, OtherRanges&&... rngs)
-      : zip_with_view(Function(), std::forward<OtherRange>(rng), std::forward<OtherRanges>(rngs)...)
     {}
 
     __AGENCY_ANNOTATION
@@ -345,6 +410,15 @@ class zip_with_view
     iterator begin_;
     sentinel end_;
 };
+
+
+// zip_with_views are already views, so don't wrap them
+template<class Function, class... Ranges>
+__AGENCY_ANNOTATION
+zip_with_view<Function,Ranges...> all(zip_with_view<Function,Ranges...> v)
+{
+  return v;
+}
 
 
 template<class Function, class... Ranges>
