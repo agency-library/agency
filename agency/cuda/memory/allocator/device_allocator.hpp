@@ -5,7 +5,6 @@
 #include <agency/detail/memory/allocator/allocator_adaptor.hpp>
 #include <agency/cuda/memory/resource/device_resource.hpp>
 #include <agency/cuda/device.hpp>
-#include <cuda_runtime.h>
 
 namespace agency
 {
