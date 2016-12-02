@@ -41,17 +41,18 @@ class intrusive_optional
 
 template<class T>
 __AGENCY_ANNOTATION
-inline T* system_resource()
+inline T* singleton()
 {
 #ifndef __CUDA_ARCH__
-  // system_resource() may be called after static destructors have completed
+  // singleton() may be called after static destructors have completed
   // so the object by resource may no longer exist. track its lifetime with intrusive_optional
+  // this is also why we return a pointer instead of a reference
   static bool has_value = false;
   static intrusive_optional<T> resource(has_value);
 
   return has_value ? &resource.value() : nullptr;
 #else
-  agency::cuda::detail::terminate_with_message("system_resource(): This function is undefined in __device__ code.");
+  agency::cuda::detail::terminate_with_message("singleton(): This function is undefined in __device__ code.");
   return nullptr;
 #endif
 }
