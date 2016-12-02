@@ -9,7 +9,7 @@
 #include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/unique_function.hpp>
-#include <agency/detail/memory/malloc_allocator.hpp>
+#include <agency/detail/memory/allocator/malloc_allocator.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <type_traits>
 

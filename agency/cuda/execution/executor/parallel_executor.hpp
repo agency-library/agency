@@ -4,7 +4,7 @@
 #include <agency/execution/executor/flattened_executor.hpp>
 #include <agency/cuda/execution/executor/grid_executor.hpp>
 #include <agency/cuda/memory/allocator.hpp>
-#include <agency/cuda/memory/pinned_allocator.hpp>
+#include <agency/cuda/memory/resource/pinned_resource.hpp>
 #include <agency/cuda/detail/array.hpp>
 #include <agency/cuda/future.hpp>
 
@@ -22,7 +22,7 @@ class parallel_executor
     using execution_category = parallel_execution_tag;
 
     template<class T>
-    using allocator = cuda::allocator<T, pinned_allocator<T>>;
+    using allocator = cuda::allocator<T, pinned_resource>;
 
     template<class T>
     using container = cuda::detail::array<T, size_t, allocator<T>>;

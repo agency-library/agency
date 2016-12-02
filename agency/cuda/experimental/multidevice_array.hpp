@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/memory/managed_allocator.hpp>
+#include <agency/cuda/memory/allocator/managed_allocator.hpp>
 #include <agency/experimental/span.hpp>
 #include <agency/experimental/ranges/all.hpp>
 #include <agency/experimental/tiled_array.hpp>

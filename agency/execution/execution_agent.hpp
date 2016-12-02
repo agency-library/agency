@@ -8,7 +8,7 @@
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/unwrap_tuple_if_not_scoped.hpp>
 #include <agency/detail/make_tuple_if_not_scoped.hpp>
-#include <agency/detail/memory/arena_resource.hpp>
+#include <agency/detail/memory/resource/arena_resource.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/experimental/array.hpp>
 #include <agency/experimental/optional.hpp>
