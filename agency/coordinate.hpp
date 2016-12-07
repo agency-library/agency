@@ -1,51 +1,116 @@
 #pragma once
 
-#include <agency/detail/small_vector_facade.hpp>
+#include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
+#include <agency/detail/arithmetic_tuple_facade.hpp>
+#include <agency/detail/operator_traits.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/experimental/array.hpp>
 
-#include <array>
 #include <initializer_list>
 #include <type_traits>
-#include <array>
 
 
 namespace agency
 {
-namespace detail
-{
-
-
-template<class T, size_t Rank>
-struct point_storage
-{
-  T data_[Rank];
-
-  __AGENCY_ANNOTATION
-  T* data()
-  {
-    return data_;
-  }
-
-  __AGENCY_ANNOTATION
-  const T* data() const
-  {
-    return data_;
-  }
-};
-
-
-} // end detail
 
 
 // T is any type with operators +, +=, -, -=, *, *=,  /, /=, <
 template<class T, size_t Rank>
-class point : public agency::detail::small_vector_adaptor<point<T,Rank>, detail::point_storage<T,Rank>, T, Rank>
+class point : public experimental::array<T,Rank>,
+              public agency::detail::arithmetic_tuple_facade<point<T,Rank>>
 {
-  using super_t = agency::detail::small_vector_adaptor<point<T,Rank>, detail::point_storage<T,Rank>, T, Rank>;
+  static_assert(agency::detail::has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
+  static_assert(Rank > 0, "Rank must be greater than 0.");
+
+  using super_t = experimental::array<T,Rank>;
 
   public:
-    using super_t::super_t;
+    using typename super_t::value_type;
+    using typename super_t::reference;
+    using typename super_t::size_type;
+    using typename super_t::pointer;
+    using typename super_t::const_pointer;
+
+
+    __AGENCY_ANNOTATION
+    point() = default;
+
+
+    __AGENCY_ANNOTATION
+    point(const point &) = default;
+
+
+    template<class... OtherT,
+             __AGENCY_REQUIRES(
+               detail::conjunction<
+                 std::is_convertible<OtherT,value_type>...
+               >::value &&
+               sizeof...(OtherT) == Rank
+             )>
+    __AGENCY_ANNOTATION
+    point(OtherT... args)
+      : super_t{{static_cast<value_type>(args)...}}
+    {
+    }
+
+
+    // XXX need to only enable this if the initializer_list is the right size
+    //     but we can't do that until c++14
+    template<class OtherT,
+             __AGENCY_REQUIRES(
+               std::is_convertible<OtherT,value_type>::value
+             )>
+    __AGENCY_ANNOTATION
+    point(std::initializer_list<OtherT> l)
+    {
+      // XXX should try to use base_'s constructor with l instead of this for loop
+      auto src = l.begin();
+      for(auto dst = super_t::begin(); dst != super_t::end(); ++src, ++dst)
+      {
+        *dst = *src;
+      }
+    }
+
+
+    // XXX should fully parameterize this
+    template<class OtherT,
+             __AGENCY_REQUIRES(
+               std::is_convertible<OtherT,value_type>::value
+             )>
+    __AGENCY_ANNOTATION
+    point(const point<OtherT,Rank>& other)
+    {
+      detail::arithmetic_tuple_facade<point>::copy(other);
+    }
+
+
+    // fills the point with a constant value
+    template<class OtherT,
+             __AGENCY_REQUIRES(
+               (Rank > 1) &&
+               std::is_convertible<OtherT,value_type>::value
+             )>
+    __AGENCY_ANNOTATION
+    point(OtherT val)
+    {
+      detail::arithmetic_tuple_facade<point>::fill(val);
+    }
+
+
+    __AGENCY_ANNOTATION
+    operator pointer ()
+    {
+      return super_t::data();
+    }
+
+
+    __AGENCY_ANNOTATION
+    operator const_pointer () const
+    {
+      return super_t::data();
+    }
 };
 
 
@@ -311,8 +376,8 @@ class lattice
 
     template<class Size1, class... Sizes,
              typename = typename std::enable_if<
-               agency::detail::all_of<
-                 std::is_convertible<Size1,size_t>::value, std::is_convertible<Sizes,size_t>::value...
+               detail::conjunction<
+                 std::is_convertible<Size1,size_t>, std::is_convertible<Sizes,size_t>...
                >::value &&
                sizeof...(Sizes) == (rank - 1)
              >::type 
@@ -387,8 +452,8 @@ class lattice
     // reshape does not move the origin
     template<class... Size,
              typename = typename std::enable_if<
-               agency::detail::all_of<
-                 std::is_convertible<Size,size_t>::value...
+               detail::conjunction<
+                 std::is_convertible<Size,size_t>...
                >::value &&
                sizeof...(Size) == rank
              >::type 
