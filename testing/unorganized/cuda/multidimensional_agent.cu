@@ -2,8 +2,6 @@
 #include <agency/agency.hpp>
 #include <agency/cuda.hpp>
 
-const agency::basic_execution_policy<agency::parallel_agent_2d, agency::cuda::parallel_executor> par2d{};
-
 struct functor
 {
   __device__
@@ -15,7 +13,7 @@ struct functor
 
 int main()
 {
-  auto exec = par2d({0,0}, {2,2});
+  auto exec = agency::cuda::par2d({0,0}, {2,2});
 
   agency::bulk_invoke(exec, functor());
 

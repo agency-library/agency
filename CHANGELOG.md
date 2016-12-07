@@ -17,8 +17,13 @@ TODO
 
 ### New Execution Policies
 
-  * `omp::parallel_execution_policy`
-  * `omp::unsequenced_execution_policy`
+  * `concurrent_execution_policy_2d`
+  * `sequenced_execution_policy_2d`
+  * `parallel_execution_policy_2d`
+  * `unsequenced_execution_policy_2d`
+  * OpenMP-specific execution policies
+    * `omp::parallel_execution_policy`
+    * `omp::unsequenced_execution_policy`
 
 ### New Executors
 

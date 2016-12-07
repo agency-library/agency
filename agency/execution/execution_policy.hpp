@@ -520,6 +520,39 @@ class sequenced_execution_policy : public basic_execution_policy<sequenced_agent
 constexpr sequenced_execution_policy seq{};
 
 
+/// \brief Encapsulates requirements for creating two-dimensional groups of sequenced execution agents.
+/// \ingroup execution_policies
+///
+///
+/// When used as a control structure parameter, `sequenced_execution_policy_2d` requires the creation of a two-dimensional group of execution agents which execute in sequence.
+/// Agents in such a group execute on the thread which invokes the control structure. However, if the executor of a `sequenced_execution_policy_2d` is replaced
+/// with another sequenced executor of a different type, the agents may execute in sequence on another thread or threads, depending on the type of that executor.
+///
+/// The order in which sequenced execution agents execute is given by the lexicographical order of their indices.
+///
+/// The type of execution agent `sequenced_execution_policy_2d` induces is `sequenced_agent_2d`, and the type of its associated executor is `sequenced_executor`.
+///
+/// \see execution_policies
+/// \see basic_execution_policy
+/// \see seq
+/// \see sequenced_agent_2d
+/// \see sequenced_executor
+/// \see sequenced_execution_tag
+class sequenced_execution_policy_2d : public basic_execution_policy<sequenced_agent_2d, sequenced_executor, sequenced_execution_policy_2d>
+{
+  private:
+    using super_t = basic_execution_policy<sequenced_agent_2d, sequenced_executor, sequenced_execution_policy_2d>;
+
+  public:
+    using super_t::basic_execution_policy;
+};
+
+
+/// \brief The global variable `seq2d` is the default `sequenced_execution_policy_2d`.
+/// \ingroup execution_policies
+constexpr sequenced_execution_policy_2d seq2d{};
+
+
 /// \brief Encapsulates requirements for creating groups of concurrent execution agents.
 /// \ingroup execution_policies
 ///
@@ -548,6 +581,36 @@ class concurrent_execution_policy : public basic_execution_policy<concurrent_age
 /// \brief The global variable `con` is the default `concurrent_execution_policy`.
 /// \ingroup execution_policies
 constexpr concurrent_execution_policy con{};
+
+
+/// \brief Encapsulates requirements for creating two-dimensional groups of concurrent execution agents.
+/// \ingroup execution_policies
+///
+///
+/// When used as a control structure parameter, `concurrent_execution_policy_2d` requires the creation of a two-dimensional group of execution agents which execute concurrently.
+/// Agents in such a group are guaranteed to make forward progress.
+///
+/// The type of execution agent `concurrent_execution_policy_2d` induces is `concurrent_agent_2d`, and the type of its associated executor is `concurrent_executor`.
+///
+/// \see execution_policies
+/// \see basic_execution_policy
+/// \see con
+/// \see concurrent_agent_2d
+/// \see concurrent_executor
+/// \see concurrent_execution_tag
+class concurrent_execution_policy_2d : public basic_execution_policy<concurrent_agent_2d, concurrent_executor, concurrent_execution_policy_2d>
+{
+  private:
+    using super_t = basic_execution_policy<concurrent_agent_2d, concurrent_executor, concurrent_execution_policy_2d>;
+
+  public:
+    using super_t::basic_execution_policy;
+};
+
+
+/// \brief The global variable `con2d` is the default `concurrent_execution_policy_2d`.
+/// \ingroup execution_policies
+constexpr concurrent_execution_policy_2d con2d{};
 
 
 /// \brief Encapsulates requirements for creating groups of parallel execution agents.
@@ -581,6 +644,37 @@ class parallel_execution_policy : public basic_execution_policy<parallel_agent, 
 const parallel_execution_policy par{};
 
 
+/// \brief Encapsulates requirements for creating two-dimensional groups of parallel execution agents.
+/// \ingroup execution_policies
+///
+///
+/// When used as a control structure parameter, `parallel_execution_policy_2d` requires the creation of a two-dimensional group of execution agents which execute in parallel.
+/// When agents in such a group execute on separate threads, they have no order. Otherwise, if agents in such a group execute on the same thread,
+/// they execute in an unspecified order.
+///
+/// The type of execution agent `parallel_execution_policy_2d` induces is `parallel_agent_2d`, and the type of its associated executor is `parallel_executor`.
+///
+/// \see execution_policies
+/// \see basic_execution_policy
+/// \see par
+/// \see parallel_agent_2d
+/// \see parallel_executor
+/// \see parallel_execution_tag
+class parallel_execution_policy_2d : public basic_execution_policy<parallel_agent_2d, parallel_executor, parallel_execution_policy_2d>
+{
+  private:
+    using super_t = basic_execution_policy<parallel_agent_2d, parallel_executor, parallel_execution_policy_2d>;
+
+  public:
+    using super_t::basic_execution_policy;
+};
+
+
+/// \brief The global variable `par2d` is the default `parallel_execution_policy_2d`.
+/// \ingroup execution_policies
+const parallel_execution_policy_2d par2d{};
+
+
 /// \brief Encapsulates requirements for creating groups of unsequenced execution agents.
 /// \ingroup execution_policies
 ///
@@ -608,6 +702,35 @@ class unsequenced_execution_policy : public basic_execution_policy<unsequenced_a
 /// \brief The global variable `unseq` is the default `unsequenced_execution_policy`.
 /// \ingroup execution_policies
 constexpr unsequenced_execution_policy unseq{};
+
+
+/// \brief Encapsulates requirements for creating two-dimensional groups of unsequenced execution agents.
+/// \ingroup execution_policies
+///
+///
+/// When used as a control structure parameter, `unsequenced_execution_policy_2d` requires the creation of a two-dimensional group of execution agents which execute without any order.
+///
+/// The type of execution agent `unsequenced_execution_policy_2d` induces is `unsequenced_agent_2d`, and the type of its associated executor is `unsequenced_executor`.
+///
+/// \see execution_policies
+/// \see basic_execution_policy
+/// \see vec
+/// \see unsequenced_agent_2d
+/// \see unsequenced_executor
+/// \see unsequenced_execution_tag
+class unsequenced_execution_policy_2d : public basic_execution_policy<unsequenced_agent_2d, unsequenced_executor, unsequenced_execution_policy_2d>
+{
+  private:
+    using super_t = basic_execution_policy<unsequenced_agent_2d, unsequenced_executor, unsequenced_execution_policy_2d>;
+
+  public:
+    using super_t::basic_execution_policy;
+};
+
+
+/// \brief The global variable `unseq2d` is the default `unsequenced_execution_policy_2d`.
+/// \ingroup execution_policies
+constexpr unsequenced_execution_policy_2d unseq2d{};
 
 
 namespace experimental

@@ -22,37 +22,25 @@ class parallel_execution_policy : public basic_execution_policy<parallel_agent, 
   private:
     using super_t = basic_execution_policy<parallel_agent, cuda::parallel_executor, parallel_execution_policy>;
 
-    using par2d_t = basic_execution_policy<parallel_agent_2d, cuda::parallel_executor>;
-
   public:
     using super_t::basic_execution_policy;
-
-    using super_t::operator();
-
-    // XXX consider whether we really want this functionality a member of parallel_execution_policy
-    inline par2d_t operator()(agency::size2 shape) const
-    {
-      par2d_t par2d;
-
-      return par2d(shape);
-    }
-
-    // XXX consider whether we really want this functionality a member of parallel_execution_policy
-    template<class ExecutionPolicy>
-    agency::detail::scoped_execution_policy<
-      par2d_t,
-      agency::detail::decay_t<ExecutionPolicy>
-    >
-      operator()(agency::size2 domain, ExecutionPolicy&& exec) const
-    {
-      par2d_t par2d;
-
-      return par2d(domain, std::forward<ExecutionPolicy>(exec));
-    }
 };
 
 
 const parallel_execution_policy par{};
+
+
+class parallel_execution_policy_2d : public basic_execution_policy<parallel_agent_2d, cuda::parallel_executor, parallel_execution_policy_2d>
+{
+  private:
+    using super_t = basic_execution_policy<parallel_agent_2d, cuda::parallel_executor, parallel_execution_policy_2d>;
+
+  public:
+    using super_t::basic_execution_policy;
+};
+
+
+const parallel_execution_policy_2d par2d{};
 
 
 class concurrent_execution_policy : public basic_execution_policy<concurrent_agent, cuda::concurrent_executor, concurrent_execution_policy>
@@ -60,39 +48,28 @@ class concurrent_execution_policy : public basic_execution_policy<concurrent_age
   private:
     using super_t = basic_execution_policy<concurrent_agent, cuda::concurrent_executor, concurrent_execution_policy>;
 
-    using con2d_t = basic_execution_policy<concurrent_agent_2d, cuda::concurrent_executor>;
-
   public:
     using super_t::basic_execution_policy;
-
-    using super_t::operator();
-
-    // XXX consider whether we really want this functionality a member of concurrent_execution_policy
-    inline con2d_t operator()(agency::size2 shape) const
-    {
-      con2d_t con2d;
-
-      return con2d(shape);
-    }
-
-    // XXX consider whether we really want this functionality a member of concurrent_execution_policy
-    template<class ExecutionPolicy>
-    agency::detail::scoped_execution_policy<
-      con2d_t,
-      agency::detail::decay_t<ExecutionPolicy>
-    >
-      operator()(agency::size2 domain, ExecutionPolicy&& exec) const
-    {
-      con2d_t con2d;
-
-      return con2d(domain, std::forward<ExecutionPolicy>(exec));
-    }
 };
 
 
 const concurrent_execution_policy con{};
 
 
+class concurrent_execution_policy_2d : public basic_execution_policy<concurrent_agent_2d, cuda::concurrent_executor, concurrent_execution_policy_2d>
+{
+  private:
+    using super_t = basic_execution_policy<concurrent_agent_2d, cuda::concurrent_executor, concurrent_execution_policy_2d>;
+
+  public:
+    using super_t::basic_execution_policy;
+};
+
+
+const concurrent_execution_policy_2d con2d{};
+
+
+// XXX this function needs to account for the dimensionality of ExecutionPolicy's agents
 template<class ExecutionPolicy>
 typename std::enable_if<
   std::is_same<
@@ -107,6 +84,7 @@ typename std::enable_if<
 }
 
 
+// XXX this function needs to account for the dimensionality of ExecutionPolicy's agents
 template<class ExecutionPolicy>
 typename std::enable_if<
   std::is_same<
@@ -121,6 +99,7 @@ typename std::enable_if<
 }
 
 
+// XXX this function needs to account for the dimensionality of ExecutionPolicy's agents
 template<class ExecutionPolicy>
 typename std::enable_if<
   std::is_same<
@@ -153,10 +132,10 @@ using grid_agent = parallel_group<concurrent_agent>;
 // XXX consider making this a global object like the other execution policies
 auto grid(size2 grid_dim, size2 block_dim) ->
   decltype(
-      par(grid_dim, con(block_dim)).on(grid_executor_2d())
+      par2d(grid_dim, con2d(block_dim)).on(grid_executor_2d())
   )
 {
-  return par(grid_dim, con(block_dim)).on(grid_executor_2d());
+  return par2d(grid_dim, con2d(block_dim)).on(grid_executor_2d());
 }
 
 // XXX consider making this a unique type instead of an alias
