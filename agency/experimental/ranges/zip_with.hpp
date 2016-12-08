@@ -118,7 +118,7 @@ class zip_with_iterator
 
   public:
     __AGENCY_ANNOTATION
-    zip_with_iterator operator+=(difference_type n)
+    zip_with_iterator& operator+=(difference_type n)
     {
       __tu::tuple_for_each(add_assign_functor{n}, iterator_tuple_);
       return *this;
