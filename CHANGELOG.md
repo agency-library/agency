@@ -35,6 +35,10 @@ TODO
 
   * `cuda::experimental::make_async_future`
   * `cuda::experimental::native_handle`
+  * New fancy ranges
+    * `experimental::interval()`
+    * `experimental::iota_view`
+    * `experimental::zip_with_view`
 
 ## Resolved Issues
 
