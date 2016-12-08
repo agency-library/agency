@@ -737,22 +737,12 @@ void tuple_print(const Tuple& t, std::ostream& os = std::cout)
 }
 
 
+// terminal case: Tuple1 is exhausted
+// if we make it to the end of Tuple1, then the tuples are considered equal
 template<size_t i, class Tuple1, class Tuple2>
 TUPLE_UTILITY_ANNOTATION
 typename std::enable_if<
-  std::tuple_size<Tuple2>::value <= i,
-  bool
->::type
-  __tuple_equal_impl(const Tuple1&, const Tuple2&)
-{
-  return false;
-}
-
-
-template<size_t i, class Tuple1, class Tuple2>
-TUPLE_UTILITY_ANNOTATION
-typename std::enable_if<
-  (std::tuple_size<Tuple1>::value <= i && std::tuple_size<Tuple2>::value > i),
+  (i == std::tuple_size<Tuple1>::value) && (i <= std::tuple_size<Tuple2>::value),
   bool
 >::type
   __tuple_equal_impl(const Tuple1&, const Tuple2&)
@@ -761,10 +751,25 @@ typename std::enable_if<
 }
 
 
+// terminal case: Tuple2 is exhausted but not Tuple1
+// if we make it to the end of Tuple2 before Tuple1, then the tuples are considered unequal
 template<size_t i, class Tuple1, class Tuple2>
 TUPLE_UTILITY_ANNOTATION
 typename std::enable_if<
-  (std::tuple_size<Tuple1>::value > i && std::tuple_size<Tuple2>::value > i),
+  (i < std::tuple_size<Tuple1>::value) && (i == std::tuple_size<Tuple2>::value),
+  bool
+>::type
+  __tuple_equal_impl(const Tuple1&, const Tuple2&)
+{
+  return false;
+}
+
+
+// recursive case
+template<size_t i, class Tuple1, class Tuple2>
+TUPLE_UTILITY_ANNOTATION
+typename std::enable_if<
+  (i < std::tuple_size<Tuple1>::value) && (i < std::tuple_size<Tuple2>::value),
   bool
 >::type
   __tuple_equal_impl(const Tuple1& t1, const Tuple2& t2)
