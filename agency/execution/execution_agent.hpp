@@ -1,5 +1,7 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 #include <agency/execution/execution_categories.hpp>
 #include <agency/detail/concurrency/barrier.hpp>
 #include <agency/detail/tuple.hpp>
@@ -388,44 +390,49 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
 #endif
     };
 
+
+    // this function destroys *ptr and then makes the entire group wait
+    // only one agent should pass a non-nullptr to this function
+    // the entire group should be convergent before calling this function
     template<class T>
     __AGENCY_ANNOTATION
     typename std::enable_if<
       std::is_trivially_destructible<T>::value
     >::type
-      wait_and_destroy_if(T*, bool)
+      destroy_and_wait_if(T*)
     {
-      // no op: T has a trivial destructor, so there's no need to synchronize
-      // and call T's destructor
+      // no op: T has a trivial destructor, so there's no need to do anything
+      // including synchronize
     }
 
+    // this function destroys *ptr and then makes the entire group wait
+    // only one agent should pass a non-nullptr to this function
+    // the entire group should be convergent before calling this function
     template<class T>
     __AGENCY_ANNOTATION
     typename std::enable_if<
       !std::is_trivially_destructible<T>::value
     >::type
-      wait_and_destroy_if(T* ptr, bool only_this_agent_should_call_the_destructor)
+      destroy_and_wait_if(T* ptr)
     {
-      // first, synchronize
-      wait();
-
-      if(only_this_agent_should_call_the_destructor)
+      // first destroy the object
+      if(ptr)
       {
         ptr->~T();
       }
+
+      // synchronize the group
+      wait();
     }
 
 
-    template<class T>
-    using enable_if_small_enough_to_broadcast_directly_t = typename std::enable_if<
-      sizeof(T) <= broadcast_channel_size, T
-    >::type;
-
     // this overload of broadcast_impl() is for small T
-    template<class T>
+    template<class T,
+             __AGENCY_REQUIRES(
+               (sizeof(T) <= broadcast_channel_size)
+             )>
     __AGENCY_ANNOTATION
-    enable_if_small_enough_to_broadcast_directly_t<T>
-      broadcast_impl(const experimental::optional<T>& value)
+    T broadcast_impl(const experimental::optional<T>& value)
     {
       // value is small enough to fit inside broadcast_channel_, so we can
       // send it through directly without needing to dynamically allocating storage
@@ -446,27 +453,23 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       // copy the shared temporary to a local variable
       T result = *shared_temporary_object;
 
-      // synchronize and destroy the object if necessary
-      // XXX do we need to unconditionally wait here?
-      //     what if a subsequent call to broadcast() happens?
-      //     will the subsequent call collide with this one?
-      // XXX should we just decline to synchronize the group before returning?
-      wait_and_destroy_if(shared_temporary_object, bool(value));
+      // all agents wait for all other agents to finish copying the shared temporary
+      wait();
+
+      // destroy the object and all agents wait for the broadcast to become ready again
+      destroy_and_wait_if(value ? shared_temporary_object : nullptr);
 
       return result;
     }
 
 
-    template<class T>
-    using enable_if_too_large_to_broadcast_directly_t = typename std::enable_if<
-      (sizeof(T) > broadcast_channel_size), T
-    >::type;
-
     // this overload of broadcast_impl() is for large T
-    template<class T>
+    template<class T,
+             __AGENCY_REQUIRES(
+               (sizeof(T) > broadcast_channel_size)
+             )>
     __AGENCY_ANNOTATION
-    enable_if_too_large_to_broadcast_directly_t<T>
-      broadcast_impl(const experimental::optional<T>& value)
+    T broadcast_impl(const experimental::optional<T>& value)
     {
       // value is too large to fit through broadcast_channel_, so
       // we need to dynamically allocate storage
