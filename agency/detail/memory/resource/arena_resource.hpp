@@ -33,23 +33,6 @@ namespace agency
 {
 namespace detail
 {
-namespace arena_resource_detail
-{
-
-
-__AGENCY_ANNOTATION
-inline void throw_bad_alloc()
-{
-#ifdef __CUDA_ARCH__
-  printf("bad_alloc\n");
-  assert(0);
-#else
-  throw std::bad_alloc();
-#endif
-}
-
-
-} // end arena_resource_detail
 
 
 // arena_resource is a C++ "memory resource" which
@@ -76,14 +59,12 @@ class arena_resource
     arena_resource& operator=(const arena_resource&) = delete;
 
     __AGENCY_ANNOTATION
-    void* allocate(std::size_t n)
+    void* allocate(std::size_t n) noexcept
     {
       auto const aligned_n = align_up(n);
       if(aligned_n > static_cast<decltype(aligned_n)>(buf_ + N - ptr_))
       {
-        // XXX should we throw? we might want to fail and return 0
-        //     maybe we could introduce a separate allocate_or_fail() function
-        arena_resource_detail::throw_bad_alloc();
+        return nullptr;
       }
 
       char* r = ptr_;
@@ -121,6 +102,16 @@ class arena_resource
       ptr_ = buf_;
     }
 
+    __AGENCY_ANNOTATION
+    bool owns(void* ptr, std::size_t) const noexcept
+    {
+      const char* ptr_to_char = reinterpret_cast<const char*>(ptr_);
+
+      // XXX workaround nvbug 1853802
+      //return (buf_ <= ptr_to_char) && (ptr_to_char <= ptr_);
+      return (ptr_to_char >= buf_) && (ptr_ >= ptr_to_char);
+    }
+
   private:
     __AGENCY_ANNOTATION
     static std::size_t align_up(std::size_t n) noexcept
@@ -131,8 +122,7 @@ class arena_resource
 
 
 // in the special case of zero size, use null_resource for efficiency
-// it avoids calling align_up() in allocate() and does not throw an exception
-// XXX we should avoid throwing in arena_resource::allocate() above for consistency
+// it avoids calling align_up() in allocate()
 template<std::size_t alignment>
 class arena_resource<0,alignment> : public null_resource
 {
@@ -154,6 +144,12 @@ class arena_resource<0,alignment> : public null_resource
     __AGENCY_ANNOTATION
     void reset() noexcept
     {
+    }
+
+    __AGENCY_ANNOTATION
+    constexpr bool owns(void* ptr, std::size_t n) const noexcept
+    {
+      return false;
     }
 };
 
