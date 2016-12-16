@@ -11,6 +11,8 @@
 #include <agency/detail/unwrap_tuple_if_not_scoped.hpp>
 #include <agency/detail/make_tuple_if_not_scoped.hpp>
 #include <agency/detail/memory/resource/arena_resource.hpp>
+#include <agency/detail/memory/resource/malloc_resource.hpp>
+#include <agency/detail/memory/resource/tiered_resource.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/experimental/array.hpp>
 #include <agency/experimental/optional.hpp>
@@ -352,7 +354,7 @@ namespace detail
 
 
 
-template<class Index, class MemoryResource = detail::arena_resource<128 * sizeof(int)>>
+template<class Index, class MemoryResource>
 class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_execution_tag, Index>
 {
   private:
@@ -583,9 +585,13 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
 } // end detail
 
 
-using concurrent_agent = detail::basic_concurrent_agent<size_t>;
+using default_concurrent_resource = detail::tiered_resource<detail::arena_resource<sizeof(int) * 128>, detail::malloc_resource>;
+
+
+// XXX consider introducing unique types for concurrent_agent & concurrent_agent_2d for the sake of better compiler error messages
+using concurrent_agent = detail::basic_concurrent_agent<size_t, default_concurrent_resource>;
 using concurrent_agent_1d = concurrent_agent;
-using concurrent_agent_2d = detail::basic_concurrent_agent<size2>;
+using concurrent_agent_2d = detail::basic_concurrent_agent<size2, default_concurrent_resource>;
 
 
 namespace detail
