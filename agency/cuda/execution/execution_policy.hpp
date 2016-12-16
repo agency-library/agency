@@ -146,12 +146,12 @@ namespace experimental
 {
 
 
-template<size_t group_size, size_t grain_size = 1, size_t heap_size = agency::experimental::default_heap_size(group_size)>
+template<size_t group_size, size_t grain_size = 1, size_t pool_size = agency::experimental::default_pool_size(group_size)>
 class static_concurrent_execution_policy : public agency::experimental::detail::basic_static_execution_policy<
   cuda::concurrent_execution_policy,
   group_size,
   grain_size,
-  agency::experimental::static_concurrent_agent<group_size, grain_size, heap_size>
+  agency::experimental::static_concurrent_agent<group_size, grain_size, pool_size>
 >
 {
   private:
@@ -159,7 +159,7 @@ class static_concurrent_execution_policy : public agency::experimental::detail::
       cuda::concurrent_execution_policy,
       group_size,
       grain_size,
-      agency::experimental::static_concurrent_agent<group_size, grain_size, heap_size>
+      agency::experimental::static_concurrent_agent<group_size, grain_size, pool_size>
     >;
 
   public:
