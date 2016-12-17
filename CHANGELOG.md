@@ -15,6 +15,11 @@ TODO
 
   * `async`
 
+### New Utilities
+  * `shared`
+  * `shared_array`
+  * `shared_vector`
+
 ### New Execution Policies
 
   * `concurrent_execution_policy_2d`

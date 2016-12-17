@@ -61,7 +61,6 @@ agency::cuda::future<int> async_reduce(View data)
   using namespace agency::experimental;
 
   constexpr size_t tile_size = 256;
-  using tile = array<int,tile_size>;
 
   // XXX the size of each partition needn't match the inner group size
   // XXX we should use the shape of the executor for partitioning instead of the data size
@@ -70,8 +69,10 @@ agency::cuda::future<int> async_reduce(View data)
   auto policy = cuda::par(num_tiles, cuda::con(tile_size));
 
   auto partial_sums_fut = bulk_async(policy,
-    [=] __host__ __device__ (parallel_group<concurrent_agent>& self, tile& scratch) -> scope_result<1,int>
+    [=] __host__ __device__ (parallel_group<concurrent_agent>& self) -> scope_result<1,int>
     {
+      shared_array<int,tile_size> scratch(self.inner());
+
       // find this group's partition
       auto partition = data.subspan(tile_size * self.outer().index(), tile_size);
 
@@ -86,13 +87,14 @@ agency::cuda::future<int> async_reduce(View data)
 
       // other agents return no result
       return no_result<int>();
-    },
-    share_at_scope<1,tile>()
+    }
   );
 
   return bulk_then(policy.inner(),
-    [] __host__ __device__ (concurrent_agent& self, span<int> partial_sums, tile& scratch) -> single_result<int>
+    [] __host__ __device__ (concurrent_agent& self, span<int> partial_sums) -> single_result<int>
     {
+      shared_array<int,tile_size> scratch(self);
+
       auto sum = concurrent_sum(self, partial_sums, scratch);
 
       // the first agent returns the sum
@@ -104,8 +106,7 @@ agency::cuda::future<int> async_reduce(View data)
       // other agents return no result
       return no_result<int>();
     },
-    partial_sums_fut,
-    share<tile>()
+    partial_sums_fut
   );
 }
 

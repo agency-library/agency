@@ -22,6 +22,7 @@
 #include <agency/exception_list.hpp>
 #include <agency/execution.hpp>
 #include <agency/future.hpp>
+#include <agency/shared.hpp>
 #include <agency/version.hpp>
 
 /// \namespace agency
