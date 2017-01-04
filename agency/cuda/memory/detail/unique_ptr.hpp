@@ -17,7 +17,11 @@ namespace detail
 
 
 template<class T>
-using unique_ptr = agency::detail::unique_ptr<T, agency::detail::deleter<allocator<T>>>;
+using default_delete = agency::detail::deleter<cuda::allocator<T>>;
+
+
+template<class T, class Deleter = default_delete<T>>
+using unique_ptr = agency::detail::unique_ptr<T, Deleter>;
 
 
 template<class T, class... Args>
@@ -28,16 +32,16 @@ unique_ptr<T> make_unique(Args&&... args)
 }
 
 
-template<class T>
+template<class T, class Deleter>
 struct release_and_delete_when_functor
 {
   T* ptr;
-  mutable typename unique_ptr<T>::deleter_type deleter;
+  mutable Deleter deleter;
 
   struct task
   {
     T* ptr;
-    mutable typename unique_ptr<T>::deleter_type deleter;
+    mutable Deleter deleter;
 
     void operator()() const
     {
@@ -61,11 +65,11 @@ struct release_and_delete_when_functor
 };
 
 
-template<class T>
+template<class T, class Deleter>
 __host__ __device__
-void release_and_delete_when(unique_ptr<T>& ptr, event& e)
+void release_and_delete_when(unique_ptr<T,Deleter>& ptr, event& e)
 {
-  auto continuation = release_and_delete_when_functor<T>{ptr.release(), ptr.get_deleter()};
+  auto continuation = release_and_delete_when_functor<T,Deleter>{ptr.release(), ptr.get_deleter()};
 
   auto delete_event = e.then(continuation);
 
