@@ -139,6 +139,10 @@ namespace experimental
 __host__ __device__
 async_future<void> make_async_future(cudaEvent_t e);
 
+template<class T, class Deleter>
+__host__ __device__
+async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Deleter& deleter);
+
 
 } // end experimental
 
@@ -427,7 +431,9 @@ class async_future
     template<class U> friend class agency::cuda::future;
     template<class Shape, class Index> friend class agency::cuda::detail::basic_grid_executor;
 
+    // friend experimental::make_async_future() to give them access to the private constructor
     friend async_future<void> experimental::make_async_future(cudaEvent_t e);
+    template<class U, class Deleter> friend async_future<U> experimental::make_async_future(cudaEvent_t e, U* ptr, const Deleter& deleter);
 
     __host__ __device__
     async_future(detail::event&& e, detail::asynchronous_state<T>&& state)
@@ -565,6 +571,31 @@ inline async_future<void> make_async_future(cudaEvent_t e)
   assert(state.valid());
 
   return async_future<void>(std::move(event), std::move(state));
+}
+
+
+// returns an async_future<T> whose readiness depends on the completion of the given event
+// XXX need to add template parameter Deleter
+template<class T, class Deleter>
+async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Deleter& deleter)
+{
+  // create a new stream on device 0
+  device_id device(0);
+  cuda::detail::stream s{device};
+  assert(s.native_handle() != 0);
+
+  // tell the stream to wait on e
+  s.wait_on(e);
+
+  // create a new event
+  cuda::detail::event event(std::move(s));
+  assert(event.valid());
+
+  // create a new, not ready asynchronous state
+  cuda::detail::asynchronous_state<T> state(agency::detail::construct_not_ready, ptr, deleter);
+  assert(state.valid());
+
+  return async_future<T>(std::move(event), std::move(state));
 }
 
 

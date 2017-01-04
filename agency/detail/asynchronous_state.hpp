@@ -46,6 +46,9 @@ constexpr static construct_not_ready_t construct_not_ready{};
 
 
 // XXX should try to collapse the implementation of this as much as possible between the two
+// XXX switch Alloc template parameter to Deleter
+//     the default value of Deleter should be some polymorphic deleter type
+//     the default state of the polymorphic deleter type should be an instance of default_delete<T>
 template<class T,
          class Alloc = std::allocator<T>,
          bool requires_storage = state_requires_storage<T>::value>
@@ -61,6 +64,8 @@ class asynchronous_state
     asynchronous_state() = default;
 
     // constructs an immediately ready state
+    // XXX this constructor should take an Allocator parameter
+    //     and this constructor should be enabled if the Deleter type is constructible from the Allocator
     __agency_exec_check_disable__
     template<class... Args,
              class = typename std::enable_if<
@@ -70,6 +75,15 @@ class asynchronous_state
     __AGENCY_ANNOTATION
     asynchronous_state(construct_ready_t, Args&&... ready_args)
       : storage_(allocate_unique<T>(Alloc(), std::forward<Args>(ready_args)...))
+    {}
+
+    // constructs a not ready state from a pointer to the result and a deleter
+    // to delete the value
+    // XXX need to add a template parameter: OtherDeleter
+    //     and this constructor should be enabled if the Deleter type is constructible from the OtherDeleter
+    __AGENCY_ANNOTATION
+    asynchronous_state(construct_not_ready_t, T* ptr, const deleter<Alloc>& deleter)
+      : storage_(ptr, deleter)
     {}
 
     // constructs a not ready state
