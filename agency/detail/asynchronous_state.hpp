@@ -45,10 +45,9 @@ constexpr static construct_ready_t     construct_ready{};
 constexpr static construct_not_ready_t construct_not_ready{};
 
 
-// XXX should try to collapse the implementation of this as much as possible between the two
-// XXX switch Alloc template parameter to Deleter
-//     the default value of Deleter should be some polymorphic deleter type
-//     the default state of the polymorphic deleter type should be an instance of default_delete<T>
+// XXX should try to collapse the implementation of asynchronous_state as much as possible between the two specializations
+// XXX the default value of Deleter should be some polymorphic deleter type
+// XXX the default state of the polymorphic deleter type should be an instance of default_delete<T>
 template<class T,
          class Deleter = default_delete<T>,
          bool requires_storage = state_requires_storage<T>::value>
@@ -180,8 +179,8 @@ struct empty_type_ptr<void> : unit_ptr {};
 
 
 // zero storage optimization
-template<class T, class Alloc>
-class asynchronous_state<T,Alloc,true>
+template<class T, class Deleter>
+class asynchronous_state<T,Deleter,true>
 {
   public:
     using value_type = T;
