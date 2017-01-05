@@ -271,7 +271,7 @@ class async_future
     {
       // create state for the continuation's result
       using result_type = agency::detail::result_of_continuation_t<typename std::decay<Function>::type,async_future>;
-      detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready);
+      detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready, cuda::allocator<result_type>());
 
       // tuple up f's input state
       auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
@@ -370,11 +370,13 @@ class async_future
     async_future<agency::detail::result_of_t<ResultFactory()>>
       bulk_then(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
+      // create the asynchronous state to store the continuation's result
       using result_type = agency::detail::result_of_t<ResultFactory()>;
-      detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory());
+      detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, cuda::allocator<result_type>(), result_factory());
       
+      // create the asynchronous state to store the continuation's outer shared argument
       using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
-      detail::asynchronous_state<outer_arg_type> outer_arg_state(agency::detail::construct_ready, outer_factory());
+      detail::asynchronous_state<outer_arg_type> outer_arg_state(agency::detail::construct_ready, cuda::allocator<outer_arg_type>(), outer_factory());
       
       // create a functor to implement this bulk_then()
       auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg_state.data(), inner_factory);
@@ -403,11 +405,13 @@ class async_future
     async_future<agency::detail::result_of_t<ResultFactory()>>
       bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
+      // create the asynchronous state to store the continuation's result
       using result_type = agency::detail::result_of_t<ResultFactory()>;
-      detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, result_factory());
+      detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, cuda::allocator<result_type>(), result_factory());
       
+      // create the asynchronous state to store the continuation's outer shared argument
       using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
-      detail::asynchronous_state<outer_arg_type> outer_arg_state(agency::detail::construct_ready, outer_factory());
+      detail::asynchronous_state<outer_arg_type> outer_arg_state(agency::detail::construct_ready, cuda::allocator<outer_arg_type>(), outer_factory());
       
       // create a functor to implement this bulk_then()
       auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg_state.data(), inner_factory);
@@ -440,13 +444,14 @@ class async_future
       : event_(std::move(e)), state_(std::move(state))
     {}
 
+    // XXX this constructor should take an allocator argument and forward it to the asynchronous_state constructor
     template<class... Args,
              class = typename std::enable_if<
                detail::is_constructible_or_void<T,Args...>::value
              >::type>
     __host__ __device__
     async_future(detail::event&& e, Args&&... ready_args)
-      : async_future(std::move(e), detail::asynchronous_state<T>(agency::detail::construct_ready, std::forward<Args>(ready_args)...))
+      : async_future(std::move(e), detail::asynchronous_state<T>(agency::detail::construct_ready, cuda::allocator<T>(), std::forward<Args>(ready_args)...))
     {}
 
     template<class... Types>
@@ -509,7 +514,7 @@ when_all(async_future<Types>&... futures)
     async_future<Types>...
   >;
 
-  detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready);
+  detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready, cuda::allocator<result_type>());
 
   // tuple up the input states
   auto unfiltered_pointer_tuple = agency::detail::make_tuple(futures.data()...);
@@ -567,7 +572,7 @@ inline async_future<void> make_async_future(cudaEvent_t e)
   assert(event.valid());
 
   // create a new, not ready asynchronous_state
-  cuda::detail::asynchronous_state<void> state(agency::detail::construct_not_ready);
+  cuda::detail::asynchronous_state<void> state(agency::detail::construct_not_ready, cuda::allocator<void>());
   assert(state.valid());
 
   return async_future<void>(std::move(event), std::move(state));

@@ -15,7 +15,7 @@ namespace detail
 
 
 template<class T>
-using asynchronous_state = agency::detail::asynchronous_state<T,allocator<T>>;
+using asynchronous_state = agency::detail::asynchronous_state<T,default_delete<T>>;
 
 
 // XXX it might be better for the following functions to be members of asynchronous_state
