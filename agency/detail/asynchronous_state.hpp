@@ -64,7 +64,6 @@ class asynchronous_state
 
     // constructs an immediately ready state
     // XXX this constructor should take an Allocator parameter
-    //     and this constructor should be enabled if the Deleter type is constructible from the Allocator
     __agency_exec_check_disable__
     template<class Allocator,
              class... Args,
@@ -74,15 +73,18 @@ class asynchronous_state
             >
     __AGENCY_ANNOTATION
     asynchronous_state(construct_ready_t, const Allocator& allocator, Args&&... ready_args)
-      : storage_(allocate_unique<T>(allocator, std::forward<Args>(ready_args)...))
+      : storage_(allocate_unique_with_deleter<T>(allocator, Deleter(), std::forward<Args>(ready_args)...))
     {}
 
-    // constructs a not ready state from a pointer to the result and a deleter
-    // to delete the value
-    // XXX need to add a template parameter: OtherDeleter
-    //     and this constructor should be enabled if the Deleter type is constructible from the OtherDeleter
+    // constructs a not ready state from a pointer to the result and a deleter to delete the value
+    template<class OtherDeleter,
+             __AGENCY_REQUIRES(
+               std::is_constructible<
+                 Deleter, OtherDeleter
+               >::value
+             )>
     __AGENCY_ANNOTATION
-    asynchronous_state(construct_not_ready_t, pointer ptr, const Deleter& deleter)
+    asynchronous_state(construct_not_ready_t, pointer ptr, const OtherDeleter& deleter)
       : storage_(ptr, deleter)
     {}
 
