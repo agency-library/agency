@@ -33,6 +33,7 @@ using is_adl_swappable = typename is_adl_swappable_impl<T>::type;
 
 // this is the default implementation of swap
 // which just uses std::move
+__agency_exec_check_disable__
 template<class T>
 __AGENCY_ANNOTATION
 typename std::enable_if<
