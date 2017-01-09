@@ -20,6 +20,16 @@ class heterogeneous_resource
     using host_resource = HostResource;
     using device_resource = DeviceResource;
 
+    __agency_exec_check_disable__
+    __host__ __device__
+    heterogeneous_resource() :
+#ifndef __CUDA_ARCH__
+      host_resource_{}
+#else
+      device_resource_{}
+#endif
+    {}
+
     __host__ __device__
     void* allocate(size_t num_bytes)
     {
