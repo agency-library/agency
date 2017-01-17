@@ -93,13 +93,16 @@ class unique_ptr
     }
 
     template<class OtherT,
-             class OtherDelete,
+             class OtherDeleter,
              class = typename std::enable_if<
-               std::is_convertible<typename unique_ptr<OtherT,OtherDelete>::pointer,pointer>::value
+               std::is_convertible<typename unique_ptr<OtherT,OtherDeleter>::pointer,pointer>::value
+             >::type,
+             class = typename std::enable_if<
+               std::is_convertible<OtherDeleter&&, Deleter>::value
              >::type
             >
     __AGENCY_ANNOTATION
-    unique_ptr(unique_ptr<OtherT,OtherDelete>&& other)
+    unique_ptr(unique_ptr<OtherT,OtherDeleter>&& other)
       : ptr_(other.release()),
         deleter_(std::move(other.get_deleter()))
     {}

@@ -36,6 +36,11 @@ TODO
   * `omp::simd_executor` AKA `omp::unsequenced_executor`
   * `experimental::unrolling_executor`
 
+### New Experimental Execution Policies
+  
+  * `cuda::experimental::static_grid`
+  * `cuda::experimental::static_con`
+
 ### New Experimental Utilities
 
   * `cuda::experimental::make_async_future`

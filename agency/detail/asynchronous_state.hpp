@@ -45,60 +45,75 @@ constexpr static construct_ready_t     construct_ready{};
 constexpr static construct_not_ready_t construct_not_ready{};
 
 
-// XXX this is suffixed with _impl because of nvbug 1700337
-//     eliminate the suffix when that bug is resolved
-// XXX should try to collapse the implementation of this as much as possible between the two
+// XXX should try to collapse the implementation of asynchronous_state as much as possible between the two specializations
+// XXX the default value of Deleter should be some polymorphic deleter type
+// XXX the default state of the polymorphic deleter type should be an instance of default_delete<T>
 template<class T,
-         class Alloc = std::allocator<T>,
+         class Deleter = default_delete<T>,
          bool requires_storage = state_requires_storage<T>::value>
-class asynchronous_state_impl
+class asynchronous_state
 {
   public:
     using value_type = T;
-    using pointer = value_type*;
-    using storage_type = unique_ptr<T,deleter<Alloc>>;
+    using storage_type = unique_ptr<T,Deleter>;
+    using pointer = typename storage_type::pointer;
 
     // constructs an invalid state
     __AGENCY_ANNOTATION
-    asynchronous_state_impl() = default;
+    asynchronous_state() = default;
 
     // constructs an immediately ready state
+    // XXX this constructor should take an Allocator parameter
     __agency_exec_check_disable__
-    template<class... Args,
+    template<class Allocator,
+             class... Args,
              class = typename std::enable_if<
                std::is_constructible<T,Args...>::value
              >::type
             >
     __AGENCY_ANNOTATION
-    asynchronous_state_impl(construct_ready_t, Args&&... ready_args)
-      : storage_(allocate_unique<T>(Alloc(), std::forward<Args>(ready_args)...))
+    asynchronous_state(construct_ready_t, const Allocator& allocator, Args&&... ready_args)
+      : storage_(allocate_unique_with_deleter<T>(allocator, Deleter(), std::forward<Args>(ready_args)...))
+    {}
+
+    // constructs a not ready state from a pointer to the result and a deleter to delete the value
+    template<class OtherDeleter,
+             __AGENCY_REQUIRES(
+               std::is_constructible<
+                 Deleter, OtherDeleter
+               >::value
+             )>
+    __AGENCY_ANNOTATION
+    asynchronous_state(construct_not_ready_t, pointer ptr, const OtherDeleter& deleter)
+      : storage_(ptr, deleter)
     {}
 
     // constructs a not ready state
     // XXX we should avoid creating an object here
     //     instead, we should just create it uninitialized
     // XXX the destructor should check whether the state requires destruction
+    template<class Allocator>
     __AGENCY_ANNOTATION
-    asynchronous_state_impl(construct_not_ready_t)
-      : asynchronous_state_impl(construct_ready, T{})
+    asynchronous_state(construct_not_ready_t, const Allocator& allocator)
+      : asynchronous_state(construct_ready, allocator, T{})
     {}
 
     __AGENCY_ANNOTATION
-    asynchronous_state_impl(asynchronous_state_impl&& other) = default;
+    asynchronous_state(asynchronous_state&& other) = default;
 
     template<class OtherT,
              class OtherAlloc,
              class = typename std::enable_if<
-               std::is_constructible<storage_type, typename asynchronous_state_impl<OtherT,OtherAlloc>::storage_type&&>::value
+               std::is_constructible<storage_type, typename asynchronous_state<OtherT,OtherAlloc>::storage_type&&>::value
              >::type
             >
     __AGENCY_ANNOTATION
-    asynchronous_state_impl(asynchronous_state_impl<OtherT,OtherAlloc>&& other)
+    asynchronous_state(asynchronous_state<OtherT,OtherAlloc>&& other)
       : storage_(std::move(other.storage_))
     {}
 
     __AGENCY_ANNOTATION
-    asynchronous_state_impl& operator=(asynchronous_state_impl&&) = default;
+    asynchronous_state& operator=(asynchronous_state&&) = default;
 
     __AGENCY_ANNOTATION
     pointer data() const
@@ -123,7 +138,7 @@ class asynchronous_state_impl
     }
 
     __AGENCY_ANNOTATION
-    void swap(asynchronous_state_impl& other)
+    void swap(asynchronous_state& other)
     {
       storage_.swap(other.storage_);
     }
@@ -136,7 +151,7 @@ class asynchronous_state_impl
 
   private:
     template<class, class, bool>
-    friend class asynchronous_state_impl;
+    friend class asynchronous_state;
 
     storage_type storage_;
 };
@@ -166,8 +181,8 @@ struct empty_type_ptr<void> : unit_ptr {};
 
 
 // zero storage optimization
-template<class T, class Alloc>
-class asynchronous_state_impl<T,Alloc,true>
+template<class T, class Deleter>
+class asynchronous_state<T,Deleter,true>
 {
   public:
     using value_type = T;
@@ -176,25 +191,32 @@ class asynchronous_state_impl<T,Alloc,true>
 
     // constructs an invalid state
     __AGENCY_ANNOTATION
-    asynchronous_state_impl() : valid_(false) {}
+    asynchronous_state() : valid_(false) {}
 
     // constructs an immediately ready state
-    template<class OtherT,
+    // the allocator is ignored because this state requires no storage
+    template<class Allocator,
+             class OtherT,
              class = typename std::enable_if<
                std::is_constructible<T,OtherT&&>::value
              >::type>
     __AGENCY_ANNOTATION
-    asynchronous_state_impl(construct_ready_t, OtherT&&) : valid_(true) {}
+    asynchronous_state(construct_ready_t, const Allocator&, OtherT&&) : valid_(true) {}
 
+    // constructs an immediately ready state
+    // the allocator is ignored because this state requires no storage
+    template<class Allocator>
     __AGENCY_ANNOTATION
-    asynchronous_state_impl(construct_ready_t) : valid_(true) {}
+    asynchronous_state(construct_ready_t, const Allocator&) : valid_(true) {}
 
     // constructs a not ready state
+    // the allocator is ignored because this state requires no storage
+    template<class Allocator>
     __AGENCY_ANNOTATION
-    asynchronous_state_impl(construct_not_ready_t) : valid_(true) {}
+    asynchronous_state(construct_not_ready_t, const Allocator&) : valid_(true) {}
 
     __AGENCY_ANNOTATION
-    asynchronous_state_impl(asynchronous_state_impl&& other) : valid_(other.valid_)
+    asynchronous_state(asynchronous_state&& other) : valid_(other.valid_)
     {
       other.valid_ = false;
     }
@@ -211,7 +233,7 @@ class asynchronous_state_impl<T,Alloc,true>
                std::is_base_of<T,OtherT>::value
              >::type>
     __AGENCY_ANNOTATION
-    asynchronous_state_impl(asynchronous_state_impl<OtherT,OtherAlloc>&& other)
+    asynchronous_state(asynchronous_state<OtherT,OtherAlloc>&& other)
       : valid_(other.valid())
     {
       if(valid())
@@ -222,7 +244,7 @@ class asynchronous_state_impl<T,Alloc,true>
     }
 
     __AGENCY_ANNOTATION
-    asynchronous_state_impl& operator=(asynchronous_state_impl&& other)
+    asynchronous_state& operator=(asynchronous_state&& other)
     {
       valid_ = other.valid_;
       other.valid_ = false;
@@ -251,7 +273,7 @@ class asynchronous_state_impl<T,Alloc,true>
     }
 
     __AGENCY_ANNOTATION
-    void swap(asynchronous_state_impl& other)
+    void swap(asynchronous_state& other)
     {
       bool other_valid_old = other.valid_;
       other.valid_ = valid_;
@@ -272,16 +294,6 @@ class asynchronous_state_impl<T,Alloc,true>
     }
 
     bool valid_;
-};
-
-
-// XXX this extra indirection is due to nvbug 1700337
-//     eliminate this class when that bug is resolved
-template<class T, class Alloc = std::allocator<T>>
-class asynchronous_state : public asynchronous_state_impl<T,Alloc>
-{
-  public:
-    using asynchronous_state_impl<T,Alloc>::asynchronous_state_impl;
 };
 
   

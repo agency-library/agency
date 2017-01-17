@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/asynchronous_state.hpp>
-#include <agency/cuda/memory/allocator.hpp>
+#include <agency/cuda/memory/detail/any_deleter.hpp>
 #include <agency/cuda/memory/detail/unique_ptr.hpp>
 #include <type_traits>
 
@@ -15,7 +15,7 @@ namespace detail
 
 
 template<class T>
-using asynchronous_state = agency::detail::asynchronous_state<T,allocator<T>>;
+using asynchronous_state = agency::detail::asynchronous_state<T,cuda::detail::any_small_deleter<T>>;
 
 
 // XXX it might be better for the following functions to be members of asynchronous_state
