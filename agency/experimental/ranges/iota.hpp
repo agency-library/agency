@@ -105,6 +105,13 @@ class counting_iterator
       return result;
     }
 
+    // iterator difference
+    __AGENCY_ANNOTATION
+    difference_type operator-(const counting_iterator& rhs) const
+    {
+      return value_ - rhs.value_;
+    }
+
     // dereference
     __AGENCY_ANNOTATION
     reference operator*() const
@@ -226,9 +233,19 @@ template<class Incrementable, class OtherIncrementable,
              OtherIncrementable, Incrementable
            >::value
          )>
+__AGENCY_ANNOTATION
 iota_view<Incrementable> iota(Incrementable begin, OtherIncrementable end)
 {
   return iota_view<Incrementable>(begin, end);
+}
+
+
+template<class Incrementable>
+__AGENCY_ANNOTATION
+iota_view<Incrementable> all(const iota_view<Incrementable>& v)
+{
+  // iota_view is already a view, so just return a copy of the parameter
+  return v;
 }
 
 
