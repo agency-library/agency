@@ -50,6 +50,7 @@ class event
       detail::terminate_with_message("cuda::detail::event ctor requires CUDART");
 #endif
     }
+
     // creates an invalid event
     __host__ __device__
     event() : stream_(), e_{0}
@@ -388,6 +389,19 @@ inline __host__ __device__
 event make_ready_event()
 {
   return event(event::construct_ready);
+}
+
+
+inline __host__ __device__
+event when_all_events_are_ready(const device_id& device, cudaStream_t s)
+{
+  detail::stream new_stream{device};
+
+  // tell the new stream to wait on s
+  new_stream.wait_on(s);
+
+  // return a new event recorded on the new stream
+  return event(std::move(new_stream));
 }
 
 
