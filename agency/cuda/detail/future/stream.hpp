@@ -109,9 +109,28 @@ class stream
     {
 #if __cuda_lib_has_cudart
       // make the next launch wait on the event
-      throw_on_error(cudaStreamWaitEvent(native_handle(), e, 0), "cuda::detail::stream::wait_on(): cudaStreamWaitEvent()");
+      throw_on_error(cudaStreamWaitEvent(native_handle(), e, 0), "cuda::detail::stream::wait_on(cudaEvent_t): cudaStreamWaitEvent()");
 #else
-      throw_on_error(cudaErrorNotSupported, "cuda::detail::stream::wait_on(): cudaStreamWaitEvent() requires CUDART");
+      throw_on_error(cudaErrorNotSupported, "cuda::detail::stream::wait_on(cudaEvent_t): cudaStreamWaitEvent() requires CUDART");
+#endif
+    }
+
+    inline __host__ __device__
+    void wait_on(cudaStream_t s)
+    {
+#if __cuda_lib_has_cudart
+      // record an event on s
+      cudaEvent_t e;
+      throw_on_error(cudaEventCreate(&e), "cuda::detail::stream::wait_on(cudaStream_t): cudaEventCreate()");
+      throw_on_error(cudaEventRecord(e, s), "cuda::detail::stream::wait_on(cudaStream_t): cudaEventRecord()");
+
+      // wait on the event
+      wait_on(e);
+
+      // destroy the event
+      throw_on_error(cudaEventDestroy(e), "cuda::detail::stream::wait_on(cudaStream_t): cudaEventDestroy()");
+#else
+      throw_on_error(cudaErrorNotSupported, "cuda::detail::stream::wait_on(cudaStream_t): requires CUDART");
 #endif
     }
 
