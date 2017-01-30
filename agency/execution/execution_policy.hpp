@@ -237,12 +237,15 @@ class basic_execution_policy
     /// \brief This constructor constructs a new basic_execution_policy given a parameterization and executor.
     /// \param param The parameterization of this basic_execution_policy.
     /// \param executor The executor to associate with this basic_execution_policy.
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
     basic_execution_policy(const param_type& param, const executor_type& executor = executor_type{})
       : param_(param),
         executor_(executor)
     {}
 
     /// \brief Returns this execution policy's parameterization.
+    __AGENCY_ANNOTATION
     const param_type& param() const
     {
       return param_;
