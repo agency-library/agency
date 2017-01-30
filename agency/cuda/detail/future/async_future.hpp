@@ -604,6 +604,28 @@ async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Deleter& deleter)
 }
 
 
+// returns an async_future<void> whose readiness depends on the completion of all events previously recorded on the given stream
+__host__ __device__
+inline async_future<void> make_async_future(cudaStream_t s)
+{
+  // create an event corresponding to the completion of everything submitted so far to s
+  cuda::detail::event e = cuda::detail::when_all_events_are_ready(s);
+
+  return experimental::make_async_future(e.native_handle());
+}
+
+
+// returns an async_future<T> whose readiness depends on the completion of all events previously recorded on the given stream
+template<class T, class Deleter>
+async_future<T> make_async_future(cudaStream_t s, T* ptr, const Deleter& deleter)
+{
+  // create an event corresponding to the completion of everything submitted so far to s
+  cuda::detail::event e = cuda::detail::when_all_events_are_ready(s);
+
+  return experimental::make_async_future(e.native_handle(), ptr, deleter);
+}
+
+
 } // end experimental
 } // end namespace cuda
 } // end namespace agency
