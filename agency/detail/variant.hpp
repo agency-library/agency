@@ -289,14 +289,14 @@ class variant : private variant_detail::variant_storage<Types...>
     {
       template<class T>
       __AGENCY_ANNOTATION
-      void operator()(T& self, T& other)
+      void operator()(T& self, T& other) const
       {
         new (&self) T(std::move(other));
       }
 
       template<class... Args>
       __AGENCY_ANNOTATION
-      void operator()(Args&&...){}
+      void operator()(Args&&...) const {}
     };
 
   public:
@@ -313,14 +313,14 @@ class variant : private variant_detail::variant_storage<Types...>
     {
       template<class T>
       __AGENCY_ANNOTATION
-      void operator()(T& self, const T& other)
+      void operator()(T& self, const T& other) const
       {
         new (&self) T(other);
       }
 
       template<class... Args>
       __AGENCY_ANNOTATION
-      void operator()(Args&&...){}
+      void operator()(Args&&...) const {}
     };
 
   public:
@@ -339,14 +339,14 @@ class variant : private variant_detail::variant_storage<Types...>
       const T& other;
 
       __AGENCY_ANNOTATION
-      void operator()(T& self)
+      void operator()(T& self) const
       {
         new (&self) T(other);
       }
 
       template<class U>
       __AGENCY_ANNOTATION
-      void operator()(U&&) {}
+      void operator()(U&&) const {}
     };
 
   public:
@@ -368,14 +368,14 @@ class variant : private variant_detail::variant_storage<Types...>
       T& other;
 
       __AGENCY_ANNOTATION
-      void operator()(T& self)
+      void operator()(T& self) const
       {
         new (&self) T(std::move(other));
       }
 
       template<class U>
       __AGENCY_ANNOTATION
-      void operator()(U&&){}
+      void operator()(U&&) const {}
     };
 
   public:
@@ -399,7 +399,7 @@ class variant : private variant_detail::variant_storage<Types...>
       typename std::enable_if<
         !std::is_trivially_destructible<T>::value
       >::type
-        operator()(T& x)
+        operator()(T& x) const
       {
         x.~T();
       }
@@ -409,7 +409,7 @@ class variant : private variant_detail::variant_storage<Types...>
       typename std::enable_if<
         std::is_trivially_destructible<T>::value
       >::type
-        operator()(T& x)
+        operator()(T& x) const
       {
         // omit invocations of destructors for trivially destructible types
       }
@@ -493,14 +493,14 @@ class variant : private variant_detail::variant_storage<Types...>
     {
       template<class T>
       __AGENCY_ANNOTATION
-      void operator()(T& self, T& other)
+      void operator()(T& self, T& other) const
       {
         self = std::move(other);
       }
 
       template<class... Args>
       __AGENCY_ANNOTATION
-      void operator()(Args&&...){}
+      void operator()(Args&&...) const {}
     };
 
 
@@ -534,7 +534,7 @@ class variant : private variant_detail::variant_storage<Types...>
     {
       template<class A, class B>
       __AGENCY_ANNOTATION
-      void operator()(A& a, B& b)
+      void operator()(A& a, B& b) const
       {
         // XXX can't call std::swap because __AGENCY_ANNOTATION
         A tmp = std::move(a);
@@ -565,14 +565,14 @@ class variant : private variant_detail::variant_storage<Types...>
     {
       template<typename U1, typename U2>
       __AGENCY_ANNOTATION
-      bool operator()(const U1&, const U2&)
+      bool operator()(const U1&, const U2&) const
       {
         return false;
       }
 
       template<typename T>
       __AGENCY_ANNOTATION
-      bool operator()(const T& lhs, const T& rhs)
+      bool operator()(const T& lhs, const T& rhs) const
       {
         return lhs == rhs;
       }
@@ -598,14 +598,14 @@ class variant : private variant_detail::variant_storage<Types...>
     {
       template<typename U1, typename U2>
       __AGENCY_ANNOTATION
-      bool operator()(const U1&, const U2&)
+      bool operator()(const U1&, const U2&) const
       {
         return false;
       }
 
       template<typename T>
       __AGENCY_ANNOTATION
-      bool operator()(const T& lhs, const T& rhs)
+      bool operator()(const T& lhs, const T& rhs) const
       {
         return lhs < rhs;
       }
