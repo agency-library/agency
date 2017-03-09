@@ -293,6 +293,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
   private:
     struct binary_move_construct_visitor
     {
+      __agency_exec_check_disable__
       template<class T>
       __AGENCY_ANNOTATION
       void operator()(T& self, T& other) const
@@ -317,6 +318,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
   private:
     struct binary_copy_construct_visitor
     {
+      __agency_exec_check_disable__
       template<class T>
       __AGENCY_ANNOTATION
       void operator()(T& self, const T& other) const
@@ -344,6 +346,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     {
       const T& other;
 
+      __agency_exec_check_disable__
       __AGENCY_ANNOTATION
       void operator()(T& self) const
       {
@@ -400,6 +403,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
   private:
     struct destruct_visitor
     {
+      __agency_exec_check_disable__
       template<typename T>
       __AGENCY_ANNOTATION
       typename std::enable_if<
@@ -801,6 +805,7 @@ struct unary_visitor_binder
   __AGENCY_ANNOTATION
   unary_visitor_binder(VisitorReference visitor, ElementReference x) : visitor(visitor), x(x) {}
 
+  __agency_exec_check_disable__
   template<typename T>
   __AGENCY_ANNOTATION
   Result operator()(T&& y)
