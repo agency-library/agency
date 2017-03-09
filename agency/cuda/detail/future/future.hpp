@@ -25,7 +25,7 @@ class future
   private:
     template<class U> friend class future;
 
-    using variant_type = agency::detail::variant<agency::cuda::async_future<T>, agency::cuda::deferred_future<T>>;
+    using variant_type = agency::experimental::variant<agency::cuda::async_future<T>, agency::cuda::deferred_future<T>>;
 
   public:
     __AGENCY_ANNOTATION
@@ -65,7 +65,7 @@ class future
     __AGENCY_ANNOTATION
     static future converting_move_construct(future<U>&& other)
     {
-      return agency::detail::visit(converting_move_construct_visitor<U>{}, other.variant_);
+      return agency::experimental::visit(converting_move_construct_visitor<U>{}, other.variant_);
     }
 
   public:
@@ -94,21 +94,21 @@ class future
     __AGENCY_ANNOTATION
     Future& get()
     {
-      return agency::detail::get<Future>(variant_);
+      return agency::experimental::get<Future>(variant_);
     }
 
     template<class Future>
     __AGENCY_ANNOTATION
     const Future& get() const
     {
-      return agency::detail::get<Future>(variant_);
+      return agency::experimental::get<Future>(variant_);
     }
 
     template<class Future>
     __AGENCY_ANNOTATION
     Future&& get() &&
     {
-      return agency::detail::get<Future>(std::move(variant_));
+      return agency::experimental::get<Future>(std::move(variant_));
     }
 
     __AGENCY_ANNOTATION
@@ -133,7 +133,7 @@ class future
     bool valid() const
     {
       auto visitor = valid_visitor();
-      return agency::detail::visit(visitor, variant_);
+      return agency::experimental::visit(visitor, variant_);
     }
 
   private:
@@ -152,7 +152,7 @@ class future
     bool is_ready() const
     {
       auto visitor = is_ready_visitor();
-      return agency::detail::visit(visitor, variant_);
+      return agency::experimental::visit(visitor, variant_);
     }
 
   private:
@@ -171,7 +171,7 @@ class future
     void wait()
     {
       auto visitor = wait_visitor();
-      return agency::detail::visit(visitor, variant_);
+      return agency::experimental::visit(visitor, variant_);
     }
 
   private:
@@ -190,7 +190,7 @@ class future
     T get()
     {
       auto visitor = get_visitor();
-      return agency::detail::visit(visitor, variant_);
+      return agency::experimental::visit(visitor, variant_);
     }
 
     template<class... Args,
@@ -325,7 +325,7 @@ class future
       then(Function&& f)
     {
       auto visitor = then_visitor<typename std::decay<Function>::type>{std::forward<Function>(f)};
-      return agency::detail::visit(visitor, variant_);
+      return agency::experimental::visit(visitor, variant_);
     }
 
   private:
@@ -421,7 +421,7 @@ class future
       then_and_leave_valid(Function&& f)
     {
       auto visitor = then_and_leave_valid_visitor<typename std::decay<Function>::type>{std::forward<Function>(f)};
-      return agency::detail::visit(visitor, variant_);
+      return agency::experimental::visit(visitor, variant_);
     }
 
 
@@ -454,7 +454,7 @@ class future
       bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       auto visitor = bulk_then_and_leave_valid_visitor<Function,Shape,IndexFunction,ResultFactory,OuterFactory,InnerFactory>{f,shape,index_function,result_factory,outer_factory,inner_factory,device};
-      return agency::detail::visit(visitor, variant_);
+      return agency::experimental::visit(visitor, variant_);
     }
 
     variant_type variant_;
@@ -480,7 +480,7 @@ class future
     get_ref_result_type get_ref()
     {
       get_ref_visitor visitor;
-      return agency::detail::visit(visitor, variant_);
+      return agency::experimental::visit(visitor, variant_);
     }
 
     friend class shared_future<T>;
