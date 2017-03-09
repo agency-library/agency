@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/cuda/detail/future/deferred_future.hpp>
-#include <agency/detail/variant.hpp>
+#include <agency/experimental/variant.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/invoke.hpp>
 #include <utility>
