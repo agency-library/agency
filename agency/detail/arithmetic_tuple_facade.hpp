@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 #include <agency/detail/tuple_utility.hpp>
 #include <tuple>
 #include <type_traits>
@@ -339,10 +340,35 @@ template<typename Derived>
     return !operator<(rhs);
   }
 
+  private:
+
+  // define our own print_tuple() function to use instead of __tu::print_tuple()
+  // to avoid nvcc's warnings
+  template<size_t BeginIndex, __AGENCY_REQUIRES(BeginIndex == std::tuple_size<Derived>::value)>
+  static void print_tuple(std::ostream&, const Derived&)
+  {
+  }
+
+  template<size_t BeginIndex, __AGENCY_REQUIRES(BeginIndex < std::tuple_size<Derived>::value)>
+  static void print_tuple(std::ostream& os, const Derived& t)
+  {
+    os << __tu::__get<BeginIndex>(t);
+
+    // insert a delimiter after elements except for the last
+    if(BeginIndex < std::tuple_size<Derived>::value - 1)
+    {
+      os << ", ";
+    }
+    
+    arithmetic_tuple_facade::print_tuple<BeginIndex+1>(os, t);
+  }
+
+  public:
+
   friend std::ostream& operator<<(std::ostream& os, const arithmetic_tuple_facade& t)
   {
     os << "{";
-    __tu::tuple_print(t.derived(), os);
+    arithmetic_tuple_facade::print_tuple<0>(os, t.derived());
     os << "}";
 
     return os;
