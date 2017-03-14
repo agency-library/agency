@@ -436,6 +436,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
   private:
     struct copy_assign_visitor
     {
+      __agency_exec_check_disable__
       template<class T>
       __AGENCY_ANNOTATION
       void operator()(T& self, const T& other) const
@@ -450,6 +451,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
 
     struct destroy_and_copy_construct_visitor
     {
+      __agency_exec_check_disable__
       template<class A, class B>
       __AGENCY_ANNOTATION
       void operator()(A& a, const B& b) const
@@ -467,6 +469,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
 
     struct destroy_and_move_construct_visitor
     {
+      __agency_exec_check_disable__
       template<class A, class B>
       __AGENCY_ANNOTATION
       void operator()(A& a, B&& b) const
@@ -501,6 +504,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
   private:
     struct move_assign_visitor
     {
+      __agency_exec_check_disable__
       template<class T>
       __AGENCY_ANNOTATION
       void operator()(T& self, T& other) const
