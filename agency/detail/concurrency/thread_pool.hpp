@@ -225,6 +225,11 @@ class thread_pool_executor
       {
         system_thread_pool().submit([=]() mutable
         {
+// nvcc makes this lambda's constructors __host__ __device__ when
+// any of its captures' constructors are __host__ __device__. This causes nvcc
+// to emit warnings about a __host__ __device__ function calling __host__ functions 
+// this #ifndef works around this problem
+#ifndef __CUDA_ARCH__
           // get the predecessor future's value
           using predecessor_type = future_value_t<Future>;
           predecessor_type& predecessor_arg = const_cast<predecessor_type&>(shared_predecessor.get());
@@ -237,6 +242,7 @@ class thread_pool_executor
           // (and therefore shared_result_ptr's lifetime) is not necessarily complete
           // this .reset() is what fulfills the promise via shared_result_ptr's deleter
           shared_result_ptr.reset();
+#endif
         });
       }
 
@@ -280,6 +286,11 @@ class thread_pool_executor
       {
         system_thread_pool().submit([=]() mutable
         {
+// nvcc makes this lambda's constructors __host__ __device__ when
+// any of its captures' constructors are __host__ __device__. This causes nvcc
+// to emit warnings about a __host__ __device__ function calling __host__ functions 
+// this #ifndef works around this problem
+#ifndef __CUDA_ARCH__
           // wait on the predecessor future
           shared_predecessor.wait();
 
@@ -291,6 +302,7 @@ class thread_pool_executor
           // (and therefore shared_result_ptr's lifetime) is not necessarily complete
           // this .reset() is what fulfills the promise via shared_result_ptr's deleter
           shared_result_ptr.reset();
+#endif
         });
       }
 
