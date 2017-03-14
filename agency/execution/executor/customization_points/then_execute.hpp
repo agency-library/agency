@@ -71,7 +71,6 @@ executor_future_t<
 then_execute(E& exec, Function f, Future& predecessor)
 {
   using result_of_function = detail::result_of_continuation_t<Function,Future>;
-  using predecessor_type = detail::future_value_t<Future>;
 
   // if f returns void, then return a unit from bulk_then_execute()
   using result_type = typename std::conditional<
