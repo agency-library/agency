@@ -73,11 +73,28 @@ def RecursivelyCreateProgramsAndUnitTestAliases(env):
   return programs
   
 
-# this function takes a SCons environment and specifies some compiler
-# flags to use
+# this function takes a SCons environment and specifies some compiler flags to use
 def apply_compiler_flags(env):
+  # a dictionary mapping compiler features to the list of compiler switches implementing them
+  gnu_compiler_flags = {
+    'warnings'           : { 'all' : '-Wall', 'extra' : '-Wextra'},
+    'warnings_as_errors' : '-Werrors'
+  }
+
+  all_compiler_flags = {}
+  all_compiler_flags['g++'] = gnu_compiler_flags
+  all_compiler_flags['clang'] = all_compiler_flags['g++']
+
+  this_compilers_flags = all_compiler_flags[env['CXX']]
+
+  # get all the c++ compiler flags for the warnings enabled
+  cxx_warning_flags = [this_compilers_flags['warnings'][key] for key in env['warnings']]
+
+  if env['warnings_as_errors']:
+    cxx_warning_flags.append(this_compilers_flags['warnings_as_errors'])
+
   # first, general C++ flags
-  env.MergeFlags(['-O3', '-std=c++11', '-lstdc++', '-lpthread'])
+  env.MergeFlags(['-O3', '-std=c++11', '-lstdc++', '-lpthread'] + cxx_warning_flags)
   
   # next, flags for nvcc
   env.MergeFlags(['--expt-extended-lambda', '-arch=' + str(env['arch'])])
@@ -85,7 +102,7 @@ def apply_compiler_flags(env):
 
 # script execution begins here
 
-# first set up some variables we can control from the command line
+# set up some variables we can control from the command line
 vars = Variables()
 vars.Add('CXX', 'C++ compiler', 'clang')
 vars.Add('CPPPATH', 'Agency include path', Dir('..'))
@@ -93,6 +110,9 @@ vars.Add(ListVariable('arch', 'Compute capability code generation', 'sm_52',
                       ['sm_30', 'sm_32', 'sm_35', 'sm_37',
                        'sm_50', 'sm_52',
                        'sm_60']))
+vars.Add(ListVariable('warnings', 'Compiler warning options', 'all',
+                      ['all', 'extra']))
+vars.Add(BoolVariable('warnings_as_errors', 'Treat warnings as errors', False))
 
 # create a SCons build environment
 env = Environment(variables = vars, tools = ['default', 'nvcc-scons/nvcc'])
