@@ -17,5 +17,5 @@
 //       return x + 1;
 //     }
 //
-#define __AGENCY_REQUIRES(...) typename std::enable_if<__VA_ARGS__>::type* = nullptr
+#define __AGENCY_REQUIRES(...) typename std::enable_if<(__VA_ARGS__)>::type* = nullptr
 
