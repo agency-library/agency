@@ -72,7 +72,7 @@ class unique_function<Result(Args...)>
 
     template<class Alloc>
     __AGENCY_ANNOTATION
-    unique_function(std::allocator_arg_t, const Alloc& alloc, std::nullptr_t)
+    unique_function(std::allocator_arg_t, const Alloc&, std::nullptr_t)
       : unique_function(nullptr)
     {}
 
