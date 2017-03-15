@@ -88,8 +88,6 @@ class spinning_barrier
 
     inline void arrive_and_drop()
     {
-      size_t generation = generation_.load();
-
       if(num_spinning_.fetch_add(1) == count_ - 1)
       {
         num_spinning_.store(0);
