@@ -88,10 +88,10 @@ namespace std
 
 
 template<class... Shapes>
-struct tuple_size<agency::detail::shape_tuple<Shapes...>> : std::tuple_size<agency::detail::tuple<Shapes...>> {};
+class tuple_size<agency::detail::shape_tuple<Shapes...>> : public std::tuple_size<agency::detail::tuple<Shapes...>> {};
 
 template<size_t i, class... Shapes>
-struct tuple_element<i,agency::detail::shape_tuple<Shapes...>> : std::tuple_element<i,agency::detail::tuple<Shapes...>> {};
+class tuple_element<i,agency::detail::shape_tuple<Shapes...>> : public std::tuple_element<i,agency::detail::tuple<Shapes...>> {};
 
 
 } // end namespace std

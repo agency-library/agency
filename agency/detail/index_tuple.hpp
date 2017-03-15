@@ -121,10 +121,10 @@ namespace std
 
 
 template<class... Indices>
-struct tuple_size<agency::detail::index_tuple<Indices...>> : std::tuple_size<agency::detail::tuple<Indices...>> {};
+class tuple_size<agency::detail::index_tuple<Indices...>> : public std::tuple_size<agency::detail::tuple<Indices...>> {};
 
 template<size_t i, class... Indices>
-struct tuple_element<i,agency::detail::index_tuple<Indices...>> : std::tuple_element<i,agency::detail::tuple<Indices...>> {};
+class tuple_element<i,agency::detail::index_tuple<Indices...>> : public std::tuple_element<i,agency::detail::tuple<Indices...>> {};
 
 
 } // end namespace std
