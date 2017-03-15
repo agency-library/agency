@@ -147,7 +147,7 @@ class arena_resource<0,alignment> : public null_resource
     }
 
     __AGENCY_ANNOTATION
-    constexpr bool owns(void* ptr, std::size_t n) const noexcept
+    constexpr bool owns(void*, std::size_t) const noexcept
     {
       return false;
     }
