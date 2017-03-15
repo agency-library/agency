@@ -224,7 +224,7 @@ class scope_result_container<0, T, Executor>
     {}
 
     __AGENCY_ANNOTATION
-    scope_result_container& operator[](const index_type& idx)
+    scope_result_container& operator[](const index_type&)
     {
       return *this;
     }
