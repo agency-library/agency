@@ -57,7 +57,7 @@ template<class E,
          __AGENCY_REQUIRES(!detail::has_max_shape_dimensions<E,executor_shape_t<E>>::value)
         >
 __AGENCY_ANNOTATION
-executor_shape_t<E> max_shape_dimensions(const E& exec)
+executor_shape_t<E> max_shape_dimensions(const E&)
 {
   return detail::max_shape_dimensions<executor_shape_t<E>>();
 }

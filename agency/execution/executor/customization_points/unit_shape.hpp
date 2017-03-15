@@ -58,7 +58,7 @@ template<class E,
          __AGENCY_REQUIRES(!detail::has_unit_shape<E,executor_shape_t<E>>::value)
         >
 __AGENCY_ANNOTATION
-executor_shape_t<E> unit_shape(const E& exec)
+executor_shape_t<E> unit_shape(const E&)
 {
   // by default, an executor's unit shape contains a single point
   return detail::shape_cast<executor_shape_t<E>>(1);
