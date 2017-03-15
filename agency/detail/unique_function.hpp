@@ -84,7 +84,7 @@ class unique_function<Result(Args...)>
 
     template<class Alloc>
     __AGENCY_ANNOTATION
-    unique_function(std::allocator_arg_t, const Alloc& alloc, unique_function&& other)
+    unique_function(std::allocator_arg_t, const Alloc&, unique_function&& other)
       : f_ptr_(std::move(other.f_ptr_))
     {}
 
@@ -159,7 +159,7 @@ class unique_function<Result(Args...)>
                  std::is_constructible<Function,OtherFunction&&>::value
                >::type>
       __AGENCY_ANNOTATION
-      callable(const Alloc& alloc, OtherFunction&& f)
+      callable(const Alloc&, OtherFunction&& f)
         : super_t(deallocate),
           f_(std::forward<OtherFunction>(f))
       {}
