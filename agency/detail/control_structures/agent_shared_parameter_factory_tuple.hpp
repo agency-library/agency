@@ -79,8 +79,6 @@ __AGENCY_ANNOTATION
 agent_shared_parameter_factory_tuple_t<ExecutionAgent>
   make_agent_shared_parameter_factory_tuple_impl(const typename execution_agent_traits<ExecutionAgent>::param_type& param, std::false_type)
 {
-  using shared_param_type = typename execution_agent_traits<ExecutionAgent>::shared_param_type;
-
   auto factory = detail::make_agent_shared_parameter_factory<ExecutionAgent>(param);
 
   return detail::make_tuple(factory);
