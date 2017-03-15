@@ -26,7 +26,7 @@ class synchronic_latch
 
     inline void count_down(ptrdiff_t n)
     {
-      if(--counter_ == 0)
+      if((counter_ -= n) == 0)
       {
         notifier_.notify_all(released_, true);
       }
