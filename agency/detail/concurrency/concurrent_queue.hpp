@@ -58,8 +58,8 @@ class synchronic_concurrent_queue
 {
   public:
     synchronic_concurrent_queue()
-      : status_(open_and_empty),
-        num_poppers_(0)
+      : num_poppers_(0),
+        status_(open_and_empty)
     {
     }
 
