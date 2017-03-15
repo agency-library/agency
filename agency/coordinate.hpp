@@ -589,7 +589,7 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     lattice_iterator& operator+=(difference_type n)
     {
-      return advance(std::is_arithmetic<T>());
+      return advance(n, std::is_arithmetic<T>());
     }
 
     __AGENCY_ANNOTATION
