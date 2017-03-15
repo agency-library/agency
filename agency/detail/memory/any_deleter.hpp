@@ -98,18 +98,18 @@ class any_small_deleter
 
       __AGENCY_ANNOTATION
       //virtual void copy_construct_into(abstract_deleter& to) const = 0;
-      virtual void copy_construct_into(abstract_deleter& to) const {}
+      virtual void copy_construct_into(abstract_deleter&) const {}
 
       __AGENCY_ANNOTATION
       //virtual void copy_assign_to(abstract_deleter& to) const = 0;
-      virtual void copy_assign_to(abstract_deleter& to) const {}
+      virtual void copy_assign_to(abstract_deleter&) const {}
 
       // virtual const std::type_info& type() const = 0;
       virtual const std::type_info& type() const { return typeid(void); }
 
       __AGENCY_ANNOTATION
       //virtual void operator()(pointer ptr) const = 0;
-      virtual void operator()(pointer ptr) const {}
+      virtual void operator()(pointer) const {}
     };
 
     template<class Deleter>
