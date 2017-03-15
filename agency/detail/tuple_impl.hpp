@@ -1041,7 +1041,7 @@ namespace detail
 
 template<class... TTypes, class... UTypes>
 __TUPLE_ANNOTATION
-  bool tuple_lt(const tuple<TTypes...>& t, const tuple<UTypes...>& u, tuple_index_sequence<>)
+  bool tuple_lt(const tuple<TTypes...>&, const tuple<UTypes...>&, tuple_index_sequence<>)
 {
   return false;
 }
