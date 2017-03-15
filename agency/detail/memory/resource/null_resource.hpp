@@ -23,7 +23,7 @@ struct null_resource
   }
 
   __AGENCY_ANNOTATION
-  void deallocate(void* p, std::size_t) noexcept
+  void deallocate(void*, std::size_t) noexcept
   {
   }
 };
