@@ -370,8 +370,6 @@ class executor_array
       auto outer_shared_arg_ptr = detail::allocate_unique<outer_shared_arg_type>(allocator<outer_shared_arg_type>(), outer_factory());
       outer_shared_arg_type* outer_shared_arg_raw_ptr = outer_shared_arg_ptr.get();
 
-      using past_arg_type = detail::future_value_t<Future>;
-
       // split the predecessor future into a collection of shared futures
       auto shared_predecessor_futures = detail::bulk_share_future(outer_executor(), outer_shape, predecessor);
       using future_container = decltype(shared_predecessor_futures);
@@ -380,7 +378,9 @@ class executor_array
       //auto inner_futures = bulk_sync_execute_with_auto_result_and_without_shared_parameters(outer_executor(), [=,&past_futures](const outer_index_type& outer_idx) mutable
       //{
       //  auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
-
+      //
+      //  using past_arg_type = detail::future_value_t<Future>;
+      //
       //  return bulk_then_execute_with_void_result(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx, past_arg_type& past_arg, decltype(inner_factories())&... inner_shared_args) mutable
       //  {
       //    auto idx = make_index(outer_idx, inner_idx);
