@@ -529,7 +529,7 @@ inline namespace concurrency_v2 {
           memory_order order = memory_order_seq_cst) const {
 
             // We don't implement the absolute time-outs, so we desugar into a relative time-out.
-            return wait_for_change_for(object, current, abs_time - chrono::steady_clock::now());
+            return wait_for_change_for(object, current, order, abs_time - chrono::steady_clock::now());
         }
         template <class Rep, class Period>
         __syn_gcc_inline bool wait_for_change_for(const atomic<T>& object, T current, 
