@@ -30,7 +30,7 @@ __AGENCY_ANNOTATION
 typename std::enable_if<
   !has_destroy<Alloc,T*>::value
 >::type
-  destroy(Alloc& a, T* p)
+  destroy(Alloc&, T* p)
 {
   p->~T();
 } // end destroy()

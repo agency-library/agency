@@ -92,7 +92,7 @@ typename std::enable_if<
   !has_max_size<Alloc>::value,
   typename allocator_traits<Alloc>::size_type
 >::type
-  max_size(const Alloc& a)
+  max_size(const Alloc&)
 {
   using size_type = typename allocator_traits<Alloc>::size_type;
   using value_type = typename allocator_traits<Alloc>::value_type;
