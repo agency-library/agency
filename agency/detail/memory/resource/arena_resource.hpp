@@ -105,7 +105,7 @@ class arena_resource
     __AGENCY_ANNOTATION
     bool owns(void* ptr, std::size_t) const noexcept
     {
-      const char* ptr_to_char = reinterpret_cast<const char*>(ptr_to_first_free_byte_);
+      const char* ptr_to_char = reinterpret_cast<const char*>(ptr);
 
       // XXX workaround nvbug 1853802
       //return (buf_ <= ptr_to_char) && (ptr_to_char <= ptr_to_first_free_byte_);
