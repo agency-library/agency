@@ -96,8 +96,6 @@ agent_shared_parameter_factory_tuple_t<ExecutionAgent>
   auto inner_factories = make_agent_shared_parameter_factory_tuple<inner_execution_agent_type>(param.inner());
 
   // create the head of the tuple
-  using shared_param_type = typename execution_agent_traits<ExecutionAgent>::shared_param_type;
-
   auto outer_factory = detail::make_agent_shared_parameter_factory<ExecutionAgent>(param);
 
   // prepend the head
