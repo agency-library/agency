@@ -55,7 +55,7 @@ class deleter
     }
 
     __AGENCY_ANNOTATION
-    void swap(deleter& other)
+    void swap(deleter&)
     {
       // there's nothing to swap
     }
