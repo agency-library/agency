@@ -79,7 +79,7 @@ typename std::enable_if<
   std::tuple_size<Index1>::value <= i,
   bool
 >::type
-  is_bounded_by_impl(const Index1& x, const Index2& bound)
+  is_bounded_by_impl(const Index1&, const Index2&)
 {
   return true;
 }
