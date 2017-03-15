@@ -39,7 +39,7 @@ class pinned_resource
       }
     }
 
-    inline bool is_equal(const pinned_resource& other) const
+    inline bool is_equal(const pinned_resource&) const
     {
       return true;
     }
