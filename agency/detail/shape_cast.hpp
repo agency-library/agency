@@ -88,7 +88,9 @@ rebind_point_size_t<
 
   using result_type = rebind_point_size_t<Point,point_size<Point>::value + 1>;
 
-  return __tu::tuple_append_invoke(intermediate, 1, shape_cast_detail::make<result_type>());
+  result_type result = __tu::tuple_append_invoke(intermediate, 1, shape_cast_detail::make<result_type>());
+
+  return result;
 }
 
 
