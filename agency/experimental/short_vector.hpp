@@ -134,7 +134,7 @@ class short_vector
       }
       else
       {
-        detail::short_vector_detail::static_for_loop<N>([&](int i)
+        detail::short_vector_detail::static_for_loop<N>([&](std::size_t i)
         {
           if(i < size())
           {
@@ -142,16 +142,6 @@ class short_vector
           }
         });
       }
-    }
-
-    template<class Function>
-    __AGENCY_ANNOTATION
-    void for_each(Function&& f)
-    {
-      for_loop([&](int i)
-      {
-        std::forward<Function>(f)(operator[](i));
-      });
     }
 
   public:
