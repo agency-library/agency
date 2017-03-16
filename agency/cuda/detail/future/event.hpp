@@ -211,7 +211,7 @@ class event
       // make the new stream wait on this event
       stream_wait(result, *this);
 
-      return std::move(result);
+      return result;
     }
 
     // this function returns a new stream on the device associated with this event which depends on this event
