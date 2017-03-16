@@ -11,7 +11,6 @@ void test()
     // bulk_then with non-void future and no parameters
 
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     std::atomic<int> counter{0};
 
@@ -34,7 +33,6 @@ void test()
     // bulk_then with void future and no parameters
 
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     std::atomic<int> counter{0};
 
@@ -57,7 +55,6 @@ void test()
     // bulk_then with non-void future and one parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     std::atomic<int> counter{0};
 
@@ -83,7 +80,6 @@ void test()
     // bulk_then with void future and one parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     std::atomic<int> counter{0};
 
@@ -109,7 +105,6 @@ void test()
     // bulk_then with non-void future and one shared parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     std::atomic<int> counter{0};
 
@@ -135,7 +130,6 @@ void test()
     // bulk_then with void future and one shared parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     std::atomic<int> counter{0};
 

@@ -11,7 +11,6 @@ void test()
     // bulk_invoke with no parameters
 
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     std::atomic<int> counter{0};
 
