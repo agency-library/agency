@@ -326,7 +326,7 @@ class event
       // invalidate this event
       *this = event();
 
-      return std::move(result);
+      return result;
     }
 
     __host__ __device__
