@@ -24,7 +24,7 @@ int main()
   using container = cuda::multidevice_executor::container<int>;
   container result(1,0);
 
-  size_t n = (1 << 20) + 13;
+  int n = (1 << 20) + 13;
 
   // count the number of agents created by bulk_invoke()
   bulk_invoke(cuda::par(n).on(exec), functor{result.data()});
