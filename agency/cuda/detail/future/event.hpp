@@ -373,7 +373,7 @@ class event
 
     template<class... Args>
     inline __host__ __device__
-    static void swallow(Args&&... args) {}
+    static void swallow(Args&&...) {}
 
     template<class... Events>
     __host__ __device__
