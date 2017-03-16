@@ -87,7 +87,7 @@ void initialize_problem(int seed, int n, float *price, float *strike, float *yea
 }
 
 
-int main(int argc, char **argv)
+int main()
 {
   int n = 4000000;
   
