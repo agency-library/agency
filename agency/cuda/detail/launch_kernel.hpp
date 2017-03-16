@@ -43,7 +43,7 @@ struct first_type
 
 template<class Arg1, class... Args>
 __host__ __device__
-auto first_parameter(Arg1&& arg1, Args&&... args)
+auto first_parameter(Arg1&& arg1, Args&&...)
   -> decltype(std::forward<Arg1>(arg1))
 {
   return std::forward<Arg1>(arg1);
