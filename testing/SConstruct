@@ -77,17 +77,30 @@ def RecursivelyCreateProgramsAndUnitTestAliases(env):
 def apply_compiler_flags(env):
   # a dictionary mapping compiler features to the list of compiler switches implementing them
   gnu_compiler_flags = {
-    'warnings'           : { 'all' : '-Wall', 'extra' : '-Wextra'},
+    'warnings' : {
+      'all' : '-Wall',
+      'extra' : '-Wextra'
+    },
+
+    'warnings_as_errors' : '-Werrors'
+  }
+
+  clang_compiler_flags = {
+    'warnings' : {
+      'all' : '-Wall', 
+      'extra' : '-Wextra -Wno-mismatched-tags' # -Wmismatched-tags produces warnings we cannot eliminate, so don't enable it
+    },
+
     'warnings_as_errors' : '-Werrors'
   }
 
   all_compiler_flags = {}
   all_compiler_flags['g++'] = gnu_compiler_flags
-  all_compiler_flags['clang'] = all_compiler_flags['g++']
+  all_compiler_flags['clang'] = clang_compiler_flags
 
   this_compilers_flags = all_compiler_flags[env['CXX']]
 
-  # get a list of all the c++ compiler flags for the warnings enabled
+  # get all the c++ compiler flags for the warnings enabled
   cxx_warning_flags = [this_compilers_flags['warnings'][key] for key in env['warnings']]
 
   if env['warnings_as_errors']:
@@ -102,7 +115,7 @@ def apply_compiler_flags(env):
 
 # script execution begins here
 
-# first set up some variables we can control from the command line
+# set up some variables we can control from the command line
 vars = Variables()
 vars.Add('CXX', 'C++ compiler', 'clang')
 vars.Add('CPPPATH', 'Agency include path', Dir('..'))
