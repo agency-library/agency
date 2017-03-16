@@ -40,7 +40,7 @@ int sum(const std::vector<int>& data)
 
 int main()
 {
-  size_t n = 10;
+  int n = 10;
 
   std::vector<int> data(n, 1);
 
