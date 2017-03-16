@@ -24,7 +24,7 @@ void test(ExecutionPolicy policy)
 
     f.wait();
 
-    size_t num_agents = agent_traits::domain(policy.param()).size();
+    int num_agents = agent_traits::domain(policy.param()).size();
 
     assert(counter == num_agents);
   }
@@ -48,7 +48,7 @@ void test(ExecutionPolicy policy)
 
     f.wait();
 
-    size_t num_agents = agent_traits::domain(policy.param()).size();
+    int num_agents = agent_traits::domain(policy.param()).size();
 
     assert(counter == num_agents * 13);
   }
@@ -72,7 +72,7 @@ void test(ExecutionPolicy policy)
 
     f.wait();
 
-    size_t num_agents = agent_traits::domain(policy.param()).size();
+    int num_agents = agent_traits::domain(policy.param()).size();
 
     assert(counter == num_agents * 13);
   }
