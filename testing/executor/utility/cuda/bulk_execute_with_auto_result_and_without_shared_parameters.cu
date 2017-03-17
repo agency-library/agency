@@ -11,7 +11,7 @@ void test_returning_void(Executor exec)
 {
   agency::executor_shape_t<Executor> shape{100};
   
-  int increment_me = 0;
+  size_t increment_me = 0;
   std::mutex mut;
   agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [&](size_t idx)
   {
