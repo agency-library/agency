@@ -87,8 +87,18 @@ def apply_compiler_flags(env):
 
   clang_compiler_flags = {
     'warnings' : {
-      'all' : '-Wall', 
-      'extra' : '-Wextra -Wno-mismatched-tags' # -Wmismatched-tags produces warnings we cannot eliminate, so don't enable it
+
+      # XXX with clang, nvcc generates -Wunused-local-typedefs warnings due to nvbug 1890561
+      #     eliminate this workaround once 1890561 is resolved
+      # XXX with clang, nvcc generates -Wunused-private-field warnings due to nvbug 1890717
+      #     eliminate this workaround once 1890717 is resolved
+      'all' : '-Wall -Wno-unused-local-typedef -Wno-unused-private-field', 
+                                                 
+
+      # -Wmismatched-tags produces warnings we cannot eliminate, so don't enable it
+      # XXX with clang, nvcc generates -Wunused-parameter warnings due to nvbug 1889862
+      #     eliminate this workaround once 1889862 is resolved
+      'extra' : '-Wextra -Wno-mismatched-tags -Wno-unused-parameter'
     },
 
     'warnings_as_errors' : '-Werrors'
