@@ -44,7 +44,7 @@ void test_reallocating_range_insert()
     assert(result == v.begin());
     assert(v.size() == num_initial_elements + num_elements_to_insert);
     assert(std::equal(result, result + num_elements_to_insert, items.begin()));
-    assert(std::count(result + num_elements_to_insert, v.end(), 13) == num_initial_elements);
+    assert(std::count(result + num_elements_to_insert, v.end(), 13) == static_cast<int>(num_initial_elements));
   }
 
   {
@@ -64,7 +64,7 @@ void test_reallocating_range_insert()
     assert(result == v.end() - num_elements_to_insert);
     assert(v.size() == num_initial_elements + num_elements_to_insert);
     assert(std::equal(result, result + num_elements_to_insert, items.begin()));
-    assert(std::count(v.begin(), result, 13) == num_initial_elements);
+    assert(std::count(v.begin(), result, 13) == static_cast<int>(num_initial_elements));
   }
 
   {
@@ -88,8 +88,8 @@ void test_reallocating_range_insert()
     size_t num_initial_elements_before = insertion_begin - v.begin();
     size_t num_initial_elements_after  = v.end() - insertion_end;
 
-    assert(std::count(v.begin(), insertion_begin, 13) == num_initial_elements_before);
-    assert(std::count(insertion_end, v.end(), 13) == num_initial_elements_after);
+    assert(std::count(v.begin(), insertion_begin, 13) == static_cast<int>(num_initial_elements_before));
+    assert(std::count(insertion_end, v.end(), 13) == static_cast<int>(num_initial_elements_after));
   }
 }
 
@@ -119,7 +119,7 @@ void test_nonreallocating_range_insert()
     assert(result == v.begin());
     assert(v.size() == num_initial_elements + num_elements_to_insert);
     assert(std::equal(result, result + num_elements_to_insert, items.begin()));
-    assert(std::count(result + num_elements_to_insert, v.end(), 13) == num_initial_elements);
+    assert(std::count(result + num_elements_to_insert, v.end(), 13) == static_cast<int>(num_initial_elements));
   }
   
   {
@@ -140,7 +140,7 @@ void test_nonreallocating_range_insert()
     assert(result == v.end() - num_elements_to_insert);
     assert(v.size() == num_initial_elements + num_elements_to_insert);
     assert(std::equal(result, result + num_elements_to_insert, items.begin()));
-    assert(std::count(v.begin(), result, 13) == num_initial_elements);
+    assert(std::count(v.begin(), result, 13) == static_cast<int>(num_initial_elements));
   }
 
   {
@@ -166,8 +166,8 @@ void test_nonreallocating_range_insert()
     size_t num_initial_elements_before = insertion_begin - v.begin();
     size_t num_initial_elements_after  = v.end() - insertion_end;
 
-    assert(std::count(v.begin(), insertion_begin, 13) == num_initial_elements_before);
-    assert(std::count(insertion_end, v.end(), 13) == num_initial_elements_after);
+    assert(std::count(v.begin(), insertion_begin, 13) == static_cast<int>(num_initial_elements_before));
+    assert(std::count(insertion_end, v.end(), 13) == static_cast<int>(num_initial_elements_after));
   }
 }
 

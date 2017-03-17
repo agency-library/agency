@@ -37,13 +37,13 @@ void test_range_erase()
     vector<int> v(10);
     std::iota(v.begin(), v.end(), 0);
 
-    int num_elements_before_erase = v.size() / 2;
-    int num_elements_after_erase = v.size() - num_elements_before_erase;
+    size_t num_elements_before_erase = v.size() / 2;
+    size_t num_elements_after_erase = v.size() - num_elements_before_erase;
 
     auto erase_first = v.begin() + num_elements_before_erase;
     auto erase_last = v.end() - num_elements_after_erase;
 
-    int num_elements_erased = erase_last - erase_first;
+    size_t num_elements_erased = erase_last - erase_first;
 
     auto result = v.erase(erase_first, erase_last);
 

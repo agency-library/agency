@@ -60,7 +60,7 @@ void test_single_emplace_copy()
     assert(*result == emplaced_value);
     assert(v.size() == num_initial_elements + 1);
     assert(std::count(result, result + 1, emplaced_value) == 1);
-    assert(std::count(v.begin(), result, initial_value) == num_initial_elements);
+    assert(std::count(v.begin(), result, initial_value) == static_cast<int>(num_initial_elements));
   }
 
   {
@@ -86,8 +86,8 @@ void test_single_emplace_copy()
     size_t num_initial_elements_before = emplace_begin - v.begin();
     size_t num_initial_elements_after  = v.end() - emplace_end;
 
-    assert(std::count(v.begin(), emplace_begin, initial_value) == num_initial_elements_before);
-    assert(std::count(emplace_end, v.end(), initial_value) == num_initial_elements_after);
+    assert(std::count(v.begin(), emplace_begin, initial_value) == static_cast<int>(num_initial_elements_before));
+    assert(std::count(emplace_end, v.end(), initial_value) == static_cast<int>(num_initial_elements_after));
   }
 }
 
@@ -147,7 +147,7 @@ void test_single_emplace_move()
     assert(*result == emplaced_value);
     assert(v.size() == num_initial_elements + 1);
     assert(std::count(result, result + 1, emplaced_value) == 1);
-    assert(std::count(v.begin(), result, initial_value) == num_initial_elements);
+    assert(std::count(v.begin(), result, initial_value) == static_cast<int>(num_initial_elements));
   }
 
   {
@@ -173,8 +173,8 @@ void test_single_emplace_move()
     size_t num_initial_elements_before = emplace_begin - v.begin();
     size_t num_initial_elements_after  = v.end() - emplace_end;
 
-    assert(std::count(v.begin(), emplace_begin, initial_value) == num_initial_elements_before);
-    assert(std::count(emplace_end, v.end(), initial_value) == num_initial_elements_after);
+    assert(std::count(v.begin(), emplace_begin, initial_value) == static_cast<int>(num_initial_elements_before));
+    assert(std::count(emplace_end, v.end(), initial_value) == static_cast<int>(num_initial_elements_after));
   }
 }
 
@@ -229,7 +229,7 @@ void test_single_emplace_args()
     assert(*result == emplaced_value);
     assert(v.size() == num_initial_elements + 1);
     assert(std::count(result, result + 1, emplaced_value) == 1);
-    assert(std::count(v.begin(), result, initial_value) == num_initial_elements);
+    assert(std::count(v.begin(), result, initial_value) == static_cast<int>(num_initial_elements));
   }
 
   {
@@ -252,8 +252,8 @@ void test_single_emplace_args()
     size_t num_initial_elements_before = emplace_begin - v.begin();
     size_t num_initial_elements_after  = v.end() - emplace_end;
 
-    assert(std::count(v.begin(), emplace_begin, initial_value) == num_initial_elements_before);
-    assert(std::count(emplace_end, v.end(), initial_value) == num_initial_elements_after);
+    assert(std::count(v.begin(), emplace_begin, initial_value) == static_cast<int>(num_initial_elements_before));
+    assert(std::count(emplace_end, v.end(), initial_value) == static_cast<int>(num_initial_elements_after));
   }
 }
 

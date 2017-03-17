@@ -52,7 +52,7 @@ void test_single_insert_copy()
     assert(*result == 7);
     assert(v.size() == num_initial_elements + 1);
     assert(std::count(result, result + 1, 7) == 1);
-    assert(std::count(v.begin(), result, 13) == num_initial_elements);
+    assert(std::count(v.begin(), result, 13) == static_cast<int>(num_initial_elements));
   }
 
   {
@@ -75,8 +75,8 @@ void test_single_insert_copy()
     size_t num_initial_elements_before = insertion_begin - v.begin();
     size_t num_initial_elements_after  = v.end() - insertion_end;
 
-    assert(std::count(v.begin(), insertion_begin, 13) == num_initial_elements_before);
-    assert(std::count(insertion_end, v.end(), 13) == num_initial_elements_after);
+    assert(std::count(v.begin(), insertion_begin, 13) == static_cast<int>(num_initial_elements_before));
+    assert(std::count(insertion_end, v.end(), 13) == static_cast<int>(num_initial_elements_after));
   }
 }
 
@@ -136,7 +136,7 @@ void test_single_insert_move()
     assert(*result == inserted_value);
     assert(v.size() == num_initial_elements + 1);
     assert(std::count(result, result + 1, inserted_value) == 1);
-    assert(std::count(v.begin(), result, initial_value) == num_initial_elements);
+    assert(std::count(v.begin(), result, initial_value) == static_cast<int>(num_initial_elements));
   }
 
   {
@@ -162,8 +162,8 @@ void test_single_insert_move()
     size_t num_initial_elements_before = insertion_begin - v.begin();
     size_t num_initial_elements_after  = v.end() - insertion_end;
 
-    assert(std::count(v.begin(), insertion_begin, initial_value) == num_initial_elements_before);
-    assert(std::count(insertion_end, v.end(), initial_value) == num_initial_elements_after);
+    assert(std::count(v.begin(), insertion_begin, initial_value) == static_cast<int>(num_initial_elements_before));
+    assert(std::count(insertion_end, v.end(), initial_value) == static_cast<int>(num_initial_elements_after));
   }
 }
 
