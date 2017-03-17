@@ -93,7 +93,7 @@ class small_untiled_view
     __AGENCY_ANNOTATION
     size_t size() const
     {
-      if(tiles_.size() == 0) return 0;
+      if(tiles_.empty()) return 0;
 
       return tile_size_ * (tiles_.size() - 1) + tiles_.back().size();
     }
