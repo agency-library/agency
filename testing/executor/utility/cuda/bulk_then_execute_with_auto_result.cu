@@ -16,11 +16,11 @@ void test_with_void_predecessor_returning_void(Executor exec)
 
   auto predecessor_future = agency::make_ready_future<void>(exec);
   
-  int shared_arg = 0;
+  size_t shared_arg = 0;
   
-  int increment_me = 0;
+  size_t increment_me = 0;
   std::mutex mut;
-  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t idx, int& shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t idx, size_t& shared_arg)
   {
     mut.lock();
     increment_me += 1;
@@ -75,11 +75,11 @@ void test_with_non_void_predecessor_returning_void(Executor exec)
 
   auto predecessor_future = agency::make_ready_future<int>(exec, 13);
   
-  int shared_arg = 0;
+  size_t shared_arg = 0;
   
-  int increment_me = 0;
+  size_t increment_me = 0;
   std::mutex mut;
-  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t idx, int& predecessor, int& shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t idx, int& predecessor, size_t& shared_arg)
   {
     mut.lock();
     increment_me += predecessor;
@@ -149,8 +149,10 @@ void test_with_void_predecessor_returning_void2(Executor exec)
   );
   
   fut.wait();
+
+  int expected_result = shape[0] * shape[1] * (7 + 13);
   
-  assert(increment_me == shape[0] * shape[1] * (7 + 13));
+  assert(increment_me == expected_result);
 }
 
 
@@ -204,8 +206,10 @@ void test_with_non_void_predecessor_returning_void2(Executor exec)
   );
   
   fut.wait();
+
+  int expected_result = shape[0] * shape[1] * (42 + 7 + 13);
   
-  assert(increment_me == shape[0] * shape[1] * (42 + 7 + 13));
+  assert(increment_me == expected_result);
 }
 
 
