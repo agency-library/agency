@@ -52,7 +52,7 @@ TODO
 
 ## Resolved Issues
 
-  * [#347](../../Issues/347) Various warnings at aggressive reporting levels have been eliminated
+  * [#347](../../issues/347) Various warnings at aggressive reporting levels have been eliminated
   * [#289](../../issues/289) `async_future::bulk_then()` needs to schedule the `outer_arg`'s destruction
 
 
