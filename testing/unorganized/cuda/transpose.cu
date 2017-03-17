@@ -242,7 +242,7 @@ int main(int argc, char **argv)
   thrust::device_vector<float> d_tdata(nx * ny);
   
   // check parameters and calculate execution configuration
-  if(nx % TILE_DIM || ny % TILE_DIM)
+  if((nx % TILE_DIM) > 0 || (ny % TILE_DIM) > 0)
   {
     throw std::logic_error("nx and ny must be a multiple of TILE_DIM");
   }
