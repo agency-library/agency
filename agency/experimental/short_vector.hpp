@@ -305,7 +305,7 @@ class short_vector
     __AGENCY_ANNOTATION
     constexpr bool empty() const
     {
-      return size() == 0;
+      return size() == size_type(0);
     }
 
     __AGENCY_ANNOTATION
