@@ -82,7 +82,7 @@ def apply_compiler_flags(env):
       'extra' : '-Wextra'
     },
 
-    'warnings_as_errors' : '-Werrors'
+    'warnings_as_errors' : '-Werror'
   }
 
   clang_compiler_flags = {
@@ -101,7 +101,7 @@ def apply_compiler_flags(env):
       'extra' : '-Wextra -Wno-mismatched-tags -Wno-unused-parameter'
     },
 
-    'warnings_as_errors' : '-Werrors'
+    'warnings_as_errors' : '-Werror'
   }
 
   all_compiler_flags = {}
@@ -135,7 +135,7 @@ vars.Add(ListVariable('arch', 'Compute capability code generation', 'sm_52',
                        'sm_60']))
 vars.Add(ListVariable('warnings', 'Compiler warning options', 'all',
                       ['all', 'extra']))
-vars.Add(BoolVariable('warnings_as_errors', 'Treat warnings as errors', False))
+vars.Add(BoolVariable('warnings_as_errors', 'Treat warnings as errors', True))
 
 # create a SCons build environment
 env = Environment(variables = vars, tools = ['default', 'nvcc-scons/nvcc'])
