@@ -22,10 +22,10 @@ void test()
 
   // initialize vectors with ascending integers
   int init = 0;
-  for(int i = 0; i < v.size(); ++i)
+  for(auto& tile : v)
   {
-    std::iota(v[i].begin(), v[i].end(), init);
-    init = v[i].back() + 1;
+    std::iota(tile.begin(), tile.end(), init);
+    init = tile.back() + 1;
   }
 
   auto untiled = untile(tile_size, v);
@@ -107,7 +107,8 @@ void test()
 
   {
     // test iterator/sentinel difference
-    assert(untiled.end() - untiled.begin() == untiled.size());
+    ptrdiff_t expected_difference = untiled.size();
+    assert(untiled.end() - untiled.begin() == expected_difference);
   }
 
   {
@@ -200,7 +201,7 @@ void test()
     std::vector<int> expected_values(untiled.size());
     std::iota(expected_values.begin(), expected_values.end(), 0);
 
-    for(int i = 0; i < untiled.size(); ++i)
+    for(size_t i = 0; i < untiled.size(); ++i)
     {
       auto iter = untiled.begin();
 
