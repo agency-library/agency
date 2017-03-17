@@ -805,7 +805,7 @@ typename std::enable_if<
   (std::tuple_size<Tuple1>::value <= i && std::tuple_size<Tuple2>::value > i),
   bool
 >::type
-  __tuple_lexicographical_compare_impl(const Tuple1& t1, const Tuple2& t2)
+  __tuple_lexicographical_compare_impl(const Tuple1&, const Tuple2&)
 {
   return true;
 }

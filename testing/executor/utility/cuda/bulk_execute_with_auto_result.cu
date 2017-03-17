@@ -14,11 +14,11 @@ void test_returning_void(Executor exec)
 {
   agency::executor_shape_t<Executor> shape{100};
   
-  int shared_arg = 0;
+  size_t shared_arg = 0;
   
-  int increment_me = 0;
+  size_t increment_me = 0;
   std::mutex mut;
-  agency::detail::bulk_sync_execute_with_auto_result(exec, [&](size_t idx, int& shared_arg)
+  agency::detail::bulk_sync_execute_with_auto_result(exec, [&](size_t idx, size_t& shared_arg)
   {
     mut.lock();
     increment_me += 1;
@@ -75,8 +75,10 @@ void test_returning_void2(Executor exec)
   [] __host__ __device__ { return 7; },
   [] __host__ __device__ { return 13; }
   );
+
+  int expected_result = shape[0] * shape[1] * (7 + 13);
   
-  assert(increment_me == shape[0] * shape[1] * (7 + 13));
+  assert(increment_me == expected_result);
 }
 
 

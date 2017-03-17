@@ -774,7 +774,7 @@ class deferred_future
     template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
     deferred_future<agency::detail::result_of_t<ResultFactory()>>
-      bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
+      bulk_then_and_leave_valid(Function, Shape, IndexFunction, ResultFactory, OuterFactory, InnerFactory, device_id)
     {
       printf("deferred_future::bulk_then_and_leave_valid(): Unimplemented.\n");
 

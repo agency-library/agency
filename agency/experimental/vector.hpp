@@ -884,7 +884,6 @@ class vector
         else
         {
           // move already existing, displaced elements to the end of the emplaced range, which is at position + count
-          iterator old_end = end();
           end_ = detail::uninitialized_move_n(storage_.allocator(), position, num_displaced_elements, position + count);
 
           // XXX we should destroy the elements [position, position + num_displaced_elements) before placement newing new ones

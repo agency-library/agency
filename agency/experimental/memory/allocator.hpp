@@ -60,7 +60,7 @@ struct allocator
   }
 
   __AGENCY_ANNOTATION
-  void deallocate(T* p, std::size_t n)
+  void deallocate(T* p, std::size_t)
   {
     ::operator delete(p);
   }

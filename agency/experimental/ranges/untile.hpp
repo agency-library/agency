@@ -28,6 +28,8 @@ class small_untiled_view
     template<class,size_t> friend class small_untiled_view;
 
   public:
+    // XXX this should probably be size_type (which could be narrow, or signed)
+    //     rather than size_t
     static constexpr size_t max_tile_count = max_tile_count_;
 
     using difference_type = range_difference_t<tile_type>;
@@ -66,8 +68,6 @@ class small_untiled_view
         tiles_(std::forward<OtherRangeOfRanges>(tiles)) // XXX we actually need to call all() on each element of tiles for this to be correct
                                                         //     it happens to work now because inner_range_type is convertible to tile_type for the ranges we're currently working with
     {
-      // XXX maybe should also assert that tile.size() == tile_size except for the last one
-      assert(tiles.size() <= max_tile_count);
     }
 
     __AGENCY_ANNOTATION
@@ -93,7 +93,7 @@ class small_untiled_view
     __AGENCY_ANNOTATION
     size_t size() const
     {
-      if(tiles_.size() == 0) return 0;
+      if(tiles_.empty()) return 0;
 
       return tile_size_ * (tiles_.size() - 1) + tiles_.back().size();
     }

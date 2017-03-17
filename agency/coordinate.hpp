@@ -589,7 +589,7 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     lattice_iterator& operator+=(difference_type n)
     {
-      return advance(std::is_arithmetic<T>());
+      return advance(n, std::is_arithmetic<T>());
     }
 
     __AGENCY_ANNOTATION
@@ -872,16 +872,18 @@ namespace std
 
 
 template<size_t I, class T, size_t Rank>
-struct tuple_element<I,agency::point<T,Rank>>
+class tuple_element<I,agency::point<T,Rank>>
 {
-  using type = typename __tu::tuple_traits<agency::point<T,Rank>>::template element_type<I>;
+  public:
+    using type = typename __tu::tuple_traits<agency::point<T,Rank>>::template element_type<I>;
 };
 
 
 template<class T, size_t Rank>
-struct tuple_size<agency::point<T,Rank>>
+class tuple_size<agency::point<T,Rank>>
 {
-  static const size_t value = __tu::tuple_traits<agency::point<T,Rank>>::size;
+  public:
+    static const size_t value = __tu::tuple_traits<agency::point<T,Rank>>::size;
 };
 
 

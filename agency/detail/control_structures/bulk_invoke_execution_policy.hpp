@@ -53,7 +53,6 @@ bulk_invoke_execution_policy_result_t<
 {
   using agent_type = typename ExecutionPolicy::execution_agent_type;
   using agent_traits = execution_agent_traits<agent_type>;
-  using execution_category = typename agent_traits::execution_category;
 
   // get the parameters of the agent
   auto param = policy.param();

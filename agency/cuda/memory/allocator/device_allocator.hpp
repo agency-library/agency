@@ -40,7 +40,7 @@ class device_allocator : public agency::detail::allocator_adaptor<T,device_resou
     // XXX we should hoist this up into the memory resource 
     // XXX this should be implemented with a kernel launch or something
     template<class Iterator, class... Iterators>
-    agency::detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
+    agency::detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t, Iterators... iters)
     {
       //new(ptr) U(*iters...);
       return agency::detail::make_tuple(first,iters...);

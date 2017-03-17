@@ -134,7 +134,7 @@ class short_vector
       }
       else
       {
-        detail::short_vector_detail::static_for_loop<N>([&](int i)
+        detail::short_vector_detail::static_for_loop<N>([&](std::size_t i)
         {
           if(i < size())
           {
@@ -142,16 +142,6 @@ class short_vector
           }
         });
       }
-    }
-
-    template<class Function>
-    __AGENCY_ANNOTATION
-    void for_each(Function&& f)
-    {
-      for_loop([&](int i)
-      {
-        std::forward<Function>(f)(operator[](i));
-      });
     }
 
   public:
@@ -187,8 +177,6 @@ class short_vector
     short_vector(Range&& other)
       : size_(other.size())
     {
-      assert(other.size() <= max_size());
-
       // copy construct each element with placement new
       for_loop([&](int i)
       {
@@ -317,7 +305,7 @@ class short_vector
     __AGENCY_ANNOTATION
     constexpr bool empty() const
     {
-      return size() == 0;
+      return size() == size_type(0);
     }
 
     __AGENCY_ANNOTATION

@@ -64,7 +64,7 @@ typename std::enable_if<
   !has_construct<Alloc,typename std::iterator_traits<Iterator>::pointer, typename std::iterator_traits<Iterators>::reference...>::value,
   detail::tuple<Iterator,Iterators...>
 >::type
-  construct_n_impl2(Alloc& a, Iterator first, size_t n, Iterators... iters)
+  construct_n_impl2(Alloc&, Iterator first, size_t n, Iterators... iters)
 {
   using value_type = typename std::iterator_traits<Iterator>::value_type;
 

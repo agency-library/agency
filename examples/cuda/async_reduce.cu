@@ -113,7 +113,7 @@ agency::cuda::future<int> async_reduce(View data)
 
 int main()
 {
-  size_t n = 1 << 20;
+  int n = 1 << 20;
 
   std::vector<int, agency::cuda::allocator<int>> data(n, 1);
 

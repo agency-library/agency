@@ -18,7 +18,7 @@ void test_reallocating_fill_assign()
     v.assign(num_elements_to_assign, assign_me);
 
     assert(v.size() == num_elements_to_assign);
-    assert(std::count(v.begin(), v.end(), assign_me) == v.size());
+    assert(std::count(v.begin(), v.end(), assign_me) == static_cast<int>(v.size()));
   }
 
   {
@@ -32,7 +32,7 @@ void test_reallocating_fill_assign()
     v.assign(num_elements_to_assign, assign_me);
 
     assert(v.size() == num_elements_to_assign);
-    assert(std::count(v.begin(), v.end(), assign_me) == v.size());
+    assert(std::count(v.begin(), v.end(), assign_me) == static_cast<int>(v.size()));
   }
 }
 
@@ -53,7 +53,7 @@ void test_nonreallocating_fill_assign()
     v.assign(num_elements_to_assign, assign_me);
 
     assert(v.size() == num_elements_to_assign);
-    assert(std::count(v.begin(), v.end(), assign_me) == v.size());
+    assert(std::count(v.begin(), v.end(), assign_me) == static_cast<int>(v.size()));
   }
 
   {
@@ -69,7 +69,7 @@ void test_nonreallocating_fill_assign()
     v.assign(num_elements_to_assign, assign_me);
 
     assert(v.size() == num_elements_to_assign);
-    assert(std::count(v.begin(), v.end(), assign_me) == v.size());
+    assert(std::count(v.begin(), v.end(), assign_me) == static_cast<int>(v.size()));
   }
 
   {
@@ -83,7 +83,7 @@ void test_nonreallocating_fill_assign()
     v.assign(num_elements_to_assign, assign_me);
 
     assert(v.size() == num_elements_to_assign);
-    assert(std::count(v.begin(), v.end(), assign_me) == v.size());
+    assert(std::count(v.begin(), v.end(), assign_me) == static_cast<int>(v.size()));
   }
 }
 

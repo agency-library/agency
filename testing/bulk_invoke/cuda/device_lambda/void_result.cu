@@ -21,7 +21,7 @@ void test(ExecutionPolicy policy)
       atomicAdd(&counter, 1);
     });
 
-    size_t num_agents = agent_traits::domain(policy.param()).size();
+    int num_agents = agent_traits::domain(policy.param()).size();
 
     assert(counter == num_agents);
   }
@@ -41,7 +41,7 @@ void test(ExecutionPolicy policy)
       val
     );
 
-    size_t num_agents = agent_traits::domain(policy.param()).size();
+    int num_agents = agent_traits::domain(policy.param()).size();
 
     assert(counter == num_agents * 13);
   }
@@ -61,7 +61,7 @@ void test(ExecutionPolicy policy)
       agency::share(val)
     );
 
-    size_t num_agents = agent_traits::domain(policy.param()).size();
+    int num_agents = agent_traits::domain(policy.param()).size();
 
     assert(counter == num_agents * 13);
   }

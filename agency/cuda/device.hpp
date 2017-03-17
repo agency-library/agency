@@ -188,7 +188,7 @@ std::vector<device_id> all_devices()
   }
 #endif
 
-  return std::move(result);
+  return result;
 }
 
 template<class Container>

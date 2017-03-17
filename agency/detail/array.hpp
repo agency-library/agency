@@ -41,7 +41,7 @@ class array
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     explicit array(const shape_type& shape, const allocator_type& alloc = allocator_type())
-      : alloc_(allocator_type()),
+      : alloc_(alloc),
         shape_(shape),
         data_(allocate_and_construct_elements(alloc_, size()))
     {

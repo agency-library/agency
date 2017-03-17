@@ -28,7 +28,7 @@ void test_allocating_reserve()
     size_t num_initial_elements = 10;
     vector<int> v(num_initial_elements, 13);
 
-    assert(std::count(v.begin(), v.end(), 13) == num_initial_elements);
+    assert(std::count(v.begin(), v.end(), 13) == static_cast<int>(num_initial_elements));
 
     size_t reservation = 100;
 
@@ -37,7 +37,7 @@ void test_allocating_reserve()
     assert(v.capacity() >= reservation);
     assert(v.size() == num_initial_elements);
     assert(!v.empty());
-    assert(std::count(v.begin(), v.end(), 13) == num_initial_elements);
+    assert(std::count(v.begin(), v.end(), 13) == static_cast<int>(num_initial_elements));
   }
 }
 

@@ -81,26 +81,28 @@ namespace std
 
 
 template<size_t i>
-struct tuple_element<i, __TUPLE_NAMESPACE::tuple<>> {};
+class tuple_element<i, __TUPLE_NAMESPACE::tuple<>> {};
 
 
 template<class Type1, class... Types>
-struct tuple_element<0, __TUPLE_NAMESPACE::tuple<Type1,Types...>>
+class tuple_element<0, __TUPLE_NAMESPACE::tuple<Type1,Types...>>
 {
-  using type = Type1;
+  public:
+    using type = Type1;
 };
 
 
 template<size_t i, class Type1, class... Types>
-struct tuple_element<i, __TUPLE_NAMESPACE::tuple<Type1,Types...>>
+class tuple_element<i, __TUPLE_NAMESPACE::tuple<Type1,Types...>>
 {
-  using type = typename tuple_element<i - 1, __TUPLE_NAMESPACE::tuple<Types...>>::type;
+  public:
+    using type = typename tuple_element<i - 1, __TUPLE_NAMESPACE::tuple<Types...>>::type;
 };
 
 
 template<class... Types>
-struct tuple_size<__TUPLE_NAMESPACE::tuple<Types...>>
-  : std::integral_constant<size_t, sizeof...(Types)>
+class tuple_size<__TUPLE_NAMESPACE::tuple<Types...>>
+  : public std::integral_constant<size_t, sizeof...(Types)>
 {};
 
 
@@ -1041,7 +1043,7 @@ namespace detail
 
 template<class... TTypes, class... UTypes>
 __TUPLE_ANNOTATION
-  bool tuple_lt(const tuple<TTypes...>& t, const tuple<UTypes...>& u, tuple_index_sequence<>)
+  bool tuple_lt(const tuple<TTypes...>&, const tuple<UTypes...>&, tuple_index_sequence<>)
 {
   return false;
 }

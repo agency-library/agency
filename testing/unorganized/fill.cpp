@@ -26,7 +26,7 @@ int main()
     std::terminate();
   }
 
-  for(int i = 0; i < n; ++i)
+  for(size_t i = 0; i < n; ++i)
   {
     if(x[i] != 13)
     {

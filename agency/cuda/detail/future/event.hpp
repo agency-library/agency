@@ -211,7 +211,7 @@ class event
       // make the new stream wait on this event
       stream_wait(result, *this);
 
-      return std::move(result);
+      return result;
     }
 
     // this function returns a new stream on the device associated with this event which depends on this event
@@ -326,7 +326,7 @@ class event
       // invalidate this event
       *this = event();
 
-      return std::move(result);
+      return result;
     }
 
     __host__ __device__
@@ -373,7 +373,7 @@ class event
 
     template<class... Args>
     inline __host__ __device__
-    static void swallow(Args&&... args) {}
+    static void swallow(Args&&...) {}
 
     template<class... Events>
     __host__ __device__

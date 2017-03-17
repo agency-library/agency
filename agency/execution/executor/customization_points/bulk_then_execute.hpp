@@ -102,7 +102,16 @@ struct bulk_then_execute_functor<Function,SharedFuture,true>
 };
 
 
+template<class Function, class SharedFuture>
+__AGENCY_ANNOTATION
+bulk_then_execute_functor<Function,SharedFuture> make_bulk_then_execute_functor(Function f, const SharedFuture& shared_future)
+{
+  return bulk_then_execute_functor<Function,SharedFuture>(f, shared_future);
+}
+
+
 } // end detail
+
 
 
 // this case handles executors which have .bulk_async_execute() and may or may not have .bulk_sync_execute()
@@ -121,8 +130,7 @@ bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predec
   // XXX we may wish to allow the executor to participate in this sharing operation
   auto shared_predecessor_future = future_traits<Future>::share(predecessor);
 
-  using shared_predecessor_future_type = decltype(shared_predecessor_future);
-  auto functor = detail::bulk_then_execute_functor<Function,shared_predecessor_future_type>{f, shared_predecessor_future};
+  auto functor = detail::make_bulk_then_execute_functor(f, shared_predecessor_future);
 
   return exec.bulk_async_execute(functor, shape, result_factory, shared_factories...);
 }

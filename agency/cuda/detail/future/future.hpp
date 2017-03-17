@@ -371,7 +371,7 @@ class future
           agency::cuda::async_future<T>
         >
       >
-        async_future_impl(agency::cuda::async_future<T>& fut, Function1& f,
+        async_future_impl(agency::cuda::async_future<T>& /* fut */, Function1& /* f */,
                           typename std::enable_if<
                             std::is_move_constructible<Function1>::value
                           >::type* = 0)

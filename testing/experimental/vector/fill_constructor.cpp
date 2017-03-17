@@ -24,8 +24,10 @@ void test_fill_constructor()
 
     vector<int> v(num_elements, 13);
 
-    assert(v.end() - v.begin() == num_elements);
-    assert(v.cend() - v.cbegin() == num_elements);
+    ptrdiff_t expected_difference = num_elements;
+
+    assert(v.end() - v.begin() == expected_difference);
+    assert(v.cend() - v.cbegin() == expected_difference);
     assert(v.size() == num_elements);
     assert(!v.empty());
     assert(std::count(v.begin(), v.end(), 13) == 10);

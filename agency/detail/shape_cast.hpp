@@ -47,7 +47,7 @@ rebind_point_size_t<
 
   // XXX WAR nvcc 7's issue with tuple_drop_invoke
   //auto result = __tu::tuple_drop_invoke<1>(x, shape_cast_detail::make<result_type>());
-  auto result = __tu::tuple_take_invoke<std::tuple_size<Point>::value - 1>(x, shape_cast_detail::make<result_type>());
+  result_type result = __tu::tuple_take_invoke<std::tuple_size<Point>::value - 1>(x, shape_cast_detail::make<result_type>());
 
   __tu::tuple_last(result) *= last;
 
@@ -88,7 +88,9 @@ rebind_point_size_t<
 
   using result_type = rebind_point_size_t<Point,point_size<Point>::value + 1>;
 
-  return __tu::tuple_append_invoke(intermediate, 1, shape_cast_detail::make<result_type>());
+  result_type result = __tu::tuple_append_invoke(intermediate, 1, shape_cast_detail::make<result_type>());
+
+  return result;
 }
 
 
