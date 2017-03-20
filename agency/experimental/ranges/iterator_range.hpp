@@ -18,12 +18,14 @@ class iterator_range
     using iterator = Iterator;
     using sentinel = Sentinel;
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     iterator_range(iterator begin, sentinel end)
       : begin_(begin),
         end_(end)
     {}
 
+    __agency_exec_check_disable__
     template<class Range>
     __AGENCY_ANNOTATION
     iterator_range(Range&& rng)
@@ -75,6 +77,7 @@ iterator_range<Iterator,Sentinel> all(iterator_range<Iterator,Sentinel> v)
 }
 
 
+__agency_exec_check_disable__
 template<class Range>
 __AGENCY_ANNOTATION
 iterator_range<range_iterator_t<Range>, range_sentinel_t<Range>>
