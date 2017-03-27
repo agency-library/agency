@@ -54,6 +54,7 @@ TODO
 
   * [#347](../../issues/347) Various warnings at aggressive reporting levels have been eliminated
   * [#289](../../issues/289) `async_future::bulk_then()` needs to schedule the `outer_arg`'s destruction
+  * [#352](../../issues/352) .rank() generates results in the wrong order
 
 
 Agency v0.1.0 Changelog
