@@ -52,20 +52,38 @@ auto wrap_scalar(T&& x)
 
 template<class IndexTuple, class Size>
 __AGENCY_ANNOTATION
-auto project_index_helper(const IndexTuple& idx, Size size_of_second_to_last_dimension)
+auto project_index_helper(const IndexTuple& idx, Size size_of_lowest_dimension)
   -> typename std::decay<
        decltype(
          unwrap_single_element_tuple(detail::tuple_drop_last(idx))
        )
      >::type
 {
-  auto result = detail::tuple_drop_last(idx);
+  // drop the lowest dimension of the index to initialize the result
+  auto result_idx = detail::tuple_drop_last(idx);
 
-  // multiply the index by the size of the second to last dimension and add
-  // that to the second to last index
-  __tu::tuple_last(result) += size_of_second_to_last_dimension * __tu::tuple_last(idx);
+  // multiply the new lowest dimension of the resulting index by the size of the lowest dimension
+  __tu::tuple_last(result_idx) *= size_of_lowest_dimension;
 
-  return unwrap_single_element_tuple(result);
+  // and add in the old lowest dimension
+  __tu::tuple_last(result_idx) += __tu::tuple_last(idx);
+
+  // to understand why the above works, consider the order of iterations of a nested for loop
+  // for(int i = 0; i < m; ++i)
+  // {
+  //   for(int j = 0; j < n; ++j)
+  //   {
+  //     // to project (i, j) into 1D:
+  //     // multiply the new lowest dimension (i) by the size of the lowest dimension (n)
+  //     // and add in the old lowest dimension (j)
+  //     int rank = i * n + j;
+  //
+  //     // m isn't used at all
+  //     // only the size of the lowest dimension is used
+  //   }
+  // }
+
+  return unwrap_single_element_tuple(result_idx);
 }
 
 
@@ -76,19 +94,10 @@ auto project_index(const IndexTuple& idx, const ShapeTuple& shape)
        project_index_helper(idx, __tu::tuple_last(detail::tuple_drop_last(shape)))
      )
 {
-  // to project an index into the next lower dimension,
-  // we combine the last two dimensions into one
+  // the size of the lowest dimension is simply the last element of shape
+  auto size_of_lowest_dimension = __tu::tuple_last(shape);
 
-  // for a 2D example, consider finding the 1D rank of element (2,2) 
-  // in a 5 x 4-shaped grid.
-  // element (2,2)'s rank is 12 in this grid
-  // given idx = (x,y) = (2,2) and shape = (width,height) = (5,4)
-  // (2,2)'s 1D rank is computed as
-  // y * width + x
-
-  auto size_of_second_to_last_dimension = __tu::tuple_last(detail::tuple_drop_last(shape));
-
-  return detail::project_index_helper(idx, size_of_second_to_last_dimension);
+  return detail::project_index_helper(idx, size_of_lowest_dimension);
 }
 
 
