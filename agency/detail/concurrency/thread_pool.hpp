@@ -17,8 +17,6 @@
 #include <algorithm>
 #include <memory>
 #include <future>
-
-//Added unordered maps to allow thread ID lookup
 #include <unordered_map>
 
 
@@ -91,7 +89,7 @@ class thread_pool
       }
     }
 
-    //public function used to get the thread id 
+    //public function used to get the thread number
     inline int get_thread_num(){
       return thread_map_[std::this_thread::get_id()];
     }
