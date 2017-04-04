@@ -10,6 +10,7 @@
 
 #include <initializer_list>
 #include <type_traits>
+#include <cassert>
 
 
 namespace agency
@@ -56,8 +57,15 @@ class point : public experimental::array<T,Rank>,
     }
 
 
-    // XXX need to only enable this if the initializer_list is the right size
-    //     but we can't do that until c++14
+    // this constructor is included to allow us to pass curly-braced lists through
+    // interfaces which eventually get unpacked into points
+    // for example, in expressions like this:
+    //
+    //     auto policy = agency::par2d({0,0}, {5,5});
+    //
+    // XXX trying to initialize a point from an initializer_list of the wrong size
+    //     should be a compile-time error
+    //     the problem is that l.size() can't always be used in static_assert
     template<class OtherT,
              __AGENCY_REQUIRES(
                std::is_convertible<OtherT,value_type>::value
@@ -65,7 +73,9 @@ class point : public experimental::array<T,Rank>,
     __AGENCY_ANNOTATION
     point(std::initializer_list<OtherT> l)
     {
-      // XXX should try to use base_'s constructor with l instead of this for loop
+      // l.size() needs to equal Rank
+      assert(l.size() == Rank);
+
       auto src = l.begin();
       for(auto dst = super_t::begin(); dst != super_t::end(); ++src, ++dst)
       {
@@ -93,7 +103,7 @@ class point : public experimental::array<T,Rank>,
                std::is_convertible<OtherT,value_type>::value
              )>
     __AGENCY_ANNOTATION
-    point(OtherT val)
+    explicit point(OtherT val)
     {
       detail::arithmetic_tuple_facade<point>::fill(val);
     }
