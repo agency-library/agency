@@ -56,7 +56,7 @@ void test2(TwoLevelExecutor exec)
   
   auto result = f.get();
   
-  assert(container_type(10, 7 + 13) == result);
+  assert(container_type(shape, 7 + 13) == result);
 }
 
 
