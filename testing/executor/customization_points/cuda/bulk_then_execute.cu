@@ -91,7 +91,7 @@ void test_with_non_void_predecessor2(TwoLevelExecutor exec)
   
   auto result = f.get();
   
-  assert(container_type(10, 7 + 13 + 42) == result);
+  assert(container_type(shape, 7 + 13 + 42) == result);
 }
 
 
@@ -121,7 +121,7 @@ void test_with_void_predecessor2(TwoLevelExecutor exec)
   
   auto result = f.get();
   
-  assert(container_type(10, 13 + 42) == result);
+  assert(container_type(shape, 13 + 42) == result);
 }
 
 

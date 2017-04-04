@@ -52,7 +52,7 @@ void test2(TwoLevelExecutor exec)
     [] __host__ __device__ { return 13; }                      // inner_shared_arg
   );
   
-  assert(container_type(10, 7 + 13) == result);
+  assert(container_type(shape, 7 + 13) == result);
 }
 
 
