@@ -6,6 +6,7 @@
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/shape_tuple.hpp>
 #include <agency/detail/utility.hpp>
+#include <agency/experimental/array.hpp>
 
 // we can't use std::numeric_limits<T>::max() in a __device__
 // function, so we need to use an alternative in Thrust
@@ -114,7 +115,7 @@ struct max_sizes_functor
   >::type
     operator()(const Tuple& max_shape_dimensions)
   {
-    auto make = maker<point<size_t, std::tuple_size<Tuple>::value>>();
+    auto make = maker<experimental::array<size_t, std::tuple_size<Tuple>::value>>();
 
     // recursively turn max_shape_dimensions into a tuple of sizes using this functor
     auto tuple_of_sizes = __tu::tuple_map_with_make(*this, make, max_shape_dimensions);
@@ -164,6 +165,66 @@ typename std::enable_if<
     return a * b;
   });
 } // end shape_product()
+
+
+// there are two overloads for shape_size()
+template<typename Shape>
+__AGENCY_ANNOTATION
+typename std::enable_if<
+  std::is_integral<Shape>::value,
+  size_t
+>::type
+  shape_size(const Shape& s);
+
+template<typename Shape>
+__AGENCY_ANNOTATION
+typename std::enable_if<
+  !std::is_integral<Shape>::value,
+  size_t
+>::type
+  shape_size(const Shape& s);
+
+
+// scalar case
+template<typename Shape>
+__AGENCY_ANNOTATION
+typename std::enable_if<
+  std::is_integral<Shape>::value,
+  size_t
+>::type
+  shape_size(const Shape& s)
+{
+  return static_cast<size_t>(s);
+}
+
+struct shape_size_functor
+{
+  template<typename T>
+  __AGENCY_ANNOTATION
+  size_t operator()(const T& x)
+  {
+    return shape_size(x);
+  }
+};
+
+// tuple case
+template<typename Shape>
+__AGENCY_ANNOTATION
+typename std::enable_if<
+  !std::is_integral<Shape>::value,
+  size_t
+>::type
+  shape_size(const Shape& s)
+{
+  // transform s into a tuple of sizes
+  auto tuple_of_sizes = detail::tuple_map(shape_size_functor{}, s);
+
+  // reduce the sizes
+  return __tu::tuple_reduce(tuple_of_sizes, size_t{1}, [](size_t x, size_t y)
+  {
+    return x * y;
+  });
+}
 
 
 template<class TypeList>
