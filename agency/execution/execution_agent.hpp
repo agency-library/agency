@@ -273,7 +273,7 @@ class basic_execution_agent
     __AGENCY_ANNOTATION
     size_type rank() const
     {
-      return agency::detail::index_rank(index(), group_shape());
+      return agency::detail::index_lexicographical_rank(index(), group_shape());
     }
 
     __AGENCY_ANNOTATION
@@ -768,7 +768,7 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
     auto rank() const
       -> decltype(this->group_size())
     {
-      return agency::detail::index_rank(index(), group_shape());
+      return agency::detail::index_lexicographical_rank(index(), group_shape());
     }
 
     __AGENCY_ANNOTATION
