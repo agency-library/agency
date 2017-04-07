@@ -43,6 +43,8 @@ TODO
 
 ### New Experimental Utilities
 
+  * `experimental::ndarray`
+  * `experimental::ndarray_ref`
   * `cuda::experimental::make_async_future`
   * `cuda::experimental::native_handle`
   * New fancy ranges

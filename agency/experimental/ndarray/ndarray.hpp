@@ -10,7 +10,7 @@
 
 namespace agency
 {
-namespace detail
+namespace experimental
 {
 
 
@@ -44,7 +44,7 @@ class ndarray
     __AGENCY_ANNOTATION
     explicit ndarray(const shape_type& shape, const allocator_type& alloc = allocator_type())
       : alloc_(alloc),
-        all_(allocate_and_construct_elements(alloc_, detail::shape_size(shape)), shape)
+        all_(allocate_and_construct_elements(alloc_, agency::detail::shape_size(shape)), shape)
     {
     }
 
@@ -52,7 +52,7 @@ class ndarray
     __AGENCY_ANNOTATION
     explicit ndarray(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
       : alloc_(alloc),
-        all_(allocate_and_construct_elements(alloc_, detail::shape_size(shape), val), shape)
+        all_(allocate_and_construct_elements(alloc_, agency::detail::shape_size(shape), val), shape)
     {
     }
 
@@ -63,7 +63,7 @@ class ndarray
              >::type>
     __AGENCY_ANNOTATION
     ndarray(Iterator first, Iterator last)
-      : ndarray(shape_cast<shape_type>(last - first))
+      : ndarray(agency::detail::shape_cast<shape_type>(last - first))
     {
       for(auto result = begin(); result != end(); ++result, ++first)
       {
@@ -264,7 +264,7 @@ class ndarray
     {
       pointer result = alloc.allocate(size);
 
-      allocator_traits<allocator_type>::construct_n(alloc, result, size, detail::constant_iterator<Args>(args,0)...);
+      agency::detail::allocator_traits<allocator_type>::construct_n(alloc, result, size, agency::detail::constant_iterator<Args>(args,0)...);
 
       return result;
     }
@@ -275,6 +275,6 @@ class ndarray
 };
 
 
-} // end detail
+} // end experimental
 } // end agency
 
