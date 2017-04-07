@@ -89,7 +89,7 @@ class basic_ndarray_ref
     }
 
     __AGENCY_ANNOTATION
-    reference operator[](const index_type& idx)
+    reference operator[](const index_type& idx) const
     {
       auto rank = agency::detail::index_lexicographical_rank(idx, shape());
       return data_[rank];
