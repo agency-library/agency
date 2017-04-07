@@ -7,7 +7,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/index_tuple.hpp>
-#include <agency/detail/index_cast.hpp>
+#include <agency/detail/index.hpp>
 #include <agency/detail/unwrap_tuple_if_not_scoped.hpp>
 #include <agency/detail/make_tuple_if_not_scoped.hpp>
 #include <agency/detail/memory/resource/arena_resource.hpp>
@@ -273,7 +273,7 @@ class basic_execution_agent
     __AGENCY_ANNOTATION
     size_type rank() const
     {
-      return index_cast<size_type>(index(), group_shape(), group_size());
+      return agency::detail::index_lexicographical_rank(index(), group_shape());
     }
 
     __AGENCY_ANNOTATION
@@ -768,8 +768,7 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
     auto rank() const
       -> decltype(this->group_size())
     {
-      using size_type = decltype(this->group_size());
-      return index_cast<size_type>(index(), group_shape(), group_size());
+      return agency::detail::index_lexicographical_rank(index(), group_shape());
     }
 
     __AGENCY_ANNOTATION

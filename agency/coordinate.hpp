@@ -6,6 +6,7 @@
 #include <agency/detail/operator_traits.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/shape.hpp>
 #include <agency/experimental/array.hpp>
 
 #include <initializer_list>
@@ -254,65 +255,6 @@ struct rebind_array<array_template<OldT,N>, NewT>
 
 template<typename Array, typename T>
 using rebind_array_t = typename rebind_array<Array,T>::type;
-
-// there are two overloads for shape_size()
-template<typename Shape>
-__AGENCY_ANNOTATION
-typename std::enable_if<
-  std::is_integral<Shape>::value,
-  size_t
->::type
-  shape_size(const Shape& s);
-
-template<typename Shape>
-__AGENCY_ANNOTATION
-typename std::enable_if<
-  !std::is_integral<Shape>::value,
-  size_t
->::type
-  shape_size(const Shape& s);
-
-
-// scalar case
-template<typename Shape>
-__AGENCY_ANNOTATION
-typename std::enable_if<
-  std::is_integral<Shape>::value,
-  size_t
->::type
-  shape_size(const Shape& s)
-{
-  return static_cast<size_t>(s);
-}
-
-struct shape_size_functor
-{
-  template<typename T>
-  __AGENCY_ANNOTATION
-  size_t operator()(const T& x)
-  {
-    return shape_size(x);
-  }
-};
-
-// tuple case
-template<typename Shape>
-__AGENCY_ANNOTATION
-typename std::enable_if<
-  !std::is_integral<Shape>::value,
-  size_t
->::type
-  shape_size(const Shape& s)
-{
-  // transform s into a tuple of sizes
-  auto tuple_of_sizes = detail::tuple_map(shape_size_functor{}, s);
-
-  // reduce the sizes
-  return __tu::tuple_reduce(tuple_of_sizes, size_t{1}, [](size_t x, size_t y)
-  {
-    return x * y;
-  });
-}
 
 
 } // end detail
