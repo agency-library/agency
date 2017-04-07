@@ -7,7 +7,7 @@
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/index_tuple.hpp>
-#include <agency/detail/index.hpp>
+#include <agency/detail/index_lexicographical_rank.hpp>
 #include <agency/detail/unwrap_tuple_if_not_scoped.hpp>
 #include <agency/detail/make_tuple_if_not_scoped.hpp>
 #include <agency/detail/memory/resource/arena_resource.hpp>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/array.hpp>
+#include <agency/experimental/ndarray.hpp>
 #include <agency/detail/shape_tuple.hpp>
 #include <agency/detail/index_tuple.hpp>
 #include <agency/detail/invoke.hpp>
@@ -74,7 +74,7 @@ class executor_array
     using allocator = executor_allocator_t<outer_executor_type,T>;
 
     template<class T>
-    using container = agency::detail::array<T, shape_type, allocator<T>, index_type>;
+    using container = experimental::ndarray<T, shape_type, allocator<T>, index_type>;
 
     // XXX this functor is public to allow nvcc to instantiate kernels with it
     template<class Futures, class UniquePtr1, class UniquePtr2>
@@ -425,8 +425,8 @@ class executor_array
   private:
     outer_executor_type            outer_executor_;
 
-    // XXX consider using container here instead of array
-    agency::detail::array<inner_executor_type, size_t, allocator<inner_executor_type>> inner_executors_;
+    // XXX consider using container here instead of ndarray
+    experimental::ndarray<inner_executor_type, size_t, allocator<inner_executor_type>> inner_executors_;
 
     using bulk_then_execute_implementation_strategy = typename std::conditional<
       detail::disjunction<

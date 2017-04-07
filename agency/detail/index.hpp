@@ -12,17 +12,6 @@ namespace detail
 {
 
 
-// this function returns the rank of the given index in the index
-// space implied by the shape argument
-// its rank is its position in a lexicographically sorted array of all the indices in the index space
-template<class Index, class Shape>
-__AGENCY_ANNOTATION
-std::size_t index_lexicographical_rank(const Index& idx, const Shape& shape)
-{
-  return agency::detail::index_cast<std::size_t>(idx, shape, agency::detail::shape_size(shape));
-}
-
-
 template<class Index>
 using merge_front_index_elements_t = merge_front_shape_elements_t<Index>;
 
