@@ -1,8 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/index_cast.hpp>
-#include <agency/detail/shape_cast.hpp>
+#include <agency/experimental/ndarray_ref.hpp>
 #include <agency/detail/utility.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
 #include <agency/detail/iterator/constant_iterator.hpp>
@@ -18,6 +17,9 @@ namespace detail
 template<class T, class Shape = size_t, class Alloc = std::allocator<T>, class Index = Shape>
 class array
 {
+  private:
+    using all_t = experimental::basic_ndarray_ref<T,Shape,Index>;
+
   public:
     using value_type = T;
 
@@ -27,23 +29,22 @@ class array
 
     using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
 
-    using shape_type = Shape;
+    using shape_type = typename all_t::shape_type;
 
-    using index_type = Index;
+    using index_type = typename all_t::index_type;
 
     // note that array's constructors have __agency_exec_check_disable__
     // because Alloc's constructors may not have __AGENCY_ANNOTATION
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    array() : alloc_{}, shape_{}, data_(nullptr) {}
+    array() : alloc_{}, all_{} {}
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     explicit array(const shape_type& shape, const allocator_type& alloc = allocator_type())
       : alloc_(alloc),
-        shape_(shape),
-        data_(allocate_and_construct_elements(alloc_, size()))
+        all_(allocate_and_construct_elements(alloc_, detail::shape_size(shape)), shape)
     {
     }
 
@@ -51,8 +52,7 @@ class array
     __AGENCY_ANNOTATION
     explicit array(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
       : alloc_(alloc),
-        shape_(shape),
-        data_(allocate_and_construct_elements(alloc_, size(), val))
+        all_(allocate_and_construct_elements(alloc_, detail::shape_size(shape), val), shape)
     {
     }
 
@@ -88,7 +88,7 @@ class array
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     array(array&& other)
-      : alloc_{}, shape_{}, data_{}
+      : alloc_{}, all_{}
     {
       swap(other);
     }
@@ -119,40 +119,37 @@ class array
     __AGENCY_ANNOTATION
     void swap(array& other)
     {
-      agency::detail::adl_swap(shape_, other.shape_);
-      agency::detail::adl_swap(data_,  other.data_);
+      agency::detail::adl_swap(all_, other.all_);
     }
 
     __AGENCY_ANNOTATION
     value_type& operator[](index_type idx)
     {
-      std::size_t idx_1d = agency::detail::index_cast<std::size_t>(idx, shape(), size());
-
-      return data_[idx_1d];
+      return all_[idx];
     }
 
     __AGENCY_ANNOTATION
     shape_type shape() const
     {
-      return shape_;
+      return all_.shape();
     }
 
     __AGENCY_ANNOTATION
     std::size_t size() const
     {
-      return agency::detail::shape_cast<std::size_t>(shape_);
+      return all_.size();
     }
 
     __AGENCY_ANNOTATION
     pointer data()
     {
-      return data_;
+      return all_.data();
     }
 
     __AGENCY_ANNOTATION
     const_pointer data() const
     {
-      return data_;
+      return all_.data();
     }
 
     __AGENCY_ANNOTATION
@@ -203,9 +200,9 @@ class array
           x.~value_type();
         }
 
-        alloc_.deallocate(data_, size());
+        alloc_.deallocate(data(), size());
 
-        shape_ = shape_type{};
+        all_ = all_t{};
       }
     }
 
@@ -274,9 +271,7 @@ class array
 
     allocator_type alloc_;
 
-    shape_type shape_;
-
-    pointer data_;
+    all_t all_;
 };
 
 
