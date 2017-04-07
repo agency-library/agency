@@ -21,6 +21,10 @@ namespace experimental
 //   2. the type is a tuple where each element is a Shape.
 // XXX consider whether we actually need an Index parameter
 //     do we ever use different types for Shape & Index?
+// XXX The reason we take Shape & Index separately is because execution agents distinguish between
+//     the type of their index and the type of the shape of their group
+//     Consistency is important here, but we ought to consider whether it's actually important for agents
+//     to make this distinction
 template<class T, class Shape, class Index = Shape>
 class basic_ndarray_ref
 {
@@ -52,18 +56,32 @@ class basic_ndarray_ref
       return std::tuple_size<Shape>::value;
     }
 
+    /// \brief Returns the shape.
+    /// \return The shape of this `basic_ndarray_ref`.
     __AGENCY_ANNOTATION
     shape_type shape() const
     {
       return shape_;
     }
 
+    /// \brief Returns the total number of elements.
+    /// \return A the product of the size of each dimension.
     __AGENCY_ANNOTATION
     size_type size() const
     {
       return agency::detail::shape_size(shape());
     }
 
+    /// \brief Returns the size of the dimension of interest.
+    /// \return `shape()[dimension]`
+    __AGENCY_ANNOTATION
+    size_type size(const size_type& dimension) const
+    {
+      return shape()[dimension];
+    }
+
+    /// \brief Returns a pointer to raw data.
+    /// \return The address of the first element of this `basic_ndarray_ref`.
     __AGENCY_ANNOTATION
     pointer data() const
     {
