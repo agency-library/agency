@@ -13,7 +13,7 @@ namespace experimental
 
 
 // basic_ndarray_ref is a mutable view of a multidimensional array of elements.
-// The layout of the array elements is in row-major, i.e. lexicographic order.
+// The layout of the array elements is in row-major, i.e. the lexicographic order of their multidimensional indices.
 //
 // The dimensionality of the array is given by Shape, which is a generalized shape type.
 // A type is an Shape if

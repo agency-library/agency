@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/experimental/ndarray_ref.hpp>
+#include <agency/experimental/ndarray/ndarray_ref.hpp>
 #include <agency/detail/utility.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
 #include <agency/detail/iterator/constant_iterator.hpp>
