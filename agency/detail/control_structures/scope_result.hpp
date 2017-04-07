@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/experimental/optional.hpp>
-#include <agency/detail/array.hpp>
+#include <agency/detail/ndarray.hpp>
 #include <agency/detail/index.hpp>
 #include <agency/detail/shape.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
@@ -115,7 +115,7 @@ struct is_scope_result<scope_result<scope,T>> : std::true_type {};
 
 template<size_t scope, class T, class Executor>
 class scope_result_container
-  : public detail::array<
+  : public detail::ndarray<
       T,
       shape_take_t<scope, executor_shape_t<Executor>>,
       executor_allocator_t<Executor, T>,
@@ -123,7 +123,7 @@ class scope_result_container
     >
 {
   private:
-    using super_t = detail::array<
+    using super_t = detail::ndarray<
       T,
       shape_take_t<scope, executor_shape_t<Executor>>,
       executor_allocator_t<Executor, T>,

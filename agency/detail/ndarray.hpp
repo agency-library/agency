@@ -15,7 +15,7 @@ namespace detail
 
 
 template<class T, class Shape = size_t, class Alloc = std::allocator<T>, class Index = Shape>
-class array
+class ndarray
 {
   private:
     using all_t = experimental::basic_ndarray_ref<T,Shape,Index>;
@@ -33,16 +33,16 @@ class array
 
     using index_type = typename all_t::index_type;
 
-    // note that array's constructors have __agency_exec_check_disable__
+    // note that ndarray's constructors have __agency_exec_check_disable__
     // because Alloc's constructors may not have __AGENCY_ANNOTATION
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    array() : alloc_{}, all_{} {}
+    ndarray() : alloc_{}, all_{} {}
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    explicit array(const shape_type& shape, const allocator_type& alloc = allocator_type())
+    explicit ndarray(const shape_type& shape, const allocator_type& alloc = allocator_type())
       : alloc_(alloc),
         all_(allocate_and_construct_elements(alloc_, detail::shape_size(shape)), shape)
     {
@@ -50,7 +50,7 @@ class array
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    explicit array(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
+    explicit ndarray(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
       : alloc_(alloc),
         all_(allocate_and_construct_elements(alloc_, detail::shape_size(shape), val), shape)
     {
@@ -62,8 +62,8 @@ class array
                !std::is_convertible<Iterator,shape_type>::value
              >::type>
     __AGENCY_ANNOTATION
-    array(Iterator first, Iterator last)
-      : array(shape_cast<shape_type>(last - first))
+    ndarray(Iterator first, Iterator last)
+      : ndarray(shape_cast<shape_type>(last - first))
     {
       for(auto result = begin(); result != end(); ++result, ++first)
       {
@@ -73,8 +73,8 @@ class array
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    array(const array& other)
-      : array(other.shape())
+    ndarray(const ndarray& other)
+      : ndarray(other.shape())
     {
       auto iter = other.begin();
       auto result = begin();
@@ -87,7 +87,7 @@ class array
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    array(array&& other)
+    ndarray(ndarray&& other)
       : alloc_{}, all_{}
     {
       swap(other);
@@ -95,29 +95,29 @@ class array
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    ~array()
+    ~ndarray()
     {
       clear();
     }
 
     __AGENCY_ANNOTATION
-    array& operator=(const array& other)
+    ndarray& operator=(const ndarray& other)
     {
       // XXX this is not a very efficient implementation
-      array tmp = other;
+      ndarray tmp = other;
       swap(tmp);
       return *this;
     }
 
     __AGENCY_ANNOTATION
-    array& operator=(array&& other)
+    ndarray& operator=(ndarray&& other)
     {
       swap(other);
       return *this;
     }
 
     __AGENCY_ANNOTATION
-    void swap(array& other)
+    void swap(ndarray& other)
     {
       agency::detail::adl_swap(all_, other.all_);
     }
@@ -209,7 +209,7 @@ class array
     __agency_exec_check_disable__
     template<class Range>
     __AGENCY_ANNOTATION
-    friend bool operator==(const array& lhs, const Range& rhs)
+    friend bool operator==(const ndarray& lhs, const Range& rhs)
     {
       if(lhs.size() != rhs.size()) return false;
 
@@ -230,7 +230,7 @@ class array
     __agency_exec_check_disable__
     template<class Range>
     __AGENCY_ANNOTATION
-    friend bool operator==(const Range& lhs, const array& rhs)
+    friend bool operator==(const Range& lhs, const ndarray& rhs)
     {
       return rhs == lhs;
     }
@@ -238,7 +238,7 @@ class array
     // this operator== avoids ambiguities introduced by the template friends above
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    bool operator==(const array& rhs) const
+    bool operator==(const ndarray& rhs) const
     {
       if(size() != rhs.size()) return false;
 

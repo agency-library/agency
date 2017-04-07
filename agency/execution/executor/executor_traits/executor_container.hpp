@@ -7,7 +7,7 @@
 #include <agency/execution/executor/executor_traits/executor_index.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/executor_traits/executor_allocator.hpp>
-#include <agency/detail/array.hpp>
+#include <agency/detail/ndarray.hpp>
 
 
 namespace agency
@@ -25,7 +25,7 @@ template<class BulkExecutor, class T>
 struct executor_container_impl<BulkExecutor,T,true>
 {
   template<class U>
-  using default_container = agency::detail::array<T, executor_shape_t<BulkExecutor>, executor_allocator_t<BulkExecutor,T>, executor_index_t<BulkExecutor>>;
+  using default_container = agency::detail::ndarray<T, executor_shape_t<BulkExecutor>, executor_allocator_t<BulkExecutor,T>, executor_index_t<BulkExecutor>>;
 
   using type = member_container_or_t<BulkExecutor,T,default_container>;
 };

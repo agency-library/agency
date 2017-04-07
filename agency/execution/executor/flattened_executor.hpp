@@ -3,7 +3,7 @@
 #include <type_traits>
 #include <agency/detail/tuple.hpp>
 #include <agency/detail/factory.hpp>
-#include <agency/detail/array.hpp>
+#include <agency/detail/ndarray.hpp>
 #include <agency/detail/shape.hpp>
 #include <agency/detail/index.hpp>
 #include <agency/detail/type_traits.hpp>
@@ -200,7 +200,7 @@ class flattened_executor
     using allocator = executor_allocator_t<base_executor_type, T>;
 
     template<class T>
-    using container = detail::array<T, shape_type, allocator<T>, index_type>;
+    using container = detail::ndarray<T, shape_type, allocator<T>, index_type>;
 
     future<void> make_ready_future()
     {
