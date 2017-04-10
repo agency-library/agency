@@ -115,7 +115,7 @@ struct is_scope_result<scope_result<scope,T>> : std::true_type {};
 
 template<size_t scope, class T, class Executor>
 class scope_result_container
-  : public experimental::ndarray<
+  : public experimental::basic_ndarray<
       T,
       shape_take_t<scope, executor_shape_t<Executor>>,
       executor_allocator_t<Executor, T>,
@@ -123,7 +123,7 @@ class scope_result_container
     >
 {
   private:
-    using super_t = experimental::ndarray<
+    using super_t = experimental::basic_ndarray<
       T,
       shape_take_t<scope, executor_shape_t<Executor>>,
       executor_allocator_t<Executor, T>,
