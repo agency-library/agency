@@ -52,6 +52,10 @@ TODO
     * `experimental::iota_view`
     * `experimental::zip_with_view`
 
+### New Examples
+
+  * [`fork_executor.cpp`](../0.2.0/examples/fork_executor.cpp)
+
 ## Resolved Issues
 
   * [#347](../../issues/347) Various warnings at aggressive reporting levels have been eliminated
