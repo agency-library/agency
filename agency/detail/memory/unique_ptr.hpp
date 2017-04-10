@@ -211,9 +211,14 @@ unique_ptr<T,Deleter> allocate_unique_with_deleter(const Alloc& alloc, const Del
 
 template<class T, class Alloc, class... Args>
 __AGENCY_ANNOTATION
-unique_ptr<T,deleter<Alloc>> allocate_unique(const Alloc& alloc, Args&&... args)
+unique_ptr<T,deleter<typename std::allocator_traits<Alloc>::template rebind_alloc<T>>>
+  allocate_unique(const Alloc& alloc, Args&&... args)
 {
-  return allocate_unique_with_deleter<T>(alloc, deleter<Alloc>(), std::forward<Args>(args)...);
+  // because deleter<Alloc> derives T from its Alloc parameter,
+  // we need to rebind Alloc to T before giving it to deleter
+  using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
+
+  return allocate_unique_with_deleter<T>(alloc, deleter<allocator_type>(), std::forward<Args>(args)...);
 }
 
 
