@@ -54,9 +54,10 @@ class thread_pool
           work();
         });
       }
-
+      //Number the threads 1 to number of threads, 0 is left for any thread outside of these threads
+      //which would be the master thread
       for(size_t i = 0; i < num_threads; ++i){
-        thread_map_[threads_[i].get_id()] = i;
+        thread_map_[threads_[i].get_id()] = i+1;
       }
     }
     
@@ -91,7 +92,18 @@ class thread_pool
 
     //public function used to get the thread number
     inline int get_thread_num(){
-      return thread_map_[std::this_thread::get_id()];
+      auto thread_num_iter = thread_map_.find(std::this_thread::get_id());
+
+      //Check to see if this is the master thread
+      if(thread_num_iter == thread_map_.end())
+      {
+        return 0;
+      }
+      else
+      {
+        return thread_num_iter->second;
+      }
+
     }
 
     inline size_t size() const
