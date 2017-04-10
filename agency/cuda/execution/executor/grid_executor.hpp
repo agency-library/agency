@@ -16,7 +16,6 @@
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/cuda/future.hpp>
-#include <agency/cuda/detail/ndarray.hpp>
 #include <agency/detail/type_traits.hpp>
 
 #include <thrust/system_error.h>

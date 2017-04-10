@@ -5,7 +5,7 @@
 #include <agency/cuda/execution/executor/grid_executor.hpp>
 #include <agency/cuda/memory/allocator.hpp>
 #include <agency/cuda/memory/resource/pinned_resource.hpp>
-#include <agency/cuda/detail/ndarray.hpp>
+#include <agency/experimental/ndarray/ndarray.hpp>
 #include <agency/cuda/future.hpp>
 
 namespace agency
@@ -25,7 +25,7 @@ class parallel_executor
     using allocator = cuda::allocator<T, pinned_resource>;
 
     template<class T>
-    using container = cuda::detail::ndarray<T, size_t, allocator<T>>;
+    using container = agency::experimental::ndarray<T, 1, allocator<T>>;
 
     template<class T>
     using future = cuda::future<T>;

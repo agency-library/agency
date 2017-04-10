@@ -25,7 +25,7 @@ template<class BulkExecutor, class T>
 struct executor_container_impl<BulkExecutor,T,true>
 {
   template<class U>
-  using default_container = experimental::ndarray<T, executor_shape_t<BulkExecutor>, executor_allocator_t<BulkExecutor,T>, executor_index_t<BulkExecutor>>;
+  using default_container = experimental::basic_ndarray<T, executor_shape_t<BulkExecutor>, executor_allocator_t<BulkExecutor,T>, executor_index_t<BulkExecutor>>;
 
   using type = member_container_or_t<BulkExecutor,T,default_container>;
 };
