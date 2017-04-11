@@ -10,7 +10,8 @@
 #include <sys/wait.h>
 
 
-// This example program demonstrates how to create a user-defined executor which forks a new process every time it creates an execution agent.
+// This example program demonstrates how to create a user-defined executor which forks a new process every time it creates
+// an execution agent.
 //
 // There are two major components:
 //
