@@ -104,8 +104,8 @@ class fork_executor
 };
 
 
-template<class Executor>
-int parallel_sum(Executor exec, int* data, int n)
+template<class ParallelPolicy>
+int parallel_sum(ParallelPolicy&& policy, int* data, int n)
 {
   // create a view of the input
   agency::experimental::span<int> input(data, n);
@@ -115,7 +115,7 @@ int parallel_sum(Executor exec, int* data, int n)
   auto tiles = agency::experimental::tile_evenly(input, num_agents);
 
   // create agents to sum each tile in parallel
-  auto partial_sums = agency::bulk_invoke(agency::par(num_agents).on(exec), [=](agency::parallel_agent& self)
+  auto partial_sums = agency::bulk_invoke(policy(num_agents), [=](agency::parallel_agent& self)
   {
     // get this parallel agent's tile
     auto this_tile = tiles[self.index()];
@@ -133,11 +133,13 @@ int main()
 {
   std::vector<int> vec(32 << 20, 1);
 
-  // compute a reference using agency's parallel_executor
-  int reference  = parallel_sum(agency::parallel_executor(), vec.data(), vec.size());
+  // compute a reference
+  int reference  = parallel_sum(agency::par, vec.data(), vec.size());
 
-  // now compute a sum using our executor
-  int fork_sum = parallel_sum(fork_executor(), vec.data(), vec.size());
+  // now execute parallel_sum on our executor
+  fork_executor fork_exec;
+
+  int fork_sum = parallel_sum(agency::par.on(fork_exec), vec.data(), vec.size());
 
   // validate that the results match
   assert(reference == fork_sum);
