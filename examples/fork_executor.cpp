@@ -15,7 +15,7 @@
 //
 // There are two major components:
 //
-//   1. The executor itself, which implements its .bulk_sync_execute() function via and fork() and
+//   1. The executor itself, which implements its .bulk_sync_execute() function via fork() and
 //   2. a special type of allocator for allocating shared memory via mmap() through which the forked processes may communicate.
 //
 // Finally, we validate that our executor is correct by using it to create execution for a parallel sum algorithm.
