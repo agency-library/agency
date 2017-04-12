@@ -21,17 +21,17 @@
 // Finally, we validate that our executor is correct by using it to create execution for a parallel sum algorithm.
 
 
-// Forked processes may communicate through memory which has been dynamically-allocated by mmap.
+// Forked processes may communicate through shared memory which has been dynamically-allocated by mmap.
 template<class T>
-class mmap_allocator
+class shared_memory_allocator
 {
   public:
     using value_type = T;
 
-    mmap_allocator() = default;
+    shared_memory_allocator() = default;
 
     template <class U>
-    mmap_allocator(const mmap_allocator<U>&) {}
+    shared_memory_allocator(const shared_memory_allocator<U>&) {}
 
     // allocate calls mmap with the appropriate flags for shared memory
     static T* allocate(std::size_t n)
@@ -61,8 +61,8 @@ class fork_executor
     // forked processes execute in parallel
     using execution_category = agency::parallel_execution_tag;
 
-    // forked processes communicate through memory allocated by mmap
-    template<typename T> using allocator = mmap_allocator<T>;
+    // forked processes communicate through shared memory
+    template<typename T> using allocator = shared_memory_allocator<T>;
 
     template<class Function, class ResultFactory, class SharedFactory>
     typename std::result_of<ResultFactory()>::type
