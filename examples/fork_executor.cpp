@@ -34,7 +34,7 @@ class shared_memory_allocator
     shared_memory_allocator(const shared_memory_allocator<U>&) {}
 
     // allocate calls mmap with the appropriate flags for shared memory
-    static T* allocate(std::size_t n)
+    T* allocate(std::size_t n)
     {
       if(n <= std::numeric_limits<std::size_t>::max() / sizeof(T))
       {
@@ -47,7 +47,7 @@ class shared_memory_allocator
     }
 
     // deallocate just calls munmap
-    static void deallocate(T* ptr, std::size_t)
+    void deallocate(T* ptr, std::size_t)
     {
       munmap(ptr, sizeof(*ptr));
     }
