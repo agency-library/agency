@@ -11,6 +11,7 @@
 #include <agency/experimental/ranges/statically_bounded.hpp>
 #include <agency/experimental/ranges/stride.hpp>
 #include <agency/experimental/ranges/tile.hpp>
+#include <agency/experimental/ranges/transformed.hpp>
 #include <agency/experimental/ranges/untile.hpp>
 #include <agency/experimental/ranges/zip.hpp>
 #include <agency/experimental/ranges/zip_with.hpp>

@@ -50,6 +50,7 @@ TODO
   * New fancy ranges
     * `experimental::interval()`
     * `experimental::iota_view`
+    * `experimental::transformed_view`
     * `experimental::zip_with_view`
 
 ### New Examples

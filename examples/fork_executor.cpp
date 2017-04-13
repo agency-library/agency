@@ -15,7 +15,7 @@
 //
 // There are two major components:
 //
-//   1. The executor itself, which implements its .bulk_sync_execute() function via and fork() and
+//   1. The executor itself, which implements its .bulk_sync_execute() function via fork() and
 //   2. a special type of allocator for allocating shared memory via mmap() through which the forked processes may communicate.
 //
 // Finally, we validate that our executor is correct by using it to create execution for a parallel sum algorithm.
@@ -34,7 +34,7 @@ class shared_memory_allocator
     shared_memory_allocator(const shared_memory_allocator<U>&) {}
 
     // allocate calls mmap with the appropriate flags for shared memory
-    static T* allocate(std::size_t n)
+    T* allocate(std::size_t n)
     {
       if(n <= std::numeric_limits<std::size_t>::max() / sizeof(T))
       {
@@ -47,7 +47,7 @@ class shared_memory_allocator
     }
 
     // deallocate just calls munmap
-    static void deallocate(T* ptr, std::size_t)
+    void deallocate(T* ptr, std::size_t)
     {
       munmap(ptr, sizeof(*ptr));
     }
