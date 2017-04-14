@@ -111,14 +111,14 @@ class optional : public detail::optional_base<T>
 {
   public:
     __AGENCY_ANNOTATION
-    optional(nullopt_t) : contains_value_{false} {}
+    optional(nullopt_t) : has_value_{false} {}
 
     __AGENCY_ANNOTATION
     optional() : optional(nullopt) {}
 
     __AGENCY_ANNOTATION
     optional(const optional& other)
-      : contains_value_(false)
+      : has_value_(false)
     {
       if(other)
       {
@@ -128,7 +128,7 @@ class optional : public detail::optional_base<T>
 
     __AGENCY_ANNOTATION
     optional(optional&& other)
-      : contains_value_(false)
+      : has_value_(false)
     {
       if(other)
       {
@@ -138,7 +138,7 @@ class optional : public detail::optional_base<T>
 
     __AGENCY_ANNOTATION
     optional(const T& value)
-      : contains_value_(false)
+      : has_value_(false)
     {
       emplace(value);
     }
@@ -152,7 +152,7 @@ class optional : public detail::optional_base<T>
     template<class... Args>
     __AGENCY_ANNOTATION
     optional(in_place_t, Args&&... args)
-      : contains_value_(false)
+      : has_value_(false)
     {
       emplace(std::forward<Args>(args)...);
     }
@@ -163,7 +163,7 @@ class optional : public detail::optional_base<T>
              >::type>
     __AGENCY_ANNOTATION
     optional(in_place_t, std::initializer_list<U> ilist, Args&&... args)
-      : contains_value_(false)
+      : has_value_(false)
     {
       emplace(ilist, std::forward<Args>(args)...);
     }
@@ -171,13 +171,13 @@ class optional : public detail::optional_base<T>
     __AGENCY_ANNOTATION
     ~optional()
     {
-      clear();
+      reset();
     }
 
     __AGENCY_ANNOTATION
     optional& operator=(nullopt_t)
     {
-      clear();
+      reset();
       return *this;
     }
 
@@ -234,10 +234,10 @@ class optional : public detail::optional_base<T>
     __AGENCY_ANNOTATION
     void emplace(Args&&... args)
     {
-      clear();
+      reset();
 
       new (operator->()) T(std::forward<Args>(args)...);
-      contains_value_ = true;
+      has_value_ = true;
     }
 
     template<class U, class... Args,
@@ -247,16 +247,22 @@ class optional : public detail::optional_base<T>
     __AGENCY_ANNOTATION
     void emplace(std::initializer_list<U> ilist, Args&&... args)
     {
-      clear();
+      reset();
 
       new (operator->()) T(ilist, std::forward<Args>(args)...);
-      contains_value_ = true;
+      has_value_ = true;
+    }
+
+    __AGENCY_ANNOTATION
+    bool has_value() const
+    {
+      return has_value_;
     }
 
     __AGENCY_ANNOTATION
     explicit operator bool() const
     {
-      return contains_value_;
+      return has_value();
     }
 
     __AGENCY_ANNOTATION
@@ -382,18 +388,18 @@ class optional : public detail::optional_base<T>
       return *operator->();
     }
 
-  private:
     __AGENCY_ANNOTATION
-    void clear()
+    void reset()
     {
       if(*this)
       {
         (**this).~T();
-        contains_value_ = false;
+        has_value_ = false;
       }
     }
 
-    bool contains_value_;
+  private:
+    bool has_value_;
 };
 
 
