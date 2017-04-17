@@ -1,13 +1,13 @@
 #include <cassert>
 #include <agency/future/always_ready_future.hpp>
-#include <agency/future.hpp>
+#include <agency/future/future_traits.hpp>
 #include <iostream>
 
 int main()
 {
   using namespace agency;
 
-  static_assert(agency::detail::is_future<always_ready_future<int>>::value, "always_ready_future<int> is not a future");
+  static_assert(agency::is_future<always_ready_future<int>>::value, "always_ready_future<int> is not a future");
 
   {
     // make_ready int
