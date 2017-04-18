@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/memory/unique_ptr.hpp>
+#include <agency/memory/detail/unique_ptr.hpp>
 #include <stdexcept>
 #include <cassert>
 #include <utility>

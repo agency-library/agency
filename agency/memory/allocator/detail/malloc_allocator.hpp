@@ -1,8 +1,8 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/memory/allocator/allocator_adaptor.hpp>
-#include <agency/detail/memory/resource/malloc_resource.hpp>
+#include <agency/memory/allocator/detail/allocator_adaptor.hpp>
+#include <agency/memory/detail/resource/malloc_resource.hpp>
 
 namespace agency
 {

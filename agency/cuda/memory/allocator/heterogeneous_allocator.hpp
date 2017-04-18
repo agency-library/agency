@@ -2,9 +2,9 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/tuple.hpp>
-#include <agency/detail/memory/resource/malloc_resource.hpp>
-#include <agency/detail/memory/allocator_traits.hpp>
-#include <agency/detail/memory/allocator/allocator_adaptor.hpp>
+#include <agency/memory/detail/resource/malloc_resource.hpp>
+#include <agency/memory/allocator/detail/allocator_traits.hpp>
+#include <agency/memory/allocator/detail/allocator_adaptor.hpp>
 #include <agency/cuda/memory/resource/heterogeneous_resource.hpp>
 #include <agency/cuda/memory/resource/managed_resource.hpp>
 #include <memory>

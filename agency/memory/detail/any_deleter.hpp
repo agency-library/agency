@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/detail/memory/unique_ptr.hpp>
+#include <agency/memory/detail/unique_ptr.hpp>
 #include <agency/detail/is_call_possible.hpp>
 #include <type_traits>
 #include <typeinfo>

@@ -5,8 +5,7 @@
 #include <agency/cuda/memory/allocator/heterogeneous_allocator.hpp>
 #include <agency/cuda/memory/allocator/managed_allocator.hpp>
 #include <agency/cuda/memory/allocator/pinned_allocator.hpp>
-
-#include <agency/detail/memory/resource/cached_resource.hpp>
+#include <agency/memory/detail/resource/cached_resource.hpp>
 
 namespace agency
 {

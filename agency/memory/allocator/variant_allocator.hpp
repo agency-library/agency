@@ -4,7 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/experimental/variant.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/memory/allocator_traits.hpp>
+#include <agency/memory/allocator/detail/allocator_traits.hpp>
 
 namespace agency
 {

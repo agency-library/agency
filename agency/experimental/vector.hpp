@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/detail/memory/allocator_traits.hpp>
+#include <agency/memory/allocator/detail/allocator_traits.hpp>
 #include <agency/detail/utility.hpp>
 #include <agency/detail/iterator.hpp>
 #include <agency/detail/algorithm/copy.hpp>

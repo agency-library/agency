@@ -50,8 +50,8 @@ struct allocator_traits : std::allocator_traits<Alloc>
 } // end detail
 } // end agency
 
-#include <agency/detail/memory/allocator_traits/construct.hpp>
-#include <agency/detail/memory/allocator_traits/construct_n.hpp>
-#include <agency/detail/memory/allocator_traits/destroy.hpp>
-#include <agency/detail/memory/allocator_traits/max_size.hpp>
+#include <agency/memory/allocator/detail/allocator_traits/construct.hpp>
+#include <agency/memory/allocator/detail/allocator_traits/construct_n.hpp>
+#include <agency/memory/allocator/detail/allocator_traits/destroy.hpp>
+#include <agency/memory/allocator/detail/allocator_traits/max_size.hpp>
 

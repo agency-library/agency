@@ -1,8 +1,8 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/memory/allocator_traits.hpp>
-#include <agency/detail/memory/allocator_traits/check_for_member_functions.hpp>
+#include <agency/memory/allocator/detail/allocator_traits.hpp>
+#include <agency/memory/allocator/detail/allocator_traits/check_for_member_functions.hpp>
 #include <climits>
 
 namespace agency

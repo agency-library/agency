@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/cuda/memory/detail/unique_ptr.hpp>
-#include <agency/detail/memory/any_deleter.hpp>
+#include <agency/memory/detail/any_deleter.hpp>
 
 namespace agency
 {

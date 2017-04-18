@@ -23,7 +23,7 @@
 // SOFTWARE.
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/memory/resource/null_resource.hpp>
+#include <agency/memory/detail/resource/null_resource.hpp>
 #include <new>
 #include <cassert>
 #include <cstddef>
