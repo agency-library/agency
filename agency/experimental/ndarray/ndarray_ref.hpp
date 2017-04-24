@@ -34,7 +34,7 @@ class basic_ndarray_ref
     using element_type = T;
     using shape_type = Shape;
     using index_type = Index;
-    using size_type = decltype(agency::detail::shape_size(std::declval<shape_type>()));
+    using size_type = decltype(agency::detail::index_space_size(std::declval<shape_type>()));
     using reference = element_type&;
     using pointer = element_type*;
 
@@ -69,7 +69,7 @@ class basic_ndarray_ref
     __AGENCY_ANNOTATION
     size_type size() const
     {
-      return agency::detail::shape_size(shape());
+      return agency::detail::index_space_size(shape());
     }
 
     /// \brief Returns the size of the dimension of interest.

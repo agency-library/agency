@@ -365,7 +365,7 @@ class lattice
     __AGENCY_ANNOTATION
     size_type size() const
     {
-      return detail::shape_size(shape());
+      return detail::index_space_size(shape());
     }
 
     __AGENCY_ANNOTATION

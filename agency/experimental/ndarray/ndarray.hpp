@@ -44,7 +44,7 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     explicit basic_ndarray(const shape_type& shape, const allocator_type& alloc = allocator_type())
       : alloc_(alloc),
-        all_(allocate_and_construct_elements(alloc_, agency::detail::shape_size(shape)), shape)
+        all_(allocate_and_construct_elements(alloc_, agency::detail::index_space_size(shape)), shape)
     {
     }
 
@@ -52,7 +52,7 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     explicit basic_ndarray(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
       : alloc_(alloc),
-        all_(allocate_and_construct_elements(alloc_, agency::detail::shape_size(shape), val), shape)
+        all_(allocate_and_construct_elements(alloc_, agency::detail::index_space_size(shape), val), shape)
     {
     }
 

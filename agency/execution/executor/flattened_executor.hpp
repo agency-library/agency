@@ -274,8 +274,8 @@ class flattened_executor
       }
 
       base_shape_type base_executor_shape = agency::unit_shape(base_executor());
-      size_t outer_granularity = detail::shape_head_size(base_executor_shape);
-      size_t inner_granularity = detail::shape_size(detail::get<1>(base_executor_shape));
+      size_t outer_granularity = detail::index_space_size_of_shape_head(base_executor_shape);
+      size_t inner_granularity = detail::index_space_size(detail::get<1>(base_executor_shape));
 
       base_shape_type base_executor_max_sizes = detail::max_sizes(agency::max_shape_dimensions(base_executor()));
 
