@@ -793,6 +793,53 @@ typename std::decay<T>::type tuple_take_if(T&& value)
 }
 
 
+// tuple_rebind takes a Tuple-like type and reinstantiates it with a different list of types
+template<class Tuple, class... Types>
+struct tuple_rebind;
+
+
+// we can tuple_rebind a Tuple-like type simply by reinstantiating the template from which it came
+template<template<class...> class TupleLike, class... OriginalTypes, class... Types>
+struct tuple_rebind<TupleLike<OriginalTypes...>, Types...>
+{
+  using type = TupleLike<Types...>;
+};
+
+
+
+// we can tuple_rebind an Array-like type only when the list of Types are all the same type
+template<template<class,size_t> class ArrayLike, class OriginalType, size_t n, class Type, class... Types>
+struct tuple_rebind<ArrayLike<OriginalType,n>, Type, Types...>
+  : std::conditional<
+      conjunction<std::is_same<Type,Types>...>::value,  // if all of Types are the same as Type
+      ArrayLike<Type, 1 + sizeof...(Types)>,            // then reinstantiate the Array-like template using Type
+      std::enable_if<false>                             // otherwise, do not define a member named ::type
+    >::type
+{};
+
+
+template<class Tuple, class... Types>
+using tuple_rebind_t = typename tuple_rebind<Tuple,Types...>::type;
+
+
+// a Tuple-like type is rebindable for a list of types if tuple_rebind<Tuple,Types...>::type is detected to exist
+template<class Tuple, class... Types>
+using is_tuple_rebindable = is_detected<tuple_rebind_t, Tuple, Types...>;
+
+
+// some types aren't tuple_rebindable given a list of Types
+// in such cases, we default to using the given TupleLike template as the result of the rebind
+template<class T, template<class...> class TupleLike, class... Types>
+using tuple_rebind_if = lazy_conditional<
+  is_tuple_rebindable<T,Types...>::value, // if Tuple is rebindable...
+  tuple_rebind<T,Types...>,               // then tuple_rebind it
+  identity<TupleLike<Types...>>           // otherwise, default to TupleLike<Types...>
+>;
+
+template<class T, template<class...> class TupleLike, class... Types>
+using tuple_rebind_if_t = typename tuple_rebind_if<T,TupleLike,Types...>::type;
+
+
 } // end detail
 } // end agency
 
