@@ -1,7 +1,7 @@
 #include <agency/agency.hpp>
 #include <agency/experimental.hpp>
 
-#include <algorithm>
+#include <numeric>
 #include <vector>
 
 #include <unistd.h>
