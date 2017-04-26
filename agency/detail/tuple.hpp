@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 
 #define __TUPLE_ANNOTATION __AGENCY_ANNOTATION
 
@@ -120,6 +121,31 @@ auto get(Tuple&& t)
      )
 {
   return __tu::tuple_traits<typename std::decay<Tuple>::type>::template get<i>(std::forward<Tuple>(t));
+}
+
+
+// get_if returns the ith element of an object when that object is a Tuple-like type
+// otherwise, it returns its second parameter
+template<size_t i, class Tuple, class T,
+         __AGENCY_REQUIRES(
+           is_tuple<typename std::decay<Tuple>::type>::value
+         )>
+__AGENCY_ANNOTATION
+auto get_if(Tuple&& t, T&&)
+  -> decltype(get<i>(std::forward<Tuple>(t)))
+{
+  return detail::get<i>(std::forward<Tuple>(t));
+}
+
+
+template<size_t, class NotATuple, class T,
+         __AGENCY_REQUIRES(
+           !is_tuple<typename std::decay<NotATuple>::type>::value
+         )>
+__AGENCY_ANNOTATION
+T&& get_if(NotATuple&&, T&& otherwise_if_not_tuple)
+{
+  return std::forward<T>(otherwise_if_not_tuple);
 }
 
 
