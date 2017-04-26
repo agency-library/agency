@@ -36,6 +36,20 @@ int main()
 
       static_assert(std::is_same<common_shape, std::size_t>::value, "common_shape should be size_t");
     }
+
+    {
+      // test that we can cast back and forth from an original shape to the common shape without losing information
+      shape1 s1 = 13;
+      shape2 s2 = {{7}};
+
+      using common_shape = detail::common_shape_t<shape1,shape2>;
+
+      common_shape cs1 = detail::shape_cast<common_shape>(s1);
+      common_shape cs2 = detail::shape_cast<common_shape>(s2);
+
+      assert(s1 == detail::shape_cast<shape1>(cs1));
+      assert(s2 == detail::shape_cast<shape2>(cs2));
+    }
   }
 
   {
@@ -61,6 +75,20 @@ int main()
       static_assert(std::is_same<detail::shape_element_t<0,common_shape>, std::size_t>::value, "common_shape's first element should be size_t");
       static_assert(std::is_same<detail::shape_element_t<1,common_shape>, std::size_t>::value, "common_shape's second element should be size_t");
     }
+
+    {
+      // test that we can cast back and forth from an original shape to the common shape without losing information
+      shape1 s1 = 13;
+      shape2 s2 = {{13,7}};
+
+      using common_shape = detail::common_shape_t<shape1,shape2>;
+
+      common_shape cs1 = detail::shape_cast<common_shape>(s1);
+      common_shape cs2 = detail::shape_cast<common_shape>(s2);
+
+      assert(s1 == detail::shape_cast<shape1>(cs1));
+      assert(s2 == detail::shape_cast<shape2>(cs2));
+    }
   }
 
   {
@@ -75,6 +103,16 @@ int main()
     static_assert(std::is_same<detail::shape_element_t<0,common_shape>, std::size_t>::value, "common_shape's first element should be size_t");
     static_assert(std::is_same<detail::shape_element_t<1,common_shape>, std::size_t>::value, "common_shape's first element should be size_t");
     static_assert(std::is_same<detail::shape_element_t<2,common_shape>, unsigned int>::value, "common_shape's first element should be unsigned int");
+
+    // test that we can cast back and forth from an original shape to the common shape without losing information
+    shape1 s1 = {13, 7};
+    shape2 s2 = {13, 7, 42};
+
+    common_shape cs1 = detail::shape_cast<common_shape>(s1);
+    common_shape cs2 = detail::shape_cast<common_shape>(s2);
+
+    assert(s1 == detail::shape_cast<shape1>(cs1));
+    assert(s2 == detail::shape_cast<shape2>(cs2));
   }
 
   {
