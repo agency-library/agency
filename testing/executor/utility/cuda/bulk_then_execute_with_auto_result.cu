@@ -20,7 +20,7 @@ void test_with_void_predecessor_returning_void(Executor exec)
   
   size_t increment_me = 0;
   std::mutex mut;
-  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t idx, size_t& shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t, size_t& shared_arg)
   {
     mut.lock();
     increment_me += 1;
@@ -79,7 +79,7 @@ void test_with_non_void_predecessor_returning_void(Executor exec)
   
   size_t increment_me = 0;
   std::mutex mut;
-  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t idx, int& predecessor, size_t& shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t, int& predecessor, size_t& shared_arg)
   {
     mut.lock();
     increment_me += predecessor;
@@ -138,7 +138,7 @@ void test_with_void_predecessor_returning_void2(Executor exec)
 
   using index_type = agency::executor_index_t<Executor>;
   
-  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __device__ (index_type, int& outer_shared_arg, int& inner_shared_arg)
   {
     atomicAdd(&increment_me, outer_shared_arg + inner_shared_arg);
   },
@@ -167,7 +167,7 @@ void test_with_void_predecessor_returning_results2(Executor exec)
   shape_type shape{10,10};
   
   auto f = agency::detail::bulk_then_execute_with_auto_result(exec,
-    [] __host__ __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
+    [] __host__ __device__ (index_type, int& outer_shared_arg, int& inner_shared_arg)
     {
       return outer_shared_arg + inner_shared_arg;
     },
@@ -195,7 +195,7 @@ void test_with_non_void_predecessor_returning_void2(Executor exec)
 
   using index_type = agency::executor_index_t<Executor>;
   
-  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __device__ (index_type idx, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __device__ (index_type, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
   {
     atomicAdd(&increment_me, predecessor + outer_shared_arg + inner_shared_arg);
   },
@@ -222,7 +222,7 @@ void test_with_non_void_predecessor_returning_results2(Executor exec)
 
   using index_type = agency::executor_index_t<Executor>;
   
-  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __host__ __device__ (index_type idx, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [] __host__ __device__ (index_type, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
   {
     return predecessor + outer_shared_arg + inner_shared_arg;
   },

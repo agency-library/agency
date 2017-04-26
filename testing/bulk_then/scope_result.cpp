@@ -8,7 +8,6 @@ void test(ExecutionPolicy1 outer, ExecutionPolicy2 inner)
 {
   auto policy = outer(2, inner(3));
   using agent = typename decltype(policy)::execution_agent_type;
-  using executor_type = typename decltype(policy)::executor_type;
 
   {
     // bulk_then with non-void future and no parameters

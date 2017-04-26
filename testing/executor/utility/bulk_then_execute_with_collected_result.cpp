@@ -7,7 +7,6 @@
 template<class Executor>
 void test_with_void_predecessor(Executor exec)
 {
-  using shape_type = agency::executor_shape_t<Executor>;
   using index_type = agency::executor_index_t<Executor>;
 
   auto predecessor_future = agency::make_ready_future<void>(exec);
@@ -34,7 +33,6 @@ void test_with_void_predecessor(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor(Executor exec)
 {
-  using shape_type = agency::executor_shape_t<Executor>;
   using index_type = agency::executor_index_t<Executor>;
 
   auto predecessor_future = agency::make_ready_future<int>(exec, 7);

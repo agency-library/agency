@@ -16,7 +16,7 @@ void test()
     auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& return_me)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&, int& return_me)
       {
         return return_me;
       },
@@ -38,7 +38,7 @@ void test()
     auto fut = agency::make_ready_future<void>(policy.executor());
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&)
       {
         return 7;
       },
@@ -62,7 +62,7 @@ void test()
     int val = 13;
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& past_arg, int val)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&, int& past_arg, int val)
       {
         return past_arg + val;
       },
@@ -87,7 +87,7 @@ void test()
     int val = 13;
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int val)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&, int val)
       {
         return val;
       },
@@ -112,7 +112,7 @@ void test()
     int val = 13;
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& past_arg, int& shared_arg)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&, int& past_arg, int& shared_arg)
       {
         return past_arg + shared_arg;
       },
@@ -137,7 +137,7 @@ void test()
     int val = 13;
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& shared_arg)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&, int& shared_arg)
       {
         return shared_arg;
       },

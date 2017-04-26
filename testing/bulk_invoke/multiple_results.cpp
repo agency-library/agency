@@ -12,7 +12,7 @@ void test()
     execution_policy_type policy;
 
     auto result = agency::bulk_invoke(policy(10),
-      [](typename execution_policy_type::execution_agent_type& self)
+      [](typename execution_policy_type::execution_agent_type&)
     {
       return 7;
     });
@@ -31,7 +31,7 @@ void test()
     int val = 13;
 
     auto result = agency::bulk_invoke(policy(10),
-      [](typename execution_policy_type::execution_agent_type& self, int val)
+      [](typename execution_policy_type::execution_agent_type&, int val)
     {
       return val;
     },
@@ -51,7 +51,7 @@ void test()
     int val = 13;
 
     auto result = agency::bulk_invoke(policy(10),
-      [](typename execution_policy_type::execution_agent_type& self, int& val)
+      [](typename execution_policy_type::execution_agent_type&, int& val)
     {
       return val;
     },

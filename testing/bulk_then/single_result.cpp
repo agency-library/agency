@@ -4,7 +4,6 @@ template<class ExecutionPolicy>
 void test()
 {
   using execution_policy_type = ExecutionPolicy;
-  using executor_type = typename ExecutionPolicy::executor_type;
 
   {
     // bulk_then with non-void future and no parameters

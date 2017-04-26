@@ -40,7 +40,7 @@ void test2(Executor exec)
   using container_type = agency::executor_container_t<Executor,int>;
   
   auto f = agency::detail::bulk_async_execute_with_collected_result(exec,
-    [] __host__ __device__ (index_type idx, int& outer_shared_arg, int& inner_shared_arg)
+    [] __host__ __device__ (index_type, int& outer_shared_arg, int& inner_shared_arg)
     {
       return outer_shared_arg + inner_shared_arg;
     },
