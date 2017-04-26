@@ -16,7 +16,7 @@ void test_with_void_predecessor_returning_void(Executor exec)
   
   size_t increment_me = 0;
   std::mutex mut;
-  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t idx, size_t& shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t, size_t& shared_arg)
   {
     mut.lock();
     increment_me += 1;
@@ -42,7 +42,6 @@ void test_with_void_predecessor_returning_results(Executor exec)
 {
   auto predecessor_future = agency::detail::make_ready_future();
 
-  using shape_type = agency::executor_shape_t<Executor>;
   using index_type = agency::executor_index_t<Executor>;
 
   size_t shape = 10;
@@ -75,7 +74,7 @@ void test_with_non_void_predecessor_returning_void(Executor exec)
   
   size_t increment_me = 0;
   std::mutex mut;
-  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t idx, int& predecessor, size_t& shared_arg)
+  auto fut = agency::detail::bulk_then_execute_with_auto_result(exec, [&](size_t, int& predecessor, size_t& shared_arg)
   {
     mut.lock();
     increment_me += predecessor;
@@ -101,7 +100,6 @@ void test_with_non_void_predecessor_returning_results(Executor exec)
 {
   auto predecessor_future = agency::make_ready_future<int>(exec, 7);
 
-  using shape_type = agency::executor_shape_t<Executor>;
   using index_type = agency::executor_index_t<Executor>;
 
   size_t shape = 10;

@@ -12,7 +12,6 @@ void test()
     // bulk_then with non-void future and no parameters
 
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
@@ -38,7 +37,6 @@ void test()
     // bulk_then with void future and no parameters
 
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     auto fut = agency::make_ready_future<void>(policy.executor());
 
@@ -64,7 +62,6 @@ void test()
     // bulk_then with non-void future and one parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
@@ -93,7 +90,6 @@ void test()
     // bulk_then with void future and one parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     auto fut = agency::make_ready_future<void>(policy.executor());
 
@@ -122,7 +118,6 @@ void test()
     // bulk_then with non-void future and one shared parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
@@ -151,7 +146,6 @@ void test()
     // bulk_then with void future and one shared parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     auto fut = agency::make_ready_future<void>(policy.executor());
 

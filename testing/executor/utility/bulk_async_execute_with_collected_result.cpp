@@ -7,7 +7,6 @@
 template<class Executor>
 void test(Executor exec)
 {
-  using shape_type = agency::executor_shape_t<Executor>;
   using index_type = agency::executor_index_t<Executor>;
 
   size_t shape = 10;

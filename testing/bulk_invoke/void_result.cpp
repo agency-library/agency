@@ -15,7 +15,7 @@ void test()
     std::atomic<int> counter{0};
 
     agency::bulk_invoke(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self)
+      [&](typename execution_policy_type::execution_agent_type&)
     {
       ++counter;
     });
@@ -33,7 +33,7 @@ void test()
     std::atomic<int> counter{0};
 
     agency::bulk_invoke(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self, int val)
+      [&](typename execution_policy_type::execution_agent_type&, int val)
       {
         counter += val;
       },
@@ -53,7 +53,7 @@ void test()
     std::atomic<int> counter{0};
 
     agency::bulk_invoke(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self, int& val)
+      [&](typename execution_policy_type::execution_agent_type&, int& val)
       {
         counter += val;
       },

@@ -13,7 +13,7 @@ void test_returning_void(Executor exec)
   
   size_t increment_me = 0;
   std::mutex mut;
-  agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [&](size_t idx)
+  agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [&](size_t)
   {
     mut.lock();
     increment_me += 1;
@@ -33,7 +33,7 @@ void test_returning_results(Executor exec)
 
   size_t shape = 10;
   
-  auto result = agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [](index_type idx)
+  auto result = agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [](index_type)
   {
     return 13;
   },
@@ -54,7 +54,7 @@ void test_returning_void2(Executor exec)
   using index_type = agency::executor_index_t<Executor>;
   
   increment_me = 0;
-  agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [] __device__ (index_type idx)
+  agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [] __device__ (index_type)
   {
     atomicAdd(&increment_me, 1);
   },
@@ -72,7 +72,7 @@ void test_returning_results2(Executor exec)
 
   shape_type shape{10,10};
   
-  auto result = agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [] __host__ __device__ (index_type idx)
+  auto result = agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [] __host__ __device__ (index_type)
   {
     return 13;
   },
