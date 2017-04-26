@@ -12,19 +12,6 @@ namespace agency
 {
 namespace detail
 {
-
-
-// common_shape is a type trait which, given two possibly different Shapes, returns
-// a Shape with dimensions sufficient to represent either Shape.
-
-// because common_shape is recursive, we introduce a forward declaration so its implementation may call itself.
-template<class Shape1, class Shape2>
-struct common_shape;
-
-template<class Shape1, class Shape2>
-using common_shape_t = typename common_shape<Shape1,Shape2>::type;
-
-
 namespace common_shape_detail
 {
 
@@ -33,7 +20,15 @@ template<class T1, class T2>
 using common_type_t = typename std::common_type<T1,T2>::type;
 
 
-// in the following, we implement the type trait common_shape using constexpr functions so that we can use __AGENCY_REQUIRES easily
+// because the implementation of common_shape2 is recursive, we introduce a forward declaration so it may call itself.
+template<class Shape1, class Shape2>
+struct common_shape2;
+
+template<class Shape1, class Shape2>
+using common_shape2_t = typename common_shape2<Shape1,Shape2>::type;
+
+
+// in the following, we implement the type trait common_shape2 using constexpr functions so that we can use __AGENCY_REQUIRES easily
 
 // First, if the two Shapes are identical (case 0), there is nothing to do.
 //
@@ -57,7 +52,7 @@ template<class Shape1, class Shape2,
            shape_size<Shape1>::value < shape_size<Shape2>::value
          )>
 constexpr
-common_shape_t<
+common_shape2_t<
   shape_append_t<Shape1, shape_element_t<shape_size<Shape1>::value, Shape2>>,
   Shape2
 >
@@ -68,7 +63,7 @@ common_shape_t<
   using widened_shape = shape_append_t<Shape1, type_to_append>;
 
   // recurse
-  return common_shape_t<widened_shape, Shape2>();
+  return common_shape2_t<widened_shape, Shape2>();
 };
 
 
@@ -78,7 +73,7 @@ template<class Shape1, class Shape2,
            shape_size<Shape1>::value > shape_size<Shape2>::value
          )>
 constexpr
-common_shape_t<
+common_shape2_t<
   Shape1,
   shape_append_t<Shape2, shape_element_t<shape_size<Shape2>::value, Shape1>>
 >
@@ -89,7 +84,7 @@ common_shape_t<
   using widened_shape = shape_append_t<Shape2, type_to_append>;
 
   // recurse
-  return common_shape_t<Shape1, widened_shape>();
+  return common_shape2_t<Shape1, widened_shape>();
 }
 
 
@@ -103,23 +98,15 @@ struct case_3<Shape1, Shape2, index_sequence<Indices...>>
 {
   // when it's possible to tuple_rebind Shape1, do this to produce the resulting Shape type
   // otherwise, use detail::tuple as the resulting tuple type
+  // XXX we might prefer to use something more specific than detail::tuple, e.g detail::shape_tuple
   using type = detail::tuple_rebind_if_t<
     Shape1,
     detail::tuple,
-    common_shape_t<                       // the resulting Shape is composed of the the common shape of Shape1's & Shape2's constituent elements
+    common_shape2_t<                       // the resulting Shape is composed of the the common shape of Shape1's & Shape2's constituent elements
       shape_element_t<Indices,Shape1>,
       shape_element_t<Indices,Shape2>
     >...
   >;
-
-  // XXX when possible, we should rebind Shape1's instantiation instead of using detail::tuple
-
-  //using type = detail::tuple<
-  //  common_shape_t<
-  //    shape_element_t<Indices,Shape1>,
-  //    shape_element_t<Indices,Shape2>
-  //  >...
-  //>;
 };
 
 template<class Shape1, class Shape2>
@@ -161,13 +148,49 @@ constexpr common_type_t<shape_element_t<0,Shape1>,shape_element_t<0,Shape2>>
 }
 
 
+template<class Shape1, class Shape2>
+struct common_shape2
+{
+  using type = decltype(common_shape_detail::common_shape_impl(std::declval<Shape1>(), std::declval<Shape2>()));
+};
+
+
 } // end common_shape_detail
 
 
-template<class Shape1, class Shape2>
-struct common_shape
+// common_shape is a type trait which, given one or more possibly different Shapes, returns
+// a Shape with dimensions sufficient to represent any of the Shapes.
+template<class Shape, class... Shapes>
+struct common_shape;
+
+template<class Shape, class... Shapes>
+using common_shape_t = typename common_shape<Shape,Shapes...>::type;
+
+
+// the implementation of common_shape is recursive
+// this is the recursive case
+template<class Shape1, class Shape2, class... Shapes>
+struct common_shape<Shape1, Shape2, Shapes...>
 {
-  using type = decltype(common_shape_detail::common_shape_impl(std::declval<Shape1>(), std::declval<Shape2>()));
+  using type = common_shape_t<
+    Shape1,
+    common_shape_t<Shape2, Shapes...>
+  >;
+};
+
+// base case 1: a single Shape
+template<class Shape>
+struct common_shape<Shape>
+{
+  using type = Shape;
+};
+
+// base case 2: two Shapes
+template<class Shape1, class Shape2>
+struct common_shape<Shape1, Shape2>
+{
+  // with two Shapes, we lower onto the two Shape implementation inside common_shape_detail
+  using type = common_shape_detail::common_shape2_t<Shape1,Shape2>;
 };
 
 
