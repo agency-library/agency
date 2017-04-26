@@ -34,18 +34,11 @@ class variant_allocator
     __AGENCY_ANNOTATION
     variant_allocator(const variant_allocator&) = default;
 
-  private:
-    template<class T>
-    using is_variant_alternative = std::integral_constant<
-      bool,
-      agency::experimental::detail::variant_detail::find_type<T, Alloc, Allocs...>::value != agency::experimental::variant_npos
-    >;
-
   public:
-    // this constructor converts from one the alternative allocators
+    // this constructor converts from another allocator, when possible
     template<class OtherAlloc,
              __AGENCY_REQUIRES(
-               is_variant_alternative<OtherAlloc>::value
+               std::is_constructible<variant_type, const OtherAlloc&>::value
              )>
     __AGENCY_ANNOTATION
     variant_allocator(const OtherAlloc& alloc)
