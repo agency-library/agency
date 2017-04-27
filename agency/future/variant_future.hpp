@@ -133,18 +133,18 @@ class variant_future
     }
 
   private:
-    template<class Function>
+    template<class FunctionRef>
     struct then_visitor
     {
-      mutable detail::decay_t<Function> f;
+      FunctionRef f;
 
       template<class T>
       __AGENCY_ANNOTATION
-      future_then_result_t<variant_future, Function>
+      future_then_result_t<variant_future, detail::decay_t<FunctionRef>>
         operator()(T& future) const
       {
         // XXX should probably do this through a Future customization point
-        return agency::future_traits<T>::then(future, std::forward<Function>(f));
+        return agency::future_traits<T>::then(future, std::forward<FunctionRef>(f));
       }
     };
 
@@ -153,7 +153,7 @@ class variant_future
     future_then_result_t<variant_future, Function>
       then(Function&& f)
     {
-      auto visitor = then_visitor<Function>{std::forward<Function>(f)};
+      auto visitor = then_visitor<Function&&>{std::forward<Function>(f)};
       return agency::experimental::visit(visitor, variant_);
     }
 
