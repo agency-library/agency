@@ -9,6 +9,10 @@ namespace detail
 {
 
 
+template<bool b, class T, class F>
+using conditional_t = typename std::conditional<b,T,F>::type;
+
+
 template<bool b, typename T, typename F>
 struct lazy_conditional
 {
