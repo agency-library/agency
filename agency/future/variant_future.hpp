@@ -71,6 +71,7 @@ class variant_future
       return future_traits<Future>::make_ready();
     }
 
+    /// XXX consider eliminating this member and instead deriving variant_future from variant
     __AGENCY_ANNOTATION
     size_t index() const
     {
@@ -78,6 +79,7 @@ class variant_future
     }
 
     /// Returns this variant_future's underlying variant object and invalidates this variant_future.
+    /// XXX consider eliminating this member and instead deriving variant_future from variant
     __AGENCY_ANNOTATION
     variant_type variant()
     {
