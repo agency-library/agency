@@ -376,6 +376,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     {
       T& other;
 
+      __agency_exec_check_disable__
       __AGENCY_ANNOTATION
       void operator()(T& self) const
       {
