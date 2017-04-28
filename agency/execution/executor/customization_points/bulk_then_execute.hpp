@@ -4,6 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/future/detail/future_cast.hpp>
 #include <future>
 
 
@@ -231,12 +232,13 @@ bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predec
   detail::then_with_nested_bulk_sync_execute_functor<E,Function,predecessor_type,ResultFactory,Factories...> functor{exec,f,shape,result_factory,detail::make_tuple(shared_factories...)};
 
   auto intermediate_fut = future_traits<Future>::then(predecessor, std::move(functor));
-  using result_type = detail::result_of_t<ResultFactory()>;
 
-  // XXX we may wish to allow the executor to participate in this cast operation via agency::future_cast()
+  using result_type = detail::result_of_t<ResultFactory()>;
+  using result_future_type = executor_future_t<E,result_type>;
+
+  // XXX we need to call future_cast<result_type>(exec, intermediate_fut) here
   //     however, #including future_cast.hpp causes circular inclusion problems.
-  //     so, just use future_traits for now
-  return future_traits<decltype(intermediate_fut)>::template cast<result_type>(intermediate_fut);
+  return agency::detail::future_cast<result_future_type>(intermediate_fut);
 }
 
 
