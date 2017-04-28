@@ -7,6 +7,8 @@
 #include <agency/experimental/variant.hpp>
 #include <agency/future.hpp>
 
+#include <type_traits>
+
 namespace agency
 {
 
@@ -73,6 +75,13 @@ class variant_future
     size_t index() const
     {
       return variant_.index();
+    }
+
+    /// Returns this variant_future's underlying variant object and invalidates this variant_future.
+    __AGENCY_ANNOTATION
+    variant_type variant()
+    {
+      return std::move(variant_);
     }
 
   private:
@@ -162,5 +171,18 @@ class variant_future
 };
 
 
+namespace detail
+{
+
+
+template<class T>
+struct is_variant_future : std::false_type {};
+
+
+template<class Future, class... Futures>
+struct is_variant_future<variant_future<Future,Futures...>> : std::true_type {};
+
+
+} // end detail
 } // end agency
 
