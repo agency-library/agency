@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/memory/allocation_deleter.hpp>
 #include <agency/detail/memory/unique_ptr.hpp>
 #include <agency/cuda/memory/allocator.hpp>
 #include <agency/cuda/detail/future/event.hpp>
@@ -17,7 +18,19 @@ namespace detail
 
 
 template<class T>
-using default_delete = agency::detail::deleter<cuda::allocator<T>>;
+class default_delete : public agency::detail::allocation_deleter<cuda::allocator<T>>
+{
+  private:
+    using super_t = agency::detail::allocation_deleter<cuda::allocator<T>>;
+
+  public:
+    using super_t::super_t;
+
+    __AGENCY_ANNOTATION
+    default_delete()
+      : super_t(cuda::allocator<T>())
+    {}
+};
 
 
 template<class T, class Deleter = default_delete<T>>
