@@ -4,6 +4,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/utility.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
+#include <agency/detail/memory/allocation_deleter.hpp>
 #include <utility>
 #include <memory>
 #include <type_traits>
@@ -15,55 +16,19 @@ namespace detail
 {
 
 
-template<class Allocator>
-class deleter
-{
-  public:
-    using value_type = typename std::allocator_traits<Allocator>::value_type;
-
-    using pointer = typename std::allocator_traits<Allocator>::pointer;
-
-    __AGENCY_ANNOTATION
-    deleter() = default;
-
-    __AGENCY_ANNOTATION
-    deleter(const deleter&) = default;
-
-    template<class OtherAllocator,
-             class = typename std::enable_if<
-               std::is_convertible<
-                 typename std::allocator_traits<OtherAllocator>::pointer,
-                 pointer
-               >::value
-             >::type
-            >
-    __AGENCY_ANNOTATION
-    deleter(const deleter<OtherAllocator>&) {}
-
-    __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
-    void operator()(pointer ptr) const
-    {
-      // destroy the object
-      // XXX should use allocator_traits::destroy()
-      ptr->~value_type();
-
-      // deallocate
-      // XXX should use allocator_traits:deallocate()
-      Allocator alloc;
-      alloc.deallocate(ptr, 1);
-    }
-
-    __AGENCY_ANNOTATION
-    void swap(deleter&)
-    {
-      // there's nothing to swap
-    }
-};
-
-
 template<class T>
-using default_delete = deleter<std::allocator<T>>;
+class default_delete : public allocation_deleter<std::allocator<T>>
+{
+  private:
+    using super_t = allocation_deleter<std::allocator<T>>;
+
+  public:
+    using super_t::super_t;
+
+    default_delete()
+      : super_t(std::allocator<T>())
+    {}
+};
 
 
 template<class T, class Deleter = default_delete<T>>
@@ -211,14 +176,13 @@ unique_ptr<T,Deleter> allocate_unique_with_deleter(const Alloc& alloc, const Del
 
 template<class T, class Alloc, class... Args>
 __AGENCY_ANNOTATION
-unique_ptr<T,deleter<typename std::allocator_traits<Alloc>::template rebind_alloc<T>>>
-  allocate_unique(const Alloc& alloc, Args&&... args)
+unique_ptr<T,allocation_deleter<Alloc>> allocate_unique(const Alloc& alloc, Args&&... args)
 {
-  // because deleter<Alloc> derives T from its Alloc parameter,
+  // because allocation_deleter<Alloc> derives T from its Alloc parameter,
   // we need to rebind Alloc to T before giving it to deleter
   using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
 
-  return allocate_unique_with_deleter<T>(alloc, deleter<allocator_type>(), std::forward<Args>(args)...);
+  return allocate_unique_with_deleter<T>(alloc, allocation_deleter<allocator_type>(alloc), std::forward<Args>(args)...);
 }
 
 
