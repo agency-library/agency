@@ -11,8 +11,6 @@ void test_reallocating_range_assign()
 {
   using namespace agency::experimental;
 
-  using value_type = typename Container::value_type;
-
   {
     // test range assign into empty vector
 

@@ -12,7 +12,7 @@ void test(ExecutionPolicy policy)
     // bulk_async with no parameters
 
     auto f = agency::bulk_async(policy,
-      [] __host__ __device__ (agent& self)
+      [] __host__ __device__ (agent&)
     {
       return 7;
     });
@@ -36,7 +36,7 @@ void test(ExecutionPolicy policy)
     int val = 13;
 
     auto f = agency::bulk_async(policy,
-      [] __host__ __device__ (agent& self, int val)
+      [] __host__ __device__ (agent&, int val)
     {
       return val;
     },
@@ -61,7 +61,7 @@ void test(ExecutionPolicy policy)
     int val = 13;
 
     auto f = agency::bulk_async(policy,
-      [] __host__ __device__ (agent& self, int& val)
+      [] __host__ __device__ (agent&, int& val)
     {
       return val;
     },

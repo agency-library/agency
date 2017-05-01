@@ -12,7 +12,7 @@ void test(ExecutionPolicy policy)
 
     std::atomic<int> counter{0};
 
-    auto f = agency::bulk_async(policy, [&](agent& self)
+    auto f = agency::bulk_async(policy, [&](agent&)
     {
       ++counter;
     });
@@ -32,7 +32,7 @@ void test(ExecutionPolicy policy)
     std::atomic<int> counter{0};
 
     auto f = agency::bulk_async(policy,
-      [&](agent& self, int val)
+      [&](agent&, int val)
       {
         counter += val;
       },
@@ -54,7 +54,7 @@ void test(ExecutionPolicy policy)
     std::atomic<int> counter{0};
 
     auto f = agency::bulk_async(policy,
-      [&](agent& self, int& val)
+      [&](agent&, int& val)
       {
         counter += val;
       },

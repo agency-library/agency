@@ -108,7 +108,10 @@ def apply_compiler_flags(env):
   all_compiler_flags['g++'] = gnu_compiler_flags
   all_compiler_flags['clang'] = clang_compiler_flags
 
-  this_compilers_flags = all_compiler_flags[env['CXX']]
+  # chop off any version suffix from C++ compiler name
+  compiler_name = env['CXX'].split('-')[0]
+
+  this_compilers_flags = all_compiler_flags[compiler_name]
 
   # get all the c++ compiler flags for the warnings enabled
   cxx_warning_flags = [this_compilers_flags['warnings'][key] for key in env['warnings']]
