@@ -14,6 +14,7 @@ TODO
 ### New Control Structures
 
   * `async`
+  * `invoke`
 
 ### New Utilities
   * `shared`
