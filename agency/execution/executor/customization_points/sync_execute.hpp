@@ -6,7 +6,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points/async_execute.hpp>
-#include <agency/execution/executor/customization_points/bulk_sync_execute.hpp>
+#include <agency/execution/executor/detail/utility/bulk_sync_execute_with_one_shared_parameter.hpp>
 
 
 namespace agency
@@ -85,8 +85,8 @@ detail::result_of_t<detail::decay_t<Function>()>
 
   using shape_type = executor_shape_t<E>;
 
-  // call bulk_async_execute() and cast to the expected result, which handles void result
-  return static_cast<result_of_function>(agency::bulk_sync_execute(exec,
+  // call bulk_sync_execute() and cast to the expected result, which handles void result
+  return static_cast<result_of_function>(agency::detail::bulk_sync_execute_with_one_shared_parameter(exec,
     execute_me,                        // the functor to execute
     detail::shape_cast<shape_type>(1), // create only a single agent
     detail::construct<result_type>(),  // a factory for creating f's result

@@ -28,7 +28,7 @@ template<class F, class... Args,
 inline __AGENCY_ANNOTATION
 unit invoke_and_return_unit_if_void_result(F&& f, Args&&... args)
 {
-  invoke(std::forward<F>(f), std::forward<Args>(args)...);
+  agency::detail::invoke(std::forward<F>(f), std::forward<Args>(args)...);
   return unit();
 }
 
@@ -39,7 +39,7 @@ template<class F, class... Args,
 inline __AGENCY_ANNOTATION
 result_of_t<F(Args...)> invoke_and_return_unit_if_void_result(F&& f, Args&&... args)
 {
-  return invoke(std::forward<F>(f), std::forward<Args>(args)...);
+  return agency::detail::invoke(std::forward<F>(f), std::forward<Args>(args)...);
 }
 
 
