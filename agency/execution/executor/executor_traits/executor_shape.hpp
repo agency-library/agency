@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/default_shape.hpp>
 #include <agency/execution/executor/executor_traits/is_bulk_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/member_shape_type_or.hpp>
 #include <cstddef>
@@ -19,7 +20,7 @@ struct executor_shape_impl
 template<class BulkExecutor>
 struct executor_shape_impl<BulkExecutor,true>
 {
-  using type = member_shape_type_or_t<BulkExecutor,std::size_t>;
+  using type = member_shape_type_or_t<BulkExecutor,default_shape_t<1>>;
 };
 
 

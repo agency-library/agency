@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
+#include <agency/detail/default_shape.hpp>
 #include <agency/experimental/ndarray/ndarray_ref.hpp>
 #include <agency/detail/utility.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
@@ -280,7 +281,7 @@ class basic_ndarray
 
 
 template<class T, size_t rank, class Alloc = std::allocator<T>>
-using ndarray = basic_ndarray<T, point<std::size_t,rank>, Alloc>;
+using ndarray = basic_ndarray<T, agency::detail::default_shape_t<rank>, Alloc>;
 
 
 } // end experimental
