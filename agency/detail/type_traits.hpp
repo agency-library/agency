@@ -210,6 +210,10 @@ template<class T>
 using result_of_t = typename result_of<T>::type;
 
 
+template<class T1, class T2>
+using is_not_same = std::integral_constant<bool, !std::is_same<T1,T2>::value>;
+
+
 } // end detail
 } // end agency
 
