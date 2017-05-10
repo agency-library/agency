@@ -37,6 +37,23 @@ class heterogeneous_allocator : public agency::detail::allocator_adaptor<T,heter
     {}
 }; // end heterogeneous_allocator
 
+template <typename T, typename U, typename HostResource, typename DeviceResource>
+inline bool operator == (const heterogeneous_allocator<T,HostResource,DeviceResource>&, const heterogeneous_allocator<U,HostResource,DeviceResource>&)
+{
+      return true;
+}
+
+template <typename T, typename U, typename HostResource1, typename DeviceResource1, typename HostResource2, typename DeviceResource2>
+inline bool operator == (const heterogeneous_allocator<T,HostResource1,DeviceResource1>&, const heterogeneous_allocator<U,HostResource2,DeviceResource2>&)
+{
+      return false;
+}
+
+template <typename T, typename U, typename HostResource1, typename DeviceResource1, typename HostResource2, typename DeviceResource2>
+inline bool operator != (const heterogeneous_allocator<T,HostResource1,DeviceResource1>& a, const heterogeneous_allocator<U,HostResource2,DeviceResource2>& b)
+{
+      return !(a == b);
+}
 
 } // end cuda
 } // end agency
