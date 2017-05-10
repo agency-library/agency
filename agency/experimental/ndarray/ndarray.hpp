@@ -1,12 +1,15 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 #include <agency/experimental/ndarray/ndarray_ref.hpp>
 #include <agency/detail/utility.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
 #include <agency/detail/iterator/constant_iterator.hpp>
 #include <utility>
 #include <memory>
+#include <iterator>
+
 
 namespace agency
 {
@@ -58,9 +61,10 @@ class basic_ndarray
 
     __agency_exec_check_disable__
     template<class Iterator,
-             class = typename std::enable_if<
-               !std::is_convertible<Iterator,shape_type>::value
-             >::type>
+             // XXX this requirement should really be something like is_input_iterator<InputIterator>
+             __AGENCY_REQUIRES(
+               std::is_convertible<typename std::iterator_traits<Iterator>::value_type, value_type>::value
+             )>
     __AGENCY_ANNOTATION
     basic_ndarray(Iterator first, Iterator last)
       : basic_ndarray(agency::detail::shape_cast<shape_type>(last - first))
