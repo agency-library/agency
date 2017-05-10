@@ -2,9 +2,9 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
+#include <agency/detail/tuple.hpp>
 #include <agency/detail/arithmetic_tuple_facade.hpp>
 #include <agency/detail/operator_traits.hpp>
-#include <agency/detail/tuple.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/shape.hpp>
 #include <agency/experimental/array.hpp>
