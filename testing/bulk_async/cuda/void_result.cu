@@ -15,7 +15,7 @@ void test(ExecutionPolicy policy)
 
     counter = 0;
 
-    auto f = agency::bulk_async(policy, [] __host__ __device__ (agent& self)
+    auto f = agency::bulk_async(policy, [] __host__ __device__ (agent&)
     {
 #ifdef __CUDA_ARCH__
       atomicAdd(&counter, 1);
@@ -37,8 +37,11 @@ void test(ExecutionPolicy policy)
     counter = 0;
 
     auto f = agency::bulk_async(policy,
-      [] __host__ __device__ (agent& self, int val)
+      [] __host__ __device__ (agent&, int val)
       {
+        // WAR unused parameter warning
+        (void)val;
+
 #ifdef __CUDA_ARCH__
         atomicAdd(&counter, val);
 #endif
@@ -61,8 +64,11 @@ void test(ExecutionPolicy policy)
     counter = 0;
 
     auto f = agency::bulk_async(policy,
-      [] __host__ __device__ (agent& self, int& val)
+      [] __host__ __device__ (agent&, int& val)
       {
+        // WAR unused parameter warning
+        (void)val;
+
 #ifdef __CUDA_ARCH__
         atomicAdd(&counter, val);
 #endif

@@ -14,15 +14,17 @@ void test()
     // bulk_then with non-void future and no parameters
 
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     counter = 0;
 
     auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& past_arg)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&, int& past_arg)
       {
+        // WAR unused parameter warning
+        (void)past_arg;
+
 #ifdef __CUDA_ARCH__
         atomicAdd(&counter, past_arg);
 #endif
@@ -39,14 +41,13 @@ void test()
     // bulk_then with void future and no parameters
 
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     counter = 0;
 
     auto fut = agency::make_ready_future<void>(policy.executor());
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&)
       {
 #ifdef __CUDA_ARCH__
         atomicAdd(&counter, 1);
@@ -64,7 +65,6 @@ void test()
     // bulk_then with non-void future and one parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
@@ -73,8 +73,12 @@ void test()
     counter = 0;
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& past_arg, int val)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&, int& past_arg, int val)
       {
+        // WAR unused parameter warnings
+        (void)past_arg;
+        (void)val;
+
 #ifdef __CUDA_ARCH__
         atomicAdd(&counter, past_arg + val);
 #endif
@@ -92,7 +96,6 @@ void test()
     // bulk_then with void future and one parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     counter = 0;
 
@@ -101,8 +104,11 @@ void test()
     int val = 13;
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int val)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&, int val)
       {
+        // WAR unused parameter warning
+        (void)val;
+
 #ifdef __CUDA_ARCH__
         atomicAdd(&counter, val);
 #endif
@@ -120,7 +126,6 @@ void test()
     // bulk_then with non-void future and one shared parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     counter = 0;
 
@@ -129,8 +134,12 @@ void test()
     int val = 13;
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& past_arg, int& val)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&, int& past_arg, int& val)
       {
+        // WAR unused parameter warnings
+        (void)past_arg;
+        (void)val;
+
 #ifdef __CUDA_ARCH__
         atomicAdd(&counter, past_arg + val);
 #endif
@@ -148,7 +157,6 @@ void test()
     // bulk_then with void future and one shared parameter
     
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     counter = 0;
 
@@ -157,8 +165,11 @@ void test()
     int val = 13;
 
     auto f = agency::bulk_then(policy(10),
-      [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self, int& val)
+      [] __host__ __device__ (typename execution_policy_type::execution_agent_type&, int& val)
       {
+        // WAR unused parameter warnings
+        (void)val;
+
 #ifdef __CUDA_ARCH__
         atomicAdd(&counter, val);
 #endif

@@ -5,7 +5,6 @@ template<class ExecutionPolicy>
 void test()
 {
   using execution_policy_type = ExecutionPolicy;
-  using executor_type = typename ExecutionPolicy::executor_type;
 
   {
     // bulk_then with non-void future and no parameters
@@ -17,7 +16,7 @@ void test()
     auto fut = agency::make_ready_future<int>(policy.executor(), 7);
 
     auto f = agency::bulk_then(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self, int& past_arg)
+      [&](typename execution_policy_type::execution_agent_type&, int& past_arg)
       {
         counter += past_arg;
       },
@@ -39,7 +38,7 @@ void test()
     auto fut = agency::make_ready_future<void>(policy.executor());
 
     auto f = agency::bulk_then(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self)
+      [&](typename execution_policy_type::execution_agent_type&)
       {
         ++counter;
       },
@@ -63,7 +62,7 @@ void test()
     int val = 13;
 
     auto f = agency::bulk_then(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self, int& past_arg, int val)
+      [&](typename execution_policy_type::execution_agent_type&, int& past_arg, int val)
       {
         counter += past_arg + val;
       },
@@ -88,7 +87,7 @@ void test()
     int val = 13;
 
     auto f = agency::bulk_then(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self, int val)
+      [&](typename execution_policy_type::execution_agent_type&, int val)
       {
         counter += val;
       },
@@ -113,7 +112,7 @@ void test()
     int val = 13;
 
     auto f = agency::bulk_then(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self, int& past_arg, int& val)
+      [&](typename execution_policy_type::execution_agent_type&, int& past_arg, int& val)
       {
         counter += past_arg + val;
       },
@@ -138,7 +137,7 @@ void test()
     int val = 13;
 
     auto f = agency::bulk_then(policy(10),
-      [&](typename execution_policy_type::execution_agent_type& self, int& val)
+      [&](typename execution_policy_type::execution_agent_type&, int& val)
       {
         counter += val;
       },

@@ -14,6 +14,7 @@ TODO
 ### New Control Structures
 
   * `async`
+  * `invoke`
 
 ### New Utilities
   * `shared`
@@ -50,7 +51,12 @@ TODO
   * New fancy ranges
     * `experimental::interval()`
     * `experimental::iota_view`
+    * `experimental::transformed_view`
     * `experimental::zip_with_view`
+
+### New Examples
+
+  * [`fork_executor.cpp`](../0.2.0/examples/fork_executor.cpp)
 
 ## Resolved Issues
 

@@ -7,7 +7,7 @@
 #include "test_executors.hpp"
 
 template<class OuterExecutor, class InnerExecutor>
-void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
+void test(OuterExecutor, InnerExecutor inner_exec)
 {
   using namespace agency;
 

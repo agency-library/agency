@@ -515,16 +515,20 @@ template<class FromFuture, class ToType, class ToFuture>
 using has_cast = typename has_cast_impl<FromFuture,ToType,ToFuture>::type;
 
 template<class T>
-struct cast_functor
+struct move_and_cast_functor
 {
   template<class U>
   __AGENCY_ANNOTATION
   T operator()(U& val) const
   {
-    // XXX future_traits::cast() invalidates the future,
-    //     so it makes sense to move the future's value
-    //     but what do we do if the future is a shared_future?
-    //     doesn't really make sense to move in that case
+    // XXX we should probably distinguish between two cases:
+    //     1. we are (moving and) casting from a unique future
+    //     2. we are casting from a shared future
+    //
+    //     The shared future cast should not do a move,
+    //     and perhaps it should only be allowed to cast to a reference type
+
+    // to do this cast, first cast val to a T&, then move the T
     return static_cast<T>(std::move(val));
   }
 };
@@ -695,7 +699,7 @@ struct future_traits
                                         !std::is_constructible<rebind_value<U>,future_type&&>::value
                                       >::type* = 0)
     {
-      return future_traits<future_type>::then(fut, detail::cast_functor<U>());
+      return future_traits<future_type>::then(fut, detail::move_and_cast_functor<U>());
     }
 
     __agency_exec_check_disable__
@@ -779,7 +783,7 @@ struct future_traits<std::future<T>>
                                        !std::is_constructible<rebind_value<U>,future_type&&>::value
                                      >::type* = 0)
     {
-      return future_traits<future_type>::then(fut, detail::cast_functor<U>());
+      return future_traits<future_type>::then(fut, detail::move_and_cast_functor<U>());
     }
 
 
@@ -854,7 +858,7 @@ struct future_traits<std::shared_future<T>>
                                        !std::is_constructible<rebind_value<U>,future_type&&>::value
                                      >::type* = 0)
     {
-      return future_traits<future_type>::then(fut, detail::cast_functor<U>());
+      return future_traits<future_type>::then(fut, detail::move_and_cast_functor<U>());
     }
   
   

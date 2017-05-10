@@ -240,19 +240,6 @@ class scope_result_container<0, T, Executor>
     }
 
     __AGENCY_ANNOTATION
-    operator result_type& () &
-    {
-      return single_element_;
-    }
-
-    __AGENCY_ANNOTATION
-    operator const result_type& () const &
-    {
-      return single_element_;
-    }
-
-    // XXX this might be the only conversion we actually want
-    __AGENCY_ANNOTATION
     operator result_type&& () &&
     {
       return std::move(single_element_);

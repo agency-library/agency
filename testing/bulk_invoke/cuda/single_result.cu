@@ -12,7 +12,6 @@ void test()
     // bulk_invoke with no parameters
 
     execution_policy_type policy;
-    auto exec = policy.executor();
 
     auto result = agency::bulk_invoke(policy(10),
       [] __host__ __device__ (typename execution_policy_type::execution_agent_type& self) -> agency::single_result<int>

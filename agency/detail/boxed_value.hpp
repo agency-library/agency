@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/memory/detail/unique_ptr.hpp>
+#include <agency/memory/detail/allocation_deleter.hpp>
 #include <agency/detail/tuple.hpp>
 #include <memory>
 #include <type_traits>
@@ -117,7 +118,7 @@ class boxed_value : private std::allocator_traits<Alloc>::template rebind_alloc<
       return *this;
     }
 
-    agency::detail::unique_ptr<T,agency::detail::deleter<allocator_type>> data_;
+    agency::detail::unique_ptr<T,agency::detail::allocation_deleter<allocator_type>> data_;
 };
 
 

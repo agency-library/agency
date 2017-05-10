@@ -12,7 +12,7 @@ void test_returning_void(Executor exec)
   
   size_t increment_me = 0;
   std::mutex mut;
-  agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [&](size_t idx)
+  agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [&](size_t)
   {
     mut.lock();
     increment_me += 1;
@@ -27,12 +27,11 @@ void test_returning_void(Executor exec)
 template<class Executor>
 void test_returning_results(Executor exec)
 {
-  using shape_type = agency::executor_shape_t<Executor>;
   using index_type = agency::executor_index_t<Executor>;
 
   size_t shape = 10;
   
-  auto result = agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [](index_type idx)
+  auto result = agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, [](index_type)
   {
     return 13;
   },
