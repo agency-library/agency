@@ -79,6 +79,16 @@ class cached_resource : private MemoryResource
       return resource_type::construct_n(first, n, iters...);
     }
 
+    bool operator==(const cached_resource& other) const
+    {
+      return this == &other;
+    }
+
+    bool operator!=(const cached_resource& other) const
+    {
+      return this != &other;
+    }
+
   private:
     using free_blocks_type = std::multimap<size_t, void*>;
     using allocated_blocks_type = std::map<void*, size_t>;
@@ -193,6 +203,16 @@ class globally_cached_resource
     {
       // we don't bother with the cache for .construct_n()
       return resource_.construct_n(first, n, iters...);
+    }
+
+    bool operator==(const globally_cached_resource& other) const
+    {
+      return resource_ == other.resource_;
+    }
+
+    bool operator!=(const globally_cached_resource& other) const
+    {
+      return resource_ != other.resource_;
     }
 
   private:
