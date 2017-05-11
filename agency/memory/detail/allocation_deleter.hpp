@@ -20,6 +20,11 @@ class allocation_deleter : private Allocator // use inheritance for empty base c
     using pointer = typename std::allocator_traits<Allocator>::pointer;
 
     __AGENCY_ANNOTATION
+    allocation_deleter()
+      : allocation_deleter(Allocator())
+    {}
+
+    __AGENCY_ANNOTATION
     allocation_deleter(const Allocator& alloc)
       : Allocator(alloc)
     {}
@@ -55,6 +60,10 @@ class allocation_deleter : private Allocator // use inheritance for empty base c
     {
       detail::adl_swap(static_cast<Allocator&>(*this), static_cast<Allocator&>(other));
     }
+
+  private:
+    // allocation_deleter's copy constructor needs access to all other allocation_deleters' (private) base class
+    template<class OtherAllocator> friend class allocation_deleter;
 };
 
 
