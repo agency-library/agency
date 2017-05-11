@@ -43,6 +43,7 @@ class allocator_adaptor : private MemoryResource
     {}
 
     __agency_exec_check_disable__
+    template<class U = T, __AGENCY_REQUIRES(!std::is_void<U>::value)>
     __AGENCY_ANNOTATION
     value_type *allocate(size_t n)
     {
@@ -50,6 +51,7 @@ class allocator_adaptor : private MemoryResource
     }
 
     __agency_exec_check_disable__
+    template<class U = T, __AGENCY_REQUIRES(!std::is_void<U>::value)>
     __AGENCY_ANNOTATION
     void deallocate(value_type* ptr, size_t n)
     {
