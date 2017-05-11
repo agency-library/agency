@@ -176,6 +176,18 @@ class variant_allocator
       return experimental::visit(max_size_visitor{}, variant_);
     }
 
+    __AGENCY_ANNOTATION
+    bool operator==(const variant_allocator& other) const
+    {
+      return variant_ == other.variant_;
+    }
+
+    __AGENCY_ANNOTATION
+    bool operator!=(const variant_allocator& other) const
+    {
+      return variant_ != other.variant_;
+    }
+
   private:
     variant_type variant_;
 };
