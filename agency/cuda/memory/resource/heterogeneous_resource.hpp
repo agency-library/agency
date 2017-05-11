@@ -61,6 +61,26 @@ class heterogeneous_resource
 #endif
     }
 
+    __host__ __device__
+    bool operator==(const heterogeneous_resource& other) const
+    {
+#ifndef __CUDA_ARCH__
+      return host_resource_ == other.host_resource_;
+#else
+      return device_resource_ == other.device_resource_;
+#endif
+    }
+
+    __host__ __device__
+    bool operator!=(const heterogeneous_resource& other) const
+    {
+#ifndef __CUDA_ARCH__
+      return host_resource_ != other.host_resource_;
+#else
+      return device_resource_ != other.device_resource_;
+#endif
+    }
+
   private:
 #ifndef __CUDA_ARCH__
     host_resource host_resource_;
