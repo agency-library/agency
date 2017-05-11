@@ -73,6 +73,20 @@ class allocator_adaptor : private MemoryResource
     {
       return super_t::construct_n(first, n, iters...);
     }
+
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    bool operator==(const allocator_adaptor& other) const
+    {
+      return static_cast<const MemoryResource&>(*this) == static_cast<const MemoryResource&>(other);
+    }
+
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    bool operator!=(const allocator_adaptor& other) const
+    {
+      return static_cast<const MemoryResource&>(*this) != static_cast<const MemoryResource&>(other);
+    }
 };
 
 
