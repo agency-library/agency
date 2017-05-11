@@ -32,7 +32,7 @@ class heterogeneous_allocator : public agency::detail::allocator_adaptor<T,heter
 
     template<class U>
     __host__ __device__
-    heterogeneous_allocator(const heterogeneous_allocator<U>& other)
+    heterogeneous_allocator(const heterogeneous_allocator<U,HostResource,DeviceResource>& other)
       : super_t(other)
     {}
 }; // end heterogeneous_allocator
