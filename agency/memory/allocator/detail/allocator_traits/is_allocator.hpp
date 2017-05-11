@@ -65,10 +65,14 @@ struct is_allocator_impl
   using pointer = member_pointer_or_t<T, value_type*>;
   using size_type = member_size_type_or_t<T, std::size_t>;
 
-  using type = conjunction<
-    is_not_same<value_type, missing_value_type>,
-    has_allocate_member_function<T,size_type,pointer>,
-    has_deallocate_member_function<T,pointer,size_type>
+  using type = std::integral_constant<
+    bool,
+
+    // all Allocators have to have a member type named ::value_type
+    is_not_same<value_type, missing_value_type>::value and
+
+    // if value_type is not void, then all allocators have to have the member functions .allocate() & .deallocate()
+    (std::is_void<value_type>::value or (has_allocate_member_function<T,size_type,pointer>::value and has_deallocate_member_function<T,pointer,size_type>::value))
   >;
 };
 
