@@ -167,14 +167,14 @@ typename std::enable_if<
 } // end shape_product()
 
 
-// there are two overloads for shape_size()
+// there are two overloads for index_space_size()
 template<typename Shape>
 __AGENCY_ANNOTATION
 typename std::enable_if<
   std::is_integral<Shape>::value,
   size_t
 >::type
-  shape_size(const Shape& s);
+  index_space_size(const Shape& s);
 
 template<typename Shape>
 __AGENCY_ANNOTATION
@@ -182,7 +182,7 @@ typename std::enable_if<
   !std::is_integral<Shape>::value,
   size_t
 >::type
-  shape_size(const Shape& s);
+  index_space_size(const Shape& s);
 
 
 // scalar case
@@ -192,18 +192,18 @@ typename std::enable_if<
   std::is_integral<Shape>::value,
   size_t
 >::type
-  shape_size(const Shape& s)
+  index_space_size(const Shape& s)
 {
   return static_cast<size_t>(s);
 }
 
-struct shape_size_functor
+struct index_space_size_functor
 {
   template<typename T>
   __AGENCY_ANNOTATION
   size_t operator()(const T& x)
   {
-    return shape_size(x);
+    return index_space_size(x);
   }
 };
 
@@ -214,10 +214,10 @@ typename std::enable_if<
   !std::is_integral<Shape>::value,
   size_t
 >::type
-  shape_size(const Shape& s)
+  index_space_size(const Shape& s)
 {
   // transform s into a tuple of sizes
-  auto tuple_of_sizes = detail::tuple_map(shape_size_functor{}, s);
+  auto tuple_of_sizes = detail::tuple_map(index_space_size_functor{}, s);
 
   // reduce the sizes
   return __tu::tuple_reduce(tuple_of_sizes, size_t{1}, [](size_t x, size_t y)
@@ -322,10 +322,10 @@ shape_tail_t<Shape> shape_tail(const Shape& s)
 // returns the number of points spanned by a Shape's head element
 template<class Shape>
 __AGENCY_ANNOTATION
-size_t shape_head_size(const Shape& s)
+size_t index_space_size_of_shape_head(const Shape& s)
 {
-  return detail::shape_size(detail::shape_head(s));
-} // end shape_head_size()
+  return detail::index_space_size(detail::shape_head(s));
+} // end index_space_size_of_shape_head()
 
 
 template<size_t n, class Shape>

@@ -29,23 +29,50 @@ std::atomic<int> num_deleter_calls{0};
 
 
 template<class T>
-struct my_deleter
+struct my_allocator
 {
-  agency::cuda::allocator<int> alloc;
+  using value_type = T;
+
+  agency::cuda::allocator<T> alloc;
 
   __AGENCY_ANNOTATION
-  void operator()(int *ptr)
+  my_allocator() = default;
+
+  template<class U>
+  __AGENCY_ANNOTATION
+  my_allocator(const my_allocator<U>& other) : alloc(other.alloc) {}
+
+  __AGENCY_ANNOTATION
+  T* allocate(size_t n)
   {
-    alloc.deallocate(ptr, 1);
+    return alloc.allocate(n);
+  }
+
+  __AGENCY_ANNOTATION
+  void deallocate(T *ptr, size_t n)
+  {
+    alloc.deallocate(ptr, n);
 
 #ifndef __CUDA_ARCH__
-    // XXX it's difficult to validate that this deleter actually gets called because
+    // XXX it's difficult to validate that this allocator actually gets called because
     //     it can be called after main() ends
     //     moreover, the program can simply end before it's called at all
-    //     instead of attempting to count the number of calls made to the deleter,
+    //     instead of attempting to count the number of calls made to the allocator,
     //     just print to the terminal
-    std::cout << "my_deleter::operator()" << std::endl;
+    std::cout << "my_allocator::operator()" << std::endl;
 #endif
+  }
+
+  template<class U>
+  bool operator==(const my_allocator<U>& other) const
+  {
+    return alloc == other.alloc;
+  }
+
+  template<class U>
+  bool operator!=(const my_allocator<U>& other) const
+  {
+    return alloc != other.alloc;
   }
 };
 
@@ -59,7 +86,7 @@ int main()
     // from event
 
     // allocate the non-void value
-    agency::cuda::allocator<int> alloc;
+    my_allocator<int> alloc;
     int* ptr_to_value = alloc.allocate(1);
 
     cudaStream_t stream;
@@ -74,7 +101,7 @@ int main()
     cudaEventRecord(event, stream);
 
     // create an async_future to depend on the event
-    cuda::async_future<int> future = cuda::experimental::make_async_future(event, ptr_to_value, my_deleter<int>{alloc});
+    cuda::async_future<int> future = cuda::experimental::make_async_future(event, ptr_to_value, alloc);
     assert(future.valid());
 
     // destroy the stream and event
@@ -89,7 +116,7 @@ int main()
     // from stream
 
     // allocate the non-void value
-    agency::cuda::allocator<int> alloc;
+    my_allocator<int> alloc;
     int* ptr_to_value = alloc.allocate(1);
 
     cudaStream_t stream;
@@ -99,7 +126,7 @@ int main()
     set_value<<<1,1,0,stream>>>(ptr_to_value, 7);
 
     // create an async_future to depend on the stream
-    cuda::async_future<int> future = cuda::experimental::make_async_future(stream, ptr_to_value, my_deleter<int>{alloc});
+    cuda::async_future<int> future = cuda::experimental::make_async_future(stream, ptr_to_value, alloc);
     assert(future.valid());
 
     // destroy the stream
@@ -113,7 +140,7 @@ int main()
     // from event
 
     // allocate the non-void value
-    agency::cuda::allocator<int> alloc;
+    my_allocator<int> alloc;
     int* ptr_to_value = alloc.allocate(1);
 
     cudaStream_t stream;
@@ -128,7 +155,7 @@ int main()
     cudaEventRecord(event, stream);
 
     // create an async_future to depend on the event
-    cuda::async_future<int> future = cuda::experimental::make_async_future(event, ptr_to_value, my_deleter<int>{alloc});
+    cuda::async_future<int> future = cuda::experimental::make_async_future(event, ptr_to_value, alloc);
     assert(future.valid());
 
     // destroy the stream and event
@@ -146,7 +173,7 @@ int main()
     // from stream
 
     // allocate the non-void value
-    agency::cuda::allocator<int> alloc;
+    my_allocator<int> alloc;
     int* ptr_to_value = alloc.allocate(1);
 
     cudaStream_t stream;
@@ -156,7 +183,7 @@ int main()
     set_value<<<1,1,0,stream>>>(ptr_to_value, 7);
 
     // create an async_future to depend on the stream
-    cuda::async_future<int> future = cuda::experimental::make_async_future(stream, ptr_to_value, my_deleter<int>{alloc});
+    cuda::async_future<int> future = cuda::experimental::make_async_future(stream, ptr_to_value, alloc);
     assert(future.valid());
 
     // destroy the stream
@@ -173,7 +200,7 @@ int main()
     // from event
 
     // allocate the non-void value
-    agency::cuda::allocator<int> alloc;
+    my_allocator<int> alloc;
     int* ptr_to_value = alloc.allocate(1);
 
     cudaStream_t stream;
@@ -188,7 +215,7 @@ int main()
     cudaEventRecord(event, stream);
 
     // create an async_future to depend on the event
-    cuda::async_future<int> future = cuda::experimental::make_async_future(event, ptr_to_value, my_deleter<int>{alloc});
+    cuda::async_future<int> future = cuda::experimental::make_async_future(event, ptr_to_value, alloc);
     assert(future.valid());
 
     // destroy the stream and event
@@ -208,7 +235,7 @@ int main()
     // from stream
 
     // allocate the non-void value
-    agency::cuda::allocator<int> alloc;
+    my_allocator<int> alloc;
     int* ptr_to_value = alloc.allocate(1);
 
     cudaStream_t stream;
@@ -218,7 +245,7 @@ int main()
     set_value<<<1,1,0,stream>>>(ptr_to_value, 7);
 
     // create an async_future to depend on the stream
-    cuda::async_future<int> future = cuda::experimental::make_async_future(stream, ptr_to_value, my_deleter<int>{alloc});
+    cuda::async_future<int> future = cuda::experimental::make_async_future(stream, ptr_to_value, alloc);
     assert(future.valid());
 
     // destroy the stream

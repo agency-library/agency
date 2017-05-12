@@ -2,8 +2,8 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/asynchronous_state.hpp>
-#include <agency/cuda/memory/detail/any_deleter.hpp>
 #include <agency/cuda/memory/detail/unique_ptr.hpp>
+#include <agency/cuda/memory/allocator/detail/any_allocator.hpp>
 #include <type_traits>
 
 namespace agency
@@ -15,12 +15,14 @@ namespace detail
 
 
 template<class T>
-using asynchronous_state = agency::detail::asynchronous_state<T,cuda::detail::any_small_deleter<T>>;
+using asynchronous_state = agency::detail::asynchronous_state<T,cuda::detail::any_small_allocator<T>>;
 
 
 // XXX it might be better for the following functions to be members of asynchronous_state
 //     it also might better to have asynchronous_state's destructor asynchronously destroy the contained state
 //     that way, we wouldn't have to make special arrangements inside of clients of asynchronous_state
+
+// XXX shouldn't the following functions also take an Allocator template parameter for asynchronous_state?
 
 template<class T>
 __host__ __device__

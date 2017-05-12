@@ -2,7 +2,8 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/unit.hpp>
-#include <agency/detail/memory/unique_ptr.hpp>
+#include <agency/memory/detail/unique_ptr.hpp>
+#include <agency/memory/allocator/detail/allocator_traits/is_allocator.hpp>
 #include <agency/detail/tuple.hpp>
 #include <type_traits>
 
@@ -45,17 +46,21 @@ constexpr static construct_ready_t     construct_ready{};
 constexpr static construct_not_ready_t construct_not_ready{};
 
 
+// XXX asynchronous_state should be templated on Allocator instead of Deleter
+
 // XXX should try to collapse the implementation of asynchronous_state as much as possible between the two specializations
 // XXX the default value of Deleter should be some polymorphic deleter type
 // XXX the default state of the polymorphic deleter type should be an instance of default_delete<T>
 template<class T,
-         class Deleter = default_delete<T>,
+         class Allocator = std::allocator<T>,
          bool requires_storage = state_requires_storage<T>::value>
 class asynchronous_state
 {
   public:
+    static_assert(is_allocator<Allocator>::value, "Allocator is not an allocator.");
+
     using value_type = T;
-    using storage_type = unique_ptr<T,Deleter>;
+    using storage_type = unique_ptr<T,allocation_deleter<Allocator>>;
     using pointer = typename storage_type::pointer;
 
     // constructs an invalid state
@@ -63,36 +68,33 @@ class asynchronous_state
     asynchronous_state() = default;
 
     // constructs an immediately ready state
-    // XXX this constructor should take an Allocator parameter
     __agency_exec_check_disable__
-    template<class Allocator,
-             class... Args,
+    template<class... Args,
              class = typename std::enable_if<
                std::is_constructible<T,Args...>::value
              >::type
             >
     __AGENCY_ANNOTATION
     asynchronous_state(construct_ready_t, const Allocator& allocator, Args&&... ready_args)
-      : storage_(allocate_unique_with_deleter<T>(allocator, Deleter(), std::forward<Args>(ready_args)...))
+      : storage_(allocate_unique<T>(allocator, std::forward<Args>(ready_args)...))
     {}
 
-    // constructs a not ready state from a pointer to the result and a deleter to delete the value
-    template<class OtherDeleter,
+    // constructs a not ready state from a pointer to the result and an allocator which can delete & deallocate the pointer
+    template<class OtherAllocator,
              __AGENCY_REQUIRES(
                std::is_constructible<
-                 Deleter, OtherDeleter
+                 Allocator, OtherAllocator
                >::value
              )>
     __AGENCY_ANNOTATION
-    asynchronous_state(construct_not_ready_t, pointer ptr, const OtherDeleter& deleter)
-      : storage_(ptr, deleter)
+    asynchronous_state(construct_not_ready_t, pointer ptr, const OtherAllocator& allocator)
+      : storage_(ptr, allocation_deleter<Allocator>(allocator))
     {}
 
     // constructs a not ready state
     // XXX we should avoid creating an object here
     //     instead, we should just create it uninitialized
     // XXX the destructor should check whether the state requires destruction
-    template<class Allocator>
     __AGENCY_ANNOTATION
     asynchronous_state(construct_not_ready_t, const Allocator& allocator)
       : asynchronous_state(construct_ready, allocator, T{})
@@ -102,13 +104,13 @@ class asynchronous_state
     asynchronous_state(asynchronous_state&& other) = default;
 
     template<class OtherT,
-             class OtherAlloc,
+             class OtherAllocator,
              class = typename std::enable_if<
-               std::is_constructible<storage_type, typename asynchronous_state<OtherT,OtherAlloc>::storage_type&&>::value
+               std::is_constructible<storage_type, typename asynchronous_state<OtherT,OtherAllocator>::storage_type&&>::value
              >::type
             >
     __AGENCY_ANNOTATION
-    asynchronous_state(asynchronous_state<OtherT,OtherAlloc>&& other)
+    asynchronous_state(asynchronous_state<OtherT,OtherAllocator>&& other)
       : storage_(std::move(other.storage_))
     {}
 
@@ -181,10 +183,12 @@ struct empty_type_ptr<void> : unit_ptr {};
 
 
 // zero storage optimization
-template<class T, class Deleter>
-class asynchronous_state<T,Deleter,true>
+template<class T, class Allocator>
+class asynchronous_state<T,Allocator,true>
 {
   public:
+    static_assert(is_allocator<Allocator>::value, "Allocator is not an allocator.");
+
     using value_type = T;
     using pointer = empty_type_ptr<T>;
     using storage_type = void;
@@ -195,25 +199,30 @@ class asynchronous_state<T,Deleter,true>
 
     // constructs an immediately ready state
     // the allocator is ignored because this state requires no storage
-    template<class Allocator,
+    template<class OtherAllocator,
              class OtherT,
-             class = typename std::enable_if<
+             __AGENCY_REQUIRES(
+               std::is_constructible<Allocator,OtherAllocator>::value
+             ),
+             __AGENCY_REQUIRES(
                std::is_constructible<T,OtherT&&>::value
-             >::type>
+             )>
     __AGENCY_ANNOTATION
-    asynchronous_state(construct_ready_t, const Allocator&, OtherT&&) : valid_(true) {}
+    asynchronous_state(construct_ready_t, const OtherAllocator&, OtherT&&) : valid_(true) {}
 
     // constructs an immediately ready state
     // the allocator is ignored because this state requires no storage
-    template<class Allocator>
+    template<class OtherAllocator,
+             __AGENCY_REQUIRES(std::is_constructible<Allocator,OtherAllocator>::value)>
     __AGENCY_ANNOTATION
-    asynchronous_state(construct_ready_t, const Allocator&) : valid_(true) {}
+    asynchronous_state(construct_ready_t, const OtherAllocator&) : valid_(true) {}
 
     // constructs a not ready state
     // the allocator is ignored because this state requires no storage
-    template<class Allocator>
+    template<class OtherAllocator,
+             __AGENCY_REQUIRES(std::is_constructible<Allocator,OtherAllocator>::value)>
     __AGENCY_ANNOTATION
-    asynchronous_state(construct_not_ready_t, const Allocator&) : valid_(true) {}
+    asynchronous_state(construct_not_ready_t, const OtherAllocator&) : valid_(true) {}
 
     __AGENCY_ANNOTATION
     asynchronous_state(asynchronous_state&& other) : valid_(other.valid_)
@@ -225,7 +234,7 @@ class asynchronous_state<T,Deleter,true>
     // 2. allow moves to empty types if the type can be constructed from an empty argument list
     // 3. allow upcasts to a base T from a derived U
     template<class OtherT,
-             class OtherAlloc,
+             class OtherAllocator,
              class T1 = T,
              class = typename std::enable_if<
                std::is_void<T1>::value ||
@@ -233,7 +242,7 @@ class asynchronous_state<T,Deleter,true>
                std::is_base_of<T,OtherT>::value
              >::type>
     __AGENCY_ANNOTATION
-    asynchronous_state(asynchronous_state<OtherT,OtherAlloc>&& other)
+    asynchronous_state(asynchronous_state<OtherT,OtherAllocator>&& other)
       : valid_(other.valid())
     {
       if(valid())

@@ -9,6 +9,10 @@ namespace detail
 {
 
 
+template<bool b, class T, class F>
+using conditional_t = typename std::conditional<b,T,F>::type;
+
+
 template<bool b, typename T, typename F>
 struct lazy_conditional
 {
@@ -204,6 +208,10 @@ struct result_of : result_of_impl<T> {};
 
 template<class T>
 using result_of_t = typename result_of<T>::type;
+
+
+template<class T1, class T2>
+using is_not_same = std::integral_constant<bool, !std::is_same<T1,T2>::value>;
 
 
 } // end detail

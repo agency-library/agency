@@ -285,6 +285,7 @@ template<typename... Types>
 class variant : private detail::variant_detail::variant_storage<Types...>
 {
   public:
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     variant()
       : variant(detail::variant_detail::first_type_t<Types...>{})
@@ -376,6 +377,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     {
       T& other;
 
+      __agency_exec_check_disable__
       __AGENCY_ANNOTATION
       void operator()(T& self) const
       {

@@ -4,6 +4,8 @@
 #include <utility>
 #include <type_traits>
 #include <agency/coordinate.hpp>
+#include <agency/coordinate/detail/shape/make_shape.hpp>
+#include <agency/coordinate/detail/shape/shape_element.hpp>
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/detail/point_size.hpp>
 #include <agency/detail/tuple.hpp>
@@ -16,14 +18,14 @@ namespace shape_cast_detail
 {
 
 
-template<class T>
-struct make
+template<class Shape>
+struct make_shape_functor
 {
   template<class... Args>
   __AGENCY_ANNOTATION
-  T operator()(Args&&... args) const
+  Shape operator()(Args&&... args) const
   {
-    return T{std::forward<Args>(args)...};
+    return detail::make_shape<Shape>(std::forward<Args>(args)...);
   }
 };
 
@@ -46,8 +48,8 @@ rebind_point_size_t<
   auto last = __tu::tuple_last(x);
 
   // XXX WAR nvcc 7's issue with tuple_drop_invoke
-  //auto result = __tu::tuple_drop_invoke<1>(x, shape_cast_detail::make<result_type>());
-  result_type result = __tu::tuple_take_invoke<std::tuple_size<Point>::value - 1>(x, shape_cast_detail::make<result_type>());
+  //auto result = __tu::tuple_drop_invoke<1>(x, shape_cast_detail::make_shape_functor<result_type>());
+  result_type result = __tu::tuple_take_invoke<std::tuple_size<Point>::value - 1>(x, shape_cast_detail::make_shape_functor<result_type>());
 
   __tu::tuple_last(result) *= last;
 
@@ -88,7 +90,7 @@ rebind_point_size_t<
 
   using result_type = rebind_point_size_t<Point,point_size<Point>::value + 1>;
 
-  result_type result = __tu::tuple_append_invoke(intermediate, 1, shape_cast_detail::make<result_type>());
+  result_type result = __tu::tuple_append_invoke(intermediate, 1, shape_cast_detail::make_shape_functor<result_type>());
 
   return result;
 }
@@ -152,9 +154,14 @@ typename std::enable_if<
 >::type
   shape_cast(const FromShape& x)
 {
-  // x might not be a tuple, but instead a scalar type
-  // to ensure we can get the 0th value from x in a uniform way, lift it first
-  return static_cast<ToShape>(detail::get<0>(lift_shape(x)));
+  // we have to cast the 0th element of x to the type of ToShape's 0th element
+  using to_element_type = shape_element_t<0,ToShape>;
+
+  // x may or may not be a tuple, so it may not be safe to get() its 0th element
+  // use get_if() to return x directly when x is not a tuple-like object
+  to_element_type casted_element = static_cast<to_element_type>(detail::get_if<0>(x,x));
+
+  return detail::make_shape<ToShape>(casted_element);
 }
 
 struct shape_cast_functor
@@ -181,7 +188,7 @@ typename std::enable_if<
 >::type
   shape_cast(const FromShape& x)
 {
-  return __tu::tuple_map_with_make(shape_cast_functor{}, shape_cast_detail::make<ToShape>{}, ToShape{}, x);
+  return __tu::tuple_map_with_make(shape_cast_functor{}, shape_cast_detail::make_shape_functor<ToShape>{}, ToShape{}, x);
 }
 
 

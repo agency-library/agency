@@ -49,7 +49,7 @@ int main()
 
     auto results = f.get();
 
-    assert(results.size() == agency::detail::shape_size(shape));
+    assert(results.size() == agency::detail::index_space_size(shape));
     assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 7 + 42; }));
   }
 
@@ -93,7 +93,7 @@ int main()
 
     auto results = f.get();
 
-    assert(results.size() == agency::detail::shape_size(shape));
+    assert(results.size() == agency::detail::index_space_size(shape));
     assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 1 + 7 + 42; }));
   }
 
@@ -122,7 +122,7 @@ int main()
 
     auto results = f.get();
 
-    assert(results.size() == agency::detail::shape_size(shape));
+    assert(results.size() == agency::detail::index_space_size(shape));
     assert(std::all_of(results.begin(), results.end(), [](int x){ return x == 13 + 7; }));
   }
 

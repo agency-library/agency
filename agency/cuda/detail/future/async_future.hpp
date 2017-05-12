@@ -139,9 +139,9 @@ namespace experimental
 __host__ __device__
 async_future<void> make_async_future(cudaEvent_t e);
 
-template<class T, class Deleter>
+template<class T, class Allocator>
 __host__ __device__
-async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Deleter& deleter);
+async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Allocator& allocator);
 
 
 } // end experimental
@@ -437,7 +437,7 @@ class async_future
 
     // friend experimental::make_async_future() to give them access to the private constructor
     friend async_future<void> experimental::make_async_future(cudaEvent_t e);
-    template<class U, class Deleter> friend async_future<U> experimental::make_async_future(cudaEvent_t e, U* ptr, const Deleter& deleter);
+    template<class U, class Allocator> friend async_future<U> experimental::make_async_future(cudaEvent_t e, U* ptr, const Allocator& allocator);
 
     __host__ __device__
     async_future(detail::event&& e, detail::asynchronous_state<T>&& state)
@@ -580,10 +580,11 @@ inline async_future<void> make_async_future(cudaEvent_t e)
 
 
 // returns an async_future<T> whose readiness depends on the completion of the given event
-// XXX need to add template parameter Deleter
-template<class T, class Deleter>
-async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Deleter& deleter)
+template<class T, class Allocator>
+async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Allocator& allocator)
 {
+  static_assert(agency::detail::is_allocator<Allocator>::value, "allocator parameter is not an Allocator.");
+
   // create a new stream on device 0
   device_id device(0);
   cuda::detail::stream s{device};
@@ -597,7 +598,7 @@ async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Deleter& deleter)
   assert(event.valid());
 
   // create a new, not ready asynchronous state
-  cuda::detail::asynchronous_state<T> state(agency::detail::construct_not_ready, ptr, deleter);
+  cuda::detail::asynchronous_state<T> state(agency::detail::construct_not_ready, ptr, allocator);
   assert(state.valid());
 
   return async_future<T>(std::move(event), std::move(state));
@@ -616,13 +617,15 @@ inline async_future<void> make_async_future(cudaStream_t s)
 
 
 // returns an async_future<T> whose readiness depends on the completion of all events previously recorded on the given stream
-template<class T, class Deleter>
-async_future<T> make_async_future(cudaStream_t s, T* ptr, const Deleter& deleter)
+template<class T, class Allocator>
+async_future<T> make_async_future(cudaStream_t s, T* ptr, const Allocator& allocator)
 {
+  static_assert(agency::detail::is_allocator<Allocator>::value, "allocator parameter is not an Allocator.");
+
   // create an event corresponding to the completion of everything submitted so far to s
   cuda::detail::event e = cuda::detail::when_all_events_are_ready(s);
 
-  return experimental::make_async_future(e.native_handle(), ptr, deleter);
+  return experimental::make_async_future(e.native_handle(), ptr, allocator);
 }
 
 

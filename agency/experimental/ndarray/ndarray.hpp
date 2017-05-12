@@ -5,7 +5,7 @@
 #include <agency/detail/default_shape.hpp>
 #include <agency/experimental/ndarray/ndarray_ref.hpp>
 #include <agency/detail/utility.hpp>
-#include <agency/detail/memory/allocator_traits.hpp>
+#include <agency/memory/allocator/detail/allocator_traits.hpp>
 #include <agency/detail/iterator/constant_iterator.hpp>
 #include <utility>
 #include <memory>
@@ -48,7 +48,7 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     explicit basic_ndarray(const shape_type& shape, const allocator_type& alloc = allocator_type())
       : alloc_(alloc),
-        all_(allocate_and_construct_elements(alloc_, agency::detail::shape_size(shape)), shape)
+        all_(allocate_and_construct_elements(alloc_, agency::detail::index_space_size(shape)), shape)
     {
     }
 
@@ -56,7 +56,7 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     explicit basic_ndarray(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
       : alloc_(alloc),
-        all_(allocate_and_construct_elements(alloc_, agency::detail::shape_size(shape), val), shape)
+        all_(allocate_and_construct_elements(alloc_, agency::detail::index_space_size(shape), val), shape)
     {
     }
 
@@ -79,7 +79,7 @@ class basic_ndarray
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_ndarray(const basic_ndarray& other)
-      : basic_ndarray(other.shape())
+      : basic_ndarray(other.shape(), other.get_allocator())
     {
       auto iter = other.begin();
       auto result = begin();
@@ -125,6 +125,15 @@ class basic_ndarray
     void swap(basic_ndarray& other)
     {
       agency::detail::adl_swap(all_, other.all_);
+      agency::detail::adl_swap(alloc_, other.alloc_);
+    }
+
+
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    allocator_type get_allocator() const
+    {
+      return alloc_;
     }
 
     __AGENCY_ANNOTATION

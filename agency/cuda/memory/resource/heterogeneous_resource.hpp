@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/memory/allocator_traits.hpp>
+#include <agency/memory/allocator/detail/allocator_traits.hpp>
 #include <agency/detail/tuple.hpp>
 
 
@@ -58,6 +58,26 @@ class heterogeneous_resource
       return agency::detail::allocator_traits_detail::construct_n_impl1(host_resource_, first, n, iters...);
 #else
       return agency::detail::allocator_traits_detail::construct_n_impl1(device_resource_, first, n, iters...);
+#endif
+    }
+
+    __host__ __device__
+    bool operator==(const heterogeneous_resource& other) const
+    {
+#ifndef __CUDA_ARCH__
+      return host_resource_ == other.host_resource_;
+#else
+      return device_resource_ == other.device_resource_;
+#endif
+    }
+
+    __host__ __device__
+    bool operator!=(const heterogeneous_resource& other) const
+    {
+#ifndef __CUDA_ARCH__
+      return host_resource_ != other.host_resource_;
+#else
+      return device_resource_ != other.device_resource_;
 #endif
     }
 

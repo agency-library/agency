@@ -228,6 +228,16 @@ class basic_grid_executor
     }
 
 
+    // this overload of bulk_then_execute() consumes a generic Future predecessor
+    // it is unimplemented and throws an exception at runtime
+    template<class Function, class Future, class ResultFactory, class OuterFactory, class InnerFactory>
+    async_future<agency::detail::result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory)
+    {
+      throw std::runtime_error("basic_grid_executor::bulk_then_execute() with generic Future predecessor: unimplemented.");
+    }
+
+
   private:
     device_id device_;
 };

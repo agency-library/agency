@@ -4,6 +4,8 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/exception_list.hpp>
 #include <agency/detail/tuple.hpp>
+#include <agency/future/future_traits/future_rebind_value.hpp>
+
 #include <future>
 #include <utility>
 
@@ -236,18 +238,6 @@ auto monadic_then(std::shared_future<T>& fut, Function&& f) ->
 {
   return detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
 }
-
-
-// XXX should check for nested ::rebind<T> i guess
-template<class Future, class T>
-struct rebind_future_value;
-
-
-template<template<class> class Future, class FromType, class ToType>
-struct rebind_future_value<Future<FromType>,ToType>
-{
-  using type = Future<ToType>;
-};
 
 
 __DEFINE_HAS_MEMBER_TYPE(has_value_type, value_type);
@@ -581,7 +571,7 @@ struct future_traits
     using value_type = typename detail::future_value<future_type>::type;
 
     template<class U>
-    using rebind = typename detail::rebind_future_value<future_type,U>::type;
+    using rebind_value = future_rebind_value_t<future_type,U>;
 
   private:
     // share() is implemented with the following priorities:
@@ -658,23 +648,23 @@ struct future_traits
     }
 
     __AGENCY_ANNOTATION
-    static rebind<void> make_ready()
+    static rebind_value<void> make_ready()
     {
-      return rebind<void>::make_ready();
+      return rebind_value<void>::make_ready();
     }
 
     template<class T, class... Args>
     __AGENCY_ANNOTATION
-    static rebind<T> make_ready(Args&&... args)
+    static rebind_value<T> make_ready(Args&&... args)
     {
-      return rebind<T>::make_ready(std::forward<Args>(args)...);
+      return rebind_value<T>::make_ready(std::forward<Args>(args)...);
     }
 
     template<class T>
     __AGENCY_ANNOTATION
-    static rebind<typename std::decay<T>::type> make_ready(T&& value)
+    static rebind_value<typename std::decay<T>::type> make_ready(T&& value)
     {
-      return rebind<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
+      return rebind_value<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
     }
 
     template<class Function,
@@ -682,7 +672,7 @@ struct future_traits
                detail::has_then<future_type,Function&&>::value
              >::type>
     __AGENCY_ANNOTATION
-    static rebind<
+    static rebind_value<
       agency::detail::result_of_continuation_t<Function&&, future_type>
     >
       then(future_type& fut, Function&& f)
@@ -694,20 +684,20 @@ struct future_traits
     __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
-    static rebind<U> cast_impl2(future_type& fut,
-                                typename std::enable_if<
-                                  std::is_constructible<rebind<U>,future_type&&>::value
-                                >::type* = 0)
+    static rebind_value<U> cast_impl2(future_type& fut,
+                                      typename std::enable_if<
+                                        std::is_constructible<rebind_value<U>,future_type&&>::value
+                                      >::type* = 0)
     {
-      return rebind<U>(std::move(fut));
+      return rebind_value<U>(std::move(fut));
     }
 
     template<class U>
     __AGENCY_ANNOTATION
-    static rebind<U> cast_impl2(future_type& fut,
-                                typename std::enable_if<
-                                  !std::is_constructible<rebind<U>,future_type&&>::value
-                                >::type* = 0)
+    static rebind_value<U> cast_impl2(future_type& fut,
+                                      typename std::enable_if<
+                                        !std::is_constructible<rebind_value<U>,future_type&&>::value
+                                      >::type* = 0)
     {
       return future_traits<future_type>::then(fut, detail::move_and_cast_functor<U>());
     }
@@ -715,20 +705,20 @@ struct future_traits
     __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
-    static rebind<U> cast_impl1(future_type& fut,
-                                typename std::enable_if<
-                                  detail::has_cast<future_type,U,rebind<U>>::value
-                                >::type* = 0)
+    static rebind_value<U> cast_impl1(future_type& fut,
+                                      typename std::enable_if<
+                                        detail::has_cast<future_type,U,rebind_value<U>>::value
+                                      >::type* = 0)
     {
       return future_type::template cast<U>(fut);
     }
 
     template<class U>
     __AGENCY_ANNOTATION
-    static rebind<U> cast_impl1(future_type& fut,
-                                typename std::enable_if<
-                                  !detail::has_cast<future_type,U,rebind<U>>::value
-                                >::type* = 0)
+    static rebind_value<U> cast_impl1(future_type& fut,
+                                      typename std::enable_if<
+                                        !detail::has_cast<future_type,U,rebind_value<U>>::value
+                                      >::type* = 0)
     {
       return cast_impl2<U>(fut);
     }
@@ -736,7 +726,7 @@ struct future_traits
   public:
     template<class U>
     __AGENCY_ANNOTATION
-    static rebind<U> cast(future_type& fut)
+    static rebind_value<U> cast(future_type& fut)
     {
       return cast_impl1<U>(fut);
     }
@@ -752,7 +742,7 @@ struct future_traits<std::future<T>>
     using value_type = typename detail::future_value<future_type>::type;
 
     template<class U>
-    using rebind = typename detail::rebind_future_value<future_type,U>::type;
+    using rebind_value = std::future<U>;
 
     using shared_future_type = std::shared_future<T>;
 
@@ -764,7 +754,7 @@ struct future_traits<std::future<T>>
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    static rebind<void> make_ready()
+    static rebind_value<void> make_ready()
     {
       return detail::make_ready_future();
     }
@@ -772,7 +762,7 @@ struct future_traits<std::future<T>>
     __agency_exec_check_disable__
     template<class U, class... Args>
     __AGENCY_ANNOTATION
-    static rebind<U> make_ready(Args&&... args)
+    static rebind_value<U> make_ready(Args&&... args)
     {
       return detail::make_ready_future<U>(std::forward<Args>(args)...);
     }
@@ -788,22 +778,22 @@ struct future_traits<std::future<T>>
 
   private:
     template<class U>
-    static rebind<U> cast_impl(future_type& fut,
-                               typename std::enable_if<
-                                 !std::is_constructible<rebind<U>,future_type&&>::value
-                               >::type* = 0)
+    static rebind_value<U> cast_impl(future_type& fut,
+                                     typename std::enable_if<
+                                       !std::is_constructible<rebind_value<U>,future_type&&>::value
+                                     >::type* = 0)
     {
       return future_traits<future_type>::then(fut, detail::move_and_cast_functor<U>());
     }
 
 
     template<class U>
-    static rebind<U> cast_impl(future_type& fut,
-                               typename std::enable_if<
-                                 std::is_constructible<rebind<U>,future_type&&>::value
-                               >::type* = 0)
+    static rebind_value<U> cast_impl(future_type& fut,
+                                     typename std::enable_if<
+                                       std::is_constructible<rebind_value<U>,future_type&&>::value
+                                     >::type* = 0)
     {
-      return rebind<U>(std::move(fut));
+      return rebind_value<U>(std::move(fut));
     }
 
 
@@ -811,7 +801,7 @@ struct future_traits<std::future<T>>
     __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
-    static rebind<U> cast(future_type& fut)
+    static rebind_value<U> cast(future_type& fut)
     {
       return cast_impl<U>(fut);
     }
@@ -827,7 +817,7 @@ struct future_traits<std::shared_future<T>>
     using value_type = typename detail::future_value<future_type>::type;
 
     template<class U>
-    using rebind = typename detail::rebind_future_value<future_type,U>::type;
+    using rebind_value = std::shared_future<U>;
 
     using shared_future_type = std::shared_future<T>;
 
@@ -839,7 +829,7 @@ struct future_traits<std::shared_future<T>>
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    static rebind<void> make_ready()
+    static rebind_value<void> make_ready()
     {
       return detail::make_ready_shared_future();
     }
@@ -847,7 +837,7 @@ struct future_traits<std::shared_future<T>>
     __agency_exec_check_disable__
     template<class U, class... Args>
     __AGENCY_ANNOTATION
-    static rebind<U> make_ready(Args&&... args)
+    static rebind_value<U> make_ready(Args&&... args)
     {
       return detail::make_ready_shared_future<U>(std::forward<Args>(args)...);
     }
@@ -863,29 +853,29 @@ struct future_traits<std::shared_future<T>>
 
   private:
     template<class U>
-    static rebind<U> cast_impl(future_type& fut,
-                               typename std::enable_if<
-                                 !std::is_constructible<rebind<U>,future_type&&>::value
-                               >::type* = 0)
+    static rebind_value<U> cast_impl(future_type& fut,
+                                     typename std::enable_if<
+                                       !std::is_constructible<rebind_value<U>,future_type&&>::value
+                                     >::type* = 0)
     {
       return future_traits<future_type>::then(fut, detail::move_and_cast_functor<U>());
     }
   
   
     template<class U>
-    static rebind<U> cast_impl(future_type& fut,
-                               typename std::enable_if<
-                                 std::is_constructible<rebind<U>,future_type&&>::value
-                               >::type* = 0)
+    static rebind_value<U> cast_impl(future_type& fut,
+                                     typename std::enable_if<
+                                       std::is_constructible<rebind_value<U>,future_type&&>::value
+                                     >::type* = 0)
     {
-      return rebind<U>(std::move(fut));
+      return rebind_value<U>(std::move(fut));
     }
   
   public:
     __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
-    static rebind<U> cast(future_type& fut)
+    static rebind_value<U> cast(future_type& fut)
     {
       return cast_impl<U>(fut);
     }

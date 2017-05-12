@@ -1,8 +1,8 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/memory/allocation_deleter.hpp>
-#include <agency/detail/memory/unique_ptr.hpp>
+#include <agency/memory/detail/unique_ptr.hpp>
+#include <agency/memory/detail/allocation_deleter.hpp>
 #include <agency/detail/tuple.hpp>
 #include <memory>
 #include <type_traits>
