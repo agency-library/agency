@@ -48,7 +48,7 @@ typename std::enable_if<
 >::type
   construct_n_impl2(Alloc& a, Iterator first, size_t n, Iterators... iters)
 {
-  for(size_t i = 0; i < n; ++i, ++first, swallow(++iters...))
+  for(size_t i = 0; i < n; ++i, ++first, allocator_traits_detail::swallow(++iters...))
   {
     a.construct(&*first, *iters...);
   }
@@ -68,7 +68,7 @@ typename std::enable_if<
 {
   using value_type = typename std::iterator_traits<Iterator>::value_type;
 
-  for(size_t i = 0; i < n; ++i, ++first, swallow(++iters...))
+  for(size_t i = 0; i < n; ++i, ++first, allocator_traits_detail::swallow(++iters...))
   {
     new(&*first) value_type(*iters...);
   }
