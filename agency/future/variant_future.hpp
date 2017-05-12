@@ -128,6 +128,7 @@ class variant_future
   private:
     struct get_visitor
     {
+      __agency_exec_check_disable__
       template<class T>
       __AGENCY_ANNOTATION
       value_type operator()(T& f) const
