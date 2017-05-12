@@ -79,7 +79,7 @@ class basic_ndarray
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_ndarray(const basic_ndarray& other)
-      : basic_ndarray(other.shape())
+      : basic_ndarray(other.shape(), other.get_allocator())
     {
       auto iter = other.begin();
       auto result = begin();
@@ -125,6 +125,15 @@ class basic_ndarray
     void swap(basic_ndarray& other)
     {
       agency::detail::adl_swap(all_, other.all_);
+      agency::detail::adl_swap(alloc_, other.alloc_);
+    }
+
+
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    allocator_type get_allocator() const
+    {
+      return alloc_;
     }
 
     __AGENCY_ANNOTATION
