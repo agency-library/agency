@@ -81,6 +81,7 @@ struct future_cast_functor
 // this version of future_cast_impl() handles the case
 // when we are casting the kind of future and possibly the value type as well
 // in other words, we are casting from e.g. std::future<T> -> my_future<U>
+__agency_exec_check_disable__
 template<class ToFuture, class FromFuture,
          __AGENCY_REQUIRES(!is_same_kind_of_future<ToFuture,FromFuture>::value)
         >
