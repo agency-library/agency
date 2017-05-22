@@ -49,11 +49,11 @@ struct abstract_allocator
 
   __AGENCY_ANNOTATION
   //virtual bool equal_to(const abstract_allocator& other) const = 0;
-  virtual bool equal_to(const abstract_allocator& other) const { return false; }
+  virtual bool equal_to(const abstract_allocator&) const { return false; }
 
   __AGENCY_ANNOTATION
   //virtual bool not_equal_to(const abstract_allocator& other) const = 0;
-  virtual bool not_equal_to(const abstract_allocator& other) const { return true; }
+  virtual bool not_equal_to(const abstract_allocator&) const { return true; }
 };
 
 
