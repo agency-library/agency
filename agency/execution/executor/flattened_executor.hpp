@@ -267,13 +267,14 @@ class flattened_executor
     head_partition_type partition_head(const shape_head_type& shape) const
     {
       // avoid division by zero outer_size below
-      size_t size = detail::shape_cast<size_t>(shape);
-      if(size == 0)
+      size_t requested_size = detail::shape_cast<size_t>(shape);
+      if(requested_size == 0)
       {
         return head_partition_type{};
       }
 
       base_shape_type base_executor_shape = agency::unit_shape(base_executor());
+
       size_t outer_granularity = detail::index_space_size_of_shape_head(base_executor_shape);
       size_t inner_granularity = detail::index_space_size(detail::get<1>(base_executor_shape));
 
@@ -283,9 +284,9 @@ class flattened_executor
       size_t inner_max_size = detail::get<1>(base_executor_max_sizes);
 
       // set outer subscription to 1
-      size_t outer_size = std::min(outer_max_size, std::min(size, outer_granularity));
+      size_t outer_size = std::min(outer_max_size, std::min(requested_size, outer_granularity));
 
-      size_t inner_size = (size + outer_size - 1) / outer_size;
+      size_t inner_size = (requested_size + outer_size - 1) / outer_size;
 
       // address inner underutilization
       // XXX consider trying to balance the utilization
@@ -296,10 +297,17 @@ class flattened_executor
         inner_size *= 2;
       }
 
+      // we may require one partially-full group of agents
+      if(outer_size * inner_size < requested_size)
+      {
+        // we require a single partially-full group of agents
+        outer_size += 1;
+      }
+
       if(inner_size > inner_max_size)
       {
         inner_size = inner_max_size;
-        outer_size = (size + inner_size - 1) / inner_size;
+        outer_size = (requested_size + inner_size - 1) / inner_size;
 
         if(outer_size > outer_max_size)
         {
@@ -307,6 +315,8 @@ class flattened_executor
           throw std::runtime_error("flattened_executor::partition_head(): size is too large to accomodate");
         }
       }
+
+      assert(outer_size * inner_size >= requested_size);
 
       using outer_shape_type = typename std::tuple_element<0,head_partition_type>::type;
       using inner_shape_type = typename std::tuple_element<1,head_partition_type>::type;
