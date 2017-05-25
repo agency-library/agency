@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 #include <agency/execution/executor/executor_array.hpp>
 #include <agency/execution/executor/flattened_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
@@ -8,6 +9,8 @@
 #include <agency/cuda/execution/executor/parallel_executor.hpp>
 #include <numeric>
 #include <algorithm>
+#include <type_traits>
+#include <array>
 
 namespace agency
 {
@@ -85,9 +88,43 @@ class multidevice_executor : public flattened_executor<spanning_grid_executor>
     multidevice_executor(const Range& grid_executors)
       : super_t(grid_executors)
     {}
+
+    size_t size() const
+    {
+      return this->base_executor().base_executor().size();
+    }
 };
 
 static_assert(is_executor<multidevice_executor>::value, "multidevice_executor is not an executor!");
+
+
+// XXX devices() and all_devices() should be moved to device.hpp
+//
+// These functions should return a container of device_id, and we should provide an overload for
+// replace_executor(policy, container_of_device_ids) which would introduce the right type of executor for the policy.
+//
+// for now, just return a multidevice_executor from these functions
+
+template<class... IntegersOrDeviceIds>
+multidevice_executor devices(device_id id0, IntegersOrDeviceIds... ids)
+{
+  std::array<grid_executor, 1 + sizeof...(IntegersOrDeviceIds)> execs = {{grid_executor(id0), grid_executor(ids)...}};
+  return multidevice_executor(execs);
+}
+
+template<class Range,
+         __AGENCY_REQUIRES(
+           !std::is_convertible<const Range&, device_id>::value
+         )>
+multidevice_executor devices(const Range& integers_or_device_ids)
+{
+  return multidevice_executor(detail::devices_to_grid_executors(integers_or_device_ids));
+}
+
+multidevice_executor all_devices()
+{
+  return cuda::devices(detail::all_devices());
+}
 
 
 } // end cuda
