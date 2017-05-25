@@ -17,8 +17,8 @@ namespace detail
 {
 
 
-template<class Container>
-std::vector<grid_executor> devices_to_grid_executors(const Container& devices)
+template<class Range>
+std::vector<grid_executor> devices_to_grid_executors(const Range& devices)
 {
   std::vector<grid_executor> result(devices.size());
   std::transform(devices.begin(), devices.end(), result.begin(), [](const device_id& d)
@@ -45,22 +45,48 @@ class supergrid_executor : public executor_array<grid_executor, this_thread::par
     using super_t = executor_array<grid_executor, this_thread::parallel_executor>;
 
   public:
-    template<class Container>
-    supergrid_executor(const Container& grid_executors)
-      : super_t(grid_executors.begin(), grid_executors.end())
-    {}
-
     supergrid_executor()
       : supergrid_executor(detail::all_devices_as_grid_executors())
+    {}
+
+    template<class Range>
+    supergrid_executor(const Range& grid_executors)
+      : super_t(grid_executors.begin(), grid_executors.end())
     {}
 };
 
 
-using spanning_grid_executor = flattened_executor<supergrid_executor>;
+class spanning_grid_executor : public flattened_executor<supergrid_executor>
+{
+  private:
+    using super_t = flattened_executor<supergrid_executor>;
+
+  public:
+    spanning_grid_executor() = default;
+
+    template<class Range>
+    spanning_grid_executor(const Range& grid_executors)
+      : super_t(supergrid_executor(grid_executors))
+    {}
+};
+
 static_assert(is_executor<spanning_grid_executor>::value, "spanning_grid_executor is not an executor!");
 
 
-using multidevice_executor = flattened_executor<spanning_grid_executor>;
+class multidevice_executor : public flattened_executor<spanning_grid_executor>
+{
+  private:
+    using super_t = flattened_executor<spanning_grid_executor>;
+
+  public:
+    multidevice_executor() = default;
+
+    template<class Range>
+    multidevice_executor(const Range& grid_executors)
+      : super_t(grid_executors)
+    {}
+};
+
 static_assert(is_executor<multidevice_executor>::value, "multidevice_executor is not an executor!");
 
 
