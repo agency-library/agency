@@ -41,6 +41,14 @@ class forwarding_iterator
       return static_cast<reference>(*current_);
     }
 
+    // bracket
+    __AGENCY_ANNOTATION
+    reference operator[](difference_type n) const
+    {
+      forwarding_iterator tmp = *this + n;
+      return *tmp;
+    }
+
     // not equal
     __AGENCY_ANNOTATION
     bool operator!=(const forwarding_iterator& rhs) const
