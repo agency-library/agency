@@ -1,11 +1,9 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/requires.hpp>
-#include <agency/memory/allocator/detail/allocator_traits.hpp>
-#include <agency/bulk_invoke.hpp>
 #include <agency/execution/execution_policy.hpp>
-#include <iterator>
+#include <agency/detail/algorithm/uninitialized_copy_n.hpp>
+#include <agency/detail/iterator/move_iterator.hpp>
 #include <utility>
 
 namespace agency
@@ -14,63 +12,11 @@ namespace detail
 {
 
 
-struct uninitialized_move_n_functor
-{
-  __agency_exec_check_disable__
-  template<class Agent, class Allocator, class RandomAccessIterator1, class RandomAccessIterator2>
-  __AGENCY_ANNOTATION
-  void operator()(Agent& self, Allocator alloc, RandomAccessIterator1 first, RandomAccessIterator2 result)
-  {
-    auto i = self.rank();
-
-    RandomAccessIterator1 from = first + i;
-    RandomAccessIterator2 to = result + i;
-    
-    allocator_traits<Allocator>::construct(alloc, &*to, std::move(*from));
-  }
-};
-
-
-// this overload is for cases where we need not execute sequentially
-template<class ExecutionPolicy, class Allocator, class RandomAccessIterator1, class Size, class RandomAccessIterator2,
-         __AGENCY_REQUIRES(
-            !policy_is_sequenced<typename std::decay<ExecutionPolicy>::type>::value and
-            std::is_convertible<
-              typename std::iterator_traits<RandomAccessIterator1>::iterator_category,
-              std::random_access_iterator_tag
-            >::value and
-            std::is_convertible<
-              typename std::iterator_traits<RandomAccessIterator2>::iterator_category,
-              std::random_access_iterator_tag
-            >::value
-         )>
+template<class ExecutionPolicy, class Allocator, class Iterator1, class Size, class Iterator2>
 __AGENCY_ANNOTATION
-RandomAccessIterator2 uninitialized_move_n(ExecutionPolicy&& policy, const Allocator& alloc, RandomAccessIterator1 first, Size n, RandomAccessIterator2 result)
+Iterator2 uninitialized_move_n(ExecutionPolicy&& policy, Allocator& alloc, Iterator1 first, Size n, Iterator2 result)
 {
-  agency::bulk_invoke(policy(n), uninitialized_move_n_functor(), alloc, first, result);
-
-  return result + n;
-}
-
-
-// this overload is for cases where we must execute sequentially
-template<class ExecutionPolicy, class Allocator, class Iterator1, class Size, class Iterator2,
-         __AGENCY_REQUIRES(
-           policy_is_sequenced<typename std::decay<ExecutionPolicy>::type>::value or
-           !std::is_convertible<
-             typename std::iterator_traits<Iterator1>::iterator_category,
-             std::random_access_iterator_tag
-           >::value or
-           !std::is_convertible<
-             typename std::iterator_traits<Iterator2>::iterator_category,
-             std::random_access_iterator_tag
-           >::value
-         )>
-__AGENCY_ANNOTATION
-Iterator2 uninitialized_move_n(ExecutionPolicy&&, Allocator& alloc, Iterator1 first, Size n, Iterator2 result)
-{
-  auto iters = agency::detail::allocator_traits<Allocator>::construct_n(alloc, result, n, agency::detail::make_move_iterator(first));
-  return agency::detail::get<0>(iters);
+  return detail::uninitialized_copy_n(std::forward<ExecutionPolicy>(policy), alloc, detail::make_move_iterator(first), n, result);
 }
 
 
