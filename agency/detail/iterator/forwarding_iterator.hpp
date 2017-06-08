@@ -41,7 +41,7 @@ class forwarding_iterator
       return static_cast<reference>(*current_);
     }
 
-    // bracket
+    // subscript
     __AGENCY_ANNOTATION
     reference operator[](difference_type n) const
     {
