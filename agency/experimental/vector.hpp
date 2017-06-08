@@ -579,6 +579,8 @@ class vector
       end_ = begin();
     }
 
+    // single element insert
+
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, const T& value)
     {
@@ -591,10 +593,20 @@ class vector
       return emplace(position, std::move(value));
     }
 
+    // fill insert
+
+    template<class ExecutionPolicy>
+    __AGENCY_ANNOTATION
+    iterator insert(ExecutionPolicy&& policy, const_iterator position, size_type count, const T& value)
+    {
+      return insert(std::forward<ExecutionPolicy>(policy), position, agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count));
+    }
+
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, size_type count, const T& value)
     {
-      return insert(position, agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count));
+      agency::sequenced_execution_policy seq;
+      return insert(seq, position, count, value);
     }
 
     template<class ExecutionPolicy,
@@ -611,6 +623,8 @@ class vector
     {
       return emplace_n(std::forward<ExecutionPolicy>(policy), position, agency::detail::distance(first, last), first);
     }
+
+    // range insert
 
     template<class ForwardIterator,
              __AGENCY_REQUIRES(
