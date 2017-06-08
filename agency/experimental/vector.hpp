@@ -10,6 +10,7 @@
 #include <agency/detail/algorithm/equal.hpp>
 #include <agency/detail/algorithm/max.hpp>
 #include <agency/detail/algorithm/min.hpp>
+#include <agency/detail/algorithm/uninitialized_copy.hpp>
 #include <agency/detail/algorithm/uninitialized_copy_n.hpp>
 #include <agency/detail/algorithm/uninitialized_move_n.hpp>
 #include <agency/experimental/memory/allocator.hpp>
@@ -31,14 +32,6 @@ namespace detail
 
 
 // XXX TODO: continue generalizing these algorithms to use ExecutionPolicies and reorganizing them underneath detail/algorithm
-
-
-template<class Allocator, class ForwardIterator, class OutputIterator>
-__AGENCY_ANNOTATION
-OutputIterator uninitialized_copy(Allocator& alloc, ForwardIterator first, ForwardIterator last, OutputIterator result)
-{
-  return agency::detail::uninitialized_copy_n(alloc, first, agency::detail::distance(first,last), result);
-}
 
 
 template<class Allocator, class Iterator1, class Iterator2>
@@ -71,7 +64,7 @@ Iterator overlapped_uninitialized_copy(Allocator& alloc, Iterator first, Iterato
   {
     // result + (last - first) lies in [first, last)
     // it's safe to use uninitialized_copy here
-    result = detail::uninitialized_copy(alloc, first, last, result);
+    result = agency::detail::uninitialized_copy(alloc, first, last, result);
   } // end else
 
   return result;
@@ -115,6 +108,7 @@ Iterator overlapped_copy(Iterator first, Iterator last, Iterator result)
 }
 
 
+// XXX uninitialized_copy_n & uninitialized_move_n should be implemented with this
 template<class Allocator, class Iterator, class... Iterators>
 __AGENCY_ANNOTATION
 Iterator construct_n(Allocator& alloc, Iterator first, size_t n, Iterators... iters)
@@ -668,7 +662,7 @@ class vector
         storage_type new_storage(new_capacity, storage_.allocator());
 
         // copy our elements into the new storage
-        end_ = detail::uninitialized_copy(new_storage.allocator(), begin(), end(), new_storage.data());
+        end_ = agency::detail::uninitialized_copy(new_storage.allocator(), begin(), end(), new_storage.data());
 
         // swap out our storage
         storage_.swap(new_storage);
