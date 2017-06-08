@@ -42,6 +42,16 @@ class constant_iterator
       return value_;
     }
 
+    // subscript
+    __AGENCY_ANNOTATION
+    reference operator[](difference_type) const
+    {
+      // note that there is no need to create a temporary iterator
+      // e.g. tmp = *this + n
+      // because the value returned by *tmp == this->value_
+      return value_;
+    }
+
     // not equal
     __AGENCY_ANNOTATION
     bool operator!=(const constant_iterator& rhs) const
