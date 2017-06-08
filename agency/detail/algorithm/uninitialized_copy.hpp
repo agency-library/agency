@@ -27,7 +27,7 @@ OutputIterator uninitialized_copy(Allocator& alloc, ForwardIterator first, Forwa
   // pass this instead of agency::seq to work around the prohibition on
   // taking the address of a global constexpr object (i.e., agency::seq) from a CUDA __device__ function
   agency::sequenced_execution_policy seq;
-  return agency::detail::uninitialized_copy_n(seq, alloc, first, last, result);
+  return agency::detail::uninitialized_copy(seq, alloc, first, last, result);
 }
 
 
