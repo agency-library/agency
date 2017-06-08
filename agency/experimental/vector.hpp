@@ -10,6 +10,7 @@
 #include <agency/detail/algorithm/equal.hpp>
 #include <agency/detail/algorithm/max.hpp>
 #include <agency/detail/algorithm/min.hpp>
+#include <agency/detail/algorithm/uninitialized_move_n.hpp>
 #include <agency/experimental/memory/allocator.hpp>
 #include <memory>
 #include <initializer_list>
@@ -22,13 +23,13 @@ namespace detail
 {
 
 
-template<class Allocator, class Iterator1, class Size, class Iterator2>
-__AGENCY_ANNOTATION
-Iterator2 uninitialized_move_n(Allocator& alloc, Iterator1 first, Size n, Iterator2 result)
-{
-  auto iters = agency::detail::allocator_traits<Allocator>::construct_n(alloc, result, n, agency::detail::make_move_iterator(first));
-  return agency::detail::get<0>(iters);
-}
+// XXX move the implementation of these algorithms into detail/algorithm
+
+
+// XXX can we ditch the construct_n() stuff if we generalize these to use ExecutionPolicies?
+
+
+// XXX TODO: continue generalizing these algorithms to use ExecutionPolicies and reorganizing them underneath detail/algorithm
 
 
 template<class Allocator, class Iterator1, class Size, class Iterator2>
@@ -345,6 +346,7 @@ class vector
       : vector(count, T(), alloc)
     {}
 
+    // this is the most fundamental constructor
     template<class InputIterator,
              __AGENCY_REQUIRES(
                std::is_convertible<
@@ -869,7 +871,7 @@ class vector
         if(num_displaced_elements > count)
         {
           // move n displaced elements to newly constructed elements following the insertion
-          end_ = detail::uninitialized_move_n(storage_.allocator(), end() - count, count, end());
+          end_ = agency::detail::uninitialized_move_n(storage_.allocator(), end() - count, count, end());
 
           // copy construct num_displaced_elements - n elements to existing elements
           // this copy overlaps
@@ -884,7 +886,7 @@ class vector
         else
         {
           // move already existing, displaced elements to the end of the emplaced range, which is at position + count
-          end_ = detail::uninitialized_move_n(storage_.allocator(), position, num_displaced_elements, position + count);
+          end_ = agency::detail::uninitialized_move_n(storage_.allocator(), position, num_displaced_elements, position + count);
 
           // XXX we should destroy the elements [position, position + num_displaced_elements) before placement newing new ones
 
@@ -920,7 +922,7 @@ class vector
 #endif
         {
           // move elements before the insertion to the beginning of the new storage
-          new_end = detail::uninitialized_move_n(new_storage.allocator(), begin(), position - begin(), new_storage.data());
+          new_end = agency::detail::uninitialized_move_n(new_storage.allocator(), begin(), position - begin(), new_storage.data());
 
           result = new_end;
 
@@ -928,7 +930,7 @@ class vector
           new_end = detail::construct_n(new_storage.allocator(), new_end, count, iters...);
 
           // move elements after the insertion to the end of the new storage
-          new_end = detail::uninitialized_move_n(new_storage.allocator(), position, end() - position, new_end);
+          new_end = agency::detail::uninitialized_move_n(new_storage.allocator(), position, end() - position, new_end);
         }
 #ifndef __CUDA_ARCH__
         catch(...)
