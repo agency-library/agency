@@ -5,14 +5,7 @@
 #include <agency/memory/allocator/detail/allocator_traits.hpp>
 #include <agency/detail/utility.hpp>
 #include <agency/detail/iterator.hpp>
-#include <agency/detail/algorithm/copy.hpp>
-#include <agency/detail/algorithm/copy_n.hpp>
-#include <agency/detail/algorithm/equal.hpp>
-#include <agency/detail/algorithm/max.hpp>
-#include <agency/detail/algorithm/min.hpp>
-#include <agency/detail/algorithm/uninitialized_copy.hpp>
-#include <agency/detail/algorithm/uninitialized_copy_n.hpp>
-#include <agency/detail/algorithm/uninitialized_move_n.hpp>
+#include <agency/detail/algorithm.hpp>
 #include <agency/experimental/memory/allocator.hpp>
 #include <memory>
 #include <initializer_list>
@@ -104,18 +97,6 @@ Iterator overlapped_copy(Iterator first, Iterator last, Iterator result)
   return result;
 }
 
-
-// XXX seems like this should be a member of allocator_traits
-
-template<class Allocator, class Iterator>
-__AGENCY_ANNOTATION
-void destroy_each(Allocator& alloc, Iterator first, Iterator last)
-{
-  for(; first != last; ++first)
-  {
-    agency::detail::allocator_traits<Allocator>::destroy(alloc, &*first);
-  }
-}
 
 __AGENCY_ANNOTATION
 inline void throw_length_error(const char* what_arg)
@@ -420,7 +401,7 @@ class vector
         end_ = agency::detail::copy(first, last, begin());
 
         // destroy the old elements
-        detail::destroy_each(storage_.allocator(), end(), old_end);
+        agency::detail::destroy(storage_.allocator(), end(), old_end);
       }
       else
       {
@@ -673,7 +654,7 @@ class vector
     __AGENCY_ANNOTATION
     void clear()
     {
-      detail::destroy_each(storage_.allocator(), begin(), end());
+      agency::detail::destroy(storage_.allocator(), begin(), end());
       end_ = begin();
     }
 
@@ -759,7 +740,7 @@ class vector
       end_ = detail::overlapped_copy(last, end(), first);
 
       // destroy everything after end()
-      detail::destroy_each(storage_.allocator(), end(), old_end);
+      agency::detail::destroy(storage_.allocator(), end(), old_end);
 
       // return an iterator referring to one past the last erased element
       return first;
@@ -795,7 +776,7 @@ class vector
     {
       if(new_size < size())
       {
-        detail::destroy_each(begin() + new_size, end());
+        agency::detail::destroy(begin() + new_size, end());
         end_ = begin() + new_size;
       }
       else
@@ -809,7 +790,7 @@ class vector
     {
       if(new_size < size())
       {
-        detail::destroy_each(begin() + new_size, end());
+        agency::detail::destroy(begin() + new_size, end());
         end_ = begin() + new_size;
       }
       else
@@ -909,7 +890,7 @@ class vector
         catch(...)
         {
           // something went wrong, so destroy as many new elements as were constructed
-          detail::destroy_each(new_storage.allocator(), new_storage.data(), new_end);
+          agency::detail::destroy(new_storage.allocator(), new_storage.data(), new_end);
 
           // rethrow
           throw;
