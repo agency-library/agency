@@ -597,6 +597,21 @@ class vector
       return insert(position, agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count));
     }
 
+    template<class ExecutionPolicy,
+             class ForwardIterator,
+             __AGENCY_REQUIRES(
+               std::is_convertible<
+                 typename std::iterator_traits<ForwardIterator>::iterator_category,
+                 std::forward_iterator_tag
+               >::value
+             )
+            >
+    __AGENCY_ANNOTATION
+    iterator insert(ExecutionPolicy&& policy, const_iterator position, ForwardIterator first, ForwardIterator last)
+    {
+      return emplace_n(std::forward<ExecutionPolicy>(policy), position, agency::detail::distance(first, last), first);
+    }
+
     template<class ForwardIterator,
              __AGENCY_REQUIRES(
                std::is_convertible<
@@ -608,8 +623,8 @@ class vector
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, ForwardIterator first, ForwardIterator last)
     {
-      agency::sequenced_execution_policy seq; 
-      return emplace_n(seq, position, agency::detail::distance(first, last), first);
+      agency::sequenced_execution_policy seq;
+      return insert(seq, position, first, last);
     }
 
     template<class InputIterator,
