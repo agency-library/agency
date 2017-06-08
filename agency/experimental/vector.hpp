@@ -28,9 +28,6 @@ namespace detail
 // XXX move the implementation of these algorithms into detail/algorithm
 
 
-// XXX can we ditch the construct_n() stuff if we generalize these to use ExecutionPolicies?
-
-
 // XXX TODO: continue generalizing these algorithms to use ExecutionPolicies and reorganizing them underneath detail/algorithm
 
 
@@ -105,16 +102,6 @@ Iterator overlapped_copy(Iterator first, Iterator last, Iterator result)
   } // end else
 
   return result;
-}
-
-
-// XXX uninitialized_copy_n & uninitialized_move_n should be implemented with this
-template<class Allocator, class Iterator, class... Iterators>
-__AGENCY_ANNOTATION
-Iterator construct_n(Allocator& alloc, Iterator first, size_t n, Iterators... iters)
-{
-  auto iter_tuple = agency::detail::allocator_traits<Allocator>::construct_n(alloc, first, n, iters...);
-  return agency::detail::get<0>(iter_tuple);
 }
 
 
@@ -867,7 +854,7 @@ class vector
           // XXX we should destroy the elements [position, position + num_displaced_elements) before constructing new ones
 
           // construct new elements at insertion point
-          detail::construct_n(storage_.allocator(), position, count, iters...);
+          agency::detail::construct_n(storage_.allocator(), position, count, iters...);
         }
         else
         {
@@ -877,7 +864,7 @@ class vector
           // XXX we should destroy the elements [position, position + num_displaced_elements) before placement newing new ones
 
           // construct new elements at the emplacement position
-          detail::construct_n(storage_.allocator(), position, count, iters...);
+          agency::detail::construct_n(storage_.allocator(), position, count, iters...);
         }
       }
       else
@@ -913,7 +900,7 @@ class vector
           result = new_end;
 
           // copy construct new elements
-          new_end = detail::construct_n(new_storage.allocator(), new_end, count, iters...);
+          new_end = agency::detail::construct_n(new_storage.allocator(), new_end, count, iters...);
 
           // move elements after the insertion to the end of the new storage
           new_end = agency::detail::uninitialized_move_n(new_storage.allocator(), position, end() - position, new_end);
