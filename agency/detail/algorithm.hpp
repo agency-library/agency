@@ -8,6 +8,7 @@
 #include <agency/detail/algorithm/equal.hpp>
 #include <agency/detail/algorithm/max.hpp>
 #include <agency/detail/algorithm/min.hpp>
+#include <agency/detail/algorithm/overlapped_uninitialized_copy.hpp>
 #include <agency/detail/algorithm/uninitialized_copy.hpp>
 #include <agency/detail/algorithm/uninitialized_copy_n.hpp>
 #include <agency/detail/algorithm/uninitialized_move_n.hpp>
