@@ -24,43 +24,6 @@ namespace detail
 // XXX TODO: continue generalizing these algorithms to use ExecutionPolicies and reorganizing them underneath detail/algorithm
 
 
-template<class Allocator, class Iterator1, class Iterator2>
-__AGENCY_ANNOTATION
-Iterator2 uninitialized_copy_backward(Allocator& alloc, Iterator1 first, Iterator1 last, Iterator2 result)
-{
-  // yes, we preincrement
-  // the ranges are open on the right, i.e. [first, last)
-  while(first != last)
-  {
-    agency::detail::allocator_traits<Allocator>::construct(alloc, &*--result, *--last);
-  }
-
-  return result;
-}
-
-
-template<class Allocator, class Iterator>
-__AGENCY_ANNOTATION
-Iterator overlapped_uninitialized_copy(Allocator& alloc, Iterator first, Iterator last, Iterator result)
-{
-  if(first < last && first <= result && result < last)
-  {
-    // result lies in [first, last)
-    // it's safe to use uninitialized_copy_backward here
-    detail::uninitialized_copy_backward(alloc, first, last, result + (last - first));
-    result += (last - first);
-  }
-  else
-  {
-    // result + (last - first) lies in [first, last)
-    // it's safe to use uninitialized_copy here
-    result = agency::detail::uninitialized_copy(alloc, first, last, result);
-  } // end else
-
-  return result;
-}
-
-
 template<class Iterator1, class Iterator2>
 __AGENCY_ANNOTATION
 Iterator2 copy_backward(Iterator1 first, Iterator1 last, Iterator2 result)
@@ -830,7 +793,7 @@ class vector
           // copy construct num_displaced_elements - n elements to existing elements
           // this copy overlaps
           size_type copy_length = (old_end - count) - position;
-          detail::overlapped_uninitialized_copy(storage_.allocator(), position, old_end - count, old_end - copy_length);
+          agency::detail::overlapped_uninitialized_copy(storage_.allocator(), position, old_end - count, old_end - copy_length);
 
           // XXX we should destroy the elements [position, position + num_displaced_elements) before constructing new ones
 
