@@ -6,6 +6,7 @@
 #include <agency/bulk_invoke.hpp>
 #include <agency/execution/execution_policy.hpp>
 #include <iterator>
+#include <utility>
 
 namespace agency
 {
@@ -25,7 +26,7 @@ struct uninitialized_move_n_functor
     RandomAccessIterator1 from = first + i;
     RandomAccessIterator2 to = result + i;
     
-    allocator_traits<Allocator>::construct(alloc, &*to, *from);
+    allocator_traits<Allocator>::construct(alloc, &*to, std::move(*from));
   }
 };
 
