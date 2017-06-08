@@ -10,6 +10,7 @@
 #include <agency/detail/algorithm/equal.hpp>
 #include <agency/detail/algorithm/max.hpp>
 #include <agency/detail/algorithm/min.hpp>
+#include <agency/detail/algorithm/uninitialized_copy_n.hpp>
 #include <agency/detail/algorithm/uninitialized_move_n.hpp>
 #include <agency/experimental/memory/allocator.hpp>
 #include <memory>
@@ -32,20 +33,11 @@ namespace detail
 // XXX TODO: continue generalizing these algorithms to use ExecutionPolicies and reorganizing them underneath detail/algorithm
 
 
-template<class Allocator, class Iterator1, class Size, class Iterator2>
-__AGENCY_ANNOTATION
-Iterator2 uninitialized_copy_n(Allocator& alloc, Iterator1 first, Size n, Iterator2 result)
-{
-  auto iters = agency::detail::allocator_traits<Allocator>::construct_n(alloc, result, n, first);
-  return agency::detail::get<0>(iters);
-}
-
-
 template<class Allocator, class ForwardIterator, class OutputIterator>
 __AGENCY_ANNOTATION
 OutputIterator uninitialized_copy(Allocator& alloc, ForwardIterator first, ForwardIterator last, OutputIterator result)
 {
-  return detail::uninitialized_copy_n(alloc, first, agency::detail::distance(first,last), result);
+  return agency::detail::uninitialized_copy_n(alloc, first, agency::detail::distance(first,last), result);
 }
 
 
@@ -457,7 +449,7 @@ class vector
         auto mid_and_end = agency::detail::copy_n(first, size(), begin());
 
         // construct new elements at the end
-        end_ = detail::uninitialized_copy_n(storage_.allocator(), agency::detail::get<0>(mid_and_end), n - size(), end());
+        end_ = agency::detail::uninitialized_copy_n(storage_.allocator(), agency::detail::get<0>(mid_and_end), n - size(), end());
       }
     }
 
