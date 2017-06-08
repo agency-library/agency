@@ -34,6 +34,9 @@ struct construct_n_functor
 // 2. Iterators are random access
 template<class ExecutionPolicy, class Allocator, class RandomAccessIterator, class Size, class... RandomAccessIterators,
          __AGENCY_REQUIRES(
+           detail::is_allocator<Allocator>::value
+         ),
+         __AGENCY_REQUIRES(
             !policy_is_sequenced<decay_t<ExecutionPolicy>>::value and
             conjunction<
               std::is_convertible<
@@ -59,6 +62,9 @@ RandomAccessIterator construct_n(ExecutionPolicy&& policy, const Allocator& allo
 // 1. ExecutionPolicy is sequenced OR
 // 2. Iterators are not random access
 template<class ExecutionPolicy, class Allocator, class Iterator, class Size, class... Iterators,
+         __AGENCY_REQUIRES(
+           detail::is_allocator<Allocator>::value
+         ),
          __AGENCY_REQUIRES(
            policy_is_sequenced<decay_t<ExecutionPolicy>>::value or
            !conjunction<
