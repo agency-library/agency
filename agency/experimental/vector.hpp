@@ -42,6 +42,7 @@ inline void throw_out_of_range(const char* what_arg)
 }
 
 
+// XXX move this underneath detail/container/storage.hpp
 template<class T, class Allocator>
 class storage
 {
@@ -607,7 +608,8 @@ class vector
     __AGENCY_ANNOTATION
     iterator insert(const_iterator position, ForwardIterator first, ForwardIterator last)
     {
-      return emplace_n(position, agency::detail::distance(first, last), first);
+      agency::sequenced_execution_policy seq; 
+      return emplace_n(seq, position, agency::detail::distance(first, last), first);
     }
 
     template<class InputIterator,
@@ -639,7 +641,8 @@ class vector
     __AGENCY_ANNOTATION
     iterator emplace(const_iterator pos, Args&&... args)
     {
-      return emplace_n(pos, 1, agency::detail::make_forwarding_iterator<Args&&>(&args)...);
+      agency::sequenced_execution_policy seq;
+      return emplace_n(seq, pos, 1, agency::detail::make_forwarding_iterator<Args&&>(&args)...);
     }
 
     __AGENCY_ANNOTATION
@@ -727,9 +730,9 @@ class vector
     }
 
   private:
-    template<class... InputIterator>
+    template<class ExecutionPolicy, class... InputIterator>
     __AGENCY_ANNOTATION
-    iterator emplace_n(const_iterator position_, size_type count, InputIterator... iters)
+    iterator emplace_n(ExecutionPolicy&& policy, const_iterator position_, size_type count, InputIterator... iters)
     {
       // convert the const_iterator to an iterator
       iterator position = begin() + (position_ - cbegin());
@@ -745,27 +748,27 @@ class vector
         if(num_displaced_elements > count)
         {
           // move n displaced elements to newly constructed elements following the insertion
-          end_ = agency::detail::uninitialized_move_n(storage_.allocator(), end() - count, count, end());
+          end_ = agency::detail::uninitialized_move_n(policy, storage_.allocator(), end() - count, count, end());
 
           // copy construct num_displaced_elements - n elements to existing elements
           // this copy overlaps
           size_type copy_length = (old_end - count) - position;
-          agency::detail::overlapped_uninitialized_copy(storage_.allocator(), position, old_end - count, old_end - copy_length);
+          agency::detail::overlapped_uninitialized_copy(policy, storage_.allocator(), position, old_end - count, old_end - copy_length);
 
           // XXX we should destroy the elements [position, position + num_displaced_elements) before constructing new ones
 
           // construct new elements at insertion point
-          agency::detail::construct_n(storage_.allocator(), position, count, iters...);
+          agency::detail::construct_n(policy, storage_.allocator(), position, count, iters...);
         }
         else
         {
           // move already existing, displaced elements to the end of the emplaced range, which is at position + count
-          end_ = agency::detail::uninitialized_move_n(storage_.allocator(), position, num_displaced_elements, position + count);
+          end_ = agency::detail::uninitialized_move_n(policy, storage_.allocator(), position, num_displaced_elements, position + count);
 
           // XXX we should destroy the elements [position, position + num_displaced_elements) before placement newing new ones
 
           // construct new elements at the emplacement position
-          agency::detail::construct_n(storage_.allocator(), position, count, iters...);
+          agency::detail::construct_n(policy, storage_.allocator(), position, count, iters...);
         }
       }
       else
@@ -796,21 +799,21 @@ class vector
 #endif
         {
           // move elements before the insertion to the beginning of the new storage
-          new_end = agency::detail::uninitialized_move_n(new_storage.allocator(), begin(), position - begin(), new_storage.data());
+          new_end = agency::detail::uninitialized_move_n(policy, new_storage.allocator(), begin(), position - begin(), new_storage.data());
 
           result = new_end;
 
           // copy construct new elements
-          new_end = agency::detail::construct_n(new_storage.allocator(), new_end, count, iters...);
+          new_end = agency::detail::construct_n(policy, new_storage.allocator(), new_end, count, iters...);
 
           // move elements after the insertion to the end of the new storage
-          new_end = agency::detail::uninitialized_move_n(new_storage.allocator(), position, end() - position, new_end);
+          new_end = agency::detail::uninitialized_move_n(policy, new_storage.allocator(), position, end() - position, new_end);
         }
 #ifndef __CUDA_ARCH__
         catch(...)
         {
           // something went wrong, so destroy as many new elements as were constructed
-          agency::detail::destroy(new_storage.allocator(), new_storage.data(), new_end);
+          agency::detail::destroy(policy, new_storage.allocator(), new_storage.data(), new_end);
 
           // rethrow
           throw;
