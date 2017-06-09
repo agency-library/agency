@@ -334,11 +334,17 @@ class vector
       return *this;
     }
 
-    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     void assign(size_type count, const T& value)
     {
-      assign(agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count));
+      assign(agency::sequenced_execution_policy(), count, value);
+    }
+
+    template<class ExecutionPolicy, __AGENCY_REQUIRES(is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value)>
+    __AGENCY_ANNOTATION
+    void assign(ExecutionPolicy&& policy, size_type count, const T& value)
+    {
+      assign(std::forward<ExecutionPolicy>(policy), agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count));
     }
 
   private:
