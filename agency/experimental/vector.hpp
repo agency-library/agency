@@ -222,10 +222,15 @@ class vector
       : vector(std::forward<ExecutionPolicy>(policy), agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count), alloc)
     {}
 
-    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     explicit vector(size_type count, const Allocator& alloc = Allocator())
-      : vector(count, T(), alloc)
+      : vector(agency::sequenced_execution_policy(), count, alloc)
+    {}
+
+    template<class ExecutionPolicy>
+    __AGENCY_ANNOTATION
+    vector(ExecutionPolicy&& policy, size_type count, const Allocator& alloc = Allocator())
+      : vector(std::forward<ExecutionPolicy>(policy), count, T(), alloc)
     {}
 
     template<class InputIterator,
