@@ -634,9 +634,12 @@ class vector
     __AGENCY_ANNOTATION
     void shrink_to_fit(ExecutionPolicy&& policy)
     {
-      // move our elements into a temporary, and then swap this vector with the temporary
-      vector temp(std::forward<ExecutionPolicy>(policy), agency::detail::make_move_iterator(begin()), agency::detail::make_move_iterator(end()), get_allocator());
-      temp.swap(*this);
+      if(size() != capacity())
+      {
+        // move our elements into a temporary, and then swap this vector with the temporary
+        vector temp(std::forward<ExecutionPolicy>(policy), agency::detail::make_move_iterator(begin()), agency::detail::make_move_iterator(end()), get_allocator());
+        temp.swap(*this);
+      }
     }
 
     // modifiers
