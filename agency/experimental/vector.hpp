@@ -216,7 +216,7 @@ class vector
       : vector(agency::sequenced_execution_policy(), count, value, alloc)
     {}
 
-    template<class ExecutionPolicy>
+    template<class ExecutionPolicy, __AGENCY_REQUIRES(is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value)>
     __AGENCY_ANNOTATION
     vector(ExecutionPolicy&& policy, size_type count, const T& value, const Allocator& alloc = Allocator())
       : vector(std::forward<ExecutionPolicy>(policy), agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count), alloc)
@@ -227,7 +227,7 @@ class vector
       : vector(agency::sequenced_execution_policy(), count, alloc)
     {}
 
-    template<class ExecutionPolicy>
+    template<class ExecutionPolicy, __AGENCY_REQUIRES(is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value)>
     __AGENCY_ANNOTATION
     vector(ExecutionPolicy&& policy, size_type count, const Allocator& alloc = Allocator())
       : vector(std::forward<ExecutionPolicy>(policy), count, T(), alloc)
@@ -262,17 +262,28 @@ class vector
       insert(std::forward<ExecutionPolicy>(policy), end(), first, last);
     }
 
-    // XXX this needs an ExecutionPolicy overload
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     vector(const vector& other)
-      : vector(other, other.get_allocator())
+      : vector(agency::sequenced_execution_policy(), other, other.get_allocator())
     {}
 
-    // XXX this needs an ExecutionPolicy overload
+    __agency_exec_check_disable__
+    template<class ExecutionPolicy>
+    __AGENCY_ANNOTATION
+    vector(ExecutionPolicy&& policy, const vector& other)
+      : vector(std::forward<ExecutionPolicy>(policy), other, other.get_allocator())
+    {}
+
     __AGENCY_ANNOTATION
     vector(const vector& other, const Allocator& alloc)
-      : vector(other.begin(), other.end(), alloc)
+      : vector(agency::sequenced_execution_policy(), other.begin(), other.end(), alloc)
+    {}
+
+    template<class ExecutionPolicy>
+    __AGENCY_ANNOTATION
+    vector(ExecutionPolicy&& policy, const vector& other, const Allocator& alloc)
+      : vector(std::forward<ExecutionPolicy>(policy), other.begin(), other.end(), alloc)
     {}
 
     __AGENCY_ANNOTATION
@@ -323,6 +334,7 @@ class vector
       return *this;
     }
 
+    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     void assign(size_type count, const T& value)
     {
