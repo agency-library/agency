@@ -590,9 +590,15 @@ class vector
       return agency::detail::allocator_traits<allocator_type>::max_size(storage_.allocator());
     }
 
-    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     void reserve(size_type new_capacity)
+    {
+      reserve(agency::sequenced_execution_policy(), new_capacity);
+    }
+
+    template<class ExecutionPolicy>
+    __AGENCY_ANNOTATION
+    void reserve(ExecutionPolicy&& policy, size_type new_capacity)
     {
       if(new_capacity > capacity())
       {
@@ -605,7 +611,7 @@ class vector
         storage_type new_storage(new_capacity, storage_.allocator());
 
         // copy our elements into the new storage
-        end_ = agency::detail::uninitialized_copy(new_storage.allocator(), begin(), end(), new_storage.data());
+        end_ = agency::detail::uninitialized_copy(std::forward<ExecutionPolicy>(policy), new_storage.allocator(), begin(), end(), new_storage.data());
 
         // swap out our storage
         storage_.swap(new_storage);
