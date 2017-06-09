@@ -211,17 +211,18 @@ class vector
       : storage_(alloc), end_(begin())
     {}
 
+    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     vector(size_type count, const T& value, const Allocator& alloc = Allocator())
       : vector(agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count), alloc)
     {}
 
+    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     explicit vector(size_type count, const Allocator& alloc = Allocator())
       : vector(count, T(), alloc)
     {}
 
-    // this is the most fundamental constructor
     template<class InputIterator,
              __AGENCY_REQUIRES(
                std::is_convertible<
@@ -231,18 +232,34 @@ class vector
              )>
     __AGENCY_ANNOTATION
     vector(InputIterator first, InputIterator last, const Allocator& alloc = Allocator())
+      : vector(agency::sequenced_execution_policy(), first, last, alloc)
+    {}
+
+    // this is the most fundamental constructor
+    template<class ExecutionPolicy,
+             class InputIterator,
+             __AGENCY_REQUIRES(
+               std::is_convertible<
+                 typename std::iterator_traits<InputIterator>::iterator_category,
+                 std::input_iterator_tag
+               >::value
+             )>
+    __AGENCY_ANNOTATION
+    vector(ExecutionPolicy&& policy, InputIterator first, InputIterator last, const Allocator& alloc = Allocator())
       : storage_(alloc), // initialize the storage to empty
         end_(begin())    // initialize end_ to begin()
     {
-      insert(end(), first, last);
+      insert(std::forward<ExecutionPolicy>(policy), end(), first, last);
     }
 
+    // XXX this needs an ExecutionPolicy overload
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     vector(const vector& other)
       : vector(other, other.get_allocator())
     {}
 
+    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     vector(const vector& other, const Allocator& alloc)
       : vector(other.begin(), other.end(), alloc)
@@ -363,6 +380,7 @@ class vector
     }
 
   public:
+    // XXX this needs an ExecutionPolicy overload
     template<class InputIterator>
     __AGENCY_ANNOTATION
     void assign(InputIterator first, InputIterator last)
@@ -537,6 +555,7 @@ class vector
       return agency::detail::allocator_traits<allocator_type>::max_size(storage_.allocator());
     }
 
+    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     void reserve(size_type new_capacity)
     {
@@ -564,6 +583,7 @@ class vector
       return storage_.size();
     }
 
+    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     void shrink_to_fit()
     {
@@ -572,6 +592,7 @@ class vector
 
     // modifiers
     
+    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     void clear()
     {
@@ -680,6 +701,7 @@ class vector
       return erase(pos, pos + 1);
     }
 
+    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     iterator erase(const_iterator first_, const_iterator last_)
     {
@@ -723,6 +745,7 @@ class vector
       erase(end()-1, end());
     }
 
+    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     void resize(size_type new_size)
     {
@@ -737,6 +760,7 @@ class vector
       }
     }
 
+    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     void resize(size_type new_size, const value_type& value)
     {
