@@ -342,42 +342,42 @@ class vector
     }
 
   private:
-    template<class ForwardIterator>
+    template<class ExecutionPolicy, class ForwardIterator>
     __AGENCY_ANNOTATION
-    void assign(std::forward_iterator_tag, ForwardIterator first, ForwardIterator last)
+    void assign(std::forward_iterator_tag, ExecutionPolicy&& policy, ForwardIterator first, ForwardIterator last)
     {
       size_type n = agency::detail::distance(first, last);
 
       if(n > capacity())
       {
         // n is too large for capacity, swap with a new vector
-        vector new_vector(first, last);
+        vector new_vector(policy, first, last);
         swap(new_vector);
       }
       else if(size() >= n)
       {
         // we can already accomodate the new range
         iterator old_end = end();
-        end_ = agency::detail::copy(first, last, begin());
+        end_ = agency::detail::copy(policy, first, last, begin());
 
         // destroy the old elements
-        agency::detail::destroy(storage_.allocator(), end(), old_end);
+        agency::detail::destroy(policy, storage_.allocator(), end(), old_end);
       }
       else
       {
         // range fits inside allocated storage
 
         // copy to already existing elements
-        auto mid_and_end = agency::detail::copy_n(first, size(), begin());
+        auto mid_and_end = agency::detail::copy_n(policy, first, size(), begin());
 
         // construct new elements at the end
-        end_ = agency::detail::uninitialized_copy_n(storage_.allocator(), agency::detail::get<0>(mid_and_end), n - size(), end());
+        end_ = agency::detail::uninitialized_copy_n(policy, storage_.allocator(), agency::detail::get<0>(mid_and_end), n - size(), end());
       }
     }
 
-    template<class InputIterator>
+    template<class ExecutionPolicy, class InputIterator>
     __AGENCY_ANNOTATION
-    void assign(std::input_iterator_tag, InputIterator first, InputIterator last)
+    void assign(std::input_iterator_tag, ExecutionPolicy&& policy, InputIterator first, InputIterator last)
     {
       iterator current = begin();
 
@@ -392,22 +392,29 @@ class vector
       if(first == last)
       {
         // if we exhausted the input, erase leftover elements
-        erase(current, end());
+        erase(policy, current, end());
       }
       else
       {
         // insert the rest of the input at the end of the vector
-        insert(end(), first, last);
+        insert(policy, end(), first, last);
       }
     }
 
   public:
-    // XXX this needs an ExecutionPolicy overload
     template<class InputIterator>
     __AGENCY_ANNOTATION
     void assign(InputIterator first, InputIterator last)
     {
-      assign(typename std::iterator_traits<InputIterator>::iterator_category(), first, last);
+      assign(agency::sequenced_execution_policy(), first, last);
+    }
+
+    template<class ExecutionPolicy, class InputIterator,
+             __AGENCY_REQUIRES(is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value)>
+    __AGENCY_ANNOTATION
+    void assign(ExecutionPolicy&& policy, InputIterator first, InputIterator last)
+    {
+      assign(typename std::iterator_traits<InputIterator>::iterator_category(), std::forward<ExecutionPolicy>(policy), first, last);
     }
 
     __AGENCY_ANNOTATION
