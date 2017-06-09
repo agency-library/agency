@@ -633,11 +633,18 @@ class vector
 
     // modifiers
     
-    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     void clear()
     {
       agency::detail::destroy(storage_.allocator(), begin(), end());
+      end_ = begin();
+    }
+
+    template<class ExecutionPolicy>
+    __AGENCY_ANNOTATION
+    void clear(ExecutionPolicy&& policy)
+    {
+      agency::detail::destroy(std::forward<ExecutionPolicy>(policy), storage_.allocator(), begin(), end());
       end_ = begin();
     }
 
