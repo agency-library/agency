@@ -628,7 +628,8 @@ class vector
     __AGENCY_ANNOTATION
     void shrink_to_fit()
     {
-      vector(*this).swap(*this);
+      clear();
+      storage_type().swap(storage_);
     }
 
     // modifiers
