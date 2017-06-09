@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/bulk_invoke.hpp>
+#include <agency/detail/algorithm/copy_n.hpp>
 #include <agency/execution/execution_policy.hpp>
 #include <agency/detail/type_traits.hpp>
 
@@ -10,20 +10,6 @@ namespace agency
 {
 namespace detail
 {
-
-
-struct copy_functor
-{
-  __agency_exec_check_disable__
-  template<class Agent, class RandomAccessIterator1, class RandomAccessIterator2>
-  __AGENCY_ANNOTATION
-  void operator()(Agent& self, RandomAccessIterator1 first, RandomAccessIterator2 result)
-  {
-    auto i = self.rank();
-
-    result[i] = first[i];
-  }
-};
 
 
 template<class ExecutionPolicy, class RandomAccessIterator1, class RandomAccessIterator2,
@@ -41,11 +27,8 @@ template<class ExecutionPolicy, class RandomAccessIterator1, class RandomAccessI
 __AGENCY_ANNOTATION
 RandomAccessIterator2 copy(ExecutionPolicy&& policy, RandomAccessIterator1 first, RandomAccessIterator1 last, RandomAccessIterator2 result)
 {
-  auto n = last - first;
-
-  agency::bulk_invoke(policy(n), copy_functor(), first, result);
-  
-  return last + n;
+  auto iter_pair = detail::copy_n(std::forward<ExecutionPolicy>(policy), first, last - first, result);
+  return detail::get<1>(iter_pair);
 }
 
 
