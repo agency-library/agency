@@ -211,10 +211,15 @@ class vector
       : storage_(alloc), end_(begin())
     {}
 
-    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     vector(size_type count, const T& value, const Allocator& alloc = Allocator())
-      : vector(agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count), alloc)
+      : vector(agency::sequenced_execution_policy(), count, value, alloc)
+    {}
+
+    template<class ExecutionPolicy>
+    __AGENCY_ANNOTATION
+    vector(ExecutionPolicy&& policy, size_type count, const T& value, const Allocator& alloc = Allocator())
+      : vector(std::forward<ExecutionPolicy>(policy), agency::detail::constant_iterator<T>(value,0), agency::detail::constant_iterator<T>(value,count), alloc)
     {}
 
     // XXX this needs an ExecutionPolicy overload
