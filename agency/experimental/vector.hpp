@@ -624,12 +624,19 @@ class vector
       return storage_.size();
     }
 
-    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     void shrink_to_fit()
     {
-      clear();
-      storage_type().swap(storage_);
+      shrink_to_fit(agency::sequenced_execution_policy());
+    }
+
+    template<class ExecutionPolicy>
+    __AGENCY_ANNOTATION
+    void shrink_to_fit(ExecutionPolicy&& policy)
+    {
+      // move our elements into a temporary, and then swap this vector with the temporary
+      vector temp(std::forward<ExecutionPolicy>(policy), agency::detail::make_move_iterator(begin()), agency::detail::make_move_iterator(end()), get_allocator());
+      temp.swap(*this);
     }
 
     // modifiers
