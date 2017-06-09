@@ -757,9 +757,15 @@ class vector
       return erase(pos, pos + 1);
     }
 
-    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
-    iterator erase(const_iterator first_, const_iterator last_)
+    iterator erase(const_iterator first, const_iterator last)
+    {
+      return erase(agency::sequenced_execution_policy(), first, last);
+    }
+
+    template<class ExecutionPolicy>
+    __AGENCY_ANNOTATION
+    iterator erase(ExecutionPolicy&& policy, const_iterator first_, const_iterator last_)
     {
       // get mutable iterators
       iterator first = begin() + (first_ - begin());
@@ -767,10 +773,10 @@ class vector
 
       // overlap copy the range [last,end()) to first
       iterator old_end = end();
-      end_ = agency::detail::overlapped_copy(last, end(), first);
+      end_ = agency::detail::overlapped_copy(policy, last, end(), first);
 
       // destroy everything after end()
-      agency::detail::destroy(storage_.allocator(), end(), old_end);
+      agency::detail::destroy(policy, storage_.allocator(), end(), old_end);
 
       // return an iterator referring to one past the last erased element
       return first;
