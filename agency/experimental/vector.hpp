@@ -810,7 +810,6 @@ class vector
       erase(end()-1, end());
     }
 
-    // XXX this needs an ExecutionPolicy overload
     __AGENCY_ANNOTATION
     void resize(size_type new_size)
     {
@@ -823,6 +822,22 @@ class vector
       {
         // XXX this should probably call emplace_n(end(), new_size - size()) rather than call T() here
         insert(end(), new_size - size(), T());
+      }
+    }
+
+    template<class ExecutionPolicy, __AGENCY_REQUIRES(is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value)>
+    __AGENCY_ANNOTATION
+    void resize(ExecutionPolicy&& policy, size_type new_size)
+    {
+      if(new_size < size())
+      {
+        agency::detail::destroy(std::forward<ExecutionPolicy>(policy), storage_.allocator(), begin() + new_size, end());
+        end_ = begin() + new_size;
+      }
+      else
+      {
+        // XXX this should probably call emplace_n(end(), new_size - size()) rather than call T() here
+        insert(std::forward<ExecutionPolicy>(policy), storage_.allocator(), end(), new_size - size(), T());
       }
     }
 
