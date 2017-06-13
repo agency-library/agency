@@ -98,6 +98,7 @@ class storage
       detail::adl_swap(size_, other.size_);
 
       move_assign_allocator(typename std::allocator_traits<Allocator>::propagate_on_container_move_assignment(), other.allocator());
+      return *this;
     }
 
     __AGENCY_ANNOTATION
