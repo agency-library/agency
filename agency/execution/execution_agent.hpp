@@ -14,7 +14,7 @@
 #include <agency/memory/detail/resource/malloc_resource.hpp>
 #include <agency/memory/detail/resource/tiered_resource.hpp>
 #include <agency/coordinate.hpp>
-#include <agency/experimental/array.hpp>
+#include <agency/container/array.hpp>
 #include <agency/experimental/optional.hpp>
 #include <type_traits>
 
@@ -361,7 +361,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     using super_t = detail::basic_execution_agent<concurrent_execution_tag, Index>;
 
     static constexpr size_t broadcast_channel_size = sizeof(void*);
-    using broadcast_channel_type = agency::experimental::array<char, broadcast_channel_size>;
+    using broadcast_channel_type = agency::array<char, broadcast_channel_size>;
 
     // this class hides agency::detail::barrier & __syncthreads()
     // behind a uniform interface so that we can use basic_concurrent_agent

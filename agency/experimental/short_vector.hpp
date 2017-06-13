@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/utility.hpp>
-#include <agency/experimental/array.hpp>
+#include <agency/container/array.hpp>
 #include <agency/experimental/optional.hpp>
 #include <agency/experimental/bounded_integer.hpp>
 #include <cstddef>

@@ -40,6 +40,7 @@ TODO
 
 ### New Utilities
   
+  * `array`
   * `vector`
 
 ### New Experimental Execution Policies

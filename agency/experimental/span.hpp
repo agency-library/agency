@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/experimental/array.hpp>
+#include <agency/container/array.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
 #include <cstddef>
 
