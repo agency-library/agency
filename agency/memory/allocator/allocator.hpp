@@ -6,8 +6,6 @@
 
 namespace agency
 {
-namespace experimental
-{
 namespace detail
 {
 
@@ -83,6 +81,5 @@ bool operator!=(const allocator<T1>&, const allocator<T2>&)
 }
 
 
-} // end experimental
 } // end agency
 

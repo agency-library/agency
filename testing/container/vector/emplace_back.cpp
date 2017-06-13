@@ -2,11 +2,11 @@
 #include <cassert>
 #include <algorithm>
 #include <vector>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 
 void test_emplace_back()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test no arg emplace_back into empty vector

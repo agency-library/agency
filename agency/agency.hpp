@@ -18,6 +18,7 @@
 #include <agency/bulk_async.hpp>
 #include <agency/bulk_invoke.hpp>
 #include <agency/bulk_then.hpp>
+#include <agency/container.hpp>
 #include <agency/coordinate.hpp>
 #include <agency/exception_list.hpp>
 #include <agency/execution.hpp>

@@ -7,7 +7,7 @@
 #include <agency/detail/operator_traits.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/shape.hpp>
-#include <agency/experimental/array.hpp>
+#include <agency/container/array.hpp>
 
 #include <initializer_list>
 #include <type_traits>
@@ -20,13 +20,13 @@ namespace agency
 
 // T is any type with operators +, +=, -, -=, *, *=,  /, /=, <
 template<class T, size_t Rank>
-class point : public experimental::array<T,Rank>,
+class point : public array<T,Rank>,
               public agency::detail::arithmetic_tuple_facade<point<T,Rank>>
 {
   static_assert(agency::detail::has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
   static_assert(Rank > 0, "Rank must be greater than 0.");
 
-  using super_t = experimental::array<T,Rank>;
+  using super_t = array<T,Rank>;
 
   public:
     using typename super_t::value_type;

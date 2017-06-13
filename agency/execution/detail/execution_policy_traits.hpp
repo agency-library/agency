@@ -190,6 +190,10 @@ template<class ExecutionPolicy>
 using execution_policy_execution_category_t = typename execution_policy_execution_category<ExecutionPolicy>::type;
 
 
+template<class ExecutionPolicy>
+using policy_is_sequenced = std::is_same<sequenced_execution_tag, execution_policy_execution_category_t<ExecutionPolicy>>;
+
+
 } // end detail
 } // end agency
 

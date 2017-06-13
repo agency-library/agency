@@ -7,6 +7,7 @@
 
 void test()
 {
+  using namespace agency;
   using namespace agency::experimental;
 
   {

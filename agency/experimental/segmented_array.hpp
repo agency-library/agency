@@ -5,8 +5,8 @@
 #include <agency/experimental/ranges/range_traits.hpp>
 #include <agency/experimental/ranges/flatten.hpp>
 #include <agency/experimental/ranges/all.hpp>
-#include <agency/experimental/array.hpp>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/array.hpp>
+#include <agency/container/vector.hpp>
 #include <memory>
 
 namespace agency

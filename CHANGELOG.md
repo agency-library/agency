@@ -38,6 +38,11 @@ TODO
   * `experimental::unrolling_executor`
   * `variant_executor`
 
+### New Utilities
+  
+  * `array`
+  * `vector`
+
 ### New Experimental Execution Policies
   
   * `cuda::experimental::static_grid`

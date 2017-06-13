@@ -1,17 +1,18 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <agency/experimental/vector.hpp>
+#include <utility>
+#include <agency/container/vector.hpp>
 
-void test_copy_constructor()
+void test_move_constructor()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
-    // test copy construct empty vector
+    // test move construct empty vector
     vector<int> other;
 
-    vector<int> v = other;
+    vector<int> v = std::move(other);
 
     assert(other.begin() == other.end());
     assert(other.cbegin() == other.cend());
@@ -25,21 +26,20 @@ void test_copy_constructor()
   }
 
   {
-    // test copy construct non-empty vector
+    // test move construct non-empty vector
     
     size_t num_elements = 10;
 
     vector<int> other(num_elements, 13);
 
-    vector<int> v = other;
+    vector<int> v = std::move(other);
+
+    assert(other.begin() == other.end());
+    assert(other.cbegin() == other.cend());
+    assert(other.size() == 0);
+    assert(other.empty());
 
     ptrdiff_t expected_difference = num_elements;
-
-    assert(other.end() - other.begin() == expected_difference);
-    assert(other.cend() - other.cbegin() == expected_difference);
-    assert(other.size() == num_elements);
-    assert(!other.empty());
-    assert(std::count(other.begin(), other.end(), 13) == 10);
 
     assert(v.end() - v.begin() == expected_difference);
     assert(v.cend() - v.cbegin() == expected_difference);
@@ -51,7 +51,7 @@ void test_copy_constructor()
 
 int main()
 {
-  test_copy_constructor();
+  test_move_constructor();
 
   std::cout << "OK" << std::endl;
 

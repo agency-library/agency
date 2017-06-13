@@ -1,11 +1,11 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 
 void test_pop_back()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test pop_back on single-element vector

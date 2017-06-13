@@ -2,11 +2,11 @@
 #include <cassert>
 #include <algorithm>
 #include <vector>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 
 void test_single_emplace_copy()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test single emplace copy into empty vector
@@ -93,7 +93,7 @@ void test_single_emplace_copy()
 
 void test_single_emplace_move()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test single emplace move into empty vector
@@ -181,7 +181,7 @@ void test_single_emplace_move()
 
 void test_single_emplace_args()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test single emplace move into empty vector

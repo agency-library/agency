@@ -6,7 +6,7 @@
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/shape_tuple.hpp>
 #include <agency/detail/utility.hpp>
-#include <agency/experimental/array.hpp>
+#include <agency/container/array.hpp>
 
 // we can't use std::numeric_limits<T>::max() in a __device__
 // function, so we need to use an alternative in Thrust
@@ -115,7 +115,7 @@ struct max_sizes_functor
   >::type
     operator()(const Tuple& max_shape_dimensions)
   {
-    auto make = maker<experimental::array<size_t, std::tuple_size<Tuple>::value>>();
+    auto make = maker<array<size_t, std::tuple_size<Tuple>::value>>();
 
     // recursively turn max_shape_dimensions into a tuple of sizes using this functor
     auto tuple_of_sizes = __tu::tuple_map_with_make(*this, make, max_shape_dimensions);

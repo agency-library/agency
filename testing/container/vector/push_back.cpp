@@ -2,11 +2,11 @@
 #include <cassert>
 #include <algorithm>
 #include <vector>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 
 void test_push_back()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test copying push_back into empty vector

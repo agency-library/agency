@@ -7,8 +7,6 @@
 
 namespace agency
 {
-namespace experimental
-{
 
 
 template<class T, std::size_t N>
@@ -196,6 +194,5 @@ template<class T, std::size_t N>
 struct range_cardinality<array<T,N>> : std::integral_constant<size_t, N> {};
 
 
-} // end experimental
 } // end agency
 

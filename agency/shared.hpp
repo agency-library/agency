@@ -5,7 +5,7 @@
 #pragma once
 
 #include <agency/agency.hpp>
-#include <agency/experimental/array.hpp>
+#include <agency/container/array.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
 #include <utility>
 #include <initializer_list>
@@ -410,10 +410,10 @@ class shared
 
 
 template<class T, std::size_t N, class ConcurrentAgent = void>
-class shared_array : private shared<agency::experimental::array<T,N>,ConcurrentAgent>
+class shared_array : private shared<agency::array<T,N>,ConcurrentAgent>
 {
   private:
-    using super_t = shared<agency::experimental::array<T,N>,ConcurrentAgent>;
+    using super_t = shared<agency::array<T,N>,ConcurrentAgent>;
 
   public:
     using value_type = T;
@@ -434,13 +434,13 @@ class shared_array : private shared<agency::experimental::array<T,N>,ConcurrentA
 
     template<class ConcurrentAgent1>
     __AGENCY_ANNOTATION
-    shared_array(ConcurrentAgent1& self, const agency::experimental::array<T,N>& other)
+    shared_array(ConcurrentAgent1& self, const agency::array<T,N>& other)
       : super_t(self, other)
     {}
 
     template<class ConcurrentAgent1>
     __AGENCY_ANNOTATION
-    shared_array(ConcurrentAgent1& self, agency::experimental::array<T,N>&& other)
+    shared_array(ConcurrentAgent1& self, agency::array<T,N>&& other)
       : super_t(self, std::move(other))
     {}
 
