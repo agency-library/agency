@@ -199,8 +199,8 @@ class vector
     using iterator = pointer;
     using const_iterator = const_pointer;
 
-    using reverse_iterator = void;
-    using const_reverse_iterator = void;
+    using reverse_iterator = agency::detail::reverse_iterator<iterator>;
+    using const_reverse_iterator = agency::detail::reverse_iterator<const_iterator>;
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
@@ -546,29 +546,41 @@ class vector
       return end_;
     }
 
-    // TODO
     __AGENCY_ANNOTATION
-    reverse_iterator rbegin();
+    reverse_iterator rbegin()
+    {
+      return reverse_iterator(end());
+    }
 
-    // TODO
     __AGENCY_ANNOTATION
-    const_reverse_iterator rbegin() const;
+    const_reverse_iterator rbegin() const
+    {
+      return reverse_iterator(cend());
+    }
 
-    // TODO
     __AGENCY_ANNOTATION
-    const_reverse_iterator crbegin() const;
+    const_reverse_iterator crbegin() const
+    {
+      return rbegin();
+    }
 
-    // TODO
     __AGENCY_ANNOTATION
-    reverse_iterator rend();
+    reverse_iterator rend()
+    {
+      return reverse_iterator(begin());
+    }
 
-    // TODO
     __AGENCY_ANNOTATION
-    const_reverse_iterator rend() const;
+    const_reverse_iterator rend() const
+    {
+      return reverse_iterator(cbegin());
+    }
 
-    // TODO
     __AGENCY_ANNOTATION
-    const_reverse_iterator crend() const;
+    const_reverse_iterator crend() const
+    {
+      return rend();
+    }
 
     // capacity
 
