@@ -6,4 +6,5 @@
 #include <agency/detail/iterator/distance.hpp>
 #include <agency/detail/iterator/forwarding_iterator.hpp>
 #include <agency/detail/iterator/move_iterator.hpp>
+#include <agency/detail/iterator/reverse_iterator.hpp>
 
