@@ -2,11 +2,11 @@
 #include <cassert>
 #include <algorithm>
 #include <utility>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 
 void test_move_constructor()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test move construct empty vector

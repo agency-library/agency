@@ -1,12 +1,12 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 #include <agency/execution/execution_policy.hpp>
 
 void test_fill_constructor()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test fill construct empty vector
@@ -38,7 +38,7 @@ void test_fill_constructor()
 template<class ExecutionPolicy>
 void test_fill_constructor(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test fill construct empty vector

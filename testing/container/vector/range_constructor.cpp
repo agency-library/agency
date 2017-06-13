@@ -3,14 +3,14 @@
 #include <algorithm>
 #include <vector>
 #include <list>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 #include <agency/execution/execution_policy.hpp>
 
 
 template<class Container>
 void test_range_constructor()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   using value_type = typename Container::value_type;
 
@@ -28,7 +28,7 @@ void test_range_constructor()
 template<class Container, class ExecutionPolicy>
 void test_range_constructor(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   using value_type = typename Container::value_type;
 

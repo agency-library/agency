@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <numeric>
 #include <vector>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 #include <agency/execution/execution_policy.hpp>
 
 void test_reserve()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test reserve on initially empty vector
@@ -46,7 +46,7 @@ void test_reserve()
 template<class ExecutionPolicy>
 void test_reserve(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test reserve on initially empty vector

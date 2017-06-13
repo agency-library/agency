@@ -1,12 +1,12 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 #include <agency/execution/execution_policy.hpp>
 
 void test_enlarging_fill_resize()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   size_t old_size = 10;
 
@@ -23,7 +23,7 @@ void test_enlarging_fill_resize()
 template<class ExecutionPolicy>
 void test_enlarging_fill_resize(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   size_t old_size = 10;
 
@@ -39,7 +39,7 @@ void test_enlarging_fill_resize(ExecutionPolicy policy)
 
 void test_shrinking_fill_resize()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   size_t old_size = 10;
 
@@ -56,7 +56,7 @@ void test_shrinking_fill_resize()
 template<class ExecutionPolicy>
 void test_shrinking_fill_resize(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   size_t old_size = 10;
 

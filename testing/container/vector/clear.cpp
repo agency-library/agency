@@ -1,12 +1,12 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 #include <agency/execution/execution_policy.hpp>
 
 void test_clear()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test clear empty vector
@@ -34,7 +34,7 @@ void test_clear()
 template<class ExecutionPolicy>
 void test_clear(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test clear empty vector

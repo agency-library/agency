@@ -4,11 +4,11 @@
 #include <numeric>
 #include <vector>
 #include <list>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 
 void test_assign_operator()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test assign empty to empty

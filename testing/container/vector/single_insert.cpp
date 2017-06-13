@@ -2,11 +2,11 @@
 #include <cassert>
 #include <algorithm>
 #include <vector>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 
 void test_single_insert_copy()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test single insert copy into empty vector
@@ -82,7 +82,7 @@ void test_single_insert_copy()
 
 void test_single_insert_move()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test single insert move into empty vector

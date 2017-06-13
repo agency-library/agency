@@ -1,11 +1,11 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 
 void test_range_erase()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test erase empty vector
@@ -63,7 +63,7 @@ void test_range_erase()
 template<class ExecutionPolicy>
 void test_range_erase(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test erase empty vector

@@ -4,13 +4,13 @@
 #include <numeric>
 #include <vector>
 #include <list>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 #include <agency/execution/execution_policy.hpp>
 
 template<class Container>
 void test_reallocating_range_insert()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   using value_type = typename Container::value_type;
 
@@ -98,7 +98,7 @@ void test_reallocating_range_insert()
 template<class Container, class ExecutionPolicy>
 void test_reallocating_range_insert(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   using value_type = typename Container::value_type;
 
@@ -186,7 +186,7 @@ void test_reallocating_range_insert(ExecutionPolicy policy)
 template<class Container>
 void test_nonreallocating_range_insert()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   using value_type = typename Container::value_type;
 
@@ -264,7 +264,7 @@ void test_nonreallocating_range_insert()
 template<class Container, class ExecutionPolicy>
 void test_nonreallocating_range_insert(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   using value_type = typename Container::value_type;
 

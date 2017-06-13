@@ -1,12 +1,12 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 #include <agency/execution/execution_policy.hpp>
 
 void test_reallocating_fill_assign()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test fill assign into empty vector
@@ -40,7 +40,7 @@ void test_reallocating_fill_assign()
 template<class ExecutionPolicy>
 void test_reallocating_fill_assign(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test fill assign into empty vector
@@ -73,7 +73,7 @@ void test_reallocating_fill_assign(ExecutionPolicy policy)
 
 void test_nonreallocating_fill_assign()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test range assign into empty vector with capacity
@@ -125,7 +125,7 @@ void test_nonreallocating_fill_assign()
 template<class ExecutionPolicy>
 void test_nonreallocating_fill_assign(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test range assign into empty vector with capacity

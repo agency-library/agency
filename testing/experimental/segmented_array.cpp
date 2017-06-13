@@ -8,6 +8,7 @@
 void test()
 {
   using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test default constructor

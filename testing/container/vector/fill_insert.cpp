@@ -1,12 +1,12 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 #include <agency/execution/execution_policy.hpp>
 
 void test_reallocating_fill_insert()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test fill insert into empty vector
@@ -81,7 +81,7 @@ void test_reallocating_fill_insert()
 template<class ExecutionPolicy>
 void test_reallocating_fill_insert(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test fill insert into empty vector
@@ -155,7 +155,7 @@ void test_reallocating_fill_insert(ExecutionPolicy policy)
 
 void test_nonreallocating_fill_insert()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test fill insert into beginning of vector
@@ -222,7 +222,7 @@ void test_nonreallocating_fill_insert()
 template<class ExecutionPolicy>
 void test_nonreallocating_fill_insert(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test fill insert into beginning of vector

@@ -4,12 +4,12 @@
 #include <numeric>
 #include <vector>
 #include <list>
-#include <agency/experimental/vector.hpp>
+#include <agency/container/vector.hpp>
 
 template<class Container>
 void test_reallocating_range_assign()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test range assign into empty vector
@@ -45,7 +45,7 @@ void test_reallocating_range_assign()
 template<class Container, class ExecutionPolicy>
 void test_reallocating_range_assign(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   {
     // test range assign into empty vector
@@ -81,7 +81,7 @@ void test_reallocating_range_assign(ExecutionPolicy policy)
 template<class Container>
 void test_nonreallocating_range_assign()
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   using value_type = typename Container::value_type;
 
@@ -138,7 +138,7 @@ void test_nonreallocating_range_assign()
 template<class Container, class ExecutionPolicy>
 void test_nonreallocating_range_assign(ExecutionPolicy policy)
 {
-  using namespace agency::experimental;
+  using namespace agency;
 
   using value_type = typename Container::value_type;
 
