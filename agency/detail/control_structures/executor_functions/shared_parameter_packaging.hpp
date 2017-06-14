@@ -279,6 +279,7 @@ unpack_shared_parameters_from_executor_t<tuple<Types&...>>
 
 
 template<class... Args>
+__AGENCY_ANNOTATION
 auto forward_shared_parameters_as_tuple(Args&&... args)
   -> decltype(
        __tu::tuple_filter_invoke<is_shared_parameter_ref>(
