@@ -23,6 +23,7 @@ namespace detail
 
 // this overload handles the general case where the user function returns a normal result
 template<class E, class Function, class ResultFactory, class Future, class Tuple, size_t... TupleIndices>
+__AGENCY_ANNOTATION
 executor_future_t<E, result_of_t<ResultFactory()>>
   bulk_then_executor_impl(E& exec,
                           Function f,
@@ -39,6 +40,7 @@ executor_future_t<E, result_of_t<ResultFactory()>>
 // the reason we need this case cannot be handled by the overload above is because, unlike the above case,
 // there is an intermediate future which must be converted to the right type of result fututre 
 template<class E, class Function, size_t scope, class T, class Future, class Tuple, size_t... TupleIndices>
+__AGENCY_ANNOTATION
 executor_future_t<E, typename detail::scope_result_container<scope,T,E>::result_type>
   bulk_then_executor_impl(E& exec,
                           Function f,
@@ -58,6 +60,7 @@ executor_future_t<E, typename detail::scope_result_container<scope,T,E>::result_
 
 // this overload handles the special case where the user function returns void
 template<class E, class Function, class Future, class Tuple, size_t... TupleIndices>
+__AGENCY_ANNOTATION
 executor_future_t<E, void>
   bulk_then_executor_impl(E& exec,
                           Function f,
@@ -191,6 +194,7 @@ auto bind_agent_local_parameters_for_bulk_then(Function f, Args&&... args) ->
 
 
 template<class Executor, class Function, class Future, class... Args>
+__AGENCY_ANNOTATION
 bulk_then_executor_result_t<Executor,Function,Future,Args...>
   bulk_then_executor(Executor& exec, executor_shape_t<Executor> shape, Function f, Future& fut, Args&&... args)
 {
