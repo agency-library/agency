@@ -10,14 +10,15 @@ namespace detail
 {
 
 
-// XXX for the moment, only consider pointers to be contiguous iterators
 template<class Iterator>
-using iterator_is_contiguous = std::is_pointer<Iterator>;
+using iterator_value_is_trivially_copyable = std::is_trivially_copyable<
+  typename std::iterator_traits<Iterator>::value_type
+>;
 
 
 template<class... Iterators>
-using iterators_are_contiguous = conjunction<
-  iterator_is_contiguous<Iterators>...
+using iterator_values_are_trivially_copyable = conjunction<
+  iterator_value_is_trivially_copyable<Iterators>...
 >;
 
 

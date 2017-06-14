@@ -33,8 +33,7 @@ struct copy_n_functor
 template<class ExecutionPolicy, class RandomAccessIterator1, class Size, class RandomAccessIterator2,
          __AGENCY_REQUIRES(
            !policy_is_sequenced<decay_t<ExecutionPolicy>>::value and
-           iterator_is_random_access<RandomAccessIterator1>::value and
-           iterator_is_random_access<RandomAccessIterator2>::value
+           iterators_are_random_access<RandomAccessIterator1,RandomAccessIterator2>::value
          )>
 __AGENCY_ANNOTATION
 tuple<RandomAccessIterator1,RandomAccessIterator2> default_copy_n(ExecutionPolicy&& policy, RandomAccessIterator1 first, Size n, RandomAccessIterator2 result)
@@ -48,8 +47,7 @@ tuple<RandomAccessIterator1,RandomAccessIterator2> default_copy_n(ExecutionPolic
 template<class ExecutionPolicy, class InputIterator, class Size, class OutputIterator,
          __AGENCY_REQUIRES(
            policy_is_sequenced<decay_t<ExecutionPolicy>>::value or
-           !iterator_is_random_access<InputIterator>::value or
-           !iterator_is_random_access<OutputIterator>::value
+           !iterators_are_random_access<InputIterator,OutputIterator>::value
          )>
 __AGENCY_ANNOTATION
 tuple<InputIterator,OutputIterator> default_copy_n(ExecutionPolicy&&, InputIterator first, Size n, OutputIterator result)

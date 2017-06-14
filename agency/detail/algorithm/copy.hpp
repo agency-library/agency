@@ -15,8 +15,7 @@ namespace detail
 template<class ExecutionPolicy, class RandomAccessIterator1, class RandomAccessIterator2,
          __AGENCY_REQUIRES(
            !policy_is_sequenced<decay_t<ExecutionPolicy>>::value and
-           iterator_is_random_access<RandomAccessIterator1>::value and
-           iterator_is_random_access<RandomAccessIterator2>::value
+           iterators_are_random_access<RandomAccessIterator1,RandomAccessIterator2>::value
          )>
 __AGENCY_ANNOTATION
 RandomAccessIterator2 copy(ExecutionPolicy&& policy, RandomAccessIterator1 first, RandomAccessIterator1 last, RandomAccessIterator2 result)
@@ -29,8 +28,7 @@ RandomAccessIterator2 copy(ExecutionPolicy&& policy, RandomAccessIterator1 first
 template<class ExecutionPolicy, class InputIterator, class OutputIterator,
          __AGENCY_REQUIRES(
            policy_is_sequenced<decay_t<ExecutionPolicy>>::value or
-           !iterator_is_random_access<InputIterator>::value or
-           !iterator_is_random_access<OutputIterator>::value
+           !iterators_are_random_access<InputIterator,OutputIterator>::value
          )>
 __AGENCY_ANNOTATION
 OutputIterator copy(ExecutionPolicy&&, InputIterator first, InputIterator last, OutputIterator result)

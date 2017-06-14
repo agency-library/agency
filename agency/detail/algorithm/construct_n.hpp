@@ -38,10 +38,7 @@ template<class ExecutionPolicy, class Allocator, class RandomAccessIterator, cla
          ),
          __AGENCY_REQUIRES(
             !policy_is_sequenced<decay_t<ExecutionPolicy>>::value and
-            conjunction<
-              iterator_is_random_access<RandomAccessIterator>,
-              iterator_is_random_access<RandomAccessIterators>...
-            >::value
+            iterators_are_random_access<RandomAccessIterator,RandomAccessIterators...>::value
          )>
 __AGENCY_ANNOTATION
 RandomAccessIterator construct_n(ExecutionPolicy&& policy, const Allocator& alloc, RandomAccessIterator first, Size n, RandomAccessIterators... iters)
@@ -61,10 +58,7 @@ template<class ExecutionPolicy, class Allocator, class Iterator, class Size, cla
          ),
          __AGENCY_REQUIRES(
            policy_is_sequenced<decay_t<ExecutionPolicy>>::value or
-           !conjunction<
-             iterator_is_random_access<Iterator>,
-             iterator_is_random_access<Iterators>...
-           >::value
+           !iterators_are_random_access<Iterator,Iterators...>::value
          )>
 __AGENCY_ANNOTATION
 Iterator construct_n(ExecutionPolicy&&, Allocator& alloc, Iterator first, Size n, Iterators... iters)
