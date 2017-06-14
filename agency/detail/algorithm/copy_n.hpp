@@ -11,6 +11,8 @@ namespace agency
 {
 namespace detail
 {
+namespace copy_n_detail
+{
 
 
 struct copy_n_functor
@@ -40,7 +42,7 @@ template<class ExecutionPolicy, class RandomAccessIterator1, class Size, class R
            >::value
          )>
 __AGENCY_ANNOTATION
-tuple<RandomAccessIterator1,RandomAccessIterator2> copy_n(ExecutionPolicy&& policy, RandomAccessIterator1 first, Size n, RandomAccessIterator2 result)
+tuple<RandomAccessIterator1,RandomAccessIterator2> default_copy_n(ExecutionPolicy&& policy, RandomAccessIterator1 first, Size n, RandomAccessIterator2 result)
 {
   agency::bulk_invoke(policy(n), copy_n_functor(), first, result);
   
@@ -61,7 +63,7 @@ template<class ExecutionPolicy, class InputIterator, class Size, class OutputIte
            >::value
          )>
 __AGENCY_ANNOTATION
-tuple<InputIterator,OutputIterator> copy_n(ExecutionPolicy&&, InputIterator first, Size n, OutputIterator result)
+tuple<InputIterator,OutputIterator> default_copy_n(ExecutionPolicy&&, InputIterator first, Size n, OutputIterator result)
 {
   // XXX we might wish to bulk_invoke a single agent and execute this loop inside
 
@@ -74,12 +76,74 @@ tuple<InputIterator,OutputIterator> copy_n(ExecutionPolicy&&, InputIterator firs
 }
 
 
-template<class InputIterator, class Size, class OutputIterator>
-__AGENCY_ANNOTATION
-tuple<InputIterator,OutputIterator> copy_n(InputIterator first, Size n, OutputIterator result)
+template<class ExecutionPolicy, class InputIterator, class Size, class OutputIterator>
+struct has_copy_n_free_function_impl
 {
-  return detail::copy_n(agency::sequenced_execution_policy(), first, n, result);
-}
+  template<class... Args,
+           class = decltype(
+             copy_n(std::declval<Args>()...)
+          )>
+  static std::true_type test(int);
+
+  template<class...>
+  static std::false_type test(...);
+
+  using type = decltype(test<ExecutionPolicy,InputIterator,Size,OutputIterator>(0));
+};
+
+// this type trait reports whether copy_n(policy, first, n, result) is well-formed
+// when copy_n is called as a free function (i.e., via ADL)
+template<class ExecutionPolicy, class InputIterator, class Size, class OutputIterator>
+using has_copy_n_free_function = typename has_copy_n_free_function_impl<ExecutionPolicy,InputIterator,Size,OutputIterator>::type;
+
+
+// this is the type of the copy_n customization point
+class copy_n_t
+{
+  private:
+    template<class ExecutionPolicy, class InputIterator, class Size, class OutputIterator,
+             __AGENCY_REQUIRES(has_copy_n_free_function<ExecutionPolicy,InputIterator,Size,OutputIterator>::value)>
+    __AGENCY_ANNOTATION
+    static tuple<InputIterator,OutputIterator> impl(ExecutionPolicy&& policy, InputIterator first, Size n, OutputIterator result)
+    {
+      // call copy_n() via ADL
+      return copy_n(std::forward<ExecutionPolicy>(policy), first, n, result);
+    }
+
+    template<class ExecutionPolicy, class InputIterator, class Size, class OutputIterator,
+             __AGENCY_REQUIRES(!has_copy_n_free_function<ExecutionPolicy,InputIterator,Size,OutputIterator>::value)>
+    __AGENCY_ANNOTATION
+    static tuple<InputIterator,OutputIterator> impl(ExecutionPolicy&& policy, InputIterator first, Size n, OutputIterator result)
+    {
+      // call default_copy_n()
+      return copy_n_detail::default_copy_n(std::forward<ExecutionPolicy>(policy), first, n, result);
+    }
+
+  public:
+    template<class ExecutionPolicy, class InputIterator, class Size, class OutputIterator>
+    __AGENCY_ANNOTATION
+    tuple<InputIterator,OutputIterator> operator()(ExecutionPolicy&& policy, InputIterator first, Size n, OutputIterator result) const
+    {
+      return impl(std::forward<ExecutionPolicy>(policy), first, n, result);
+    }
+
+    template<class InputIterator, class Size, class OutputIterator>
+    __AGENCY_ANNOTATION
+    tuple<InputIterator,OutputIterator> operator()(InputIterator first, Size n, OutputIterator result) const
+    {
+      return operator()(agency::sequenced_execution_policy(), first, n, result);
+    }
+};
+
+
+} // end copy_n_detail
+
+
+namespace
+{
+  // copy_n customization point
+  constexpr copy_n_detail::copy_n_t copy_n{};
+} // end namespace
 
 
 } // end detail
