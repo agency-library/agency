@@ -12,8 +12,6 @@ namespace agency
 {
 namespace detail
 {
-namespace copy_n_detail
-{
 
 
 struct copy_n_functor
@@ -63,6 +61,10 @@ tuple<InputIterator,OutputIterator> default_copy_n(ExecutionPolicy&&, InputItera
 }
 
 
+namespace copy_n_detail
+{
+
+
 template<class ExecutionPolicy, class InputIterator, class Size, class OutputIterator>
 struct has_copy_n_free_function_impl
 {
@@ -103,7 +105,7 @@ class copy_n_t
     static tuple<InputIterator,OutputIterator> impl(ExecutionPolicy&& policy, InputIterator first, Size n, OutputIterator result)
     {
       // call default_copy_n()
-      return copy_n_detail::default_copy_n(std::forward<ExecutionPolicy>(policy), first, n, result);
+      return agency::detail::default_copy_n(std::forward<ExecutionPolicy>(policy), first, n, result);
     }
 
   public:
