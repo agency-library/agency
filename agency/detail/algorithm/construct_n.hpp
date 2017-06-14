@@ -7,7 +7,7 @@
 #include <agency/bulk_invoke.hpp>
 #include <agency/execution/execution_policy.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <iterator>
+#include <agency/detail/iterator/iterator_traits.hpp>
 
 namespace agency
 {
@@ -39,14 +39,8 @@ template<class ExecutionPolicy, class Allocator, class RandomAccessIterator, cla
          __AGENCY_REQUIRES(
             !policy_is_sequenced<decay_t<ExecutionPolicy>>::value and
             conjunction<
-              std::is_convertible<
-                typename std::iterator_traits<RandomAccessIterator>::iterator_category,
-                std::random_access_iterator_tag
-              >,
-              std::is_convertible<
-                typename std::iterator_traits<RandomAccessIterators>::iterator_category,
-                std::random_access_iterator_tag
-              >...
+              iterator_is_random_access<RandomAccessIterator>,
+              iterator_is_random_access<RandomAccessIterators>...
             >::value
          )>
 __AGENCY_ANNOTATION
@@ -68,14 +62,8 @@ template<class ExecutionPolicy, class Allocator, class Iterator, class Size, cla
          __AGENCY_REQUIRES(
            policy_is_sequenced<decay_t<ExecutionPolicy>>::value or
            !conjunction<
-             std::is_convertible<
-               typename std::iterator_traits<Iterator>::iterator_category,
-               std::random_access_iterator_tag
-             >,
-             std::is_convertible<
-               typename std::iterator_traits<Iterators>::iterator_category,
-               std::random_access_iterator_tag
-             >...
+             iterator_is_random_access<Iterator>,
+             iterator_is_random_access<Iterators>...
            >::value
          )>
 __AGENCY_ANNOTATION

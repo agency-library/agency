@@ -5,6 +5,7 @@
 #include <agency/bulk_invoke.hpp>
 #include <agency/execution/execution_policy.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/iterator/iterator_traits.hpp>
 #include <agency/detail/tuple.hpp>
 
 namespace agency
@@ -32,14 +33,8 @@ struct copy_n_functor
 template<class ExecutionPolicy, class RandomAccessIterator1, class Size, class RandomAccessIterator2,
          __AGENCY_REQUIRES(
            !policy_is_sequenced<decay_t<ExecutionPolicy>>::value and
-           std::is_convertible<
-             typename std::iterator_traits<RandomAccessIterator1>::iterator_category,
-             std::random_access_iterator_tag
-           >::value and
-           std::is_convertible<
-             typename std::iterator_traits<RandomAccessIterator2>::iterator_category,
-             std::random_access_iterator_tag
-           >::value
+           iterator_is_random_access<RandomAccessIterator1>::value and
+           iterator_is_random_access<RandomAccessIterator2>::value
          )>
 __AGENCY_ANNOTATION
 tuple<RandomAccessIterator1,RandomAccessIterator2> default_copy_n(ExecutionPolicy&& policy, RandomAccessIterator1 first, Size n, RandomAccessIterator2 result)
@@ -53,14 +48,8 @@ tuple<RandomAccessIterator1,RandomAccessIterator2> default_copy_n(ExecutionPolic
 template<class ExecutionPolicy, class InputIterator, class Size, class OutputIterator,
          __AGENCY_REQUIRES(
            policy_is_sequenced<decay_t<ExecutionPolicy>>::value or
-           !std::is_convertible<
-             typename std::iterator_traits<InputIterator>::iterator_category,
-             std::random_access_iterator_tag
-           >::value or
-           !std::is_convertible<
-             typename std::iterator_traits<OutputIterator>::iterator_category,
-             std::random_access_iterator_tag
-           >::value
+           !iterator_is_random_access<InputIterator>::value or
+           !iterator_is_random_access<OutputIterator>::value
          )>
 __AGENCY_ANNOTATION
 tuple<InputIterator,OutputIterator> default_copy_n(ExecutionPolicy&&, InputIterator first, Size n, OutputIterator result)

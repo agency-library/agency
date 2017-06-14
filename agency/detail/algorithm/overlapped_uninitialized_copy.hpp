@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/detail/algorithm/uninitialized_copy.hpp>
+#include <agency/detail/iterator/iterator_traits.hpp>
 
 namespace agency
 {
@@ -33,10 +34,7 @@ Iterator2 uninitialized_copy_backward(Allocator& alloc, Iterator1 first, Iterato
 template<class ExecutionPolicy, class Allocator, class Iterator,
          __AGENCY_REQUIRES(
            !policy_is_sequenced<decay_t<ExecutionPolicy>>::value and
-           std::is_convertible<
-             typename std::iterator_traits<Iterator>::iterator_category,
-             std::random_access_iterator_tag
-           >::value
+           iterator_is_random_access<Iterator>::value
          )>
 __AGENCY_ANNOTATION
 Iterator overlapped_uninitialized_copy(ExecutionPolicy&& policy, Allocator& alloc, Iterator first, Iterator last, Iterator result)
@@ -62,10 +60,7 @@ Iterator overlapped_uninitialized_copy(ExecutionPolicy&& policy, Allocator& allo
 template<class ExecutionPolicy, class Allocator, class Iterator,
          __AGENCY_REQUIRES(
            policy_is_sequenced<decay_t<ExecutionPolicy>>::value or
-           !std::is_convertible<
-             typename std::iterator_traits<Iterator>::iterator_category,
-             std::random_access_iterator_tag
-           >::value
+           !iterator_is_random_access<Iterator>::value
          )>
 __AGENCY_ANNOTATION
 Iterator overlapped_uninitialized_copy(ExecutionPolicy&&, Allocator& alloc, Iterator first, Iterator last, Iterator result)
