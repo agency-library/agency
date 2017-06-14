@@ -24,6 +24,7 @@ namespace detail
 
 // this overload handles the general case where the user function returns a normal result
 template<class E, class Function, class ResultFactory, class Tuple, size_t... TupleIndices>
+__AGENCY_ANNOTATION
 executor_future_t<E, result_of_t<ResultFactory()>>
   bulk_async_executor_impl(E& exec,
                            Function f,
@@ -39,6 +40,7 @@ executor_future_t<E, result_of_t<ResultFactory()>>
 // the reason we need this case cannot be handled by the overload above is because, unlike the above case,
 // there is an intermediate future which must be converted to the right type of result fututre 
 template<class E, class Function, size_t scope, class T, class Tuple, size_t... TupleIndices>
+__AGENCY_ANNOTATION
 executor_future_t<E, typename detail::scope_result_container<scope,T,E>::result_type>
   bulk_async_executor_impl(E& exec,
                            Function f,
@@ -57,6 +59,7 @@ executor_future_t<E, typename detail::scope_result_container<scope,T,E>::result_
 
 // this overload handles the special case where the user function returns void
 template<class E, class Function, class Tuple, size_t... TupleIndices>
+__AGENCY_ANNOTATION
 executor_future_t<E,void>
   bulk_async_executor_impl(E& exec,
                            Function f,
@@ -83,6 +86,7 @@ using bulk_async_executor_result_t = typename bulk_async_executor_result<Executo
 
 
 template<class Executor, class Function, class... Args>
+__AGENCY_ANNOTATION
 bulk_async_executor_result_t<Executor, Function, Args...>
   bulk_async_executor(Executor& exec, executor_shape_t<Executor> shape, Function f, Args&&... args)
 {
