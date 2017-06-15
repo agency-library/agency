@@ -23,6 +23,7 @@ namespace detail
 
 // this overload handles the general case where the user function returns a non-void result
 template<class Executor, class Function, class ResultFactory, class Tuple, size_t... TupleIndices>
+__AGENCY_ANNOTATION
 result_of_t<ResultFactory()>
   bulk_invoke_executor_impl(Executor& exec,
                             Function f,
@@ -36,6 +37,7 @@ result_of_t<ResultFactory()>
 
 // this overload handles the special case where the user function returns void
 template<class Executor, class Function, class Tuple, size_t... TupleIndices>
+__AGENCY_ANNOTATION
 void bulk_invoke_executor_impl(Executor& exec,
                                Function f,
                                void_factory,
@@ -70,6 +72,7 @@ using bulk_invoke_executor_result_t = typename bulk_invoke_executor_result<Execu
 
 
 template<class Executor, class Function, class... Args>
+__AGENCY_ANNOTATION
 bulk_invoke_executor_result_t<Executor, Function, Args...>
   bulk_invoke_executor(Executor& exec, executor_shape_t<Executor> shape, Function f, Args&&... args)
 {

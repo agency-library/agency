@@ -44,6 +44,7 @@ using bulk_invoke_execution_policy_result_t = typename bulk_invoke_execution_pol
 
 
 template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
+__AGENCY_ANNOTATION
 bulk_invoke_execution_policy_result_t<
   ExecutionPolicy, Function, Args...
 >

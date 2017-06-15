@@ -71,6 +71,7 @@ const concurrent_execution_policy_2d con2d{};
 
 // XXX this function needs to account for the dimensionality of ExecutionPolicy's agents
 template<class ExecutionPolicy>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   std::is_same<
     agency::detail::execution_policy_execution_category_t<ExecutionPolicy>,
@@ -86,6 +87,7 @@ typename std::enable_if<
 
 // XXX this function needs to account for the dimensionality of ExecutionPolicy's agents
 template<class ExecutionPolicy>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   std::is_same<
     agency::detail::execution_policy_execution_category_t<ExecutionPolicy>,
@@ -101,6 +103,7 @@ typename std::enable_if<
 
 // XXX this function needs to account for the dimensionality of ExecutionPolicy's agents
 template<class ExecutionPolicy>
+__AGENCY_ANNOTATION
 typename std::enable_if<
   std::is_same<
     agency::detail::execution_policy_execution_category_t<ExecutionPolicy>,

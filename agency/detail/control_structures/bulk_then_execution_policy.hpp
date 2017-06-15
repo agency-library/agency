@@ -137,6 +137,7 @@ using bulk_then_execution_policy_result_t = typename bulk_then_execution_policy_
 
 
 template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class Future, class... Args>
+__AGENCY_ANNOTATION
 bulk_then_execution_policy_result_t<
   ExecutionPolicy, Function, Future, Args...
 >

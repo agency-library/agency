@@ -33,6 +33,7 @@ using bulk_async_execution_policy_result_t = typename bulk_async_execution_polic
 
 
 template<size_t... UserArgIndices, size_t... SharedArgIndices, class ExecutionPolicy, class Function, class... Args>
+__AGENCY_ANNOTATION
 bulk_async_execution_policy_result_t<
   ExecutionPolicy, Function, Args...
 >
