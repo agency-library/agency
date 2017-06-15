@@ -12,6 +12,8 @@
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/detail/utility/bulk_continuation_executor_adaptor.hpp>
 #include <agency/execution/executor/customization_points.hpp>
+#include <agency/detail/algorithm/min.hpp>
+#include <agency/detail/algorithm/max.hpp>
 
 
 namespace agency
@@ -202,11 +204,13 @@ class flattened_executor
     template<class T>
     using container = experimental::basic_ndarray<T, shape_type, allocator<T>, index_type>;
 
+    __AGENCY_ANNOTATION
     future<void> make_ready_future()
     {
       return agency::make_ready_future<void>(base_executor());
     }
 
+    __AGENCY_ANNOTATION
     flattened_executor(const base_executor_type& base_executor = base_executor_type())
       : base_executor_(base_executor)
     {}
@@ -214,6 +218,7 @@ class flattened_executor
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories,
              __AGENCY_REQUIRES(sizeof...(InnerFactories) == execution_depth - 1)
             >
+    __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
       bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
     {
@@ -228,22 +233,26 @@ class flattened_executor
       return adapted_executor.bulk_then_execute(execute_me, base_shape, predecessor, result_factory, outer_factory, agency::detail::unit_factory(), inner_factories...);
     }
 
+    __AGENCY_ANNOTATION
     const base_executor_type& base_executor() const
     {
       return base_executor_;
     }
 
+    __AGENCY_ANNOTATION
     base_executor_type& base_executor()
     {
       return base_executor_;
     }
 
+    __AGENCY_ANNOTATION
     shape_type unit_shape() const
     {
       // to flatten the base executor's shape we merge the two front dimensions together
       return detail::merge_front_shape_elements(agency::unit_shape(base_executor()));
     }
 
+    __AGENCY_ANNOTATION
     shape_type max_shape_dimensions() const
     {
       // to flatten the base executor's shape we merge the two front dimensions together
@@ -264,6 +273,7 @@ class flattened_executor
       typename std::tuple_element<1,base_shape_type>::type
     >;
 
+    __AGENCY_ANNOTATION
     head_partition_type partition_head(const shape_head_type& shape) const
     {
       // avoid division by zero outer_size below
@@ -284,7 +294,7 @@ class flattened_executor
       size_t inner_max_size = detail::get<1>(base_executor_max_sizes);
 
       // set outer subscription to 1
-      size_t outer_size = std::min(outer_max_size, std::min(requested_size, outer_granularity));
+      size_t outer_size = detail::min(outer_max_size, detail::min(requested_size, outer_granularity));
 
       size_t inner_size = (requested_size + outer_size - 1) / outer_size;
 
@@ -293,7 +303,7 @@ class flattened_executor
       while(inner_size < inner_granularity)
       {
         // halve the outer size
-        outer_size = std::max<int>(1, outer_size / 2);
+        outer_size = detail::max<int>(1, outer_size / 2);
         inner_size *= 2;
       }
 
@@ -312,7 +322,12 @@ class flattened_executor
         if(outer_size > outer_max_size)
         {
           // XXX we could have asserted size <= outer_max_size * inner_max_size at the very beginning
+#ifndef __CUDA_ARCH__
           throw std::runtime_error("flattened_executor::partition_head(): size is too large to accomodate");
+#else
+          printf("flattened_executor::partition_head(): size is too large to accomodate\n");
+          assert(0);
+#endif
         }
       }
 
@@ -331,11 +346,13 @@ class flattened_executor
     }
 
     template<size_t... Indices>
+    __AGENCY_ANNOTATION
     static base_shape_type make_base_shape_impl(detail::index_sequence<Indices...>, const head_partition_type& partition_of_head, const shape_tail_type& tail)
     {
       return base_shape_type{detail::get<0>(partition_of_head), detail::get<1>(partition_of_head), detail::get<Indices>(tail)...};
     }
 
+    __AGENCY_ANNOTATION
     static base_shape_type make_base_shape(const head_partition_type& partition_of_head, const shape_tail_type& tail)
     {
       auto indices = detail::make_index_sequence<std::tuple_size<shape_tail_type>::value>();
@@ -343,6 +360,7 @@ class flattened_executor
       return make_base_shape_impl(indices, partition_of_head, tail);
     }
 
+    __AGENCY_ANNOTATION
     base_shape_type partition_into_base_shape(const shape_type& shape) const
     {
       // split the shape into its head and tail elements

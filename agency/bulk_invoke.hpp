@@ -131,6 +131,7 @@ struct enable_if_bulk_invoke_execution_policy
 /// \see bulk_async
 /// \see bulk_then
 template<class ExecutionPolicy, class Function, class... Args>
+__AGENCY_ANNOTATION
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 typename detail::enable_if_bulk_invoke_execution_policy<
   ExecutionPolicy, Function, Args...
