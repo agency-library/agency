@@ -157,12 +157,11 @@ void ping_pong_tournament(agency::concurrent_group<agency::concurrent_agent>& se
 int main()
 {
   using namespace agency;
-  using namespace std;
 
   size_t num_volleys = 20;
-  vector<vector<string>> semifinalists = {{"ping", "pong"}, {"foo", "bar"}};
+  std::vector<std::vector<std::string>> semifinalists = {{"ping", "pong"}, {"foo", "bar"}};
 
-  bulk_invoke(con(2, con(2)), ping_pong_tournament, semifinalists, num_volleys, share<movable_mutex>(), share<vector<string>>(2), share_at_scope<1,int>());
+  bulk_invoke(con(2, con(2)), ping_pong_tournament, semifinalists, num_volleys, share<movable_mutex>(), share<std::vector<std::string>>(2), share_at_scope<1,int>());
 
   return 0;
 }
