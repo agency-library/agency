@@ -241,7 +241,8 @@ class vector
         auto mid_and_end = detail::copy_n(policy, first, size(), begin());
 
         // construct new elements at the end
-        end_ = detail::uninitialized_copy_n(policy, storage_.allocator(), detail::get<0>(mid_and_end), n - size(), end());
+        // XXX we should really involve the allocator in construction here
+        end_ = detail::uninitialized_copy_n(policy, detail::get<0>(mid_and_end), n - size(), end());
       }
     }
 
@@ -487,7 +488,8 @@ class vector
         storage_type new_storage(new_capacity, storage_.allocator());
 
         // copy our elements into the new storage
-        end_ = detail::uninitialized_copy(std::forward<ExecutionPolicy>(policy), new_storage.allocator(), begin(), end(), new_storage.data());
+        // XXX we should really involve the allocator in construction here
+        end_ = detail::uninitialized_copy(std::forward<ExecutionPolicy>(policy), begin(), end(), new_storage.data());
 
         // swap out our storage
         storage_.swap(new_storage);
@@ -755,27 +757,32 @@ class vector
         if(num_displaced_elements > count)
         {
           // move n displaced elements to newly constructed elements following the insertion
-          end_ = detail::uninitialized_move_n(policy, storage_.allocator(), end() - count, count, end());
+          // XXX we should really involve the allocator in construction here
+          end_ = detail::uninitialized_move_n(policy, end() - count, count, end());
 
           // copy construct num_displaced_elements - n elements to existing elements
           // this copy overlaps
           size_type copy_length = (old_end - count) - position;
-          detail::overlapped_uninitialized_copy(policy, storage_.allocator(), position, old_end - count, old_end - copy_length);
+          // XXX we should really involve the allocator in construction here
+          detail::overlapped_uninitialized_copy(policy, position, old_end - count, old_end - copy_length);
 
           // XXX we should destroy the elements [position, position + num_displaced_elements) before constructing new ones
 
           // construct new elements at insertion point
-          detail::construct_n(policy, storage_.allocator(), position, count, iters...);
+          // XXX we should really involve the allocator in construction here
+          detail::construct_n(policy, position, count, iters...);
         }
         else
         {
           // move already existing, displaced elements to the end of the emplaced range, which is at position + count
-          end_ = detail::uninitialized_move_n(policy, storage_.allocator(), position, num_displaced_elements, position + count);
+          // XXX we should really involve the allocator in construction here
+          end_ = detail::uninitialized_move_n(policy, position, num_displaced_elements, position + count);
 
           // XXX we should destroy the elements [position, position + num_displaced_elements) before placement newing new ones
 
           // construct new elements at the emplacement position
-          detail::construct_n(policy, storage_.allocator(), position, count, iters...);
+          // XXX we should really involve the allocator in construction here
+          detail::construct_n(policy, position, count, iters...);
         }
       }
       else
@@ -806,15 +813,18 @@ class vector
 #endif
         {
           // move elements before the insertion to the beginning of the new storage
-          new_end = detail::uninitialized_move_n(policy, new_storage.allocator(), begin(), position - begin(), new_storage.data());
+          // XXX we should really involve the allocator in construction here
+          new_end = detail::uninitialized_move_n(policy, begin(), position - begin(), new_storage.data());
 
           result = new_end;
 
           // copy construct new elements
-          new_end = detail::construct_n(policy, new_storage.allocator(), new_end, count, iters...);
+          // XXX we should really involve the allocator in construction here
+          new_end = detail::construct_n(policy, new_end, count, iters...);
 
           // move elements after the insertion to the end of the new storage
-          new_end = detail::uninitialized_move_n(policy, new_storage.allocator(), position, end() - position, new_end);
+          // XXX we should really involve the allocator in construction here
+          new_end = detail::uninitialized_move_n(policy, position, end() - position, new_end);
         }
 #ifndef __CUDA_ARCH__
         catch(...)
