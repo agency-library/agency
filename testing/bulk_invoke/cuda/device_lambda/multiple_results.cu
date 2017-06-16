@@ -40,7 +40,7 @@ void test(ExecutionPolicy policy)
     }));
 
     using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = agency::executor_container_t<executor_type,int>;
+    using container_type = agency::executor_container<executor_type,int>;
 
     auto shape = agent_traits::domain(policy.param()).shape();
 
@@ -63,7 +63,7 @@ void test(ExecutionPolicy policy)
     val);
 
     using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = agency::executor_container_t<executor_type,int>;
+    using container_type = agency::executor_container<executor_type,int>;
 
     auto shape = agent_traits::domain(policy.param()).shape();
 
@@ -86,7 +86,7 @@ void test(ExecutionPolicy policy)
     agency::share(val));
 
     using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = agency::executor_container_t<executor_type,int>;
+    using container_type = agency::executor_container<executor_type,int>;
 
     auto shape = agent_traits::domain(policy.param()).shape();
 

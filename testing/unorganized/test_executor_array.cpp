@@ -15,7 +15,7 @@ int main()
     // test bulk_async_execute()
     using executor_type = executor_array<inner_executor_type>;
     using index_type = executor_index_t<executor_type>;
-    using int_container = executor_container_t<executor_type,int>;
+    using int_container = executor_container<executor_type,int>;
 
     executor_type exec(2);
 
@@ -57,7 +57,7 @@ int main()
     // test bulk_then_execute()
     using executor_type = executor_array<inner_executor_type>;
     using index_type = executor_index_t<executor_type>;
-    using int_container = executor_container_t<executor_type,int>;
+    using int_container = executor_container<executor_type,int>;
 
     executor_type exec(2);
 
@@ -104,7 +104,7 @@ int main()
 
     using shape_type = executor_shape_t<executor_type>;
     using index_type = executor_index_t<executor_type>;
-    using int_vector = executor_container_t<executor_type,int>;
+    using int_vector = executor_container<executor_type,int>;
 
     executor_array_type exec_array(2);
     executor_type exec{exec_array};

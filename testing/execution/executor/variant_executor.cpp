@@ -52,7 +52,7 @@ int test_alternative(Executor alternative)
 
   {
     // test bulk_async_execute()
-    using int_container = executor_container_t<VariantExecutor, int>;
+    using int_container = executor_container<VariantExecutor, int>;
 
     size_t num_agents = 10;
 
@@ -84,7 +84,7 @@ int test_alternative(Executor alternative)
 
   {
     // test bulk_sync_execute()
-    using int_container = executor_container_t<VariantExecutor, int>;
+    using int_container = executor_container<VariantExecutor, int>;
 
     size_t num_agents = 10;
 
@@ -114,7 +114,7 @@ int test_alternative(Executor alternative)
 
   {
     // test bulk_then_execute()
-    using int_container = executor_container_t<VariantExecutor, int>;
+    using int_container = executor_container<VariantExecutor, int>;
 
     int predecessor = 7;
     auto predecessor_future = exec.template make_ready_future<int>(predecessor);

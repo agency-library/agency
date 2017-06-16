@@ -37,7 +37,7 @@ void test_returning_results(Executor exec)
   },
   shape);
   
-  using container_type = agency::executor_container_t<Executor,int>;
+  using container_type = agency::executor_container<Executor,int>;
   assert(container_type(shape, 13) == result);
 }
 

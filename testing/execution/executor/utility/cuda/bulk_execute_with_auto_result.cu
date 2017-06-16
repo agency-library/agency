@@ -53,7 +53,7 @@ void test_returning_results(Executor exec)
     [=]{ return std::vector<int>(shape, 13); }  // shared_arg
   );
   
-  using container_type = agency::executor_container_t<Executor,int>;
+  using container_type = agency::executor_container<Executor,int>;
   assert(container_type(shape, 13) == result);
 }
 
@@ -100,7 +100,7 @@ void test_returning_results2(Executor exec)
     [] __host__ __device__ { return 13; } // inner_shared_arg
   );
   
-  using container_type = agency::executor_container_t<Executor,int>;
+  using container_type = agency::executor_container<Executor,int>;
   assert(container_type(shape, 7 + 13) == result);
 }
 

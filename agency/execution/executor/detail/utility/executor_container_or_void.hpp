@@ -20,7 +20,7 @@ struct executor_container_or_void<Executor,T,true>
   using type = typename detail::lazy_conditional<
     std::is_void<T>::value,
     detail::identity<void>,
-    executor_container<Executor,T>
+    detail::identity<executor_container<Executor,T>>
   >::type;
 };
 

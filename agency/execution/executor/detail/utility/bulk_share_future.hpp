@@ -51,7 +51,7 @@ template<class E, class Future,
          __AGENCY_REQUIRES(Executor<E>())
         >
 __AGENCY_ANNOTATION
-executor_container_t<
+executor_container<
   E,
   typename future_traits<Future>::shared_future_type
 >

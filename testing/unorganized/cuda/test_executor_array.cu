@@ -68,7 +68,7 @@ int main()
     using executor_type = executor_array<inner_executor_type, outer_executor_type>;
     using shape_type = executor_shape_t<executor_type>;
     using index_type = executor_index_t<executor_type>;
-    using container_type = executor_container_t<executor_type,int>;
+    using container_type = executor_container<executor_type,int>;
 
     executor_type exec(num_devices);
 
@@ -107,7 +107,7 @@ int main()
 
     using shape_type = executor_shape_t<executor_type>;
     using index_type = executor_index_t<executor_type>;
-    using container_type = executor_container_t<executor_type,int>;
+    using container_type = executor_container<executor_type,int>;
 
     executor_array_type exec_array(num_devices);
 

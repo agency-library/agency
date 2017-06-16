@@ -69,7 +69,7 @@ void test_with_void_predecessor2(Executor exec)
 
   shape_type shape{10,10};
 
-  using container_type = agency::executor_container_t<Executor,int>;
+  using container_type = agency::executor_container<Executor,int>;
   
   auto f = agency::detail::bulk_then_execute_with_collected_result(exec,
     [] __host__ __device__ (index_type, int& outer_shared_arg, int& inner_shared_arg)
@@ -99,7 +99,7 @@ void test_with_non_void_predecessor2(Executor exec)
 
   shape_type shape{10,10};
 
-  using container_type = agency::executor_container_t<Executor,int>;
+  using container_type = agency::executor_container<Executor,int>;
   
   auto f = agency::detail::bulk_then_execute_with_collected_result(exec,
     [] __host__ __device__ (index_type, int& predecessor, int& outer_shared_arg, int& inner_shared_arg)
