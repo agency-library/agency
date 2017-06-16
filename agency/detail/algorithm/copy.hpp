@@ -4,7 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/algorithm/copy_n.hpp>
 #include <agency/execution/execution_policy.hpp>
-#include <agency/detail/type_traits.hpp>
+#include <agency/detail/iterator/iterator_traits.hpp>
 
 namespace agency
 {
@@ -15,14 +15,7 @@ namespace detail
 template<class ExecutionPolicy, class RandomAccessIterator1, class RandomAccessIterator2,
          __AGENCY_REQUIRES(
            !policy_is_sequenced<decay_t<ExecutionPolicy>>::value and
-           std::is_convertible<
-             typename std::iterator_traits<RandomAccessIterator1>::iterator_category,
-             std::random_access_iterator_tag
-           >::value and
-           std::is_convertible<
-             typename std::iterator_traits<RandomAccessIterator2>::iterator_category,
-             std::random_access_iterator_tag
-           >::value
+           iterators_are_random_access<RandomAccessIterator1,RandomAccessIterator2>::value
          )>
 __AGENCY_ANNOTATION
 RandomAccessIterator2 copy(ExecutionPolicy&& policy, RandomAccessIterator1 first, RandomAccessIterator1 last, RandomAccessIterator2 result)
@@ -35,14 +28,7 @@ RandomAccessIterator2 copy(ExecutionPolicy&& policy, RandomAccessIterator1 first
 template<class ExecutionPolicy, class InputIterator, class OutputIterator,
          __AGENCY_REQUIRES(
            policy_is_sequenced<decay_t<ExecutionPolicy>>::value or
-           !std::is_convertible<
-             typename std::iterator_traits<InputIterator>::iterator_category,
-             std::random_access_iterator_tag
-           >::value or
-           !std::is_convertible<
-             typename std::iterator_traits<OutputIterator>::iterator_category,
-             std::random_access_iterator_tag
-           >::value
+           !iterators_are_random_access<InputIterator,OutputIterator>::value
          )>
 __AGENCY_ANNOTATION
 OutputIterator copy(ExecutionPolicy&&, InputIterator first, InputIterator last, OutputIterator result)

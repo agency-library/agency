@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/detail/algorithm/copy.hpp>
+#include <agency/detail/iterator/iterator_traits.hpp>
 
 namespace agency
 {
@@ -33,10 +34,7 @@ Iterator2 copy_backward(Iterator1 first, Iterator1 last, Iterator2 result)
 template<class ExecutionPolicy, class Iterator,
          __AGENCY_REQUIRES(
            !policy_is_sequenced<decay_t<ExecutionPolicy>>::value and
-           std::is_convertible<
-             typename std::iterator_traits<Iterator>::iterator_category,
-             std::random_access_iterator_tag
-           >::value
+           iterator_is_random_access<Iterator>::value
          )>
 __AGENCY_ANNOTATION
 Iterator overlapped_copy(ExecutionPolicy&& policy, Iterator first, Iterator last, Iterator result)
@@ -62,10 +60,7 @@ Iterator overlapped_copy(ExecutionPolicy&& policy, Iterator first, Iterator last
 template<class ExecutionPolicy, class Iterator,
          __AGENCY_REQUIRES(
            policy_is_sequenced<decay_t<ExecutionPolicy>>::value or
-           !std::is_convertible<
-             typename std::iterator_traits<Iterator>::iterator_category,
-             std::random_access_iterator_tag
-           >::value
+           !iterator_is_random_access<Iterator>::value
          )>
 __AGENCY_ANNOTATION
 Iterator overlapped_copy(ExecutionPolicy&&, Iterator first, Iterator last, Iterator result)
