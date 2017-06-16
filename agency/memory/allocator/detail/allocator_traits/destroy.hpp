@@ -25,6 +25,7 @@ typename std::enable_if<
 } // end destroy()
 
 
+__agency_exec_check_disable__
 template<class Alloc, class T>
 __AGENCY_ANNOTATION
 typename std::enable_if<
