@@ -19,8 +19,11 @@ class executor_container : private experimental::basic_ndarray<T, executor_shape
 
   public:
     using value_type = T;
-    using shape_type = typename super_t::shape_type;
-    using allocator_type = typename super_t::allocator_type;
+    using shape_type = executor_shape_t<Executor>;
+    using index_type = executor_index_t<Executor>;
+    using allocator_type = executor_allocator_t<Executor,T>;
+    using iterator = typename super_t::pointer;
+    using const_iterator = typename super_t::const_pointer;
 
     // XXX this should be eliminated
     //     it should not really be possible to create these things except via bulk_invoke et al.
@@ -46,26 +49,75 @@ class executor_container : private experimental::basic_ndarray<T, executor_shape
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    executor_container(executor_container&& other) = default;
+    executor_container(executor_container&& other)
+      : super_t(std::move(other))
+    {}
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    executor_container(const executor_container& other) = default;
+    executor_container(const executor_container& other)
+      : super_t(other)
+    {}
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     ~executor_container() = default;
 
     __AGENCY_ANNOTATION
-    executor_container& operator=(const executor_container&) = default;
+    executor_container& operator=(const executor_container& other)
+    {
+      super_t::operator=(other);
+      return *this;
+    }
 
     __AGENCY_ANNOTATION
-    executor_container& operator=(executor_container&&) = default;
+    executor_container& operator=(executor_container&& other)
+    {
+      super_t::operator=(std::move(other));
+      return *this;
+    }
 
-    using super_t::operator[];
-    using super_t::shape;
-    using super_t::size;
-    using super_t::begin;
-    using super_t::end;
+    __AGENCY_ANNOTATION
+    value_type& operator[](index_type idx)
+    {
+      return super_t::operator[](idx);
+    }
+
+    __AGENCY_ANNOTATION
+    shape_type shape() const
+    {
+      return super_t::shape();
+    }
+
+    __AGENCY_ANNOTATION
+    std::size_t size() const
+    {
+      return super_t::size();
+    }
+
+    __AGENCY_ANNOTATION
+    iterator begin()
+    {
+      return super_t::begin();
+    }
+
+    __AGENCY_ANNOTATION
+    const_iterator begin() const
+    {
+      return super_t::begin();
+    }
+
+    __AGENCY_ANNOTATION
+    iterator end()
+    {
+      return super_t::end();
+    }
+
+    __AGENCY_ANNOTATION
+    const_iterator end() const
+    {
+      return super_t::end();
+    }
 
     __agency_exec_check_disable__
     template<class Range>
