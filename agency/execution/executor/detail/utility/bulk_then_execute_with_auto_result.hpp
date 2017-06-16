@@ -2,9 +2,9 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/executor_traits/executor_container.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_collected_result.hpp>
+#include <agency/container/executor_container.hpp>
 #include <agency/detail/factory.hpp>
 
 

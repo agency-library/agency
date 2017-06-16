@@ -7,6 +7,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_without_shared_parameters.hpp>
+#include <agency/detail/shape_cast.hpp>
 
 
 namespace agency
