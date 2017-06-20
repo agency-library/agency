@@ -12,21 +12,21 @@ namespace detail
 
 
 template<class Executor, class T, bool Enable = is_bulk_executor<Executor>::value>
-struct executor_container_or_void {};
+struct bulk_result_or_void {};
 
 template<class Executor, class T>
-struct executor_container_or_void<Executor,T,true>
+struct bulk_result_or_void<Executor,T,true>
 {
   using type = typename detail::lazy_conditional<
     std::is_void<T>::value,
     detail::identity<void>,
-    detail::identity<executor_container<Executor,T>>
+    detail::identity<bulk_result<T,executor_shape_t<Executor>, executor_allocator_t<Executor,T>>>
   >::type;
 };
 
 
 template<class Executor, class T>
-using executor_container_or_void_t = typename executor_container_or_void<Executor,T>::type;
+using bulk_result_or_void_t = typename bulk_result_or_void<Executor,T>::type;
 
 
 } // end detail

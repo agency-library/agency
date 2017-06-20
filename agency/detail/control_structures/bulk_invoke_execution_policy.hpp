@@ -11,7 +11,7 @@
 #include <agency/detail/control_structures/agent_shared_parameter_factory_tuple.hpp>
 #include <agency/execution/execution_agent.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
-#include <agency/execution/executor/detail/utility/executor_container_or_void.hpp>
+#include <agency/execution/executor/detail/utility/bulk_result_or_void.hpp>
 #include <agency/execution/detail/execution_policy_traits.hpp>
 #include <utility>
 
@@ -34,7 +34,7 @@ struct bulk_invoke_execution_policy_result
   using type = typename detail::lazy_conditional<
     is_scope_result<user_function_result>::value,
     scope_result_to_bulk_invoke_result<user_function_result, execution_policy_executor_t<ExecutionPolicy>>,
-    executor_container_or_void<execution_policy_executor_t<ExecutionPolicy>, user_function_result>
+    bulk_result_or_void<execution_policy_executor_t<ExecutionPolicy>, user_function_result>
   >::type;
 };
 

@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
-#include <agency/execution/executor/detail/utility/executor_container_or_void.hpp>
+#include <agency/container/executor_container.hpp>
 #include <agency/detail/control_structures/scope_result.hpp>
 #include <type_traits>
 
