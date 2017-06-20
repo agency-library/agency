@@ -5,24 +5,24 @@
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/executor_traits/executor_allocator.hpp>
 #include <agency/memory/detail/storage.hpp>
+#include <agency/memory/allocator/allocator.hpp>
 #include <agency/detail/index_lexicographical_rank.hpp>
 
 namespace agency
 {
 
 
-// XXX eliminate this alias in favor of a type e.g. bulk_result
-template<class Executor, class T>
-class executor_container : private detail::storage<T, executor_allocator_t<Executor,T>, executor_shape_t<Executor>>
+template<class T, class Shape, class Allocator = allocator<T>>
+class bulk_result : private detail::storage<T, Allocator, Shape>
 {
   private:
-    using super_t = detail::storage<T, executor_allocator_t<Executor,T>, executor_shape_t<Executor>>;
+    using super_t = detail::storage<T, Allocator, Shape>;
 
   public:
     using value_type = T;
-    using shape_type = executor_shape_t<Executor>;
-    using index_type = executor_index_t<Executor>;
-    using allocator_type = executor_allocator_t<Executor,T>;
+    using shape_type = Shape;
+    using index_type = Shape;
+    using allocator_type = Allocator;
     using iterator = T*;
     using const_iterator = const T*;
 
@@ -30,15 +30,15 @@ class executor_container : private detail::storage<T, executor_allocator_t<Execu
     //     it should not really be possible to create these things except via bulk_invoke et al.
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    executor_container()
-      : executor_container(shape_type{})
+    bulk_result()
+      : bulk_result(shape_type{})
     {}
 
     // XXX this should be made private
     //     it should not really be possible to create these things except via bulk_invoke et al.
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    explicit executor_container(const shape_type& shape, const allocator_type& alloc = allocator_type())
+    explicit bulk_result(const shape_type& shape, const allocator_type& alloc = allocator_type())
       : super_t(shape, alloc)
     {
       // XXX we shouldn't actually construct the elements
@@ -50,7 +50,7 @@ class executor_container : private detail::storage<T, executor_allocator_t<Execu
     //     it should not really be possible to create these things except via bulk_invoke et al.
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    executor_container(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
+    bulk_result(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
       : super_t(shape, alloc)
     {
       construct_elements(val);
@@ -58,14 +58,14 @@ class executor_container : private detail::storage<T, executor_allocator_t<Execu
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    executor_container(executor_container&& other)
+    bulk_result(bulk_result&& other)
       : super_t(std::move(other))
     {}
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    executor_container(const executor_container& other)
-      : executor_container(other.shape(), other.allocator())
+    bulk_result(const bulk_result& other)
+      : bulk_result(other.shape(), other.allocator())
     {
       value_type* ptr = super_t::data();
       value_type* end = ptr + super_t::size();
@@ -80,7 +80,7 @@ class executor_container : private detail::storage<T, executor_allocator_t<Execu
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    ~executor_container()
+    ~bulk_result()
     {
       value_type* ptr = super_t::data();
       value_type* end = ptr + super_t::size();
@@ -92,16 +92,16 @@ class executor_container : private detail::storage<T, executor_allocator_t<Execu
     }
 
     __AGENCY_ANNOTATION
-    executor_container& operator=(const executor_container& other)
+    bulk_result& operator=(const bulk_result& other)
     {
       // XXX this is not a very efficient implementation
-      executor_container tmp = other;
+      bulk_result tmp = other;
       swap(tmp);
       return *this;
     }
 
     __AGENCY_ANNOTATION
-    executor_container& operator=(executor_container&& other)
+    bulk_result& operator=(bulk_result&& other)
     {
       swap(other);
       return *this;
@@ -151,7 +151,7 @@ class executor_container : private detail::storage<T, executor_allocator_t<Execu
     }
 
     __AGENCY_ANNOTATION
-    void swap(executor_container& other)
+    void swap(bulk_result& other)
     {
       super_t::swap(other);
     }
@@ -159,7 +159,7 @@ class executor_container : private detail::storage<T, executor_allocator_t<Execu
     __agency_exec_check_disable__
     template<class Range>
     __AGENCY_ANNOTATION
-    friend bool operator==(const executor_container& lhs, const Range& rhs)
+    friend bool operator==(const bulk_result& lhs, const Range& rhs)
     {
       if(lhs.size() != rhs.size()) return false;
 
@@ -180,7 +180,7 @@ class executor_container : private detail::storage<T, executor_allocator_t<Execu
     __agency_exec_check_disable__
     template<class Range>
     __AGENCY_ANNOTATION
-    friend bool operator==(const Range& lhs, const executor_container& rhs)
+    friend bool operator==(const Range& lhs, const bulk_result& rhs)
     {
       return rhs == lhs;
     }
@@ -188,7 +188,7 @@ class executor_container : private detail::storage<T, executor_allocator_t<Execu
     // this operator== avoids ambiguities introduced by the template friends above
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    bool operator==(const executor_container& rhs) const
+    bool operator==(const bulk_result& rhs) const
     {
       if(size() != rhs.size()) return false;
 
@@ -221,6 +221,11 @@ class executor_container : private detail::storage<T, executor_allocator_t<Execu
       }
     }
 };
+
+
+// XXX eliminate this
+template<class Executor, class T>
+using executor_container = bulk_result<T, executor_shape_t<Executor>, executor_allocator_t<Executor,T>>;
 
 
 } // end agency
