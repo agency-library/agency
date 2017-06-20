@@ -39,7 +39,7 @@ void test_returning_results(Executor exec)
   },
   shape);
   
-  using container_type = agency::executor_container<Executor,int>;
+  using container_type = agency::vector<int, agency::executor_allocator_t<Executor,int>>;
   assert(container_type(shape, 13) == result);
 }
 
@@ -78,7 +78,7 @@ void test_returning_results2(Executor exec)
   },
   shape);
   
-  using container_type = agency::executor_container<Executor,int>;
+  using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<Executor,int>>;
   assert(container_type(shape, 13) == result);
 }
 

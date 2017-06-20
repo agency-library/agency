@@ -159,36 +159,7 @@ class bulk_result : private detail::storage<T, Allocator, Shape>
     __agency_exec_check_disable__
     template<class Range>
     __AGENCY_ANNOTATION
-    friend bool operator==(const bulk_result& lhs, const Range& rhs)
-    {
-      if(lhs.size() != rhs.size()) return false;
-
-      auto i = lhs.begin();
-      auto j = rhs.begin();
-
-      for(; i != lhs.end(); ++i, ++j)
-      {
-        if(*i != *j)
-        {
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    __agency_exec_check_disable__
-    template<class Range>
-    __AGENCY_ANNOTATION
-    friend bool operator==(const Range& lhs, const bulk_result& rhs)
-    {
-      return rhs == lhs;
-    }
-
-    // this operator== avoids ambiguities introduced by the template friends above
-    __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
-    bool operator==(const bulk_result& rhs) const
+    bool operator==(const Range& rhs) const
     {
       if(size() != rhs.size()) return false;
 

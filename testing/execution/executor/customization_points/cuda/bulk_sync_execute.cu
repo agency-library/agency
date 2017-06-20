@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <agency/future.hpp>
+#include <agency/experimental/ndarray.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/cuda.hpp>
 
@@ -39,7 +40,7 @@ void test2(TwoLevelExecutor exec)
 
   shape_type shape{10,10};
 
-  using container_type = agency::executor_container<TwoLevelExecutor, int>;
+  using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<TwoLevelExecutor,int>>;
   
   auto result = agency::bulk_sync_execute(exec,
     [] __device__ (index_type idx, container_type& results, int& outer_shared_arg, int& inner_shared_arg)

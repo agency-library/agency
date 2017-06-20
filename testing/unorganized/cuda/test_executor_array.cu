@@ -68,7 +68,8 @@ int main()
     using executor_type = executor_array<inner_executor_type, outer_executor_type>;
     using shape_type = executor_shape_t<executor_type>;
     using index_type = executor_index_t<executor_type>;
-    using container_type = executor_container<executor_type,int>;
+    using allocator_type = executor_allocator_t<executor_type,int>;
+    using container_type = bulk_result<int,shape_type,allocator_type>;
 
     executor_type exec(num_devices);
 
@@ -77,7 +78,7 @@ int main()
       exec[i].device(i);
     }
 
-    auto shape = exec.make_shape(exec.size(),{2,2});
+    shape_type shape = exec.make_shape(exec.size(),{2,2});
 
     auto past = agency::make_ready_future<int>(exec, 13);
 
@@ -107,7 +108,8 @@ int main()
 
     using shape_type = executor_shape_t<executor_type>;
     using index_type = executor_index_t<executor_type>;
-    using container_type = executor_container<executor_type,int>;
+    using allocator_type = executor_allocator_t<executor_type,int>;
+    using container_type = bulk_result<int,shape_type,allocator_type>;
 
     executor_array_type exec_array(num_devices);
 

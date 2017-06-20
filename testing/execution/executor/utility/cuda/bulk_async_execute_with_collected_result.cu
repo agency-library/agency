@@ -1,4 +1,5 @@
 #include <agency/agency.hpp>
+#include <agency/experimental/ndarray.hpp>
 #include <agency/execution/executor/detail/utility.hpp>
 #include <agency/cuda.hpp>
 #include <iostream>
@@ -37,7 +38,7 @@ void test2(Executor exec)
 
   shape_type shape{10,10};
 
-  using container_type = agency::executor_container<Executor,int>;
+  using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<Executor,int>>;
   
   auto f = agency::detail::bulk_async_execute_with_collected_result(exec,
     [] __host__ __device__ (index_type, int& outer_shared_arg, int& inner_shared_arg)

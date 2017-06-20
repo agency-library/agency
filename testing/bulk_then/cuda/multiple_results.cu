@@ -25,7 +25,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = agency::executor_container<executor_type,int>;
+    using container_type = agency::vector<int, agency::executor_allocator_t<executor_type,int>>;
 
     assert(container_type(10,7) == result);
   }
@@ -47,7 +47,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = agency::executor_container<executor_type,int>;
+    using container_type = agency::vector<int, agency::executor_allocator_t<executor_type,int>>;
 
     assert(container_type(10,7) == result);
   }
@@ -72,7 +72,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = agency::executor_container<executor_type,int>;
+    using container_type = agency::vector<int, agency::executor_allocator_t<executor_type,int>>;
 
     assert(container_type(10,7 + 13) == result);
   }
@@ -97,7 +97,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = agency::executor_container<executor_type,int>;
+    using container_type = agency::vector<int, agency::executor_allocator_t<executor_type,int>>;
 
     assert(container_type(10,13) == result);
   }
@@ -122,7 +122,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = agency::executor_container<executor_type,int>;
+    using container_type = agency::vector<int, agency::executor_allocator_t<executor_type,int>>;
 
     assert(container_type(10,7 + 13) == result);
   }
@@ -147,7 +147,7 @@ void test()
 
     auto result = f.get();
 
-    using container_type = agency::executor_container<executor_type,int>;
+    using container_type = agency::vector<int, agency::executor_allocator_t<executor_type,int>>;
 
     assert(container_type(10,13) == result);
   }

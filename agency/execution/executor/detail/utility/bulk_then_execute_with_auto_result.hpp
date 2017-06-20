@@ -4,7 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_collected_result.hpp>
-#include <agency/container/executor_container.hpp>
+#include <agency/execution/executor/detail/utility/executor_bulk_result.hpp>
 #include <agency/detail/factory.hpp>
 
 
@@ -40,7 +40,7 @@ template<class E, class Function, class Future, class... Factories,
         >
 __AGENCY_ANNOTATION
 executor_future_t<E,
-  executor_container<E,
+  executor_bulk_result_t<E,
     result_of_continuation_t<Function,executor_index_t<E>,Future,result_of_t<Factories()>&...>
   >
 >
@@ -50,7 +50,7 @@ executor_future_t<E,
   using result_type = result_of_continuation_t<Function,executor_index_t<E>,Future,result_of_t<Factories()>&...>;
 
   // compute the type of container that will store f's results
-  using container_type = executor_container<E,result_type>;
+  using container_type = executor_bulk_result_t<E,result_type>;
   
   // create a factory that will construct this type of container for us
   auto result_factory = detail::make_construct<container_type>(shape);

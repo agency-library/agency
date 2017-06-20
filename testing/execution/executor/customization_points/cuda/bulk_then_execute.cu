@@ -3,6 +3,8 @@
 #include <vector>
 
 #include <agency/future.hpp>
+#include <agency/container/vector.hpp>
+#include <agency/experimental/ndarray.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/cuda.hpp>
 
@@ -14,9 +16,8 @@ void test_with_non_void_predecessor(Executor exec)
 {
   auto predecessor_future = agency::make_ready_future<int>(exec, 7);
 
-  using shape_type = agency::executor_shape_t<Executor>;
   using index_type = agency::executor_index_t<Executor>;
-  using int_vector = agency::executor_container<Executor,int>;
+  using int_vector = agency::vector<int, agency::executor_allocator_t<Executor,int>>;
 
   size_t shape = 10;
   
@@ -42,9 +43,8 @@ void test_with_void_predecessor(Executor exec)
 {
   auto predecessor_future = agency::make_ready_future<void>(exec);
 
-  using shape_type = agency::executor_shape_t<Executor>;
   using index_type = agency::executor_index_t<Executor>;
-  using int_vector = agency::executor_container<Executor,int>;
+  using int_vector = agency::vector<int, agency::executor_allocator_t<Executor,int>>;
 
   size_t shape = 10;
   
@@ -75,7 +75,7 @@ void test_with_non_void_predecessor2(TwoLevelExecutor exec)
 
   shape_type shape{10,10};
 
-  using container_type = agency::executor_container<TwoLevelExecutor, int>;
+  using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<TwoLevelExecutor,int>>;
   
   auto f = agency::bulk_then_execute(exec,
     [] __host__ __device__ (index_type idx, int& predecessor, container_type& results, int& outer_shared_arg, int& inner_shared_arg)
@@ -105,7 +105,7 @@ void test_with_void_predecessor2(TwoLevelExecutor exec)
 
   shape_type shape{10,10};
 
-  using container_type = agency::executor_container<TwoLevelExecutor, int>;
+  using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<TwoLevelExecutor,int>>;
   
   auto f = agency::bulk_then_execute(exec,
     [] __host__ __device__ (index_type idx, container_type& results, int& outer_shared_arg, int& inner_shared_arg)

@@ -1,5 +1,6 @@
 #include <agency/agency.hpp>
 #include <agency/cuda.hpp>
+#include <agency/experimental/ndarray.hpp>
 #include <iostream>
 
 
@@ -39,15 +40,13 @@ void test(ExecutionPolicy policy)
       return 7;
     }));
 
-    using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = agency::executor_container<executor_type,int>;
-
     auto shape = agent_traits::domain(policy.param()).shape();
+    using shape_type = decltype(shape);
 
-    using container_shape_t = typename container_type::shape_type;
-    auto container_shape = agency::detail::shape_cast<container_shape_t>(shape);
+    using executor_type = typename ExecutionPolicy::executor_type;
+    using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<executor_type,int>>;
 
-    assert(container_type(container_shape,7) == result);
+    assert(container_type(shape,7) == result);
   }
 
   {
@@ -62,15 +61,13 @@ void test(ExecutionPolicy policy)
     }),
     val);
 
-    using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = agency::executor_container<executor_type,int>;
-
     auto shape = agent_traits::domain(policy.param()).shape();
+    using shape_type = decltype(shape);
 
-    using container_shape_t = typename container_type::shape_type;
-    auto container_shape = agency::detail::shape_cast<container_shape_t>(shape);
+    using executor_type = typename ExecutionPolicy::executor_type;
+    using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<executor_type,int>>;
 
-    assert(container_type(container_shape,val) == result);
+    assert(container_type(shape,val) == result);
   }
 
   {
@@ -85,15 +82,13 @@ void test(ExecutionPolicy policy)
     }),
     agency::share(val));
 
-    using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = agency::executor_container<executor_type,int>;
-
     auto shape = agent_traits::domain(policy.param()).shape();
+    using shape_type = decltype(shape);
 
-    using container_shape_t = typename container_type::shape_type;
-    auto container_shape = agency::detail::shape_cast<container_shape_t>(shape);
+    using executor_type = typename ExecutionPolicy::executor_type;
+    using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<executor_type,int>>;
 
-    assert(container_type(container_shape,val) == result);
+    assert(container_type(shape,val) == result);
   }
 }
 
