@@ -4,9 +4,11 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/default_shape.hpp>
 #include <agency/experimental/ndarray/ndarray_ref.hpp>
-#include <agency/detail/utility.hpp>
-#include <agency/memory/allocator/detail/allocator_traits.hpp>
+#include <agency/memory/allocator/allocator.hpp>
 #include <agency/detail/iterator/constant_iterator.hpp>
+#include <agency/detail/algorithm/construct_n.hpp>
+#include <agency/detail/algorithm/destroy.hpp>
+#include <agency/detail/algorithm/equal.hpp>
 #include <utility>
 #include <memory>
 #include <iterator>
@@ -18,11 +20,12 @@ namespace experimental
 {
 
 
-template<class T, class Shape = size_t, class Alloc = std::allocator<T>, class Index = Shape>
+template<class T, class Shape = size_t, class Alloc = agency::allocator<T>, class Index = Shape>
 class basic_ndarray
 {
   private:
-    using all_t = experimental::basic_ndarray_ref<T,Shape,Index>;
+    using storage_type = agency::detail::storage<T,Alloc,Shape>;
+    using all_t = basic_ndarray_ref<T,Shape,Index>;
 
   public:
     using value_type = T;
@@ -33,7 +36,7 @@ class basic_ndarray
 
     using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
 
-    using shape_type = typename all_t::shape_type;
+    using shape_type = typename storage_type::shape_type;
 
     using index_type = typename all_t::index_type;
 
@@ -42,23 +45,23 @@ class basic_ndarray
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    basic_ndarray() : alloc_{}, all_{} {}
+    basic_ndarray() : basic_ndarray(shape_type{}) {}
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     explicit basic_ndarray(const shape_type& shape, const allocator_type& alloc = allocator_type())
-      : alloc_(alloc),
-        all_(allocate_and_construct_elements(alloc_, agency::detail::index_space_size(shape)), shape)
+      : storage_(shape, alloc)
     {
+      construct_elements();
     }
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     explicit basic_ndarray(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
-      : alloc_(alloc),
-        all_(allocate_and_construct_elements(alloc_, agency::detail::index_space_size(shape), val), shape)
-    {
-    }
+      : basic_ndarray(agency::detail::constant_iterator<T>(val,0),
+                      agency::detail::constant_iterator<T>(val, agency::detail::index_space_size(shape)),
+                      alloc)
+    {}
 
     __agency_exec_check_disable__
     template<class Iterator,
@@ -67,33 +70,24 @@ class basic_ndarray
                std::is_convertible<typename std::iterator_traits<Iterator>::value_type, value_type>::value
              )>
     __AGENCY_ANNOTATION
-    basic_ndarray(Iterator first, Iterator last)
-      : basic_ndarray(agency::detail::shape_cast<shape_type>(last - first))
+    basic_ndarray(Iterator first, Iterator last, const allocator_type& alloc = allocator_type())
+      : storage_(agency::detail::shape_cast<shape_type>(last - first), alloc)
     {
-      for(auto result = begin(); result != end(); ++result, ++first)
-      {
-        *result = *first;
-      }
+      construct_elements(first);
     }
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_ndarray(const basic_ndarray& other)
-      : basic_ndarray(other.shape(), other.get_allocator())
+      : storage_(other.shape(), other.get_allocator())
     {
-      auto iter = other.begin();
-      auto result = begin();
-
-      for(; iter != other.end(); ++iter, ++result)
-      {
-        *result = *iter;
-      }
+      construct_elements(other.begin());
     }
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_ndarray(basic_ndarray&& other)
-      : alloc_{}, all_{}
+      : storage_{}
     {
       swap(other);
     }
@@ -124,8 +118,7 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     void swap(basic_ndarray& other)
     {
-      agency::detail::adl_swap(all_, other.all_);
-      agency::detail::adl_swap(alloc_, other.alloc_);
+      storage_.swap(other.storage_);
     }
 
 
@@ -133,55 +126,67 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     allocator_type get_allocator() const
     {
-      return alloc_;
+      return storage_.allocator();
     }
 
     __AGENCY_ANNOTATION
     value_type& operator[](index_type idx)
     {
-      return all_[idx];
+      return all()[idx];
     }
 
     __AGENCY_ANNOTATION
     shape_type shape() const
     {
-      return all_.shape();
+      return storage_.shape();
     }
 
     __AGENCY_ANNOTATION
     std::size_t size() const
     {
-      return all_.size();
+      return storage_.size();
     }
 
     __AGENCY_ANNOTATION
     pointer data()
     {
-      return all_.data();
+      return storage_.data();
     }
 
     __AGENCY_ANNOTATION
     const_pointer data() const
     {
-      return all_.data();
+      return storage_.data();
+    }
+
+    __AGENCY_ANNOTATION
+    basic_ndarray_ref<const T,Shape,Index> all() const
+    {
+      return basic_ndarray_ref<const T,Shape,Index>(data(), shape());
+    }
+
+    __AGENCY_ANNOTATION
+    basic_ndarray_ref<T,Shape,Index> all()
+    {
+      return basic_ndarray_ref<T,Shape,Index>(data(), shape());
     }
 
     __AGENCY_ANNOTATION
     pointer begin()
     {
-      return data();
+      return all().data();
     }
 
     __AGENCY_ANNOTATION
     pointer end()
     {
-      return begin() + size();
+      return all().end();
     }
 
     __AGENCY_ANNOTATION
     const_pointer begin() const
     {
-      return data();
+      return all().begin();
     }
 
     __AGENCY_ANNOTATION
@@ -193,7 +198,7 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     const_pointer end() const
     {
-      return begin() + size();
+      return all().end();
     }
 
     __AGENCY_ANNOTATION
@@ -206,18 +211,8 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     void clear()
     {
-      if(size())
-      {
-        // XXX should really destroy through the allocator
-        for(auto& x : *this)
-        {
-          x.~value_type();
-        }
-
-        alloc_.deallocate(data(), size());
-
-        all_ = all_t{};
-      }
+      agency::detail::destroy(storage_.allocator(), begin(), end());
+      storage_ = storage_type{};
     }
 
     __agency_exec_check_disable__
@@ -225,20 +220,7 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     friend bool operator==(const basic_ndarray& lhs, const Range& rhs)
     {
-      if(lhs.size() != rhs.size()) return false;
-
-      auto i = lhs.begin();
-      auto j = rhs.begin();
-
-      for(; i != lhs.end(); ++i, ++j)
-      {
-        if(*i != *j)
-        {
-          return false;
-        }
-      }
-
-      return true;
+      return lhs.size() == rhs.size() && agency::detail::equal(lhs.begin(), lhs.end(), rhs.begin());
     }
 
     __agency_exec_check_disable__
@@ -250,46 +232,25 @@ class basic_ndarray
     }
 
     // this operator== avoids ambiguities introduced by the template friends above
-    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     bool operator==(const basic_ndarray& rhs) const
     {
-      if(size() != rhs.size()) return false;
-
-      auto i = begin();
-      auto j = rhs.begin();
-
-      for(; i != end(); ++i, ++j)
-      {
-        if(*i != *j)
-        {
-          return false;
-        }
-      }
-
-      return true;
+      return size() == rhs.size() && agency::detail::equal(begin(), end(), rhs.begin());
     }
 
   private:
-    __agency_exec_check_disable__
-    template<class... Args>
+    template<class... Iterators>
     __AGENCY_ANNOTATION
-    static pointer allocate_and_construct_elements(allocator_type& alloc, size_t size, const Args&... args)
+    void construct_elements(Iterators... iters)
     {
-      pointer result = alloc.allocate(size);
-
-      agency::detail::allocator_traits<allocator_type>::construct_n(alloc, result, size, agency::detail::constant_iterator<Args>(args,0)...);
-
-      return result;
+      agency::detail::construct_n(begin(), size(), iters...);
     }
 
-    allocator_type alloc_;
-
-    all_t all_;
+    storage_type storage_;
 };
 
 
-template<class T, size_t rank, class Alloc = std::allocator<T>>
+template<class T, size_t rank, class Alloc = agency::allocator<T>>
 using ndarray = basic_ndarray<T, agency::detail::default_shape_t<rank>, Alloc>;
 
 
