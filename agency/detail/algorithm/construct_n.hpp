@@ -65,6 +65,7 @@ RandomAccessIterator construct_n(ExecutionPolicy&& policy, RandomAccessIterator 
 // this overload is for cases where we must execute sequentially
 // 1. ExecutionPolicy is sequenced OR
 // 2. Iterators are not random access
+__agency_exec_check_disable__
 template<class ExecutionPolicy, class Iterator, class Size, class... Iterators,
          __AGENCY_REQUIRES(
            is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value          
@@ -80,7 +81,7 @@ Iterator construct_n(ExecutionPolicy&&, Iterator first, Size n, Iterators... ite
 
   for(Size i = 0; i < n; ++i, ++first, construct_n_detail::swallow(++iters...))
   {
-    new(&*first) value_type(*iters...);
+    ::new(&*first) value_type(*iters...);
   }
 
   return first;
