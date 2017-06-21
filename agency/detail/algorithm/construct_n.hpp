@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/bulk_invoke.hpp>
-#include <agency/execution/execution_policy.hpp>
+#include <agency/execution/execution_policy/detail/simple_sequenced_policy.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/iterator/iterator_traits.hpp>
 #include <cassert>
@@ -97,9 +97,9 @@ template<class Iterator, class Size, class... Iterators,
 __AGENCY_ANNOTATION
 Iterator construct_n(Iterator first, Size n, Iterators... iters)
 {
-  // pass this instead of agency::seq to work around the prohibition on
-  // taking the address of a global constexpr object (i.e., agency::seq) from a CUDA __device__ function
-  sequenced_execution_policy seq;
+  // use simple_sequenced_policy here to avoid circular dependencies
+  // created by the use of sequenced_policy
+  simple_sequenced_policy seq;
   return detail::construct_n(seq, first, n, iters...);
 }
 
