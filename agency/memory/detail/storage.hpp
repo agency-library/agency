@@ -23,7 +23,7 @@ class storage
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    storage(shape_type shape, const Allocator& allocator)
+    storage(shape_type shape, const Allocator& allocator = Allocator{})
       : data_(nullptr),
         shape_(shape),
         allocator_(allocator)
@@ -82,10 +82,7 @@ class storage
     __AGENCY_ANNOTATION
     ~storage()
     {
-      if(data() != nullptr)
-      {
-        detail::allocator_traits<Allocator>::deallocate(allocator_, data(), size());
-      }
+      reset();
     }
 
   private:
@@ -103,10 +100,27 @@ class storage
       // do nothing
     }
 
+    __AGENCY_ANNOTATION
+    void reset()
+    {
+      if(data() != nullptr)
+      {
+        detail::allocator_traits<Allocator>::deallocate(allocator(), data(), size());
+
+        data_ = nullptr;
+        shape_ = shape_type{};
+      }
+    }
+
   public:
     __AGENCY_ANNOTATION
     storage& operator=(storage&& other)
     {
+      // we have to call reset() instead of simply swapping ourself with other
+      // because depending on propagate_on_container_move_assignment, we may need
+      // to retain our allocator
+      reset();
+
       detail::adl_swap(data_, other.data_);
       detail::adl_swap(shape_, other.shape_);
 

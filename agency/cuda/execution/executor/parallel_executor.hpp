@@ -25,9 +25,6 @@ class parallel_executor
     using allocator = cuda::allocator<T, pinned_resource>;
 
     template<class T>
-    using container = agency::experimental::ndarray<T, 1, allocator<T>>;
-
-    template<class T>
     using future = cuda::future<T>;
 
     template<class Function, class ResultFactory, class SharedFactory>

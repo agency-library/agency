@@ -73,9 +73,6 @@ class executor_array
     template<class T>
     using allocator = executor_allocator_t<outer_executor_type,T>;
 
-    template<class T>
-    using container = experimental::basic_ndarray<T, shape_type, allocator<T>, index_type>;
-
     // XXX this functor is public to allow nvcc to instantiate kernels with it
     template<class Futures, class UniquePtr1, class UniquePtr2>
     struct wait_for_futures_and_move_result
@@ -425,7 +422,6 @@ class executor_array
   private:
     outer_executor_type            outer_executor_;
 
-    // XXX consider using container here instead of ndarray
     experimental::ndarray<inner_executor_type, 1, allocator<inner_executor_type>> inner_executors_;
 
     using bulk_then_execute_implementation_strategy = typename std::conditional<
