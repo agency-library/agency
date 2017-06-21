@@ -4,6 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/detail/utility/bulk_sync_execute_with_auto_result_and_without_shared_parameters.hpp>
+#include <agency/execution/executor/detail/utility/executor_bulk_result.hpp>
 #include <agency/future.hpp>
 
 
@@ -51,10 +52,7 @@ template<class E, class Future,
          __AGENCY_REQUIRES(Executor<E>())
         >
 __AGENCY_ANNOTATION
-executor_container_t<
-  E,
-  typename future_traits<Future>::shared_future_type
->
+executor_bulk_result_t<E, typename future_traits<Future>::shared_future_type>
   bulk_share_future(E& exec, executor_shape_t<E> shape, Future& f)
 {
   using shared_future_type = typename future_traits<Future>::shared_future_type;

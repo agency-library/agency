@@ -35,9 +35,9 @@ void test(OuterExecutor, InnerExecutor inner_exec)
 
   executor_array_type exec(10, inner_exec);
 
-  using shape_type = executor_shape_t<executor_array_type>;
-  using index_type = executor_index_t<executor_array_type>;
-  using result_type = executor_container_t<executor_array_type, int>;
+  using shape_type  = executor_shape_t<executor_array_type>;
+  using index_type  = executor_index_t<executor_array_type>;
+  using result_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<executor_array_type, int>>;
 
   {
     // test .bulk_then_execute() with non-void predecessor

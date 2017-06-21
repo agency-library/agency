@@ -738,6 +738,22 @@ class vector
       detail::adl_swap(end_, other.end_);
     }
 
+    __agency_exec_check_disable__
+    template<class Range>
+    __AGENCY_ANNOTATION
+    bool operator==(const Range& rhs) const
+    {
+      return size() == rhs.size() && detail::equal(begin(), end(), rhs.begin());
+    }
+
+    __agency_exec_check_disable__
+    template<class Range>
+    __AGENCY_ANNOTATION
+    bool operator!=(const Range& rhs) const
+    {
+      return size() != rhs.size() || !detail::equal(begin(), end(), rhs.begin());
+    }
+
   private:
     template<class ExecutionPolicy, class... InputIterator>
     __AGENCY_ANNOTATION
@@ -848,22 +864,6 @@ class vector
     storage_type storage_;
     iterator end_;
 };
-
-
-template<class T, class Allocator>
-__AGENCY_ANNOTATION
-bool operator==(const vector<T,Allocator>& lhs, const vector<T,Allocator>& rhs)
-{
-  return lhs.size() == rhs.size() && detail::equal(lhs.begin(), lhs.end(), rhs.begin());
-}
-
-
-template<class T, class Allocator>
-__AGENCY_ANNOTATION
-bool operator!=(const vector<T,Allocator>& lhs, const vector<T,Allocator>& rhs)
-{
-  return !(lhs == rhs);
-}
 
 
 // TODO

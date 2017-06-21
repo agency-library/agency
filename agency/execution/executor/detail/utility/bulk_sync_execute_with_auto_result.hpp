@@ -5,6 +5,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/detail/utility/bulk_sync_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_sync_execute_with_collected_result.hpp>
+#include <agency/execution/executor/detail/utility/executor_bulk_result.hpp>
 #include <agency/detail/factory.hpp>
 
 
@@ -38,7 +39,8 @@ template<class E, class Function, class... Factories,
          __AGENCY_REQUIRES(!std::is_void<result_of_t<Function(executor_index_t<E>, result_of_t<Factories()>&...)>>::value)
         >
 __AGENCY_ANNOTATION
-executor_container_t<E,
+executor_bulk_result_t<
+  E,
   result_of_t<Function(executor_index_t<E>,result_of_t<Factories()>&...)>
 >
   bulk_sync_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
@@ -47,7 +49,7 @@ executor_container_t<E,
   using result_type = result_of_t<Function(executor_index_t<E>,result_of_t<Factories()>&...)>;
 
   // compute the type of container that will store f's results
-  using container_type = executor_container_t<E,result_type>;
+  using container_type = executor_bulk_result_t<E,result_type>;
   
   // create a factory that will construct this type of container for us
   auto result_factory = detail::make_construct<container_type>(shape);

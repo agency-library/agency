@@ -14,12 +14,14 @@ int main()
   {
     // test bulk_async_execute()
     using executor_type = executor_array<inner_executor_type>;
+    using shape_type = executor_shape_t<executor_type>;
     using index_type = executor_index_t<executor_type>;
-    using int_container = executor_container_t<executor_type,int>;
+    using allocator_type = executor_allocator_t<executor_type, int>;
+    using int_container = bulk_result<int, shape_type, allocator_type>;
 
     executor_type exec(2);
 
-    auto shape = exec.make_shape(3,5);
+    shape_type shape = exec.make_shape(3,5);
 
     std::mutex mut;
     auto f = agency::bulk_async_execute(exec, [=,&mut](const index_type& idx, int_container& results, int& outer_shared, int& inner_shared)
@@ -56,14 +58,16 @@ int main()
   {
     // test bulk_then_execute()
     using executor_type = executor_array<inner_executor_type>;
+    using shape_type = executor_shape_t<executor_type>;
     using index_type = executor_index_t<executor_type>;
-    using int_container = executor_container_t<executor_type,int>;
+    using allocator_type = executor_allocator_t<executor_type, int>;
+    using int_container = bulk_result<int, shape_type, allocator_type>;
 
     executor_type exec(2);
 
     auto past = agency::make_ready_future<int>(exec,1);
 
-    auto shape = exec.make_shape(3,5);
+    shape_type shape = exec.make_shape(3,5);
 
     std::mutex mut;
     auto f = agency::bulk_then_execute(exec, [=,&mut](const index_type& idx, int& past, int_container& results, int& outer_shared, int& inner_shared)
@@ -104,19 +108,20 @@ int main()
 
     using shape_type = executor_shape_t<executor_type>;
     using index_type = executor_index_t<executor_type>;
-    using int_vector = executor_container_t<executor_type,int>;
+    using allocator_type = executor_allocator_t<executor_type, int>;
+    using int_container = bulk_result<int, shape_type, allocator_type>;
 
     executor_array_type exec_array(2);
     executor_type exec{exec_array};
 
     shape_type shape = 10;
 
-    auto f = agency::bulk_async_execute(exec, [](const index_type& idx, int_vector& results, int& shared)
+    auto f = agency::bulk_async_execute(exec, [](const index_type& idx, int_container& results, int& shared)
     {
       results[idx] = 13 + shared;
     },
     shape,
-    [=]{ return int_vector(shape); },
+    [=]{ return int_container(shape); },
     []{ return 7; }
     );
 

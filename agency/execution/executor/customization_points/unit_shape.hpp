@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/detail/shape_cast.hpp>
 #include <type_traits>
 
 

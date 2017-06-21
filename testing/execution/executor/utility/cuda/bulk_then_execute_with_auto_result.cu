@@ -63,7 +63,7 @@ void test_with_void_predecessor_returning_results(Executor exec)
   
   auto result = f.get();
   
-  using container_type = agency::executor_container_t<Executor,int>;
+  using container_type = agency::vector<int, agency::executor_allocator_t<Executor,int>>;
   assert(container_type(shape, 13) == result);
 }
 
@@ -122,7 +122,7 @@ void test_with_non_void_predecessor_returning_results(Executor exec)
   
   auto result = f.get();
   
-  using container_type = agency::executor_container_t<Executor,int>;
+  using container_type = agency::vector<int, agency::executor_allocator_t<Executor,int>>;
   assert(container_type(shape, 7 + 13) == result);
 }
 
@@ -179,7 +179,9 @@ void test_with_void_predecessor_returning_results2(Executor exec)
   
   auto result = f.get();
   
-  using container_type = agency::executor_container_t<Executor,int>;
+  using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<Executor,int>>;
+
+  // XXX this is ambiguous because both basic_ndarray and bulk_result have operator== free functions
   assert(container_type(shape, 7 + 13) == result);
 }
 
@@ -216,7 +218,9 @@ void test_with_non_void_predecessor_returning_void2(Executor exec)
 template<class Executor>
 void test_with_non_void_predecessor_returning_results2(Executor exec)
 {
-  agency::executor_shape_t<Executor> shape{10,10};
+  using shape_type = agency::executor_shape_t<Executor>;
+
+  shape_type shape{10,10};
 
   auto predecessor_future = agency::make_ready_future<int>(exec, 42);
 
@@ -234,7 +238,7 @@ void test_with_non_void_predecessor_returning_results2(Executor exec)
   
   auto result = fut.get();
   
-  using container_type = agency::executor_container_t<Executor,int>;
+  using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<Executor,int>>;
   assert(container_type(shape, 42 + 7 + 13) == result);
 }
 

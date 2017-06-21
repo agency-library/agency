@@ -4,7 +4,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/tuple.hpp>
-#include <agency/execution/executor/detail/utility/executor_container_or_void.hpp>
+#include <agency/execution/executor/detail/utility/executor_bulk_result_or_void.hpp>
 #include <agency/execution/executor/detail/utility/bulk_sync_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_sync_execute_with_collected_result.hpp>
 #include <agency/detail/control_structures/executor_functions/bind_agent_local_parameters.hpp>
@@ -59,11 +59,11 @@ struct bulk_invoke_executor_result
   >;
 
   // if the user function returns scope_result, then use scope_result_to_bulk_invoke_result to figure out what to return
-  // else, the result is whatever executor_result<Executor, function_result> thinks it is
+  // else, the result is whatever executor_bulk_result_or_void<Executor, function_result> thinks it is
   using type = typename lazy_conditional<
     is_scope_result<user_function_result>::value,
     scope_result_to_bulk_invoke_result<user_function_result, Executor>,
-    executor_container_or_void<Executor, user_function_result>
+    executor_bulk_result_or_void<Executor, user_function_result>
   >::type;
 };
 

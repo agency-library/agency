@@ -17,10 +17,11 @@ void test(ExecutionPolicy policy)
 
     auto result = f.get();
 
-    using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = agency::executor_container_t<executor_type,int>;
-
     auto shape = agent_traits::domain(policy.param()).shape();
+
+    using shape_type = decltype(shape);
+    using executor_type = typename ExecutionPolicy::executor_type;
+    using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<executor_type,int>>;
 
     assert(container_type(shape,7) == result);
   }
@@ -40,10 +41,11 @@ void test(ExecutionPolicy policy)
 
     auto result = f.get();
 
-    using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = agency::executor_container_t<executor_type,int>;
-
     auto shape = agent_traits::domain(policy.param()).shape();
+
+    using shape_type = decltype(shape);
+    using executor_type = typename ExecutionPolicy::executor_type;
+    using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<executor_type,int>>;
 
     assert(container_type(shape,val) == result);
   }
@@ -63,10 +65,11 @@ void test(ExecutionPolicy policy)
 
     auto result = f.get();
 
-    using executor_type = typename ExecutionPolicy::executor_type;
-    using container_type = agency::executor_container_t<executor_type,int>;
-
     auto shape = agent_traits::domain(policy.param()).shape();
+
+    using shape_type = decltype(shape);
+    using executor_type = typename ExecutionPolicy::executor_type;
+    using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<executor_type,int>>;
 
     assert(container_type(shape,val) == result);
   }

@@ -2,7 +2,8 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
-#include <agency/execution/executor/detail/utility/executor_container_or_void.hpp>
+#include <agency/execution/executor/executor_traits/executor_allocator.hpp>
+#include <agency/execution/executor/detail/utility/executor_bulk_result.hpp>
 #include <agency/detail/control_structures/scope_result.hpp>
 #include <type_traits>
 
@@ -35,7 +36,7 @@ struct result_container
   using type = typename std::conditional<
     is_scope_result<ResultOfFunction>::value,
     typename scope_result_to_scope_result_container<ResultOfFunction, Executor>::type,
-    executor_container_t<Executor,ResultOfFunction>
+    executor_bulk_result_t<Executor, ResultOfFunction>
   >::type;
 };
 

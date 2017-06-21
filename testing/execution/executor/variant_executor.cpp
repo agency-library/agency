@@ -3,6 +3,7 @@
 #include <agency/execution/executor/parallel_executor.hpp>
 #include <agency/execution/executor/concurrent_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/experimental/ndarray.hpp>
 #include <agency/detail/index_lexicographical_rank.hpp>
 
 #include <iostream>
@@ -52,7 +53,7 @@ int test_alternative(Executor alternative)
 
   {
     // test bulk_async_execute()
-    using int_container = executor_container_t<VariantExecutor, int>;
+    using int_container = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<VariantExecutor,int>>;
 
     size_t num_agents = 10;
 
@@ -84,7 +85,7 @@ int test_alternative(Executor alternative)
 
   {
     // test bulk_sync_execute()
-    using int_container = executor_container_t<VariantExecutor, int>;
+    using int_container = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<VariantExecutor,int>>;
 
     size_t num_agents = 10;
 
@@ -114,7 +115,7 @@ int test_alternative(Executor alternative)
 
   {
     // test bulk_then_execute()
-    using int_container = executor_container_t<VariantExecutor, int>;
+    using int_container = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<VariantExecutor,int>>;
 
     int predecessor = 7;
     auto predecessor_future = exec.template make_ready_future<int>(predecessor);
