@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/experimental/optional.hpp>
-#include <agency/experimental/ndarray.hpp>
+#include <agency/container/bulk_result.hpp>
 #include <agency/detail/index.hpp>
 #include <agency/detail/shape.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
@@ -115,19 +115,17 @@ struct is_scope_result<scope_result<scope,T>> : std::true_type {};
 
 template<size_t scope, class T, class Executor>
 class scope_result_container
-  : public experimental::basic_ndarray<
+  : public bulk_result<
       T,
       shape_take_t<scope, executor_shape_t<Executor>>,
-      executor_allocator_t<Executor, T>,
-      index_take_t<scope, executor_index_t<Executor>>
+      executor_allocator_t<Executor, T>
     >
 {
   private:
-    using super_t = experimental::basic_ndarray<
+    using super_t = bulk_result<
       T,
       shape_take_t<scope, executor_shape_t<Executor>>,
-      executor_allocator_t<Executor, T>,
-      index_take_t<scope, executor_index_t<Executor>>
+      executor_allocator_t<Executor, T>
     >;
 
     using base_index_type = typename super_t::index_type;
