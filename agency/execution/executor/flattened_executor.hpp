@@ -201,9 +201,6 @@ class flattened_executor
     template<class T>
     using allocator = executor_allocator_t<base_executor_type, T>;
 
-    template<class T>
-    using container = experimental::basic_ndarray<T, shape_type, allocator<T>, index_type>;
-
     __AGENCY_ANNOTATION
     future<void> make_ready_future()
     {
