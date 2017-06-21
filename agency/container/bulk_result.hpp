@@ -194,10 +194,5 @@ class bulk_result : private detail::storage<T, Allocator, Shape>
 };
 
 
-// XXX eliminate this
-template<class Executor, class T>
-using executor_container = bulk_result<T, executor_shape_t<Executor>, executor_allocator_t<Executor,T>>;
-
-
 } // end agency
 

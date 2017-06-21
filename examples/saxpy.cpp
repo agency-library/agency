@@ -23,7 +23,7 @@ int main()
 
   // check the result
   std::vector<float> ref(n, a * 1.f + 2.f);
-  assert(ref == results);
+  assert(results == ref);
 
   std::cout << "OK" << std::endl;
 

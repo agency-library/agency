@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits/is_bulk_executor.hpp>
-#include <agency/container/executor_container.hpp>
+#include <agency/container/bulk_result.hpp>
 #include <agency/detail/type_traits.hpp>
 
 namespace agency
