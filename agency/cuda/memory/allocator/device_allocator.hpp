@@ -15,9 +15,6 @@ namespace cuda
 template<class T>
 class device_allocator : public agency::detail::allocator_adaptor<T,device_resource>
 {
-  // XXX since construct_n() doesn't actually do anything, it might
-  //     be a good idea to static_assert that T is trivially constructible
-
   private:
     using super_t = agency::detail::allocator_adaptor<T,device_resource>;
 
@@ -36,15 +33,6 @@ class device_allocator : public agency::detail::allocator_adaptor<T,device_resou
     device_allocator(const device_allocator<U>& other)
       : device_allocator(other.device())
     {}
-  
-    // XXX we should hoist this up into the memory resource 
-    // XXX this should be implemented with a kernel launch or something
-    template<class Iterator, class... Iterators>
-    agency::detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t, Iterators... iters)
-    {
-      //new(ptr) U(*iters...);
-      return agency::detail::make_tuple(first,iters...);
-    }
 };
 
 

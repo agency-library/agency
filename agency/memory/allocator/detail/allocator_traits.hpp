@@ -34,10 +34,6 @@ struct allocator_traits : std::allocator_traits<Alloc>
   __AGENCY_ANNOTATION
   static void construct(Alloc& alloc, T* p, Args&&... args);
 
-  template<class Iterator, class... Iterators>
-  __AGENCY_ANNOTATION
-  static detail::tuple<Iterator,Iterators...> construct_n(Alloc& alloc, Iterator first, size_t n, Iterators... iters);
-
   template<class T>
   __AGENCY_ANNOTATION
   static void destroy(Alloc& a, T* p);
@@ -51,7 +47,6 @@ struct allocator_traits : std::allocator_traits<Alloc>
 } // end agency
 
 #include <agency/memory/allocator/detail/allocator_traits/construct.hpp>
-#include <agency/memory/allocator/detail/allocator_traits/construct_n.hpp>
 #include <agency/memory/allocator/detail/allocator_traits/destroy.hpp>
 #include <agency/memory/allocator/detail/allocator_traits/max_size.hpp>
 

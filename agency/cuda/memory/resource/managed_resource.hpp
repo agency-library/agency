@@ -63,36 +63,6 @@ class managed_resource
       }
     }
 
-    template<class Iterator,
-             __AGENCY_REQUIRES(
-               std::is_trivially_default_constructible<
-                 typename std::iterator_traits<Iterator>::value_type
-               >::value
-              )
-            >
-    agency::detail::tuple<Iterator> construct_n(Iterator first, size_t n)
-    {
-      // the constructor has no effects, so this is a no-op
-      return agency::detail::make_tuple(first + n);
-    }
-
-    template<class Iterator, class... Iterators>
-    agency::detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
-    {
-      // we need to globally synchronize if the system contains any device that lacks
-      // concurrent managed access before the host can access managed memory
-      detail::wait_if_any_lack_concurrent_managed_access(detail::all_devices());
-
-      using value_type = typename std::iterator_traits<Iterator>::value_type;
-
-      for(size_t i = 0; i < n; ++i, ++first, swallow(++iters...))
-      {
-        new(&*first) value_type(*iters...);
-      }
-
-      return agency::detail::make_tuple(first, iters...);
-    }
-
     inline const device_id& device() const
     {
       return device_;

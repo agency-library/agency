@@ -69,16 +69,6 @@ class cached_resource : private MemoryResource
       free_blocks_.insert(std::make_pair(num_bytes, reinterpret_cast<char*>(ptr)));
     }
 
-    // the trailing return type of this function enables or disables it (via SFINAE)
-    // based on the existence of .construct_n() as a member of MemoryResource
-    template<class Iterator, class... Iterators,
-             class DeducedMemoryResource = MemoryResource>
-    auto construct_n(Iterator first, size_t n, Iterators... iters) ->
-      decltype(std::declval<DeducedMemoryResource&>().construct_n(first, n, iters...))
-    {
-      return resource_type::construct_n(first, n, iters...);
-    }
-
     bool operator==(const cached_resource& other) const
     {
       return this == &other;
@@ -194,15 +184,6 @@ class globally_cached_resource
     inline void deallocate(void *ptr, size_t num_bytes)
     {
       deallocate_from_cached_resources_singleton(resource_, ptr, num_bytes);
-    }
-
-    template<class Iterator, class... Iterators,
-             class DeducedMemoryResource = MemoryResource>
-    auto construct_n(Iterator first, size_t n, Iterators... iters) ->
-      decltype(std::declval<DeducedMemoryResource&>().construct_n(first, n, iters...))
-    {
-      // we don't bother with the cache for .construct_n()
-      return resource_.construct_n(first, n, iters...);
     }
 
     bool operator==(const globally_cached_resource& other) const
