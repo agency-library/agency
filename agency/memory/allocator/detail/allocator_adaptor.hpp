@@ -64,18 +64,6 @@ class allocator_adaptor : private MemoryResource
       return *this;
     }
 
-    // the trailing return type of this function enables or disables it (via SFINAE)
-    // based on the existence of .construct_n() as a member of MemoryResource
-    __agency_exec_check_disable__
-    template<class Iterator, class... Iterators,
-             class DeducedMemoryResource = MemoryResource>
-    __AGENCY_ANNOTATION
-    auto construct_n(Iterator first, size_t n, Iterators... iters) ->
-      decltype(std::declval<DeducedMemoryResource&>().construct_n(first, n, iters...))
-    {
-      return super_t::construct_n(first, n, iters...);
-    }
-
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     bool operator==(const allocator_adaptor& other) const

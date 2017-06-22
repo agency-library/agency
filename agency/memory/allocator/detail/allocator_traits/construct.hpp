@@ -31,9 +31,9 @@ __AGENCY_ANNOTATION
 typename std::enable_if<
   !has_construct<Alloc,T*,Args...>::value
 >::type
-  construct(Alloc& a, T* p, Args&&... args)
+  construct(Alloc&, T* p, Args&&... args)
 {
-  allocator_traits<Alloc>::construct_n(a, p, 1, detail::make_forwarding_iterator<Args&&>(&args)...);
+  ::new(p) T(std::forward<Args>(args)...);
 } // end construct()
 
 

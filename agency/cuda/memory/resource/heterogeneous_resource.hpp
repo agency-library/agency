@@ -50,17 +50,6 @@ class heterogeneous_resource
 #endif
     }
 
-    template<class Iterator, class... Iterators>
-    __host__ __device__
-    agency::detail::tuple<Iterator,Iterators...> construct_n(Iterator first, size_t n, Iterators... iters)
-    {
-#ifndef __CUDA_ARCH__
-      return agency::detail::allocator_traits_detail::construct_n_impl1(host_resource_, first, n, iters...);
-#else
-      return agency::detail::allocator_traits_detail::construct_n_impl1(device_resource_, first, n, iters...);
-#endif
-    }
-
     __host__ __device__
     bool operator==(const heterogeneous_resource& other) const
     {
