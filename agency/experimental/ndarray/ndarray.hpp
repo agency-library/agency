@@ -6,6 +6,7 @@
 #include <agency/experimental/ndarray/ndarray_ref.hpp>
 #include <agency/memory/allocator/allocator.hpp>
 #include <agency/detail/iterator/constant_iterator.hpp>
+#include <agency/execution/execution_policy/detail/simple_sequenced_policy.hpp>
 #include <agency/detail/algorithm/construct_n.hpp>
 #include <agency/detail/algorithm/destroy.hpp>
 #include <agency/detail/algorithm/equal.hpp>
@@ -63,6 +64,30 @@ class basic_ndarray
                       alloc)
     {}
 
+    template<class ExecutionPolicy,
+             class Iterator,
+             __AGENCY_REQUIRES(
+               is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value
+             ),
+             // XXX this requirement should really be something like is_input_iterator<InputIterator>
+             __AGENCY_REQUIRES(
+               std::is_convertible<typename std::iterator_traits<Iterator>::value_type, value_type>::value
+             )>
+    basic_ndarray(ExecutionPolicy&& policy, Iterator first, shape_type shape, const allocator_type& alloc = allocator_type())
+      : storage_(shape, alloc)
+    {
+      construct_elements(std::forward<ExecutionPolicy>(policy), first);
+    }
+
+    template<class Iterator,
+             // XXX this requirement should really be something like is_input_iterator<InputIterator>
+             __AGENCY_REQUIRES(
+               std::is_convertible<typename std::iterator_traits<Iterator>::value_type, value_type>::value
+             )>
+    basic_ndarray(Iterator first, shape_type shape, const allocator_type& alloc = allocator_type())
+      : basic_ndarray(agency::detail::simple_sequenced_policy(), first, shape, alloc)
+    {}
+
     __agency_exec_check_disable__
     template<class Iterator,
              // XXX this requirement should really be something like is_input_iterator<InputIterator>
@@ -71,18 +96,26 @@ class basic_ndarray
              )>
     __AGENCY_ANNOTATION
     basic_ndarray(Iterator first, Iterator last, const allocator_type& alloc = allocator_type())
-      : storage_(agency::detail::shape_cast<shape_type>(last - first), alloc)
+      : basic_ndarray(first, agency::detail::shape_cast<shape_type>(last - first), alloc)
+    {}
+
+    __agency_exec_check_disable__
+    template<class ExecutionPolicy,
+             __AGENCY_REQUIRES(
+               is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value
+             )>
+    __AGENCY_ANNOTATION
+    basic_ndarray(ExecutionPolicy&& policy, const basic_ndarray& other)
+      : storage_(other.shape(), other.get_allocator())
     {
-      construct_elements(first);
+      construct_elements(std::forward<ExecutionPolicy>(policy), other.begin());
     }
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_ndarray(const basic_ndarray& other)
-      : storage_(other.shape(), other.get_allocator())
-    {
-      construct_elements(other.begin());
-    }
+      : basic_ndarray(agency::detail::simple_sequenced_policy(), other)
+    {}
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
@@ -239,11 +272,22 @@ class basic_ndarray
     }
 
   private:
+    template<class ExecutionPolicy, class... Iterators,
+             __AGENCY_REQUIRES(
+               is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value
+             )>
+    __AGENCY_ANNOTATION
+    void construct_elements(ExecutionPolicy&& policy, Iterators... iters)
+    {
+      agency::detail::construct_n(std::forward<ExecutionPolicy>(policy), begin(), size(), iters...);
+    }
+
     template<class... Iterators>
     __AGENCY_ANNOTATION
     void construct_elements(Iterators... iters)
     {
-      agency::detail::construct_n(begin(), size(), iters...);
+      agency::detail::simple_sequenced_policy seq;
+      construct_elements(seq, iters...);
     }
 
     storage_type storage_;
