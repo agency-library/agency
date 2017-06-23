@@ -2,7 +2,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/execution_policy.hpp>
-#include <agency/execution/detail/execution_policy_traits.hpp>
 #include <agency/cuda/execution/executor/grid_executor.hpp>
 #include <agency/cuda/execution/executor/parallel_executor.hpp>
 #include <agency/cuda/execution/executor/concurrent_executor.hpp>

@@ -11,7 +11,7 @@
 #include <agency/detail/is_call_possible.hpp>
 #include <agency/execution/execution_agent.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
-#include <agency/execution/detail/execution_policy_traits.hpp>
+#include <agency/execution/execution_policy/execution_policy_traits.hpp>
 #include <utility>
 
 namespace agency
