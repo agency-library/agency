@@ -12,7 +12,7 @@
 #include <agency/execution/execution_agent.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/detail/utility/executor_bulk_result_or_void.hpp>
-#include <agency/execution/detail/execution_policy_traits.hpp>
+#include <agency/execution/execution_policy/execution_policy_traits.hpp>
 #include <utility>
 
 namespace agency

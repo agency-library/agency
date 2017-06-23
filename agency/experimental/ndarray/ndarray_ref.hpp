@@ -1,10 +1,13 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 #include <agency/detail/shape.hpp>
 #include <agency/detail/index_lexicographical_rank.hpp>
+#include <agency/coordinate/detail/shape/shape_size.hpp>
 #include <agency/coordinate.hpp>
 #include <cstddef>
+#include <tuple>
 
 namespace agency
 {
@@ -43,6 +46,21 @@ class basic_ndarray_ref
 
     __AGENCY_ANNOTATION
     basic_ndarray_ref() : basic_ndarray_ref(nullptr) {}
+
+    __AGENCY_ANNOTATION
+    basic_ndarray_ref(const basic_ndarray_ref&) = default;
+
+    template<class OtherT,
+             class OtherShape,
+             class OtherIndex,
+             __AGENCY_REQUIRES(std::is_convertible<OtherT*,pointer>::value),
+             __AGENCY_REQUIRES(std::is_convertible<OtherShape,shape_type>::value),
+             __AGENCY_REQUIRES(agency::detail::shape_size<shape_type>::value == agency::detail::shape_size<OtherShape>::value)
+            >
+    __AGENCY_ANNOTATION
+    basic_ndarray_ref(const basic_ndarray_ref<OtherT,OtherShape,OtherIndex>& other)
+      : basic_ndarray_ref(other.data(), other.shape())
+    {}
 
     __AGENCY_ANNOTATION
     explicit basic_ndarray_ref(std::nullptr_t) : basic_ndarray_ref(nullptr, shape_type{}) {}

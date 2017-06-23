@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/is_call_possible.hpp>
-#include <agency/execution/detail/execution_policy_traits.hpp>
+#include <agency/execution/execution_policy/execution_policy_traits.hpp>
 #include <type_traits>
 
 namespace agency
