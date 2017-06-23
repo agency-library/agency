@@ -6,6 +6,7 @@
 #include <agency/detail/arithmetic_tuple_facade.hpp>
 #include <agency/detail/operator_traits.hpp>
 #include <agency/container/array.hpp>
+#include <agency/coordinate/detail/named_array.hpp>
 
 #include <type_traits>
 #include <initializer_list>
@@ -13,17 +14,57 @@
 
 namespace agency
 {
+namespace detail
+{
+
+
+// in general, point's base class is array<T,Rank> but low-rank points get named elements
+template<class T, size_t Rank>
+struct point_base
+{
+  using type = array<T,Rank>;
+};
+
+template<class T>
+struct point_base<T,1>
+{
+  using type = named_array<T,1>;
+};
+
+template<class T>
+struct point_base<T,2>
+{
+  using type = named_array<T,2>;
+};
+
+template<class T>
+struct point_base<T,3>
+{
+  using type = named_array<T,3>;
+};
+
+template<class T>
+struct point_base<T,4>
+{
+  using type = named_array<T,4>;
+};
+
+template<class T, size_t Rank>
+using point_base_t = typename point_base<T,Rank>::type;
+
+
+} // end detail
 
 
 // T is any type with operators +, +=, -, -=, *, *=,  /, /=, <
 template<class T, size_t Rank>
-class point : public array<T,Rank>,
+class point : public agency::detail::point_base_t<T,Rank>,
               public agency::detail::arithmetic_tuple_facade<point<T,Rank>>
 {
   static_assert(agency::detail::has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
   static_assert(Rank > 0, "Rank must be greater than 0.");
 
-  using super_t = array<T,Rank>;
+  using super_t = detail::point_base_t<T,Rank>;
 
   public:
     using typename super_t::value_type;
