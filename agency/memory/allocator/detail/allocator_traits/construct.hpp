@@ -26,6 +26,7 @@ typename std::enable_if<
 } // end construct()
 
 
+__agency_exec_check_disable__
 template<class Alloc, class T, class... Args>
 __AGENCY_ANNOTATION
 typename std::enable_if<
