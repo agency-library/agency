@@ -1,6 +1,5 @@
 #include <agency/agency.hpp>
 #include <agency/cuda.hpp>
-#include <thrust/device_vector.h>
 
 #include <cassert>
 #include <iostream>
@@ -20,14 +19,23 @@ void saxpy(size_t n, float a, const float* x, const float* y, float* z)
 
 int main()
 {
+  using namespace agency;
+
   size_t n = 8 << 20;
-  thrust::device_vector<float> x(n, 1), y(n, 2), z(n);
+  agency::vector<float, agency::cuda::allocator<float>> x(n, 1), y(n, 2), z(n);
   float a = 13.;
 
-  saxpy(n, a, raw_pointer_cast(x.data()), raw_pointer_cast(y.data()), raw_pointer_cast(z.data()));
+  // assert the implementation produces the expected result
+  saxpy(n, a, x.data(), y.data(), z.data());
+  agency::vector<float, agency::cuda::allocator<float>> expected(n, a * 1.f + 2.f);
+  assert(expected == z);
 
-  thrust::device_vector<float> ref(n, a * 1.f + 2.f);
-  assert(ref == z);
+  // before timing, warm up
+  size_t num_warmup = 5;
+  for(size_t i = 0; i < num_warmup; ++i)
+  {
+    saxpy(n, a, x.data(), y.data(), z.data());
+  }
 
   std::cout << "Measuring performance..." << std::endl;
 
@@ -37,7 +45,7 @@ int main()
   auto start = std::chrono::high_resolution_clock::now();
   for(size_t i = 0; i < num_trials; ++i)
   {
-    saxpy(n, a, raw_pointer_cast(x.data()), raw_pointer_cast(y.data()), raw_pointer_cast(z.data()));
+    saxpy(n, a, x.data(), y.data(), z.data());
   }
   std::chrono::duration<double> elapsed = std::chrono::high_resolution_clock::now() - start;
 
