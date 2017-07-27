@@ -4,6 +4,8 @@
 #include <agency/detail/has_member.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
+#include <agency/execution/executor/executor_traits/executor_execution_depth.hpp>
+#include <agency/execution/execution_agent.hpp>
 
 namespace agency
 {
