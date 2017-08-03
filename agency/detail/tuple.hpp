@@ -849,8 +849,11 @@ using tuple_rebind_t = typename tuple_rebind<Tuple,Types...>::type;
 
 
 // a Tuple-like type is rebindable for a list of types if tuple_rebind<Tuple,Types...>::type is detected to exist
+// XXX WAR nvbug 1965139
+//template<class Tuple, class... Types>
+//using is_tuple_rebindable = is_detected<tuple_rebind_t, Tuple, Types...>;
 template<class Tuple, class... Types>
-using is_tuple_rebindable = is_detected<tuple_rebind_t, Tuple, Types...>;
+struct is_tuple_rebindable : is_detected<tuple_rebind_t, Tuple, Types...> {};
 
 
 // some types aren't tuple_rebindable given a list of Types
