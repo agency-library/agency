@@ -27,6 +27,9 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
+#include <agency/detail/tuple.hpp>
+#include <agency/detail/integer_sequence.hpp>
 #include <type_traits>
 #include <iostream>
 #include <cassert>
@@ -224,6 +227,60 @@ struct is_variant_alternative<T,variant<Types...>>
 {};
 
 
+
+// counts the number of occurrences of T in the list Types...
+template<class T, class... Types>
+struct count_occurrences;
+
+// empty list of types, no occurrences
+template<class T>
+struct count_occurrences<T>
+{
+  static const std::size_t value = 0;
+};
+
+// no match (T does not match U), continue counting through the remaining Types...
+template<class T, class U, class... Types>
+struct count_occurrences<T,U,Types...>
+{
+  static const std::size_t value = count_occurrences<T,Types...>::value;
+};
+
+// found a match, continue counting through the remaining Types...
+template<class T, class... Types>
+struct count_occurrences<T,T,Types...>
+{
+  static const std::size_t value = 1 + count_occurrences<T,Types...>::value;
+};
+
+
+template<class T, class... Types>
+struct occurs_exactly_once : std::integral_constant<bool, count_occurrences<T,Types...>::value == 1> {};
+
+
+
+template<size_t i, class... Types>
+struct find_exactly_one_impl;
+
+template<size_t i, class T, class U, class... Types>
+struct find_exactly_one_impl<i,T,U,Types...> : find_exactly_one_impl<i+1,T,Types...> {};
+
+template<size_t i, class T, class... Types>
+struct find_exactly_one_impl<i,T,T,Types...> : std::integral_constant<size_t, i>
+{
+  static_assert(find_exactly_one_impl<i,T,Types...>::value == variant_npos, "type can only occur once in type list");
+};
+
+template<size_t i, class T>
+struct find_exactly_one_impl<i,T> : std::integral_constant<size_t, variant_npos> {};
+
+template<class T, class... Types>
+struct find_exactly_one : find_exactly_one_impl<0,T,Types...>
+{
+  static_assert(find_exactly_one::value != variant_npos, "type not found in type list");
+};
+
+
 } // end variant_detail
 } // end detail
 
@@ -281,6 +338,13 @@ class variant_storage<> {};
 } // end detail
 
 
+template<class T>
+struct in_place_type_t {};
+
+template<std::size_t I>
+struct in_place_index_t {};
+
+
 template<typename... Types>
 class variant : private detail::variant_detail::variant_storage<Types...>
 {
@@ -288,7 +352,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     variant()
-      : variant(detail::variant_detail::first_type_t<Types...>{})
+      : variant(in_place_index_t<0>())
     {}
 
   private:
@@ -341,65 +405,51 @@ class variant : private detail::variant_detail::variant_storage<Types...>
       experimental::visit(visitor, *this, other);
     }
 
-  private:
-    template<class T>
-    struct unary_copy_construct_visitor
-    {
-      const T& other;
-
-      __agency_exec_check_disable__
-      __AGENCY_ANNOTATION
-      void operator()(T& self) const
-      {
-        new (&self) T(other);
-      }
-
-      template<class U>
-      __AGENCY_ANNOTATION
-      void operator()(U&&) const {}
-    };
-
-  public:
+    // converting copy constructor
+    // XXX we're supposed to select which alternative to use based on some somewhat complex rules that are not yet implemented
+    //     instead, just select the first alternative matching T
     template<class T,
-             class = typename std::enable_if<
+             __AGENCY_REQUIRES(
                detail::variant_detail::is_variant_alternative<T,variant>::value
-             >::type>
+             )>
     __AGENCY_ANNOTATION
     variant(const T& other)
-      : index_(detail::variant_detail::find_type<T,Types...>::value)
-    {
-      experimental::visit(unary_copy_construct_visitor<T>{other}, *this);
-    }
+      : variant(in_place_index_t<detail::variant_detail::find_type<T,Types...>::value>(), other)
+    {}
 
-  private:
-    template<class T>
-    struct unary_move_construct_visitor
-    {
-      T& other;
-
-      __agency_exec_check_disable__
-      __AGENCY_ANNOTATION
-      void operator()(T& self) const
-      {
-        new (&self) T(std::move(other));
-      }
-
-      template<class U>
-      __AGENCY_ANNOTATION
-      void operator()(U&&) const {}
-    };
-
-  public:
+    // converting move constructor
+    // XXX we're supposed to select which alternative to use based on some somewhat complex rules that are not yet implemented
+    //     instead, just select the first alternative matching T
     template<class T,
-             class = typename std::enable_if<
-               detail::variant_detail::is_variant_alternative<T,variant>::value
-             >::type>
+             __AGENCY_REQUIRES(
+               detail::variant_detail::is_variant_alternative<agency::detail::decay_t<T>,variant>::value
+             )>
     __AGENCY_ANNOTATION
     variant(T&& other)
-      : index_(detail::variant_detail::find_type<T,Types...>::value)
+      : variant(in_place_index_t<detail::variant_detail::find_type<agency::detail::decay_t<T>,Types...>::value>(), std::forward<T>(other))
+    {}
+
+    template<class T, class... Args,
+             __AGENCY_REQUIRES(
+               detail::variant_detail::occurs_exactly_once<T,Types...>::value &&
+               std::is_constructible<T, Args...>::value
+             )>
+    __AGENCY_ANNOTATION
+    variant(in_place_type_t<T>, Args&&... args)
+      : variant(in_place_index_t<detail::variant_detail::find_exactly_one<T,Types...>::value>(),
+                std::forward<Args>(args)...)
+    {}
+
+    template<std::size_t I, class... Args,
+             __AGENCY_REQUIRES(
+               I < sizeof...(Types) and
+               std::is_constructible<variant_alternative_t<I,variant>, Args...>::value
+             )>
+    __AGENCY_ANNOTATION
+    variant(in_place_index_t<I>, Args&&... args)
+      : index_(variant_npos)
     {
-      auto visitor = unary_move_construct_visitor<T>{other};
-      experimental::visit(visitor, *this);
+      emplace<I>(std::forward<Args>(args)...);
     }
 
   private:
@@ -431,8 +481,11 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     __AGENCY_ANNOTATION
     ~variant()
     {
-      auto visitor = destruct_visitor();
-      experimental::visit(visitor, *this);
+      if(!valueless_by_exception())
+      {
+        auto visitor = destruct_visitor();
+        experimental::visit(visitor, *this);
+      }
     }
 
   private:
@@ -543,6 +596,45 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     size_t index() const
     {
       return index_;
+    }
+
+    __AGENCY_ANNOTATION
+    bool valueless_by_exception() const
+    {
+      return index() == variant_npos;
+    }
+
+    template<std::size_t I, class... Args,
+             __AGENCY_REQUIRES(
+               I < sizeof...(Types) and
+               std::is_constructible<variant_alternative_t<I,variant>, Args...>::value
+             )>
+    __AGENCY_ANNOTATION
+    variant_alternative_t<I, variant>& emplace(Args&&... args)
+    {
+      // destroy the contained value if it exists
+      this->~variant();
+
+      using value_type = variant_alternative_t<I,variant>;
+
+      // placement new into this
+      ::new(this) value_type(std::forward<Args>(args)...);
+
+      // set the new index
+      index_ = I;
+
+      return *reinterpret_cast<value_type*>(this);
+    }
+
+    template<class T, class... Args,
+             __AGENCY_REQUIRES(
+               detail::variant_detail::occurs_exactly_once<T,Types...>::value &&
+               std::is_constructible<T, Args...>::value
+             )>
+    __AGENCY_ANNOTATION
+    T& emplace(Args&&... args)
+    {
+      return emplace<detail::variant_detail::find_exactly_one<T,Types...>::value>(std::forward<Args>(args)...);
     }
 
   private:
@@ -987,39 +1079,6 @@ const variant_alternative_t<i, variant<Types...>>&
   auto visitor = detail::variant_detail::get_visitor<type>();
   return *experimental::visit(visitor, v);
 }
-
-
-namespace detail
-{
-namespace variant_detail
-{
-
-
-template<size_t i, class... Types>
-struct find_exactly_one_impl;
-
-template<size_t i, class T, class U, class... Types>
-struct find_exactly_one_impl<i,T,U,Types...> : find_exactly_one_impl<i+1,T,Types...> {};
-
-template<size_t i, class T, class... Types>
-struct find_exactly_one_impl<i,T,T,Types...> : std::integral_constant<size_t, i>
-{
-  static_assert(find_exactly_one_impl<i,T,Types...>::value == variant_npos, "type can only occur once in type list");
-};
-
-
-template<size_t i, class T>
-struct find_exactly_one_impl<i,T> : std::integral_constant<size_t, variant_npos> {};
-
-template<class T, class... Types>
-struct find_exactly_one : find_exactly_one_impl<0,T,Types...>
-{
-  static_assert(find_exactly_one::value != variant_npos, "type not found in type list");
-};
-
-
-} // end variant_detail
-} // end detail
 
 
 template<class T, class... Types>
