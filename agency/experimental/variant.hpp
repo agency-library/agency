@@ -604,6 +604,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
       return index() == variant_npos;
     }
 
+    __agency_exec_check_disable__
     template<std::size_t I, class... Args,
              __AGENCY_REQUIRES(
                I < sizeof...(Types) and
