@@ -407,11 +407,11 @@ class async_future
     {
       // create the asynchronous state to store the continuation's result
       using result_type = agency::detail::result_of_t<ResultFactory()>;
-      detail::asynchronous_state<result_type> result_state(agency::detail::construct_ready, cuda::allocator<result_type>(), result_factory());
+      detail::asynchronous_state<result_type> result_state = detail::make_asynchronous_state(result_factory);
       
       // create the asynchronous state to store the continuation's outer shared argument
       using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
-      detail::asynchronous_state<outer_arg_type> outer_arg_state(agency::detail::construct_ready, cuda::allocator<outer_arg_type>(), outer_factory());
+      detail::asynchronous_state<outer_arg_type> outer_arg_state = detail::make_asynchronous_state(outer_factory);
       
       // create a functor to implement this bulk_then()
       auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg_state.data(), inner_factory);
