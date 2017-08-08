@@ -18,22 +18,27 @@ class blocking_barrier
 {
   public:
     inline explicit blocking_barrier(size_t num_threads)
-      : count_init_(num_threads),
-        count_(num_threads),
+      : count_(num_threads),
+        unarrived_count_(num_threads),
         generation_(0)
 
     {
       if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
     }
 
+    inline size_t count() const
+    {
+      return count_;
+    }
+
     inline void arrive_and_drop()
     {
       std::unique_lock<std::mutex> lock(mutex_);
 
-      if(--count_ == 0)
+      if(--unarrived_count_ == 0)
       {
-        // initialize the count variable
-        count_ = count_init_;
+        // initialize the unarrived count variable
+        unarrived_count_ = count();
 
         // bump the generation number
         generation_++;
@@ -47,10 +52,10 @@ class blocking_barrier
     {
       std::unique_lock<std::mutex> lock(mutex_);
 
-      if(--count_ == 0)
+      if(--unarrived_count_ == 0)
       {
-        // initialize the count variable
-        count_ = count_init_;
+        // initialize the unarrived count variable
+        unarrived_count_ = count();
 
         // bump the generation number
         generation_++;
@@ -67,7 +72,7 @@ class blocking_barrier
     }
 
   private:
-    size_t                  count_init_;
+    size_t                  unarrived_count_;
     size_t                  count_;
     size_t                  generation_;
     std::mutex              mutex_;
@@ -84,6 +89,11 @@ class spinning_barrier
         generation_(0)
     {
       if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
+    }
+
+    inline size_t count() const
+    {
+      return count_;
     }
 
     inline void arrive_and_drop()
