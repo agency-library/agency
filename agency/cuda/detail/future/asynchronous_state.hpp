@@ -18,6 +18,22 @@ template<class T>
 using asynchronous_state = agency::detail::asynchronous_state<T,cuda::detail::any_small_allocator<T>>;
 
 
+// XXX consider giving this function an overload taking an allocator
+template<class Factory>
+__host__ __device__
+asynchronous_state<agency::detail::result_of_t<Factory()>>
+  make_asynchronous_state(Factory factory)
+{
+  using type = agency::detail::result_of_t<Factory()>;
+
+  // XXX calling factory() here requires that its result be moveable
+  //     however, types such as synchronization primitives aren't moveable
+  //     it might be a better idea to push this call to the factory() down into
+  //     asynchronous_state's constructor so that it can initialize the result of factory() directly
+  return asynchronous_state<type>(agency::detail::construct_ready, agency::cuda::allocator<type>(), factory());
+}
+
+
 // XXX it might be better for the following functions to be members of asynchronous_state
 //     it also might better to have asynchronous_state's destructor asynchronously destroy the contained state
 //     that way, we wouldn't have to make special arrangements inside of clients of asynchronous_state
