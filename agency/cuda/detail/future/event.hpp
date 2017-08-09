@@ -221,6 +221,20 @@ class event
       return make_dependent_stream(stream().device());
     }
 
+    // Returns: std::move(stream()) if device is the device associated with this event
+    //          otherwise, it returns the result of make_dependent_stream(device)
+    // Post-condition: !valid()
+    __host__ __device__
+    detail::stream make_dependent_stream_and_invalidate(const device_id& device)
+    {
+      detail::stream result = (device == stream().device()) ? std::move(stream()) : make_dependent_stream(device);
+
+      // invalidate this event
+      *this = event();
+
+      return result;
+    }
+
     // this form of then_on() leaves this event in an invalid state afterwards
     template<class Function, class... Args>
     __host__ __device__
@@ -313,20 +327,6 @@ class event
 #endif // __cuda_lib_has_cudart
 
       return 0;
-    }
-
-    // Returns: std::move(stream()) if device is the device associated with this event
-    //          otherwise, it returns the result of make_dependent_stream(device)
-    // Post-condition: !valid()
-    __host__ __device__
-    detail::stream make_dependent_stream_and_invalidate(const device_id& device)
-    {
-      detail::stream result = (device == stream().device()) ? std::move(stream()) : make_dependent_stream(device);
-
-      // invalidate this event
-      *this = event();
-
-      return result;
     }
 
     __host__ __device__
