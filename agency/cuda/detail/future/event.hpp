@@ -4,7 +4,7 @@
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/detail/launch_kernel.hpp>
-#include <agency/cuda/detail/kernel.hpp>
+#include <agency/cuda/execution/detail/kernel/kernel.hpp>
 #include <agency/cuda/detail/future/stream.hpp>
 #include <agency/cuda/device.hpp>
 
