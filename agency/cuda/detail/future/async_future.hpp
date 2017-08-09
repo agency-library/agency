@@ -133,18 +133,18 @@ class future;
 template<class T>
 class async_future;
 
-namespace experimental
+namespace detail
 {
 
+template<class T>
 __host__ __device__
-async_future<void> make_async_future(cudaEvent_t e);
+async_future<T> make_async_future(event&& e, asynchronous_state<T>&& state);
 
-template<class T, class Allocator>
+template<class T>
 __host__ __device__
-async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Allocator& allocator);
+agency::detail::tuple<event,asynchronous_state<T>> invalidate_future(async_future<T>& future);
 
-
-} // end experimental
+} // end detail
 
 
 template<class T>
@@ -307,6 +307,12 @@ class async_future
     }
 
   private:
+    __host__ __device__
+    detail::asynchronous_state<T>& state()
+    {
+      return state_;
+    }
+
     template<class U>
     __host__ __device__
     static U get_ref_impl(agency::detail::empty_type_ptr<U> ptr)
@@ -435,9 +441,12 @@ class async_future
     template<class U> friend class agency::cuda::future;
     template<class Shape, class Index> friend class agency::cuda::detail::basic_grid_executor;
 
-    // friend experimental::make_async_future() to give them access to the private constructor
-    friend async_future<void> experimental::make_async_future(cudaEvent_t e);
-    template<class U, class Allocator> friend async_future<U> experimental::make_async_future(cudaEvent_t e, U* ptr, const Allocator& allocator);
+    // friend detail::make_async_future() to give it access to the private constructor
+    template<class U> friend async_future<U> detail::make_async_future(event&& e, asynchronous_state<U>&& state);
+
+    // friend detail::invalidate_future() to give it access to .event() & .state()
+    template<class U>
+    friend agency::detail::tuple<detail::event, detail::asynchronous_state<U>> detail::invalidate_future(async_future<U>& future);
 
     __host__ __device__
     async_future(detail::event&& e, detail::asynchronous_state<T>&& state)
@@ -481,6 +490,22 @@ async_future<T> make_ready_async_future(T&& val)
 
 namespace detail
 {
+
+
+template<class T>
+__host__ __device__
+async_future<T> make_async_future(event&& e, asynchronous_state<T>&& state)
+{
+  return async_future<T>(std::move(e), std::move(state));
+}
+
+
+template<class T>
+__host__ __device__
+agency::detail::tuple<event, asynchronous_state<T>> invalidate_future(async_future<T>& future)
+{
+  return agency::detail::tuple<event, asynchronous_state<T>>(std::move(future.event()), std::move(future.state()));
+}
 
 
 template<class Result>
@@ -575,7 +600,7 @@ inline async_future<void> make_async_future(cudaEvent_t e)
   cuda::detail::asynchronous_state<void> state(agency::detail::construct_not_ready, cuda::allocator<void>());
   assert(state.valid());
 
-  return async_future<void>(std::move(event), std::move(state));
+  return make_async_future(std::move(event), std::move(state));
 }
 
 
@@ -601,7 +626,7 @@ async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Allocator& alloca
   cuda::detail::asynchronous_state<T> state(agency::detail::construct_not_ready, ptr, allocator);
   assert(state.valid());
 
-  return async_future<T>(std::move(event), std::move(state));
+  return make_async_future(std::move(event), std::move(state));
 }
 
 
