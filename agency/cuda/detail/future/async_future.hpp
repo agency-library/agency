@@ -51,10 +51,6 @@ struct is_constructible_or_void
 {};
 
 
-// declare this so future may befriend it
-template<class Shape, class Index>
-class basic_grid_executor;
-
 template<class U>
 using element_type_is_not_unit = std::integral_constant<
   bool,
@@ -446,7 +442,6 @@ class async_future
 
     template<class U> friend class async_future;
     template<class U> friend class agency::cuda::future;
-    template<class Shape, class Index> friend class agency::cuda::detail::basic_grid_executor;
 
     // friend detail::make_async_future() to give it access to the private constructor
     template<class U> friend async_future<U> detail::make_async_future(event&& e, asynchronous_state<U>&& state);
