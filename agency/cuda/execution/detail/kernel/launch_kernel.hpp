@@ -5,9 +5,8 @@
 #include <agency/detail/is_call_possible.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
+#include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/cuda/device.hpp>
-#include <agency/cuda/detail/future/event.hpp>
-#include <agency/cuda/detail/future/stream.hpp>
 #include <type_traits>
 
 
@@ -159,16 +158,16 @@ void try_launch_kernel(GlobalFunctionPointer kernel, ::dim3 grid_dim, ::dim3 blo
 #if __cuda_lib_has_cudart
    // we have access to CUDART, so something went wrong during the kernel
 #  ifndef __CUDA_ARCH__
-   "cuda::detail::checked_launch_kernel(): CUDA error after cudaLaunch()"
+   "cuda::detail::try_launch_kernel(): CUDA error after cudaLaunch()"
 #  else
-   "cuda::detail::checked_launch_kernel(): CUDA error after cudaLaunchDevice()"
+   "cuda::detail::try_launch_kernel(): CUDA error after cudaLaunchDevice()"
 #  endif // __CUDA_ARCH__
 #else // __cuda_lib_has_cudart
    // we don't have access to CUDART, so output a useful error message explaining why it's unsupported
 #  ifndef __CUDA_ARCH__
-   "cuda::detail::checked_launch_kernel(): CUDA kernel launch from host requires nvcc"
+   "cuda::detail::try_launch_kernel(): CUDA kernel launch from host requires nvcc"
 #  else
-   "cuda::detail::checked_launch_kernel(): CUDA kernel launch from device requires arch=sm_35 or better and rdc=true"
+   "cuda::detail::try_launch_kernel(): CUDA kernel launch from device requires arch=sm_35 or better and rdc=true"
 #  endif // __CUDA_ARCH__
 #endif
   ;
@@ -190,28 +189,6 @@ void try_launch_kernel_on_device(GlobalFunctionPointer kernel, ::dim3 grid_dim, 
   detail::scoped_current_device scope(device);
 
   try_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream, args...);
-}
-
-
-template<class GlobalFunctionPointer, class... Args,
-         __AGENCY_REQUIRES(
-           std::is_pointer<GlobalFunctionPointer>::value
-         ),
-         __AGENCY_REQUIRES(
-           agency::detail::is_call_possible<GlobalFunctionPointer, Args...>::value
-         )>
-__host__ __device__
-detail::event
-  then_launch_kernel(GlobalFunctionPointer kernel, ::dim3 grid_dim, ::dim3 block_dim, size_t shared_memory_size, detail::event& predecessor, const device_id& device, const Args&... args)
-{
-  // make a stream for the continuation and invalidate the predecessor
-  detail::stream new_stream = predecessor.make_dependent_stream_and_invalidate(device);
-
-  // launch the kernel on the new stream
-  try_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), new_stream.device().native_handle(), args...);
-
-  // return a new event
-  return detail::event(std::move(new_stream));
 }
 
 

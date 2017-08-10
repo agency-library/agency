@@ -148,6 +148,7 @@ class point : public agency::detail::point_base_t<T,Rank>,
     }
 
 
+    // XXX this should be eliminated
     __AGENCY_ANNOTATION
     operator pointer ()
     {
@@ -155,6 +156,7 @@ class point : public agency::detail::point_base_t<T,Rank>,
     }
 
 
+    // XXX this should be eliminated
     __AGENCY_ANNOTATION
     operator const_pointer () const
     {

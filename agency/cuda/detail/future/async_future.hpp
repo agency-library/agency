@@ -20,7 +20,7 @@
 #include <agency/cuda/detail/future/event.hpp>
 #include <agency/cuda/detail/future/asynchronous_state.hpp>
 #include <agency/cuda/detail/future/continuation.hpp>
-#include <agency/cuda/detail/on_chip_shared_parameter.hpp>
+#include <agency/cuda/execution/detail/kernel/on_chip_shared_parameter.hpp>
 #include <agency/cuda/device.hpp>
 #include <agency/detail/unit.hpp>
 #include <agency/detail/invoke.hpp>
@@ -62,6 +62,7 @@ using element_type_is_not_unit = std::integral_constant<
 >;
 
 
+// XXX eliminate this
 template<class Function, class IndexFunction, class PredecessorPointer, class ResultPointer, class OuterParameterPointer, class InnerFactory>
 struct bulk_then_functor
 {
@@ -142,7 +143,11 @@ async_future<T> make_async_future(event&& e, asynchronous_state<T>&& state);
 
 template<class T>
 __host__ __device__
-agency::detail::tuple<event,asynchronous_state<T>> invalidate_future(async_future<T>& future);
+event& async_future_event(async_future<T>& future);
+
+template<class T>
+__host__ __device__
+asynchronous_state<T>& async_future_state(async_future<T>& future);
 
 } // end detail
 
@@ -369,6 +374,7 @@ class async_future
     }
 
 
+    // XXX eliminate this
     // XXX should think about getting rid of Shape and IndexFunction
     //     and require grid_dim & block_dim
     template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
@@ -406,6 +412,7 @@ class async_future
     }
 
 
+    // XXX eliminate this
     template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
     async_future<agency::detail::result_of_t<ResultFactory()>>
@@ -444,9 +451,13 @@ class async_future
     // friend detail::make_async_future() to give it access to the private constructor
     template<class U> friend async_future<U> detail::make_async_future(event&& e, asynchronous_state<U>&& state);
 
-    // friend detail::invalidate_future() to give it access to .event() & .state()
+    // friend detail::async_future_event() to give it access to .event()
     template<class U>
-    friend agency::detail::tuple<detail::event, detail::asynchronous_state<U>> detail::invalidate_future(async_future<U>& future);
+    friend detail::event& detail::async_future_event(async_future<U>& future);
+
+    // friend detail::async_future_state() to give it access to .state()
+    template<class U>
+    friend detail::asynchronous_state<U>& detail::async_future_state(async_future<U>& future);
 
     __host__ __device__
     async_future(detail::event&& e, detail::asynchronous_state<T>&& state)
@@ -502,9 +513,29 @@ async_future<T> make_async_future(event&& e, asynchronous_state<T>&& state)
 
 template<class T>
 __host__ __device__
-agency::detail::tuple<event, asynchronous_state<T>> invalidate_future(async_future<T>& future)
+event& async_future_event(async_future<T>& future)
 {
-  return agency::detail::tuple<event, asynchronous_state<T>>(std::move(future.event()), std::move(future.state()));
+  return future.event();
+}
+
+template<class T>
+__host__ __device__
+asynchronous_state<T>& async_future_state(async_future<T>& future)
+{
+  return future.state();
+}
+
+
+template<class T>
+__host__ __device__
+agency::detail::tuple<event, asynchronous_state<T>> invalidate_async_future(async_future<T>& future)
+{
+  // we invalidate the future by moving its event and state elsewhere
+
+  event& e = detail::async_future_event(future);
+  asynchronous_state<T>& state = detail::async_future_state(future);
+
+  return agency::detail::tuple<event, asynchronous_state<T>>(std::move(e), std::move(state));
 }
 
 

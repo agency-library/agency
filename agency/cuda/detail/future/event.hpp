@@ -3,8 +3,8 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
-#include <agency/cuda/detail/launch_kernel.hpp>
 #include <agency/cuda/execution/detail/kernel/kernel.hpp>
+#include <agency/cuda/execution/detail/kernel/launch_kernel.hpp>
 #include <agency/cuda/detail/future/stream.hpp>
 #include <agency/cuda/device.hpp>
 
@@ -147,20 +147,25 @@ class event
       other.e_ = tmp;
     }
 
+    // XXX eliminate this
     template<class Function, class... Args>
     __host__ __device__
-    static void *then_kernel()
+    static auto then_kernel() ->
+      decltype(&cuda_kernel<Function,Args...>)
     {
-      return reinterpret_cast<void*>(&cuda_kernel<Function,Args...>);
+      return &cuda_kernel<Function,Args...>;
     }
 
+    // XXX eliminate this
     template<class Function, class... Args>
     __host__ __device__
-    static void *then_kernel(const Function&, const Args&...)
+    static auto then_kernel(const Function&, const Args&...) ->
+      decltype(then_kernel<Function,Args...>())
     {
       return then_kernel<Function,Args...>();
     }
 
+    // XXX eliminate this -- it's redundant with then_launch_kernel_and_leave_event_valid()
     // this form of then() leaves this event in a valid state afterwards
     template<class Function, class... Args>
     __host__ __device__
@@ -169,6 +174,7 @@ class event
       return then_on(f, grid_dim, block_dim, shared_memory_size, stream().device(), args...);
     }
 
+    // XXX eliminate this -- it's redundant with then_launch_kernel()
     // this form of then() leaves this event in an invalid state afterwards
     template<class Function, class... Args>
     __host__ __device__
@@ -181,22 +187,26 @@ class event
       auto kernel = then_kernel(f,args...);
 
       // launch the kernel on this event's stream
-      detail::checked_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream().native_handle(), f, args...);
+      detail::try_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream().native_handle(), f, args...);
 
       // return a new event
       return event(std::move(stream()));
     }
 
+    // XXX eliminate this
     template<class Function, class... Args>
     __host__ __device__
-    static void *then_on_kernel()
+    static auto then_on_kernel() ->
+      decltype(&cuda_kernel<Function,Args...>)
     {
-      return reinterpret_cast<void*>(&cuda_kernel<Function,Args...>);
+      return &cuda_kernel<Function,Args...>;
     }
 
+    // XXX eliminate this
     template<class Function, class... Args>
     __host__ __device__
-    static void *then_on_kernel(const Function&, const Args&...)
+    static auto then_on_kernel(const Function&, const Args&...) ->
+      decltype(then_on_kernel<Function,Args...>())
     {
       return then_on_kernel<Function,Args...>();
     }
@@ -235,6 +245,7 @@ class event
       return result;
     }
 
+    // XXX eliminate this -- it's redundant with then_launch_kernel
     // this form of then_on() leaves this event in an invalid state afterwards
     template<class Function, class... Args>
     __host__ __device__
@@ -247,12 +258,13 @@ class event
       auto kernel = then_on_kernel(f,args...);
 
       // launch the kernel on the new stream
-      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), device.native_handle(), f, args...);
+      detail::try_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), device.native_handle(), f, args...);
 
       // return a new event
       return event(std::move(new_stream));
     }
 
+    // XXX eliminate this -- it's redundant with then_launch_kernel_and_leave_event_valid
     // this form of then_on() leaves this event in a valid state afterwards
     template<class Function, class... Args>
     __host__ __device__
@@ -265,7 +277,7 @@ class event
       auto kernel = then_on_kernel(f,args...);
 
       // launch the kernel on the new stream
-      detail::checked_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), device.native_handle(), f, args...);
+      detail::try_launch_kernel_on_device(kernel, grid_dim, block_dim, shared_memory_size, new_stream.native_handle(), device.native_handle(), f, args...);
 
       // return a new event
       return event(std::move(new_stream));
