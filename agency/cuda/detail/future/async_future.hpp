@@ -20,15 +20,11 @@
 #include <agency/cuda/detail/future/event.hpp>
 #include <agency/cuda/detail/future/asynchronous_state.hpp>
 #include <agency/cuda/detail/future/continuation.hpp>
-#include <agency/cuda/execution/detail/kernel/on_chip_shared_parameter.hpp>
 #include <agency/cuda/device.hpp>
 #include <agency/detail/unit.hpp>
-#include <agency/detail/invoke.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/tuple.hpp>
-#include <agency/detail/shape_cast.hpp>
-#include <agency/detail/control_structures/bind.hpp>
 #include <utility>
 #include <type_traits>
 
