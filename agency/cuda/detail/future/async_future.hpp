@@ -190,13 +190,6 @@ class async_future
       return async_future(std::move(ready_event), std::forward<Args>(args)...);
     }
 
-    // XXX this should be private
-    __host__ __device__
-    auto data() const -> decltype(state_.data())
-    {
-      return state_.data();
-    }
-
     template<class Function>
     __host__ __device__
     async_future<
@@ -212,7 +205,7 @@ class async_future
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready, cuda::allocator<result_type>());
 
       // tuple up f's input state
-      auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
+      auto unfiltered_pointer_tuple = agency::detail::make_tuple(state().data());
 
       // filter void states
       auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
@@ -268,10 +261,10 @@ class async_future
     // XXX get_ref() should be a member of asynchronous_state
     __host__ __device__
     auto get_ref() ->
-      decltype(get_ref_impl(this->data()))
+      decltype(get_ref_impl(this->state().data()))
     {
       wait();
-      return get_ref_impl(data());
+      return get_ref_impl(state().data());
     }
 
     // this version of then() leaves the future in a valid state
@@ -291,7 +284,7 @@ class async_future
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready);
 
       // tuple up f's input state
-      auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
+      auto unfiltered_pointer_tuple = agency::detail::make_tuple(state().data());
 
       // filter void states
       auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
@@ -435,7 +428,7 @@ when_all(async_future<Types>&... futures)
   detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready, cuda::allocator<result_type>());
 
   // tuple up the input states
-  auto unfiltered_pointer_tuple = agency::detail::make_tuple(futures.data()...);
+  auto unfiltered_pointer_tuple = agency::detail::make_tuple(futures.state().data()...);
 
   // filter void states
   auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
