@@ -80,6 +80,10 @@ event& async_future_event(async_future<T>& future);
 
 template<class T>
 __host__ __device__
+const event& async_future_event(const async_future<T>& future);
+
+template<class T>
+__host__ __device__
 asynchronous_state<T>& async_future_state(async_future<T>& future);
 
 } // end detail
@@ -164,20 +168,6 @@ class async_future
       return event_.is_ready();
     } // end is_ready()
 
-    // XXX this should be private
-    __host__ __device__
-    detail::event& event()
-    {
-      return event_;
-    } // end event()
-
-    // XXX this should be private
-    __host__ __device__
-    const detail::event& event() const
-    {
-      return event_;
-    } // end event()
-
     template<class... Args,
              class = typename std::enable_if<
                detail::is_constructible_or_void<T,Args...>::value
@@ -238,6 +228,18 @@ class async_future
     }
 
   private:
+    __host__ __device__
+    detail::event& event()
+    {
+      return event_;
+    } // end event()
+
+    __host__ __device__
+    const detail::event& event() const
+    {
+      return event_;
+    } // end event()
+
     __host__ __device__
     detail::asynchronous_state<T>& state()
     {
@@ -310,6 +312,9 @@ class async_future
     template<class U>
     friend detail::event& detail::async_future_event(async_future<U>& future);
 
+    template<class U>
+    friend const detail::event& detail::async_future_event(const async_future<U>& future);
+
     // friend detail::async_future_state() to give it access to .state()
     template<class U>
     friend detail::asynchronous_state<U>& detail::async_future_state(async_future<U>& future);
@@ -344,7 +349,8 @@ inline __host__ __device__
 async_future<void> make_ready_async_future()
 {
   return async_future<void>::make_ready();
-} // end make_ready_async_future()
+}
+
 
 template<class T>
 __host__ __device__
@@ -372,6 +378,15 @@ event& async_future_event(async_future<T>& future)
 {
   return future.event();
 }
+
+
+template<class T>
+__host__ __device__
+const event& async_future_event(const async_future<T>& future)
+{
+  return future.event();
+}
+
 
 template<class T>
 __host__ __device__
@@ -462,7 +477,7 @@ template<class T>
 __host__ __device__
 cudaStream_t make_dependent_stream(const async_future<T>& future)
 {
-  return future.event().make_dependent_stream().release();
+  return cuda::detail::async_future_event(future).make_dependent_stream().release();
 }
 
 
