@@ -377,6 +377,16 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
         {}
 
         __AGENCY_ANNOTATION
+        size_t count() const
+        {
+#ifndef __CUDA_ARCH__
+          return barrier_.count();
+#else
+          return blockDim.x * blockDim.y * blockDim.z;
+#endif
+        }
+
+        __AGENCY_ANNOTATION
         void arrive_and_wait()
         {
 #ifndef __CUDA_ARCH__
@@ -540,8 +550,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       __AGENCY_ANNOTATION
       shared_param_type(const typename super_t::param_type& param)
         : barrier_(param.domain().size()),
-          memory_resource_(),
-          count_(param.domain().size())
+          memory_resource_()
       {
         // note we specifically avoid default constructing broadcast_channel_
       }
@@ -550,9 +559,8 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       //     i'm not certain it's necessary to copy shared_param_type anymore
       __AGENCY_ANNOTATION
       shared_param_type(const shared_param_type& other)
-        : barrier_(other.count_),
-          memory_resource_(),
-          count_(other.count_)
+        : barrier_(other.barrier_.count()),
+          memory_resource_()
       {}
 
       // broadcast_channel_ needs to be the first member to ensure proper alignment because we reinterpret it to arbitrary T*
@@ -560,7 +568,6 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       broadcast_channel_type broadcast_channel_;
       barrier barrier_;
       memory_resource_type memory_resource_;
-      int count_;
     };
 
   private:
