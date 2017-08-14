@@ -28,6 +28,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdio>
+#include <type_traits>
 
 namespace agency
 {
@@ -43,15 +44,12 @@ template<std::size_t N, std::size_t alignment = alignof(std::max_align_t)>
 class arena_resource
 {
   alignas(alignment) char buf_[N];
-  char* ptr_to_first_free_byte_;
+  unsigned int index_of_first_free_byte_;
 
   public:
     __AGENCY_ANNOTATION
-    ~arena_resource() {ptr_to_first_free_byte_ = nullptr;}
-
-    __AGENCY_ANNOTATION
-    arena_resource() noexcept : ptr_to_first_free_byte_(buf_) {}
-
+    arena_resource() noexcept : index_of_first_free_byte_(0) {}
+    
     __AGENCY_ANNOTATION
     arena_resource(const arena_resource&) = delete;
 
@@ -61,26 +59,26 @@ class arena_resource
     __AGENCY_ANNOTATION
     void* allocate(std::size_t n) noexcept
     {
-      auto const aligned_n = align_up(n);
-      if(aligned_n > static_cast<decltype(aligned_n)>(buf_ + N - ptr_to_first_free_byte_))
+      std::size_t aligned_n = align_up(n);
+      if(aligned_n > num_remaining_bytes())
       {
         return nullptr;
       }
 
-      char* r = ptr_to_first_free_byte_;
-      ptr_to_first_free_byte_ += aligned_n;
+      char* r = buf_ + index_of_first_free_byte_;
+      index_of_first_free_byte_ += aligned_n;
       return r;
     }
 
     __AGENCY_ANNOTATION
     void deallocate(void* p_, std::size_t n) noexcept
     {
-      char* p = reinterpret_cast<char*>(p_);
+      unsigned int index_of_p = reinterpret_cast<char*>(p_) - buf_;
+      std::size_t aligned_n = align_up(n);
 
-      n = align_up(n);
-      if(p + n == ptr_to_first_free_byte_)
+      if(index_of_p == index_of_first_free_byte_ - aligned_n)
       {
-        ptr_to_first_free_byte_ = p;
+        index_of_first_free_byte_ = index_of_p;
       }
     }
 
@@ -91,25 +89,17 @@ class arena_resource
     }
 
     __AGENCY_ANNOTATION
-    std::size_t used() const noexcept
-    {
-      return static_cast<std::size_t>(ptr_to_first_free_byte_ - buf_);
-    }
-
-    __AGENCY_ANNOTATION
     void reset() noexcept
     {
-      ptr_to_first_free_byte_ = buf_;
+      index_of_first_free_byte_ = 0;
     }
 
     __AGENCY_ANNOTATION
     bool owns(void* ptr, std::size_t) const noexcept
     {
-      const char* ptr_to_char = reinterpret_cast<const char*>(ptr);
+      int index_of_ptr = reinterpret_cast<char*>(ptr) - buf_;
 
-      // XXX workaround nvbug 1853802
-      //return (buf_ <= ptr_to_char) && (ptr_to_char <= ptr_to_first_free_byte_);
-      return (ptr_to_char >= buf_) && (ptr_to_first_free_byte_ >= ptr_to_char);
+      return index_of_ptr >= 0 && index_of_first_free_byte_ >= static_cast<unsigned int>(index_of_ptr);
     }
 
   private:
@@ -117,6 +107,18 @@ class arena_resource
     static std::size_t align_up(std::size_t n) noexcept
     {
       return (n + (alignment-1)) & ~(alignment-1);
+    }
+
+    __AGENCY_ANNOTATION
+    const char* end_of_buffer() const noexcept
+    {
+      return buf_ + size();
+    }
+
+    __AGENCY_ANNOTATION
+    std::size_t num_remaining_bytes() const noexcept
+    {
+      return N - index_of_first_free_byte_;
     }
 };
 
@@ -131,12 +133,6 @@ class arena_resource<0,alignment> : public null_resource
 
     __AGENCY_ANNOTATION
     static constexpr std::size_t size() noexcept
-    {
-      return 0;
-    }
-
-    __AGENCY_ANNOTATION
-    static constexpr std::size_t used() noexcept
     {
       return 0;
     }

@@ -18,8 +18,8 @@ class blocking_barrier
 {
   public:
     inline explicit blocking_barrier(size_t num_threads)
-      : count_(num_threads),
-        unarrived_count_(num_threads),
+      : unarrived_count_(num_threads),
+        count_(num_threads),
         generation_(0)
 
     {

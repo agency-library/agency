@@ -28,7 +28,7 @@ struct on_chip_shared_parameter
 {
   using value_type = agency::detail::result_of_t<Factory()>;
 
-  __device__
+  inline __device__
   on_chip_shared_parameter(bool is_leader, Factory factory)
     : is_leader_(is_leader)
   {
@@ -46,7 +46,7 @@ struct on_chip_shared_parameter
   on_chip_shared_parameter(const on_chip_shared_parameter&) = delete;
   on_chip_shared_parameter(on_chip_shared_parameter&&) = delete;
 
-  __device__
+  inline __device__
   ~on_chip_shared_parameter()
   {
     __syncthreads();
@@ -57,7 +57,7 @@ struct on_chip_shared_parameter
     }
   }
 
-  __device__
+  inline __device__
   value_type& get()
   {
     return inner_shared_param_->get();
@@ -73,13 +73,13 @@ struct on_chip_shared_parameter<Factory,true>
 {
   using value_type = agency::detail::result_of_t<Factory()>;
 
-  __device__
+  inline __device__
   on_chip_shared_parameter(bool is_leader_, Factory) {}
 
   on_chip_shared_parameter(const on_chip_shared_parameter&) = delete;
   on_chip_shared_parameter(on_chip_shared_parameter&&) = delete;
 
-  __device__
+  inline __device__
   value_type& get()
   {
     return param_;

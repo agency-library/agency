@@ -20,15 +20,11 @@
 #include <agency/cuda/detail/future/event.hpp>
 #include <agency/cuda/detail/future/asynchronous_state.hpp>
 #include <agency/cuda/detail/future/continuation.hpp>
-#include <agency/cuda/detail/on_chip_shared_parameter.hpp>
 #include <agency/cuda/device.hpp>
 #include <agency/detail/unit.hpp>
-#include <agency/detail/invoke.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/tuple.hpp>
-#include <agency/detail/shape_cast.hpp>
-#include <agency/detail/control_structures/bind.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -51,73 +47,11 @@ struct is_constructible_or_void
 {};
 
 
-// declare this so future may befriend it
-template<class Shape, class Index>
-class basic_grid_executor;
-
 template<class U>
 using element_type_is_not_unit = std::integral_constant<
   bool,
   !std::is_same<typename std::pointer_traits<U>::element_type, agency::detail::unit>::value
 >;
-
-
-template<class Function, class IndexFunction, class PredecessorPointer, class ResultPointer, class OuterParameterPointer, class InnerFactory>
-struct bulk_then_functor
-{
-  Function              f_;
-  IndexFunction         index_function_;
-  PredecessorPointer    predecessor_ptr_;
-  ResultPointer         result_ptr_;
-  OuterParameterPointer outer_param_ptr_;
-  InnerFactory          inner_factory_;
-
-  // this gets called when the predecessor future we depend on is not void
-  template<class Index, class T1, class T2, class T3, class T4>
-  __device__ static inline void impl(Function f, const Index& idx, T1& predecessor, T2& result, T3& outer_param, T4& inner_param)
-  {
-    f(idx, predecessor, result, outer_param, inner_param);
-  }
-
-  // this gets called when the future we depend on is void
-  template<class Index, class T2, class T3, class T4>
-  __device__ static inline void impl(Function f, const Index& idx, agency::detail::unit, T2& result, T3& outer_param, T4& inner_param)
-  {
-    f(idx, result, outer_param, inner_param);
-  }
-
-  __device__ inline void operator()()
-  {
-    // we need to cast each dereference below to convert proxy references to ensure that f() only sees raw references
-    // XXX isn't there a more elegant way to deal with this?
-    using predecessor_reference = typename std::pointer_traits<PredecessorPointer>::element_type &;
-    using result_reference      = typename std::pointer_traits<ResultPointer>::element_type &;
-    using outer_param_reference = typename std::pointer_traits<OuterParameterPointer>::element_type &;
-
-    auto idx = index_function_();
-
-    // XXX i don't think we're doing the leader calculation in a portable way
-    //     we need a way to compare idx to the origin index to figure out if this invocation represents the CTA leader
-    on_chip_shared_parameter<InnerFactory> inner_param(idx[1] == 0, inner_factory_);
-
-    impl(
-      f_,
-      idx,
-      static_cast<predecessor_reference>(*predecessor_ptr_),
-      static_cast<result_reference>(*result_ptr_),
-      static_cast<outer_param_reference>(*outer_param_ptr_),
-      inner_param.get()
-    );
-  }
-};
-
-template<class Function, class IndexFunction, class PredecessorPointer, class ResultPointer, class OuterParameterPointer, class InnerFactory>
-__host__ __device__
-bulk_then_functor<Function,IndexFunction,PredecessorPointer,ResultPointer,OuterParameterPointer,InnerFactory>
-  make_bulk_then_functor(Function f, IndexFunction index_function, PredecessorPointer predecessor_ptr, ResultPointer result_ptr, OuterParameterPointer outer_param_ptr, InnerFactory inner_factory)
-{
-  return bulk_then_functor<Function,IndexFunction,PredecessorPointer,ResultPointer,OuterParameterPointer,InnerFactory>{f, index_function, predecessor_ptr, result_ptr, outer_param_ptr, inner_factory};
-}
 
 
 } // end detail
@@ -133,18 +67,26 @@ class future;
 template<class T>
 class async_future;
 
-namespace experimental
+namespace detail
 {
 
+template<class T>
 __host__ __device__
-async_future<void> make_async_future(cudaEvent_t e);
+async_future<T> make_async_future(event&& e, asynchronous_state<T>&& state);
 
-template<class T, class Allocator>
+template<class T>
 __host__ __device__
-async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Allocator& allocator);
+event& async_future_event(async_future<T>& future);
 
+template<class T>
+__host__ __device__
+const event& async_future_event(const async_future<T>& future);
 
-} // end experimental
+template<class T>
+__host__ __device__
+asynchronous_state<T>& async_future_state(async_future<T>& future);
+
+} // end detail
 
 
 template<class T>
@@ -226,20 +168,6 @@ class async_future
       return event_.is_ready();
     } // end is_ready()
 
-    // XXX this should be private
-    __host__ __device__
-    detail::event& event()
-    {
-      return event_;
-    } // end event()
-
-    // XXX this should be private
-    __host__ __device__
-    const detail::event& event() const
-    {
-      return event_;
-    } // end event()
-
     template<class... Args,
              class = typename std::enable_if<
                detail::is_constructible_or_void<T,Args...>::value
@@ -250,13 +178,6 @@ class async_future
       detail::event ready_event(detail::event::construct_ready);
 
       return async_future(std::move(ready_event), std::forward<Args>(args)...);
-    }
-
-    // XXX this should be private
-    __host__ __device__
-    auto data() const -> decltype(state_.data())
-    {
-      return state_.data();
     }
 
     template<class Function>
@@ -274,7 +195,7 @@ class async_future
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready, cuda::allocator<result_type>());
 
       // tuple up f's input state
-      auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
+      auto unfiltered_pointer_tuple = agency::detail::make_tuple(state().data());
 
       // filter void states
       auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
@@ -307,6 +228,24 @@ class async_future
     }
 
   private:
+    __host__ __device__
+    detail::event& event()
+    {
+      return event_;
+    } // end event()
+
+    __host__ __device__
+    const detail::event& event() const
+    {
+      return event_;
+    } // end event()
+
+    __host__ __device__
+    detail::asynchronous_state<T>& state()
+    {
+      return state_;
+    }
+
     template<class U>
     __host__ __device__
     static U get_ref_impl(agency::detail::empty_type_ptr<U> ptr)
@@ -324,10 +263,10 @@ class async_future
     // XXX get_ref() should be a member of asynchronous_state
     __host__ __device__
     auto get_ref() ->
-      decltype(get_ref_impl(this->data()))
+      decltype(get_ref_impl(this->state().data()))
     {
       wait();
-      return get_ref_impl(data());
+      return get_ref_impl(state().data());
     }
 
     // this version of then() leaves the future in a valid state
@@ -347,7 +286,7 @@ class async_future
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready);
 
       // tuple up f's input state
-      auto unfiltered_pointer_tuple = agency::detail::make_tuple(data());
+      auto unfiltered_pointer_tuple = agency::detail::make_tuple(state().data());
 
       // filter void states
       auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
@@ -363,81 +302,22 @@ class async_future
     }
 
 
-    // XXX should think about getting rid of Shape and IndexFunction
-    //     and require grid_dim & block_dim
-    template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
-    __host__ __device__
-    async_future<agency::detail::result_of_t<ResultFactory()>>
-      bulk_then(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
-    {
-      // create the asynchronous state to store the continuation's result
-      using result_type = agency::detail::result_of_t<ResultFactory()>;
-      detail::asynchronous_state<result_type> result_state = detail::make_asynchronous_state(result_factory);
-      
-      // create the asynchronous state to store the continuation's outer shared argument
-      using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
-      detail::asynchronous_state<outer_arg_type> outer_arg_state = detail::make_asynchronous_state(outer_factory);
-      
-      // create a functor to implement this bulk_then()
-      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg_state.data(), inner_factory);
-
-      uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
-      uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
-
-      ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
-      ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
-      
-      // schedule g on our device and get a handle to the next event
-      auto next_event = event().then_on_and_invalidate(g, grid_dim, block_dim, 0, device.native_handle());
-
-      // schedule this future's state for destruction when the next event is complete
-      detail::invalidate_and_destroy_when(state_, next_event);
-
-      // schedule the outer arg's state for destruction when the next event is complete
-      detail::invalidate_and_destroy_when(outer_arg_state, next_event);
-      
-      return async_future<result_type>(std::move(next_event), std::move(result_state));
-    }
-
-
-    template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
-    __host__ __device__
-    async_future<agency::detail::result_of_t<ResultFactory()>>
-      bulk_then_and_leave_valid(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
-    {
-      // create the asynchronous state to store the continuation's result
-      using result_type = agency::detail::result_of_t<ResultFactory()>;
-      detail::asynchronous_state<result_type> result_state = detail::make_asynchronous_state(result_factory);
-      
-      // create the asynchronous state to store the continuation's outer shared argument
-      using outer_arg_type = agency::detail::result_of_t<OuterFactory()>;
-      detail::asynchronous_state<outer_arg_type> outer_arg_state = detail::make_asynchronous_state(outer_factory);
-      
-      // create a functor to implement this bulk_then()
-      auto g = detail::make_bulk_then_functor(f, index_function, data(), result_state.data(), outer_arg_state.data(), inner_factory);
-
-      uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
-      uint3 inner_shape = agency::detail::shape_cast<uint3>(agency::detail::get<1>(shape));
-
-      ::dim3 grid_dim{outer_shape[0], outer_shape[1], outer_shape[2]};
-      ::dim3 block_dim{inner_shape[0], inner_shape[1], inner_shape[2]};
-      
-      // schedule g on our device and get a handle to the next event
-      auto next_event = event().then_on(g, grid_dim, block_dim, 0, device.native_handle());
-
-      // schedule the outer arg's state for destruction when the next event is complete
-      detail::invalidate_and_destroy_when(outer_arg_state, next_event);
-      
-      return async_future<result_type>(std::move(next_event), std::move(result_state));
-    }
-
     template<class U> friend class async_future;
     template<class U> friend class agency::cuda::future;
-    template<class Shape, class Index> friend class agency::cuda::detail::basic_grid_executor;
 
-    // friend experimental::make_async_future() to give them access to the private constructor
-    friend async_future<void> experimental::make_async_future(cudaEvent_t e);
-    template<class U, class Allocator> friend async_future<U> experimental::make_async_future(cudaEvent_t e, U* ptr, const Allocator& allocator);
+    // friend detail::make_async_future() to give it access to the private constructor
+    template<class U> friend async_future<U> detail::make_async_future(event&& e, asynchronous_state<U>&& state);
+
+    // friend detail::async_future_event() to give it access to .event()
+    template<class U>
+    friend detail::event& detail::async_future_event(async_future<U>& future);
+
+    template<class U>
+    friend const detail::event& detail::async_future_event(const async_future<U>& future);
+
+    // friend detail::async_future_state() to give it access to .state()
+    template<class U>
+    friend detail::asynchronous_state<U>& detail::async_future_state(async_future<U>& future);
 
     __host__ __device__
     async_future(detail::event&& e, detail::asynchronous_state<T>&& state)
@@ -469,7 +349,8 @@ inline __host__ __device__
 async_future<void> make_ready_async_future()
 {
   return async_future<void>::make_ready();
-} // end make_ready_async_future()
+}
+
 
 template<class T>
 __host__ __device__
@@ -481,6 +362,51 @@ async_future<T> make_ready_async_future(T&& val)
 
 namespace detail
 {
+
+
+template<class T>
+__host__ __device__
+async_future<T> make_async_future(event&& e, asynchronous_state<T>&& state)
+{
+  return async_future<T>(std::move(e), std::move(state));
+}
+
+
+template<class T>
+__host__ __device__
+event& async_future_event(async_future<T>& future)
+{
+  return future.event();
+}
+
+
+template<class T>
+__host__ __device__
+const event& async_future_event(const async_future<T>& future)
+{
+  return future.event();
+}
+
+
+template<class T>
+__host__ __device__
+asynchronous_state<T>& async_future_state(async_future<T>& future)
+{
+  return future.state();
+}
+
+
+template<class T>
+__host__ __device__
+agency::detail::tuple<event, asynchronous_state<T>> invalidate_async_future(async_future<T>& future)
+{
+  // we invalidate the future by moving its event and state elsewhere
+
+  event& e = detail::async_future_event(future);
+  asynchronous_state<T>& state = detail::async_future_state(future);
+
+  return agency::detail::tuple<event, asynchronous_state<T>>(std::move(e), std::move(state));
+}
 
 
 template<class Result>
@@ -517,7 +443,7 @@ when_all(async_future<Types>&... futures)
   detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready, cuda::allocator<result_type>());
 
   // tuple up the input states
-  auto unfiltered_pointer_tuple = agency::detail::make_tuple(futures.data()...);
+  auto unfiltered_pointer_tuple = agency::detail::make_tuple(futures.state().data()...);
 
   // filter void states
   auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
@@ -551,7 +477,7 @@ template<class T>
 __host__ __device__
 cudaStream_t make_dependent_stream(const async_future<T>& future)
 {
-  return future.event().make_dependent_stream().release();
+  return cuda::detail::async_future_event(future).make_dependent_stream().release();
 }
 
 
@@ -575,7 +501,7 @@ inline async_future<void> make_async_future(cudaEvent_t e)
   cuda::detail::asynchronous_state<void> state(agency::detail::construct_not_ready, cuda::allocator<void>());
   assert(state.valid());
 
-  return async_future<void>(std::move(event), std::move(state));
+  return make_async_future(std::move(event), std::move(state));
 }
 
 
@@ -601,7 +527,7 @@ async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Allocator& alloca
   cuda::detail::asynchronous_state<T> state(agency::detail::construct_not_ready, ptr, allocator);
   assert(state.valid());
 
-  return async_future<T>(std::move(event), std::move(state));
+  return make_async_future(std::move(event), std::move(state));
 }
 
 

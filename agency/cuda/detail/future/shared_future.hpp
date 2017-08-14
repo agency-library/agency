@@ -28,6 +28,20 @@ namespace cuda
 {
 
 
+template<class T>
+class shared_future;
+
+namespace detail
+{
+
+
+template<class T>
+agency::cuda::future<T>& underlying_future(shared_future<T>& future);
+
+ 
+} // end detail
+
+
 // XXX TODO port this class's members to __host__ __device__
 //          by introducing a CUDA-compatible implementation of shared_ptr
 template<class T>
@@ -35,6 +49,15 @@ class shared_future
 {
   private:
     std::shared_ptr<agency::cuda::future<T>> underlying_future_;
+
+    agency::cuda::future<T>& underlying_future()
+    {
+      return *underlying_future_;
+    }
+
+    // friend underlying_future to give it access to underlying_future()
+    template<class U>
+    friend agency::cuda::future<U>& detail::underlying_future(shared_future<U>& future);
 
   public:
     shared_future() = default;
@@ -99,14 +122,21 @@ class shared_future
 
       return underlying_future_->then_and_leave_valid(f);
     }
-
-    template<class Function, class Shape, class IndexFunction, class ResultFactory, class OuterFactory, class InnerFactory>
-    agency::cuda::future<agency::detail::result_of_t<ResultFactory()>>
-      bulk_then(Function f, Shape shape, IndexFunction index_function, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
-    {
-      return underlying_future_->bulk_then_and_leave_valid(f, shape, index_function, result_factory, outer_factory, inner_factory, device);
-    }
 };
+
+
+namespace detail
+{
+
+
+template<class T>
+agency::cuda::future<T>& underlying_future(shared_future<T>& future)
+{
+  return future.underlying_future();
+}
+
+ 
+} // end detail
 
 
 // implement async_future<T>::share() here because this implementation
