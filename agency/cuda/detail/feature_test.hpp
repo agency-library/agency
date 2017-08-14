@@ -21,3 +21,10 @@
 #  define __cuda_lib_has_printf 1
 #endif
 
+
+#if (!defined(__CUDA_ARCH__) || (__CUDA_ARCH__ == 0)) && (CUDART_VERSION >= 9000)
+#  define __cuda_lib_has_cudaLaunchCooperativeKernel 1
+#else
+#  define __cuda_lib_has_cudaLaunchCooperativeKernel 0
+#endif
+

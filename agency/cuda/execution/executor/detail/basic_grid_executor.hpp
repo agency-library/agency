@@ -5,6 +5,7 @@
 #include <agency/coordinate/detail/shape/shape_size.hpp>
 #include <agency/detail/tuple.hpp>
 #include <agency/execution/execution_categories.hpp>
+#include <agency/cuda/execution/detail/kernel/bulk_then_execute_concurrent_kernel.hpp>
 #include <agency/cuda/execution/detail/kernel/bulk_then_execute_kernel.hpp>
 #include <agency/cuda/memory/allocator.hpp>
 #include <agency/cuda/future.hpp>
@@ -163,10 +164,10 @@ class basic_grid_executor
   public:
     using execution_category =
       scoped_execution_tag<
-        // thread blocks may be parallel or concurrent with respect to each other
+        // CUDA thread blocks may be parallel or concurrent with respect to each other
         outer_execution_category,
 
-        // cuda threads are always concurrent within a thread block
+        // CUDA threads are always concurrent within a thread block
         concurrent_execution_tag
       >;
 
@@ -180,10 +181,12 @@ class basic_grid_executor
     template<class T>
     using allocator = cuda::allocator<T>;
 
+
     __host__ __device__
     explicit basic_grid_executor(device_id device = device_id(0))
       : device_(device)
     {}
+
 
     __host__ __device__
     device_id device() const
@@ -191,11 +194,13 @@ class basic_grid_executor
       return device_;
     }
 
+
     __host__ __device__
     void device(device_id device)
     {
       device_ = device;
     }
+
 
     __host__ __device__
     async_future<void> make_ready_future() const
@@ -203,45 +208,44 @@ class basic_grid_executor
       return cuda::make_ready_async_future();
     }
 
+
   private:
-    __agency_exec_check_disable__
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
     static async_future<agency::detail::result_of_t<ResultFactory()>>
-      launch_grid_and_invalidate_predecessor(parallel_execution_tag, 
-                                             device_id device,
-                                             Function f,
-                                             dim3 grid_dim,
-                                             inner_shape_type block_dim,
-                                             async_future<T>& predecessor,
-                                             ResultFactory result_factory,
-                                             OuterFactory outer_factory,
-                                             InnerFactory inner_factory)
+      launch_kernel_and_invalidate_predecessor(parallel_execution_tag, 
+                                               device_id device,
+                                               Function f,
+                                               dim3 grid_dim,
+                                               inner_shape_type block_dim,
+                                               async_future<T>& predecessor,
+                                               ResultFactory result_factory,
+                                               OuterFactory outer_factory,
+                                               InnerFactory inner_factory)
     {
       return detail::launch_bulk_then_execute_kernel_and_invalidate_predecessor(device, f, grid_dim, block_dim, predecessor, result_factory, outer_factory, inner_factory);
     }
 
 
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
-    __host__ __device__
     static async_future<agency::detail::result_of_t<ResultFactory()>>
-      launch_grid_and_invalidate_predecessor(concurrent_execution_tag, 
-                                             device_id device,
-                                             Function f,
-                                             dim3 grid_dim,
-                                             inner_shape_type block_dim,
-                                             async_future<T>& predecessor,
-                                             ResultFactory result_factory,
-                                             OuterFactory outer_factory,
-                                             InnerFactory inner_factory)
+      launch_kernel_and_invalidate_predecessor(concurrent_execution_tag, 
+                                               device_id device,
+                                               Function f,
+                                               dim3 grid_dim,
+                                               inner_shape_type block_dim,
+                                               async_future<T>& predecessor,
+                                               ResultFactory result_factory,
+                                               OuterFactory outer_factory,
+                                               InnerFactory inner_factory)
     {
-      printf("basic_grid_executor::launch_grid_and_invalidate_predecessor(concurrent_execution_tag): Unimplemented.\n");
-      assert(0);
+      return detail::launch_bulk_then_execute_concurrent_kernel_and_invalidate_predecessor(device, f, grid_dim, block_dim, predecessor, result_factory, outer_factory, inner_factory);
     }
 
 
   public:
     // this overload of bulk_then_execute() receives a future<T> predecessor and invalidates it
+    __agency_exec_check_disable__
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
     async_future<agency::detail::result_of_t<ResultFactory()>>
@@ -258,7 +262,7 @@ class basic_grid_executor
       // create a closure wrapping f which will pass f the execution agent's index as its first parameter
       invoke_with_agent_index<Function,index_type> closure{f};
       
-      return launch_grid_and_invalidate_predecessor(outer_execution_category(), device(), closure, grid_dim, agency::detail::get<1>(shape), predecessor, result_factory, outer_factory, inner_factory);
+      return launch_kernel_and_invalidate_predecessor(outer_execution_category(), device(), closure, grid_dim, agency::detail::get<1>(shape), predecessor, result_factory, outer_factory, inner_factory);
     }
 
 
@@ -266,35 +270,33 @@ class basic_grid_executor
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
     static async_future<agency::detail::result_of_t<ResultFactory()>>
-      launch_grid_and_leave_predecessor_valid(parallel_execution_tag, 
-                                              device_id device,
-                                              Function f,
-                                              dim3 grid_dim,
-                                              inner_shape_type block_dim,
-                                              async_future<T>& predecessor,
-                                              ResultFactory result_factory,
-                                              OuterFactory outer_factory,
-                                              InnerFactory inner_factory)
+      launch_kernel_and_leave_predecessor_valid(parallel_execution_tag, 
+                                                device_id device,
+                                                Function f,
+                                                dim3 grid_dim,
+                                                inner_shape_type block_dim,
+                                                async_future<T>& predecessor,
+                                                ResultFactory result_factory,
+                                                OuterFactory outer_factory,
+                                                InnerFactory inner_factory)
     {
       return detail::launch_bulk_then_execute_kernel(device, f, grid_dim, block_dim, predecessor, result_factory, outer_factory, inner_factory);
     }
 
 
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
-    __host__ __device__
     static async_future<agency::detail::result_of_t<ResultFactory()>>
-      launch_grid_and_leave_predecessor_valid(concurrent_execution_tag, 
-                                              device_id device,
-                                              Function f,
-                                              dim3 grid_dim,
-                                              inner_shape_type block_dim,
-                                              async_future<T>& predecessor,
-                                              ResultFactory result_factory,
-                                              OuterFactory outer_factory,
-                                              InnerFactory inner_factory)
+      launch_kernel_and_leave_predecessor_valid(concurrent_execution_tag, 
+                                                device_id device,
+                                                Function f,
+                                                dim3 grid_dim,
+                                                inner_shape_type block_dim,
+                                                async_future<T>& predecessor,
+                                                ResultFactory result_factory,
+                                                OuterFactory outer_factory,
+                                                InnerFactory inner_factory)
     {
-      printf("basic_grid_executor::launch_grid_and_leave_predecessor_valid(): Unimplemented.\n");
-      assert(0);
+      return detail::launch_bulk_then_execute_concurrent_kernel(device, f, grid_dim, block_dim, predecessor, result_factory, outer_factory, inner_factory);
     }
 
 
@@ -324,7 +326,7 @@ class basic_grid_executor
 
       // implement with lower-level kernel launch functionality
       using result_type = agency::detail::result_of_t<ResultFactory()>;
-      return launch_grid_and_leave_predecessor_valid(outer_execution_category(), device(), closure, grid_dim, agency::detail::get<1>(shape), async_predecessor, result_factory, outer_factory, inner_factory);
+      return launch_kernel_and_leave_predecessor_valid(outer_execution_category(), device(), closure, grid_dim, agency::detail::get<1>(shape), async_predecessor, result_factory, outer_factory, inner_factory);
     }
 
 
@@ -338,9 +340,36 @@ class basic_grid_executor
     }
 
 
-  protected:
-    // returns the largest possible inner group size for the given function to execute
+    // this function maximizes each of shape's non-zero elements
+    // XXX probably needs a better name
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
+    __host__ __device__
+    shape_type max_shape_dimensions(Function f, shape_type shape, async_future<T>& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory) const
+    {
+      unsigned int outer_size = agency::detail::get<0>(shape);
+      unsigned int inner_size = agency::detail::get<1>(shape);
+
+      if(inner_size == 0)
+      {
+        inner_size = max_inner_size(f, predecessor, result_factory, outer_factory, inner_factory);
+      }
+
+      if(outer_size == 0)
+      {
+        outer_size = max_outer_size(f, inner_size, predecessor, result_factory, outer_factory, inner_factory);
+      }
+
+      return shape_type{outer_size, inner_size};
+    }
+
+
+  private:
+    // returns the largest possible inner group size for the given function to execute
+    template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory,
+             class ExecutionCategory = outer_execution_category,
+             __AGENCY_REQUIRES(
+               std::is_same<ExecutionCategory, parallel_execution_tag>::value
+             )>
     __host__ __device__
     std::size_t max_inner_size(Function f,
                                async_future<T>& predecessor,
@@ -353,35 +382,63 @@ class basic_grid_executor
       return static_cast<std::size_t>(max_block_size);
     }
 
-    // returns the largest possible parallel outer group size for the given inner group size and function to execute
-    template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
+
+    // returns the largest possible inner group size for the given function to execute
+    template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory,
+             class ExecutionCategory = outer_execution_category,
+             __AGENCY_REQUIRES(
+               std::is_same<ExecutionCategory, concurrent_execution_tag>::value
+             )>
     __host__ __device__
-    std::size_t max_parallel_outer_size(Function f,
-                                        std::size_t inner_size,
-                                        async_future<T>& predecessor,
-                                        ResultFactory result_factory,
-                                        OuterFactory outer_factory,
-                                        InnerFactory inner_factory) const
+    std::size_t max_inner_size(Function f,
+                               async_future<T>& predecessor,
+                               ResultFactory result_factory,
+                               OuterFactory outer_factory,
+                               InnerFactory inner_factory) const
+    {
+      constexpr size_t block_dimension = agency::detail::shape_size<inner_shape_type>::value;
+      int max_block_size = detail::max_block_size_of_bulk_then_execute_concurrent_kernel<block_dimension>(device(), invoke_with_agent_index<Function,index_type>{f}, predecessor, result_factory, outer_factory, inner_factory);
+      return static_cast<std::size_t>(max_block_size);
+    }
+
+    // returns the largest possible parallel outer group size for the given inner group size and function to execute
+    template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory,
+             class ExecutionCategory = outer_execution_category,
+             __AGENCY_REQUIRES(
+               std::is_same<ExecutionCategory, parallel_execution_tag>::value
+             )>
+    __host__ __device__
+    std::size_t max_outer_size(Function f,
+                               std::size_t inner_size,
+                               async_future<T>& predecessor,
+                               ResultFactory result_factory,
+                               OuterFactory outer_factory,
+                               InnerFactory inner_factory) const
     {
       int max_grid_size = detail::maximum_grid_size_x(device());
       return static_cast<std::size_t>(max_grid_size);
     }
 
+
     // returns the largest possible concurrent outer group size for the given inner group size and function to execute
-    template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
+    template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory,
+             class ExecutionCategory = outer_execution_category,
+             __AGENCY_REQUIRES(
+               std::is_same<ExecutionCategory, concurrent_execution_tag>::value
+             )>
     __host__ __device__
-    std::size_t max_concurrent_outer_size(Function f,
-                                          std::size_t inner_size,
-                                          async_future<T>& predecessor,
-                                          ResultFactory result_factory,
-                                          OuterFactory outer_factory,
-                                          InnerFactory inner_factory) const
+    std::size_t max_outer_size(Function f,
+                               std::size_t inner_size,
+                               async_future<T>& predecessor,
+                               ResultFactory result_factory,
+                               OuterFactory outer_factory,
+                               InnerFactory inner_factory) const
     {
-      printf("basic_grid_executor::max_concurrent_outer_size(): unimplemented.\n");
-      assert(0);
+      invoke_with_agent_index<Function,index_type> closure{f};
+      return detail::max_grid_size_of_bulk_then_execute_concurrent_kernel(device(), closure, inner_size, predecessor, result_factory, outer_factory, inner_factory);
     }
 
-  private:
+
     // this function extracts the outer_shape from the executor's shape_type
     // and converts it into a dim3 which describes the gridDim of the CUDA
     // kernel to launch
@@ -396,6 +453,7 @@ class basic_grid_executor
       // unpack outer_shape into dim3
       return dim3(outer_shape.x, outer_shape.y, outer_shape.z);
     }
+
 
     device_id device_;
 };

@@ -306,7 +306,7 @@ class async_future
     template<class U> friend class agency::cuda::future;
 
     // friend detail::make_async_future() to give it access to the private constructor
-    template<class U> friend async_future<U> detail::make_async_future(event&& e, asynchronous_state<U>&& state);
+    template<class U> friend async_future<U> detail::make_async_future(detail::event&& e, detail::asynchronous_state<U>&& state);
 
     // friend detail::async_future_event() to give it access to .event()
     template<class U>

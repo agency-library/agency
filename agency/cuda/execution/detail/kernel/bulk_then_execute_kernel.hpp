@@ -15,6 +15,8 @@ namespace detail
 {
 
 
+// XXX consider moving the stuff related to bulk_then_execute_closure into its own header
+//     as bulk_then_execution_concurrent_grid.hpp also depends on it
 template<size_t block_dimension, class Function, class PredecessorPointer, class ResultPointer, class OuterParameterPointer, class InnerFactory>
 struct bulk_then_execute_closure
 {
