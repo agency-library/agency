@@ -6,7 +6,7 @@
 #include <agency/coordinate.hpp>
 #include <agency/coordinate/detail/shape/make_shape.hpp>
 #include <agency/coordinate/detail/shape/shape_element.hpp>
-#include <agency/detail/tuple_utility.hpp>
+#include <agency/tuple/detail/tuple_utility.hpp>
 #include <agency/detail/point_size.hpp>
 #include <agency/tuple.hpp>
 

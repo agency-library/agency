@@ -7,8 +7,8 @@
 
 #define __TUPLE_NAMESPACE __tu
 
-#include <agency/detail/tuple_impl.hpp>
-#include <agency/detail/tuple_utility.hpp>
+#include <agency/tuple/detail/tuple_impl.hpp>
+#include <agency/tuple/detail/tuple_utility.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/host_device_cast.hpp>

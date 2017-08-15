@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/tuple.hpp>
-#include <agency/detail/arithmetic_tuple_facade.hpp>
+#include <agency/tuple/detail/arithmetic_tuple_facade.hpp>
 #include <agency/detail/operator_traits.hpp>
 #include <agency/container/array.hpp>
 #include <agency/coordinate/detail/named_array.hpp>

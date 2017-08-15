@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/detail/tuple_utility.hpp>
+#include <agency/tuple/detail/tuple_utility.hpp>
 #include <tuple>
 #include <type_traits>
 #include <iostream>

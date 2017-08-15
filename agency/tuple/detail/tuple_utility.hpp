@@ -6,5 +6,5 @@
 
 #define TUPLE_UTILITY_NAMESPACE __tu
 
-#include <agency/detail/tuple_utility_impl.hpp>
+#include <agency/tuple/detail/tuple_utility_impl.hpp>
 

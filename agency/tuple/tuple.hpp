@@ -1,5 +1,5 @@
 #include <agency/detail/config.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple/detail/tuple.hpp>
 
 namespace agency
 {
