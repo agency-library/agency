@@ -17,6 +17,10 @@ template<class... Types>
 using tuple = __tu::tuple<Types...>;
 
 
+using ignore_t = __tu::detail::tuple_ignore_t;
+constexpr ignore_t ignore{};
+
+
 template<class... Types>
 __AGENCY_ANNOTATION
 void swap(tuple<Types...>& a, tuple<Types...>& b)

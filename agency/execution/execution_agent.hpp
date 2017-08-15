@@ -100,7 +100,7 @@ template<class ExecutionAgent, class Index, class Param>
 __AGENCY_ANNOTATION
 static ExecutionAgent make_flat_agent(const Index& index,
                                       const Param& param,
-                                      agency::detail::ignore_t)
+                                      agency::ignore_t)
 {
   return make_agent<ExecutionAgent>(index, param);
 }
@@ -213,7 +213,7 @@ struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAge
     using shared_param_type = typename detail::lazy_conditional<
       detail::has_shared_param_type<execution_agent_type>::value,
       execution_agent_shared_param<execution_agent_type>,
-      detail::identity<agency::detail::ignore_t>
+      detail::identity<agency::ignore_t>
     >::type;
 
     // XXX we should ensure that the SharedParams are all the right type for each inner execution agent type

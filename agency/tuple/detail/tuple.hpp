@@ -41,10 +41,6 @@ namespace detail
 {
 
 
-using ignore_t = __tu::detail::tuple_ignore_t;
-constexpr ignore_t ignore{};
-
-
 __DEFINE_HAS_MEMBER(has_value, value);
 
 

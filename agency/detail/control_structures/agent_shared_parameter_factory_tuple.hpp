@@ -30,10 +30,10 @@ template<class ExecutionAgent,
            !detail::has_shared_param_type<ExecutionAgent>::value
          >::type>
 __AGENCY_ANNOTATION
-detail::construct<agency::detail::ignore_t>
+detail::construct<agency::ignore_t>
   make_agent_shared_parameter_factory(const typename execution_agent_traits<ExecutionAgent>::param_type&)
 {
-  return detail::make_construct<agency::detail::ignore_t>();
+  return detail::make_construct<agency::ignore_t>();
 }
 
 
