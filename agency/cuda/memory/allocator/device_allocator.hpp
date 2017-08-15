@@ -1,7 +1,6 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/tuple.hpp>
 #include <agency/memory/allocator/detail/allocator_adaptor.hpp>
 #include <agency/cuda/memory/resource/device_resource.hpp>
 #include <agency/cuda/device.hpp>

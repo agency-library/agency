@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <type_traits>
 #include <iterator>
 

@@ -24,7 +24,7 @@
 #include <agency/detail/unit.hpp>
 #include <agency/future.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <utility>
 #include <type_traits>
 

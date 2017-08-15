@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/invoke.hpp>

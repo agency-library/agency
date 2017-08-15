@@ -8,7 +8,7 @@
 #include <agency/coordinate/detail/shape/shape_element.hpp>
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/detail/point_size.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 
 namespace agency
 {

@@ -5,7 +5,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/execution/execution_agent.hpp>
 #include <agency/execution/execution_policy/execution_policy_traits.hpp>
 #include <agency/execution/executor/executor_traits.hpp>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/detail/arithmetic_tuple_facade.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/make_tuple_if_not_scoped.hpp>

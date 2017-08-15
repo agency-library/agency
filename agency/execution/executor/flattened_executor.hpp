@@ -1,7 +1,7 @@
 #pragma once
 
 #include <type_traits>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/experimental/ndarray.hpp>
 #include <agency/detail/shape.hpp>

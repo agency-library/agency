@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/future/asynchronous_state.hpp>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 
 namespace agency
 {

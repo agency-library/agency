@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/execution/executor/detail/utility/bulk_async_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_async_execute_with_collected_result.hpp>
 #include <agency/execution/executor/customization_points/future_cast.hpp>

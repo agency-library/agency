@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/execution/execution_categories.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <utility>
 
 

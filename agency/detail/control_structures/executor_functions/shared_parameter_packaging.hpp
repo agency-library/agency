@@ -2,7 +2,7 @@
 
 #include <agency/detail/tuple_utility.hpp>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/detail/tuple_matrix.hpp>
 #include <agency/detail/control_structures/bind.hpp>
 #include <agency/detail/control_structures/shared_parameter.hpp>

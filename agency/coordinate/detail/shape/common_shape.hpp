@@ -5,7 +5,7 @@
 #include <agency/coordinate/detail/shape/shape_size.hpp>
 #include <agency/coordinate/detail/shape/shape_element.hpp>
 #include <agency/coordinate/detail/shape/shape_append.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <type_traits>
 
 namespace agency

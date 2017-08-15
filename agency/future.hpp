@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/exception_list.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/future/future_traits/future_rebind_value.hpp>
 
 #include <future>

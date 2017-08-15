@@ -6,7 +6,7 @@
 #include <agency/execution/execution_policy.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/iterator/iterator_traits.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 
 namespace agency
 {

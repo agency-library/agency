@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/shape.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <type_traits>
 
