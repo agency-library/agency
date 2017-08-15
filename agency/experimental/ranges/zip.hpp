@@ -20,7 +20,7 @@ struct forward_as_tuple_functor
   __AGENCY_ANNOTATION
   agency::detail::tuple<Args&&...> operator()(Args&&... args) const
   {
-    return agency::detail::forward_as_tuple(std::forward<Args>(args)...);
+    return agency::forward_as_tuple(std::forward<Args>(args)...);
   }
 };
 

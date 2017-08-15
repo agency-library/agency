@@ -38,7 +38,7 @@ template<size_t... Indices, class Tuple>
 __AGENCY_ANNOTATION
 select_from_tuple_result_t<Tuple&&,Indices...> select_from_tuple(Tuple&& t)
 {
-  return detail::forward_as_tuple(std::get<Indices>(std::forward<Tuple>(t))...);
+  return agency::forward_as_tuple(std::get<Indices>(std::forward<Tuple>(t))...);
 }
 
 
@@ -143,7 +143,7 @@ select_result_t<index_sequence<Indices...>, Arg1, Arg2, Args...>
 
   static_assert(sizeof...(Indices) <= 2 + sizeof...(Args), "Too many arguments selected.");
 
-  return select_from_tuple<Indices...>(detail::forward_as_tuple(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2), std::forward<Args>(args)...));
+  return select_from_tuple<Indices...>(agency::forward_as_tuple(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2), std::forward<Args>(args)...));
 }
 
 

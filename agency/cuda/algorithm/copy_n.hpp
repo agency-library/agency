@@ -47,7 +47,7 @@ agency::detail::tuple<RandomAccessIterator1,RandomAccessIterator2> copy_n(Execut
   detail::throw_on_error(cudaStreamSynchronize(stream), "cuda::copy_n(): After cudaStreamSynchronize()");
   detail::throw_on_error(cudaStreamDestroy(stream), "cuda::copy_n(): After cudaStreamDestroy()");
 
-  return agency::detail::make_tuple(first + n, result + n);
+  return agency::make_tuple(first + n, result + n);
 }
 
 

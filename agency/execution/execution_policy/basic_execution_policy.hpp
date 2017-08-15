@@ -256,7 +256,7 @@ class basic_execution_policy
       scope(Arg1&& arg1, Args&&... args) const
     {
       // wrap the args in a tuple so we can manipulate them easier
-      auto arg_tuple = detail::forward_as_tuple(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
+      auto arg_tuple = agency::forward_as_tuple(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
 
       // get the arguments to the outer execution policy
       auto outer_args = detail::tuple_drop_last(arg_tuple);

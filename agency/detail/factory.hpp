@@ -65,7 +65,7 @@ template<class T, class... Args>
 __AGENCY_ANNOTATION
 construct<T,typename std::decay<Args>::type...> make_construct(Args&&... args)
 {
-  return construct<T,typename std::decay<Args>::type...>(agency::detail::make_tuple(std::forward<Args>(args)...));
+  return construct<T,typename std::decay<Args>::type...>(agency::make_tuple(std::forward<Args>(args)...));
 }
 
 
@@ -153,7 +153,7 @@ struct zip_factory
   >
     impl(agency::detail::index_sequence<Indices...>)
   {
-    return agency::detail::make_tuple(detail::get<Indices>(factory_tuple_)()...);
+    return agency::make_tuple(detail::get<Indices>(factory_tuple_)()...);
   }
 
   __AGENCY_ANNOTATION

@@ -58,31 +58,31 @@ void test()
     // test iterator increment
     auto iter = z.begin();
 
-    assert(*iter == agency::detail::make_tuple(0, 4, 8));
+    assert(*iter == agency::make_tuple(0, 4, 8));
 
     ++iter;
-    assert(*iter == agency::detail::make_tuple(1, 5, 9));
+    assert(*iter == agency::make_tuple(1, 5, 9));
 
     ++iter;
-    assert(*iter == agency::detail::make_tuple(2, 6, 10));
+    assert(*iter == agency::make_tuple(2, 6, 10));
 
     ++iter;
-    assert(*iter == agency::detail::make_tuple(3, 7, 11));
+    assert(*iter == agency::make_tuple(3, 7, 11));
   }
 
   {
     // test iterator add assign
     auto iter = z.begin();
-    assert(*iter == agency::detail::make_tuple(0, 4, 8));
+    assert(*iter == agency::make_tuple(0, 4, 8));
 
     iter += 1;
-    assert(*iter == agency::detail::make_tuple(1, 5, 9));
+    assert(*iter == agency::make_tuple(1, 5, 9));
 
     iter += 1;
-    assert(*iter == agency::detail::make_tuple(2, 6, 10));
+    assert(*iter == agency::make_tuple(2, 6, 10));
 
     iter += 1;
-    assert(*iter == agency::detail::make_tuple(3, 7, 11));
+    assert(*iter == agency::make_tuple(3, 7, 11));
   }
 
   {
@@ -94,7 +94,7 @@ void test()
 
   {
     // test iterator dereference
-    assert(*z.begin() == agency::detail::make_tuple(0, 4, 8));
+    assert(*z.begin() == agency::make_tuple(0, 4, 8));
   }
 
   {
@@ -142,10 +142,10 @@ void test()
   {
     // test iterator index
     auto iter = z.begin();
-    assert(iter[0] == agency::detail::make_tuple(0, 4, 8));
-    assert(iter[1] == agency::detail::make_tuple(1, 5, 9));
-    assert(iter[2] == agency::detail::make_tuple(2, 6, 10));
-    assert(iter[3] == agency::detail::make_tuple(3, 7, 11));
+    assert(iter[0] == agency::make_tuple(0, 4, 8));
+    assert(iter[1] == agency::make_tuple(1, 5, 9));
+    assert(iter[2] == agency::make_tuple(2, 6, 10));
+    assert(iter[3] == agency::make_tuple(3, 7, 11));
   }
 
   {
@@ -185,10 +185,10 @@ void test()
 
   {
     // test index
-    assert(z[0] == agency::detail::make_tuple(0, 4, 8));
-    assert(z[1] == agency::detail::make_tuple(1, 5, 9));
-    assert(z[2] == agency::detail::make_tuple(2, 6, 10));
-    assert(z[3] == agency::detail::make_tuple(3, 7, 11));
+    assert(z[0] == agency::make_tuple(0, 4, 8));
+    assert(z[1] == agency::make_tuple(1, 5, 9));
+    assert(z[2] == agency::make_tuple(2, 6, 10));
+    assert(z[3] == agency::make_tuple(3, 7, 11));
   }
 
   {

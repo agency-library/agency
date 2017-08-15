@@ -189,7 +189,7 @@ class variant_executor
     future<detail::result_of_t<ResultFactory()>>
     bulk_async_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
     {
-      auto visitor = bulk_async_execute_visitor<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, detail::make_tuple(shared_factories...)};
+      auto visitor = bulk_async_execute_visitor<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, agency::make_tuple(shared_factories...)};
       return experimental::visit(visitor, variant_);
     }
 
@@ -231,7 +231,7 @@ class variant_executor
     detail::result_of_t<ResultFactory()>
     bulk_sync_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
     {
-      auto visitor = bulk_sync_execute_visitor<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, detail::make_tuple(shared_factories...)};
+      auto visitor = bulk_sync_execute_visitor<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, agency::make_tuple(shared_factories...)};
       return experimental::visit(visitor, variant_);
     }
 
@@ -311,7 +311,7 @@ class variant_executor
                       ResultFactory result_factory,
                       SharedFactories... shared_factories)
     {
-      auto visitor = bulk_then_execute_visitor2<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, detail::make_tuple(shared_factories...)};
+      auto visitor = bulk_then_execute_visitor2<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, agency::make_tuple(shared_factories...)};
       auto future_variant = predecessor_future.variant();
       return experimental::visit(visitor, variant_, future_variant);
     }
@@ -328,7 +328,7 @@ class variant_executor
                       ResultFactory result_factory,
                       SharedFactories... shared_factories)
     {
-      auto visitor = bulk_then_execute_visitor1<Function,Future,ResultFactory,SharedFactories...>{f, shape, predecessor_future, result_factory, detail::make_tuple(shared_factories...)};
+      auto visitor = bulk_then_execute_visitor1<Function,Future,ResultFactory,SharedFactories...>{f, shape, predecessor_future, result_factory, agency::make_tuple(shared_factories...)};
       return experimental::visit(visitor, variant_);
     }
 
@@ -413,7 +413,7 @@ class variant_executor
     __AGENCY_ANNOTATION
     future<T> make_ready_future(Args&&... args)
     {
-      auto args_tuple = detail::forward_as_tuple(std::forward<Args>(args)...);
+      auto args_tuple = agency::forward_as_tuple(std::forward<Args>(args)...);
       auto visitor = make_ready_future_visitor<T,Args&&...>{args_tuple};
       return experimental::visit(visitor, variant_);
     }

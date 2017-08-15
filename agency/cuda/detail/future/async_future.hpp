@@ -195,7 +195,7 @@ class async_future
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready, cuda::allocator<result_type>());
 
       // tuple up f's input state
-      auto unfiltered_pointer_tuple = agency::detail::make_tuple(state().data());
+      auto unfiltered_pointer_tuple = agency::make_tuple(state().data());
 
       // filter void states
       auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
@@ -286,7 +286,7 @@ class async_future
       detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready);
 
       // tuple up f's input state
-      auto unfiltered_pointer_tuple = agency::detail::make_tuple(state().data());
+      auto unfiltered_pointer_tuple = agency::make_tuple(state().data());
 
       // filter void states
       auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);
@@ -443,7 +443,7 @@ when_all(async_future<Types>&... futures)
   detail::asynchronous_state<result_type> result_state(agency::detail::construct_not_ready, cuda::allocator<result_type>());
 
   // tuple up the input states
-  auto unfiltered_pointer_tuple = agency::detail::make_tuple(futures.state().data()...);
+  auto unfiltered_pointer_tuple = agency::make_tuple(futures.state().data()...);
 
   // filter void states
   auto pointer_tuple = agency::detail::tuple_filter<detail::element_type_is_not_unit>(unfiltered_pointer_tuple);

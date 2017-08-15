@@ -59,7 +59,7 @@ struct then_execute_agent_functor
     operator()(const executor_index_type& executor_idx, PastArg& past_arg, Args&&... args)
   {
     // collect all parameters into a tuple of references
-    auto args_tuple = detail::forward_as_tuple(std::forward<Args>(args)...);
+    auto args_tuple = agency::forward_as_tuple(std::forward<Args>(args)...);
 
     // split the parameters into user parameters and agent parameters
     auto user_args         = detail::tuple_take_view<sizeof...(UserArgIndices)>(args_tuple);
@@ -91,7 +91,7 @@ struct then_execute_agent_functor
     operator()(const executor_index_type& executor_idx, Args&&... args)
   {
     // collect all parameters into a tuple of references
-    auto args_tuple = detail::forward_as_tuple(std::forward<Args>(args)...);
+    auto args_tuple = agency::forward_as_tuple(std::forward<Args>(args)...);
 
     // split the parameters into user parameters and agent parameters
     auto user_args         = detail::tuple_take_view<sizeof...(UserArgIndices)>(args_tuple);

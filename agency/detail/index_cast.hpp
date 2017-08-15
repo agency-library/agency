@@ -164,7 +164,7 @@ detail::tuple<lift_t<Index>, lift_t<FromShape>>
   auto shape_maker = index_cast_detail::make<lift_t<FromShape>>{};
   auto lifted_shape = __tu::tuple_append_invoke(wrap_scalar(from_shape), detail::get<i>(to_shape), shape_maker);
 
-  return detail::make_tuple(lifted_index, lifted_shape);
+  return agency::make_tuple(lifted_index, lifted_shape);
 }
 
 

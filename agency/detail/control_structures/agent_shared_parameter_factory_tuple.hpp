@@ -81,7 +81,7 @@ agent_shared_parameter_factory_tuple_t<ExecutionAgent>
 {
   auto factory = detail::make_agent_shared_parameter_factory<ExecutionAgent>(param);
 
-  return detail::make_tuple(factory);
+  return agency::make_tuple(factory);
 }
 
 // this is the recursive case for scoped agents -- agents which do have an ::inner_execution_agent_type

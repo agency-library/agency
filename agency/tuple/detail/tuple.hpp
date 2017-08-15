@@ -43,10 +43,6 @@ namespace detail
 
 template<class... Types>
 using tuple = __tu::tuple<Types...>;
-using __tu::swap;
-using __tu::make_tuple;
-using __tu::tie;
-using __tu::forward_as_tuple;
 
 
 using ignore_t = __tu::detail::tuple_ignore_t;
@@ -167,10 +163,10 @@ struct forwarder
   __AGENCY_ANNOTATION
   auto operator()(Args&&... args)
     -> decltype(
-         detail::forward_as_tuple(std::forward<Args>(args)...)
+         __tu::forward_as_tuple(std::forward<Args>(args)...)
        )
   {
-    return detail::forward_as_tuple(std::forward<Args>(args)...);
+    return __tu::forward_as_tuple(std::forward<Args>(args)...);
   }
 };
 
@@ -200,10 +196,10 @@ struct tuple_mover
   __AGENCY_ANNOTATION
   auto operator()(Args&&... args)
     -> decltype(
-         detail::make_tuple(std::move(args)...)
+         __tu::make_tuple(std::move(args)...)
        )
   {
-    return detail::make_tuple(std::move(args)...);
+    return __tu::make_tuple(std::move(args)...);
   }
 };
 
@@ -225,10 +221,10 @@ struct agency_tuple_maker
   __AGENCY_ANNOTATION
   auto operator()(Args&&... args)
     -> decltype(
-         agency::detail::make_tuple(std::forward<Args>(args)...)
+         __tu::make_tuple(std::forward<Args>(args)...)
        )
   {
-    return agency::detail::make_tuple(std::forward<Args>(args)...);
+    return __tu::make_tuple(std::forward<Args>(args)...);
   }
 };
 

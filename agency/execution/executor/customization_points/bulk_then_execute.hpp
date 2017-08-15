@@ -229,7 +229,7 @@ executor_future_t<
 bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   using predecessor_type = detail::future_value_t<Future>;
-  detail::then_with_nested_bulk_sync_execute_functor<E,Function,predecessor_type,ResultFactory,Factories...> functor{exec,f,shape,result_factory,detail::make_tuple(shared_factories...)};
+  detail::then_with_nested_bulk_sync_execute_functor<E,Function,predecessor_type,ResultFactory,Factories...> functor{exec,f,shape,result_factory,agency::make_tuple(shared_factories...)};
 
   auto intermediate_fut = future_traits<Future>::then(predecessor, std::move(functor));
 

@@ -38,7 +38,7 @@ tuple<RandomAccessIterator1,RandomAccessIterator2> default_copy_n(ExecutionPolic
 {
   agency::bulk_invoke(policy(n), copy_n_functor(), first, result);
   
-  return detail::make_tuple(first + n, result + n);
+  return agency::make_tuple(first + n, result + n);
 }
 
 
@@ -57,7 +57,7 @@ tuple<InputIterator,OutputIterator> default_copy_n(ExecutionPolicy&&, InputItera
     *result = *first;
   }
 
-  return detail::make_tuple(first, result);
+  return agency::make_tuple(first, result);
 }
 
 

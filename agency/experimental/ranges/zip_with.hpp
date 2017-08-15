@@ -55,7 +55,7 @@ class zip_with_iterator
 
     __AGENCY_ANNOTATION
     zip_with_iterator(Function f, Iterator iter, Iterators... iters)
-      : zip_with_iterator(f, agency::detail::make_tuple(iter, iters...))
+      : zip_with_iterator(f, agency::make_tuple(iter, iters...))
     {}
 
     __AGENCY_ANNOTATION
