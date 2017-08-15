@@ -398,14 +398,14 @@ asynchronous_state<T>& async_future_state(async_future<T>& future)
 
 template<class T>
 __host__ __device__
-agency::detail::tuple<event, asynchronous_state<T>> invalidate_async_future(async_future<T>& future)
+agency::tuple<event, asynchronous_state<T>> invalidate_async_future(async_future<T>& future)
 {
   // we invalidate the future by moving its event and state elsewhere
 
   event& e = detail::async_future_event(future);
   asynchronous_state<T>& state = detail::async_future_state(future);
 
-  return agency::detail::tuple<event, asynchronous_state<T>>(std::move(e), std::move(state));
+  return agency::tuple<event, asynchronous_state<T>>(std::move(e), std::move(state));
 }
 
 

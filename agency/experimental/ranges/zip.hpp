@@ -18,7 +18,7 @@ struct forward_as_tuple_functor
 {
   template<class... Args>
   __AGENCY_ANNOTATION
-  agency::detail::tuple<Args&&...> operator()(Args&&... args) const
+  agency::tuple<Args&&...> operator()(Args&&... args) const
   {
     return agency::forward_as_tuple(std::forward<Args>(args)...);
   }

@@ -19,7 +19,7 @@ struct select_from_tuple_result
 {
   using tuple_type = typename std::decay<TupleReference>::type;
 
-  using type = detail::tuple<
+  using type = tuple<
     propagate_reference_t<
       TupleReference,
       typename std::tuple_element<
@@ -100,7 +100,7 @@ struct select_result<index_sequence<Indices...>, Arg1, Arg2, Args...>
   static_assert(sizeof...(Indices) <= 2 + sizeof...(Args), "Too many arguments selected.");
 
   using type = select_from_tuple_result_t<
-    detail::tuple<Arg1,Arg2,Args...>,
+    tuple<Arg1,Arg2,Args...>,
     Indices...
   >;
 };

@@ -49,7 +49,7 @@ struct agent_shared_parameter_factory_tuple_impl;
 template<class... ExecutionAgents>
 struct agent_shared_parameter_factory_tuple_impl<detail::type_list<ExecutionAgents...>>
 {
-  using type = detail::tuple<
+  using type = tuple<
     agent_shared_parameter_factory<ExecutionAgents>...
   >;
 };

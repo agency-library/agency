@@ -20,7 +20,7 @@ struct shape_append_t_impl_general_case;
 template<size_t... Indices, class Shape, class T>
 struct shape_append_t_impl_general_case<index_sequence<Indices...>, Shape, T>
 {
-  using type = detail::tuple<shape_element_t<Indices,Shape>..., T>;
+  using type = agency::tuple<shape_element_t<Indices,Shape>..., T>;
 };
 
 

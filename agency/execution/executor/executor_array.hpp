@@ -151,14 +151,14 @@ class executor_array
       outer_shape_type outer_shape;
       inner_shape_type inner_shape;
       mutable Function f;
-      detail::tuple<InnerFactories...> inner_factories;
+      tuple<InnerFactories...> inner_factories;
 
       template<class... OuterArgs>
       struct inner_functor
       {
         mutable Function f;
         outer_index_type outer_idx;
-        detail::tuple<OuterArgs&...> outer_args;
+        tuple<OuterArgs&...> outer_args;
 
         template<size_t... Indices, class... InnerSharedArgs>
         __AGENCY_ANNOTATION
@@ -268,7 +268,7 @@ class executor_array
       Futures& predecessor_futures;
       Result* result_ptr;
       OuterShared* outer_shared_arg_ptr;
-      detail::tuple<Factories...> inner_factories;
+      tuple<Factories...> inner_factories;
       outer_shape_type outer_shape;
       inner_shape_type inner_shape;
 

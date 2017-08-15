@@ -143,7 +143,7 @@ using lift_t = typename index_cast_detail::lift_t_impl<Point>::type;
 
 template<class Index, class FromShape, class ToShape>
 __AGENCY_ANNOTATION
-detail::tuple<lift_t<Index>, lift_t<FromShape>>
+agency::tuple<lift_t<Index>, lift_t<FromShape>>
   lift_index(const Index& idx, const FromShape& from_shape, const ToShape& to_shape)
 {
   // to lift idx into to_shape,

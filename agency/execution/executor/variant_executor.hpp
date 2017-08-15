@@ -157,7 +157,7 @@ class variant_executor
       Function f;
       shape_type shape;
       ResultFactory result_factory;
-      detail::tuple<SharedFactories...> shared_factories;
+      tuple<SharedFactories...> shared_factories;
 
       __agency_exec_check_disable__
       template<class E, size_t... Indices>
@@ -201,7 +201,7 @@ class variant_executor
       Function f;
       shape_type shape;
       ResultFactory result_factory;
-      detail::tuple<SharedFactories...> shared_factories;
+      tuple<SharedFactories...> shared_factories;
 
       template<class E, size_t... Indices>
       __AGENCY_ANNOTATION
@@ -245,7 +245,7 @@ class variant_executor
       shape_type shape;
       Future& predecessor_future;
       ResultFactory result_factory;
-      detail::tuple<SharedFactories...> shared_factories;
+      tuple<SharedFactories...> shared_factories;
 
       template<class E, size_t... Indices>
       __AGENCY_ANNOTATION
@@ -274,7 +274,7 @@ class variant_executor
       Function f;
       shape_type shape;
       ResultFactory result_factory;
-      detail::tuple<SharedFactories...> shared_factories;
+      tuple<SharedFactories...> shared_factories;
 
       __agency_exec_check_disable__
       template<class E, class VariantFuture, size_t... Indices>
@@ -389,7 +389,7 @@ class variant_executor
     template<class T, class... Args>
     struct make_ready_future_visitor
     {
-      detail::tuple<Args...> args;
+      tuple<Args...> args;
 
       __agency_exec_check_disable__
       template<class E, size_t... Indices>

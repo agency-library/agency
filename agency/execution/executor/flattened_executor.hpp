@@ -265,7 +265,7 @@ class flattened_executor
 
     using shape_tail_type = detail::shape_tail_t<shape_type>;
 
-    using head_partition_type = detail::tuple<
+    using head_partition_type = tuple<
       typename std::tuple_element<0,base_shape_type>::type,
       typename std::tuple_element<1,base_shape_type>::type
     >;

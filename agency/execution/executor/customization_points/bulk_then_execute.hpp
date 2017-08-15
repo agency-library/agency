@@ -150,7 +150,7 @@ struct then_with_nested_bulk_sync_execute_functor
   mutable Function f;
   executor_shape_t<Executor> shape;
   mutable ResultFactory result_factory;
-  mutable detail::tuple<SharedFactories...> shared_factories;
+  mutable tuple<SharedFactories...> shared_factories;
 
   // this functor is passed to bulk_sync_execute() below
   // it has a reference to the predecessor future to use as a parameter to f
@@ -193,7 +193,7 @@ struct then_with_nested_bulk_sync_execute_functor<Executor,Function,void,ResultF
   mutable Function f;
   executor_shape_t<Executor> shape;
   mutable ResultFactory result_factory;
-  mutable detail::tuple<SharedFactories...> shared_factories;
+  mutable tuple<SharedFactories...> shared_factories;
 
   __agency_exec_check_disable__
   template<size_t... Indices>

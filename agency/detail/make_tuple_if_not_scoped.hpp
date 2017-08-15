@@ -23,7 +23,7 @@ T make_tuple_if_not_scoped(agency::scoped_execution_tag<ExecutionCategory1,Execu
 // execution is not scoped, wrap up x in a tuple
 template<class ExecutionCategory, class T>
 __AGENCY_ANNOTATION
-agency::detail::tuple<T> make_tuple_if_not_scoped(ExecutionCategory, const T& x)
+agency::tuple<T> make_tuple_if_not_scoped(ExecutionCategory, const T& x)
 {
   return agency::make_tuple(x);
 }

@@ -148,7 +148,7 @@ struct zip_factory
 
   template<size_t... Indices>
   __AGENCY_ANNOTATION
-  agency::detail::tuple<
+  agency::tuple<
     result_of_t<Factories()>...
   >
     impl(agency::detail::index_sequence<Indices...>)
@@ -157,7 +157,7 @@ struct zip_factory
   }
 
   __AGENCY_ANNOTATION
-  agency::detail::tuple<
+  agency::tuple<
     result_of_t<Factories()>...
   >
     operator()()

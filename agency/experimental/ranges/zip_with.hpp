@@ -20,7 +20,7 @@ template<class Function, class Iterator, class... Iterators>
 class zip_with_iterator
 {
   private:
-    using iterator_tuple_type = agency::detail::tuple<Iterator, Iterators...>;
+    using iterator_tuple_type = agency::tuple<Iterator, Iterators...>;
 
     __AGENCY_ANNOTATION
     zip_with_iterator(Function f, const iterator_tuple_type& iterator_tuple)

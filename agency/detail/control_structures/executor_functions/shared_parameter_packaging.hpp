@@ -143,7 +143,7 @@ using shared_parameter_factory_t = decltype(
 
 template<size_t execution_level, class... SharedArgs>
 __AGENCY_ANNOTATION
-shared_parameter_factory_t<execution_level,agency::detail::tuple<SharedArgs...>> make_shared_parameter_factory(const agency::detail::tuple<SharedArgs...>& shared_arg_tuple)
+shared_parameter_factory_t<execution_level,agency::tuple<SharedArgs...>> make_shared_parameter_factory(const agency::tuple<SharedArgs...>& shared_arg_tuple)
 {
   return make_zip_factory(agency::detail::tuple_map(make_factory_tuple_element<execution_level>{}, shared_arg_tuple));
 }
@@ -156,7 +156,7 @@ struct shared_parameter_factory_tuple_t_impl;
 template<size_t... ExecutionLevel, class Tuple>
 struct shared_parameter_factory_tuple_t_impl<agency::detail::index_sequence<ExecutionLevel...>,Tuple>
 {
-  using type = agency::detail::tuple<
+  using type = agency::tuple<
     shared_parameter_factory_t<ExecutionLevel,Tuple>...
   >;
 };
@@ -173,9 +173,9 @@ using shared_parameter_factory_tuple_t = typename shared_parameter_factory_tuple
 
 template<size_t... ExecutionLevel, class... SharedArgs>
 __AGENCY_ANNOTATION
-shared_parameter_factory_tuple_t<sizeof...(ExecutionLevel), agency::detail::tuple<SharedArgs...>>
+shared_parameter_factory_tuple_t<sizeof...(ExecutionLevel), agency::tuple<SharedArgs...>>
   make_shared_parameter_factory_tuple_impl(agency::detail::index_sequence<ExecutionLevel...>,
-                                           const agency::detail::tuple<SharedArgs...>& shared_arg_tuple)
+                                           const agency::tuple<SharedArgs...>& shared_arg_tuple)
 {
   return agency::make_tuple(
     make_shared_parameter_factory<ExecutionLevel>(shared_arg_tuple)...
@@ -185,8 +185,8 @@ shared_parameter_factory_tuple_t<sizeof...(ExecutionLevel), agency::detail::tupl
 
 template<size_t executor_depth, class... SharedArgs>
 __AGENCY_ANNOTATION
-shared_parameter_factory_tuple_t<executor_depth,agency::detail::tuple<SharedArgs...>>
-  make_shared_parameter_factory_tuple(const agency::detail::tuple<SharedArgs...>& shared_arg_tuple)
+shared_parameter_factory_tuple_t<executor_depth,agency::tuple<SharedArgs...>>
+  make_shared_parameter_factory_tuple(const agency::tuple<SharedArgs...>& shared_arg_tuple)
 {
   return make_shared_parameter_factory_tuple_impl(
     agency::detail::make_index_sequence<executor_depth>{},
@@ -202,7 +202,7 @@ struct extracted_shared_parameters_t_impl;
 template<size_t... RowIndices, class TupleMatrix>
 struct extracted_shared_parameters_t_impl<index_sequence<RowIndices...>,TupleMatrix>
 {
-  using type = agency::detail::tuple<
+  using type = agency::tuple<
     typename tuple_find_non_null_result<
       typename std::tuple_element<
         RowIndices,

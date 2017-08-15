@@ -9,7 +9,7 @@ namespace agency
 
 
 template<class... Types>
-using tuple = agency::detail::tuple<Types...>;
+using tuple = __tu::tuple<Types...>;
 
 
 template<class... Types>

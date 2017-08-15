@@ -41,10 +41,6 @@ namespace detail
 {
 
 
-template<class... Types>
-using tuple = __tu::tuple<Types...>;
-
-
 using ignore_t = __tu::detail::tuple_ignore_t;
 constexpr ignore_t ignore{};
 
@@ -63,7 +59,7 @@ struct tuple_cat_result_impl_impl;
 template<size_t... I, class... Tuples>
 struct tuple_cat_result_impl_impl<index_sequence<I...>, Tuples...>
 {
-  using type = tuple<typename __tu::__tuple_cat_element<I, Tuples...>::type...>;
+  using type = __tu::tuple<typename __tu::__tuple_cat_element<I, Tuples...>::type...>;
 };
 
 
@@ -291,9 +287,9 @@ template<class T,
            !is_tuple<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
-tuple<> tuple_tail_if(T&&)
+__tu::tuple<> tuple_tail_if(T&&)
 {
-  return tuple<>();
+  return __tu::tuple<>();
 }
 
 
@@ -314,9 +310,9 @@ template<class T,
            !is_tuple<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
-tuple<> tuple_prefix_if(T&&)
+__tu::tuple<> tuple_prefix_if(T&&)
 {
-  return tuple<>();
+  return __tu::tuple<>();
 }
 
 
@@ -637,7 +633,7 @@ struct decay_tuple_impl<TupleReference, index_sequence<Indices...>>
 {
   using tuple_type = typename std::decay<TupleReference>::type;
 
-  using type = detail::tuple<
+  using type = __tu::tuple<
     typename std::decay<
       typename std::tuple_element<
         Indices,
@@ -661,7 +657,7 @@ struct homogeneous_tuple_impl;
 template<class... Types>
 struct homogeneous_tuple_impl<type_list<Types...>>
 {
-  using type = tuple<Types...>;
+  using type = __tu::tuple<Types...>;
 };
 
 template<class T, size_t size>
@@ -683,7 +679,7 @@ struct tuple_from_type_list;
 template<class... Types>
 struct tuple_from_type_list<agency::detail::type_list<Types...>>
 {
-  using type = agency::detail::tuple<Types...>;
+  using type = __tu::tuple<Types...>;
 };
 
 template<class TypeList>

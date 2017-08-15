@@ -88,12 +88,12 @@ int main()
         int                        // 1.1
       >,
 
-      agency::detail::tuple<       // 2
+      agency::tuple<               // 2
         unsigned int               // 2.0
       >
     >;
 
-    using shape2 = agency::detail::tuple<
+    using shape2 = agency::tuple<
       std::tuple<                  // 0
         int,                       // 0.0
         int,                       // 0.1
@@ -112,19 +112,19 @@ int main()
     using common_shape = detail::common_shape_t<shape1,shape2>;
 
     using reference = std::tuple<
-      detail::tuple<               // 0
+      agency::tuple<               // 0
         std::size_t,               // 0.0
         std::size_t,               // 0.1
         size3                      // 0.2
       >,
 
       std::tuple<                  // 1
-        detail::tuple<             // 1.0
+        agency::tuple<             // 1.0
           std::size_t,             // 1.0.0
           std::size_t,             // 1.0.1
           std::size_t              // 1.0.2
         >,
-        detail::tuple<             // 1.1
+        agency::tuple<             // 1.1
           std::size_t,             // 1.1.0
           std::size_t,             // 1.1.1
           std::size_t,             // 1.1.2
@@ -132,7 +132,7 @@ int main()
         >
       >,
 
-      detail::tuple<               // 2
+      agency::tuple<               // 2
         unsigned int               // 2.0
       >
     >;

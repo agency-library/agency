@@ -16,11 +16,11 @@ namespace detail
 // because it also requires arithmetic operators
 template<class... Shapes>
 class shape_tuple :
-  public agency::detail::tuple<Shapes...>,
+  public agency::tuple<Shapes...>,
   public arithmetic_tuple_facade<shape_tuple<Shapes...>>
 {
   public:
-    using agency::detail::tuple<Shapes...>::tuple;
+    using agency::tuple<Shapes...>::tuple;
 };
 
 template<class ExecutionCategory1,
@@ -74,9 +74,9 @@ namespace __tu
 
 template<class... Shapes>
 struct tuple_traits<agency::detail::shape_tuple<Shapes...>>
-  : __tu::tuple_traits<agency::detail::tuple<Shapes...>>
+  : __tu::tuple_traits<agency::tuple<Shapes...>>
 {
-  using tuple_type = agency::detail::tuple<Shapes...>;
+  using tuple_type = agency::tuple<Shapes...>;
 }; // end tuple_traits
 
 
@@ -88,10 +88,10 @@ namespace std
 
 
 template<class... Shapes>
-class tuple_size<agency::detail::shape_tuple<Shapes...>> : public std::tuple_size<agency::detail::tuple<Shapes...>> {};
+class tuple_size<agency::detail::shape_tuple<Shapes...>> : public std::tuple_size<agency::tuple<Shapes...>> {};
 
 template<size_t i, class... Shapes>
-class tuple_element<i,agency::detail::shape_tuple<Shapes...>> : public std::tuple_element<i,agency::detail::tuple<Shapes...>> {};
+class tuple_element<i,agency::detail::shape_tuple<Shapes...>> : public std::tuple_element<i,agency::tuple<Shapes...>> {};
 
 
 } // end namespace std

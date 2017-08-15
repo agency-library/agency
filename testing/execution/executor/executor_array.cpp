@@ -21,7 +21,7 @@ void test(OuterExecutor, InnerExecutor inner_exec)
   static_assert(detail::is_detected_exact<expected_category, executor_execution_category_t, executor_array_type>::value,
     "scoped_executor should have expected_category execution_category");
 
-  static_assert(detail::is_detected_exact<detail::tuple<size_t,size_t>, executor_shape_t, executor_array_type>::value,
+  static_assert(detail::is_detected_exact<tuple<size_t,size_t>, executor_shape_t, executor_array_type>::value,
     "executor_array should have detail::tuple<size_t,size_t> shape_type");
 
   static_assert(detail::is_detected_exact<detail::index_tuple<size_t,size_t>, executor_index_t, executor_array_type>::value,

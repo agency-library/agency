@@ -951,7 +951,7 @@ struct make_tuple_for_impl;
 template<class... Types>
 struct make_tuple_for_impl<type_list<Types...>>
 {
-  using type = detail::tuple<Types...>;
+  using type = tuple<Types...>;
 };
 
 template<class TypeList>

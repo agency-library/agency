@@ -16,11 +16,11 @@ namespace detail
 // because it also requires arithmetic operators
 template<class... Indices>
 class index_tuple :
-  public agency::detail::tuple<Indices...>,
+  public agency::tuple<Indices...>,
   public arithmetic_tuple_facade<index_tuple<Indices...>>
 {
   public:
-    using agency::detail::tuple<Indices...>::tuple;
+    using agency::tuple<Indices...>::tuple;
 };
 
 
@@ -107,9 +107,9 @@ namespace __tu
 
 template<class... Indices>
 struct tuple_traits<agency::detail::index_tuple<Indices...>>
-  : __tu::tuple_traits<agency::detail::tuple<Indices...>>
+  : __tu::tuple_traits<agency::tuple<Indices...>>
 {
-  using tuple_type = agency::detail::tuple<Indices...>;
+  using tuple_type = agency::tuple<Indices...>;
 }; // end tuple_traits
 
 
@@ -121,10 +121,10 @@ namespace std
 
 
 template<class... Indices>
-class tuple_size<agency::detail::index_tuple<Indices...>> : public std::tuple_size<agency::detail::tuple<Indices...>> {};
+class tuple_size<agency::detail::index_tuple<Indices...>> : public std::tuple_size<agency::tuple<Indices...>> {};
 
 template<size_t i, class... Indices>
-class tuple_element<i,agency::detail::index_tuple<Indices...>> : public std::tuple_element<i,agency::detail::tuple<Indices...>> {};
+class tuple_element<i,agency::detail::index_tuple<Indices...>> : public std::tuple_element<i,agency::tuple<Indices...>> {};
 
 
 } // end namespace std
