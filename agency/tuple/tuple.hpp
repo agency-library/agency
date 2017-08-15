@@ -118,5 +118,16 @@ detail::tuple_cat_result<Tuples...> tuple_cat(Tuples&&... tuples)
 }
 
 
+// an output operator for tuple
+template<class... Types>
+std::ostream& operator<<(std::ostream& os, const tuple<Types...>& t)
+{
+  os << "{";
+  __tu::tuple_print(t, os);
+  os << "}";
+  return os;
+}
+
+
 } // end agency
 

@@ -17,23 +17,6 @@
 #include <utility>
 #include <type_traits>
 
-namespace __tu
-{
-
-
-// add an output operator for tuple
-template<class... Types>
-std::ostream& operator<<(std::ostream& os, const tuple<Types...>& t)
-{
-  os << "{";
-  __tu::tuple_print(t, os);
-  os << "}";
-  return os;
-}
-
-
-} // end namespace __tu
-
 
 namespace agency
 {
