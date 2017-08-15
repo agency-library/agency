@@ -30,7 +30,7 @@ template<class ExecutionCategory1,
 struct scoped_shape
 {
   using type = decltype(
-    detail::tuple_cat(
+    agency::tuple_cat(
       detail::make_tuple_if_not_scoped<ExecutionCategory1>(std::declval<Shape1>()),
       detail::make_tuple_if_not_scoped<ExecutionCategory2>(std::declval<Shape2>())
     )
@@ -57,7 +57,7 @@ template<class ExecutionCategory1,
 __AGENCY_ANNOTATION
 scoped_shape_t<ExecutionCategory1,ExecutionCategory2,Shape1,Shape2> make_scoped_shape(const Shape1& outer_shape, const Shape2& inner_shape)
 {
-  return detail::tuple_cat(
+  return agency::tuple_cat(
     detail::make_tuple_if_not_scoped<ExecutionCategory1>(outer_shape),
     detail::make_tuple_if_not_scoped<ExecutionCategory2>(inner_shape)
   );

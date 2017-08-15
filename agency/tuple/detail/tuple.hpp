@@ -52,55 +52,6 @@ template<class T>
 struct is_tuple : has_value<std::tuple_size<T>> {};
 
 
-template<class IndexSequence, class... Tuples>
-struct tuple_cat_result_impl_impl;
-
-
-template<size_t... I, class... Tuples>
-struct tuple_cat_result_impl_impl<index_sequence<I...>, Tuples...>
-{
-  using type = __tu::tuple<typename __tu::__tuple_cat_element<I, Tuples...>::type...>;
-};
-
-
-template<class... Tuples>
-struct tuple_cat_result_impl
-{
-  static const size_t result_size = __tu::__sum<0u, std::tuple_size<Tuples>::value...>::value;
-
-  using type = typename tuple_cat_result_impl_impl<
-    make_index_sequence<result_size>,
-    Tuples...
-  >::type;
-};
-
-
-template<class... Tuples>
-using tuple_cat_result = typename tuple_cat_result_impl<typename std::decay<Tuples>::type...>::type;
-
-
-template<class T>
-struct maker
-{
-  template<class... Args>
-  __AGENCY_ANNOTATION
-  T operator()(Args&&... args)
-  {
-    return T{std::forward<Args>(args)...};
-  }
-};
-
-
-// XXX this doesn't forward tuple elements which are reference types correctly
-//     because make_tuple() doesn't do that
-template<class... Tuples>
-__AGENCY_ANNOTATION
-tuple_cat_result<Tuples...> tuple_cat(Tuples&&... tuples)
-{
-  return __tu::tuple_cat_apply(maker<tuple_cat_result<Tuples...>>{}, std::forward<Tuples>(tuples)...);
-}
-
-
 // fancy version of std::get which uses tuple_traits and can get() from things which aren't in std::
 template<size_t i, class Tuple,
          class = typename std::enable_if<
@@ -175,14 +126,6 @@ auto forward_tail(Tuple&& t)
      )
 {
   return __tu::tuple_tail_invoke(std::forward<Tuple>(t), forwarder{});
-}
-
-
-template<class T, class Tuple>
-__AGENCY_ANNOTATION
-T make_from_tail(Tuple&& t)
-{
-  return __tu::tuple_tail_invoke(std::forward<Tuple>(t), maker<T>());
 }
 
 
