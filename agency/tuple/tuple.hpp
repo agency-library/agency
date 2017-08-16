@@ -19,8 +19,25 @@ template<class... Types>
 using tuple = __tu::tuple<Types...>;
 
 
-using ignore_t = __tu::detail::tuple_ignore_t;
-constexpr ignore_t ignore{};
+namespace detail
+{
+
+
+struct ignore_t
+{
+  template<class T>
+  __AGENCY_ANNOTATION
+  const ignore_t operator=(T&&) const
+  {
+    return *this;
+  }
+};
+
+
+} // end detail
+
+
+constexpr detail::ignore_t ignore{};
 
 
 template<class... Types>
