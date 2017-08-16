@@ -148,5 +148,279 @@ std::ostream& operator<<(std::ostream& os, const tuple<Types...>& t)
 }
 
 
+// XXX move this stuff into detail/tuple_utility.hpp
+//     when that is possible
+
+
+namespace detail
+{
+
+
+struct tuple_mover
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  auto operator()(Args&&... args)
+    -> decltype(
+         agency::make_tuple(std::move(args)...)
+       )
+  {
+    return agency::make_tuple(std::move(args)...);
+  }
+};
+
+
+template<class Tuple>
+__AGENCY_ANNOTATION
+auto move_tail(Tuple&& t)
+  -> decltype(
+       __tu::tuple_tail_invoke(std::move(t), tuple_mover{})
+     )
+{
+  return __tu::tuple_tail_invoke(std::move(t), tuple_mover{});
+}
+
+
+struct agency_tuple_maker
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  auto operator()(Args&&... args)
+    -> decltype(
+         __tu::make_tuple(std::forward<Args>(args)...)
+       )
+  {
+    return agency::make_tuple(std::forward<Args>(args)...);
+  }
+};
+
+
+template<class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_tail(Tuple&& t)
+  -> decltype(
+       __tu::tuple_tail_invoke(std::forward<Tuple>(t), agency_tuple_maker{})
+     )
+{
+  return __tu::tuple_tail_invoke(std::forward<Tuple>(t), agency_tuple_maker{});
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+auto tuple_tail_if(T&& t) ->
+  decltype(detail::tuple_tail(std::forward<T>(t)))
+{
+  return detail::tuple_tail(std::forward<T>(t));
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           !is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+agency::tuple<> tuple_tail_if(T&&)
+{
+  return agency::tuple<>();
+}
+
+
+template<class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_prefix(Tuple&& t)
+  -> decltype(
+       __tu::tuple_prefix_invoke(std::forward<Tuple>(t), agency_tuple_maker{})
+     )
+{
+  return __tu::tuple_prefix_invoke(std::forward<Tuple>(t), agency_tuple_maker{});
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+auto tuple_prefix_if(T&& t) ->
+  decltype(detail::tuple_prefix(std::forward<T>(t)))
+{
+  return detail::tuple_prefix(std::forward<T>(t));
+}
+
+
+template<class T,
+         class = typename std::enable_if<
+           !is_tuple<typename std::decay<T>::type>::value
+         >::type>
+__AGENCY_ANNOTATION
+agency::tuple<> tuple_prefix_if(T&&)
+{
+  return agency::tuple<>();
+}
+
+
+template<size_t N, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_take(Tuple&& t)
+  -> decltype(
+       __tu::tuple_take_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_take_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<size_t n,
+         class T,
+         class = typename std::enable_if<
+           is_tuple<typename std::decay<T>::type>::value
+         >::type,
+         class = typename std::enable_if<
+           (n <= std::tuple_size<typename std::decay<T>::type>::value)
+         >::type>
+__AGENCY_ANNOTATION
+auto tuple_take_if(T&& t) ->
+  decltype(detail::tuple_take<n>(std::forward<T>(t)))
+{
+  return detail::tuple_take<n>(std::forward<T>(t));
+}
+
+
+template<size_t n,
+         class T,
+         class = typename std::enable_if<
+           !is_tuple<typename std::decay<T>::type>::value
+         >::type,
+         class = typename std::enable_if<
+           n == 1
+         >::type>
+__AGENCY_ANNOTATION
+typename std::decay<T>::type tuple_take_if(T&& value)
+{
+  return std::forward<T>(value);
+}
+
+
+
+
+template<size_t N, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_drop(Tuple&& t)
+  -> decltype(
+       __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<size_t N, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_drop_back(Tuple&& t)
+  -> decltype(
+       __tu::tuple_drop_back_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_drop_back_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_drop_last(Tuple&& t)
+  -> decltype(
+       agency::detail::tuple_drop_back<1>(std::forward<Tuple>(t))
+     )
+{
+  return agency::detail::tuple_drop_back<1>(std::forward<Tuple>(t));
+}
+
+
+template<size_t N, class T>
+__AGENCY_ANNOTATION
+auto tuple_repeat(const T& x)
+  -> decltype(
+       __tu::tuple_repeat_invoke<N>(x, agency_tuple_maker())
+     )
+{
+  return __tu::tuple_repeat_invoke<N>(x, agency_tuple_maker());
+}
+
+
+template<template<class T> class MetaFunction, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_filter(Tuple&& t)
+  -> decltype(
+       __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<typename Function, typename Tuple, typename... Tuples>
+__AGENCY_ANNOTATION
+auto tuple_map(Function f, Tuple&& t, Tuples&&... ts)
+  -> decltype(
+       __tu::tuple_map_with_make(f, agency_tuple_maker(), std::forward<Tuple>(t), std::forward<Tuples>(ts)...)
+     )
+{
+  return __tu::tuple_map_with_make(f, agency_tuple_maker(), std::forward<Tuple>(t), std::forward<Tuples>(ts)...);
+}
+
+
+template<size_t... Indices, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_gather(Tuple&& t)
+  -> decltype(
+       __tu::tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<class Tuple, class T>
+__AGENCY_ANNOTATION
+auto tuple_append(Tuple&& t, T&& val)
+  -> decltype(
+       __tu::tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker());
+}
+
+
+template<class Tuple, class T>
+__AGENCY_ANNOTATION
+auto tuple_prepend(Tuple&& t, T&& val)
+  -> decltype(
+       __tu::tuple_prepend_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker())
+     )
+{
+  return __tu::tuple_prepend_invoke(std::forward<Tuple>(t), std::forward<T>(val), agency_tuple_maker());
+}
+
+
+template<class Tuple, class T>
+struct tuple_prepend_result
+{
+  using type = decltype(
+    detail::tuple_prepend(
+      std::declval<Tuple>(),
+      std::declval<T>()
+    )
+  );
+};
+
+template<class Tuple, class T>
+using tuple_prepend_result_t = typename tuple_prepend_result<Tuple,T>::type;
+
+
+} // end detail
 } // end agency
 
