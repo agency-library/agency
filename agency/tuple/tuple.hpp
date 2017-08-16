@@ -212,7 +212,7 @@ struct agency_tuple_maker
   __AGENCY_ANNOTATION
   auto operator()(Args&&... args)
     -> decltype(
-         __tu::make_tuple(std::forward<Args>(args)...)
+         agency::make_tuple(std::forward<Args>(args)...)
        )
   {
     return agency::make_tuple(std::forward<Args>(args)...);
