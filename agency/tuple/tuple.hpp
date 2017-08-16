@@ -1,5 +1,7 @@
+#pragma once
+
 #include <agency/detail/config.hpp>
-#include <agency/tuple/detail/tuple.hpp>
+#include <agency/tuple/detail/tuple_utility.hpp>
 #include <tuple>
 #include <utility>
 #include <type_traits>
