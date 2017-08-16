@@ -156,6 +156,31 @@ namespace detail
 {
 
 
+struct forwarder
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  auto operator()(Args&&... args)
+    -> decltype(
+         agency::forward_as_tuple(std::forward<Args>(args)...)
+       )
+  {
+    return agency::forward_as_tuple(std::forward<Args>(args)...);
+  }
+};
+
+
+template<class Tuple>
+__AGENCY_ANNOTATION
+auto forward_tail(Tuple&& t)
+  -> decltype(
+       __tu::tuple_tail_invoke(std::forward<Tuple>(t), forwarder{})
+     )
+{
+  return __tu::tuple_tail_invoke(std::forward<Tuple>(t), forwarder{});
+}
+
+
 struct tuple_mover
 {
   template<class... Args>
@@ -290,6 +315,17 @@ auto tuple_take_if(T&& t) ->
 }
 
 
+template<size_t N, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_take_view(Tuple&& t)
+  -> decltype(
+       __tu::tuple_take_invoke<N>(std::forward<Tuple>(t), forwarder())
+     )
+{
+  return __tu::tuple_take_invoke<N>(std::forward<Tuple>(t), forwarder());
+}
+
+
 template<size_t n,
          class T,
          class = typename std::enable_if<
@@ -305,8 +341,6 @@ typename std::decay<T>::type tuple_take_if(T&& value)
 }
 
 
-
-
 template<size_t N, class Tuple>
 __AGENCY_ANNOTATION
 auto tuple_drop(Tuple&& t)
@@ -315,6 +349,17 @@ auto tuple_drop(Tuple&& t)
      )
 {
   return __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<size_t N, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_drop_view(Tuple&& t)
+  -> decltype(
+       __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), forwarder())
+     )
+{
+  return __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), forwarder());
 }
 
 
@@ -359,6 +404,17 @@ auto tuple_filter(Tuple&& t)
      )
 {
   return __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), agency_tuple_maker());
+}
+
+
+template<template<class T> class MetaFunction, class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_filter_view(Tuple&& t)
+  -> decltype(
+        __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), forwarder())
+     )
+{
+  return __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), forwarder());
 }
 
 

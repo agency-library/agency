@@ -93,31 +93,6 @@ template<size_t i, class... Types>
 using pack_element_t = typename pack_element<i,Types...>::type;
 
 
-struct forwarder
-{
-  template<class... Args>
-  __AGENCY_ANNOTATION
-  auto operator()(Args&&... args)
-    -> decltype(
-         __tu::forward_as_tuple(std::forward<Args>(args)...)
-       )
-  {
-    return __tu::forward_as_tuple(std::forward<Args>(args)...);
-  }
-};
-
-
-template<class Tuple>
-__AGENCY_ANNOTATION
-auto forward_tail(Tuple&& t)
-  -> decltype(
-       __tu::tuple_tail_invoke(std::forward<Tuple>(t), forwarder{})
-     )
-{
-  return __tu::tuple_tail_invoke(std::forward<Tuple>(t), forwarder{});
-}
-
-
 template<class T,
          class = typename std::enable_if<
            is_tuple<typename std::decay<T>::type>::value
@@ -164,28 +139,6 @@ T&& tuple_last_if(T&& t)
 }
 
 
-template<size_t N, class Tuple>
-__AGENCY_ANNOTATION
-auto tuple_take_view(Tuple&& t)
-  -> decltype(
-       __tu::tuple_take_invoke<N>(std::forward<Tuple>(t), forwarder())
-     )
-{
-  return __tu::tuple_take_invoke<N>(std::forward<Tuple>(t), forwarder());
-}
-
-
-template<size_t N, class Tuple>
-__AGENCY_ANNOTATION
-auto tuple_drop_view(Tuple&& t)
-  -> decltype(
-       __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), forwarder())
-     )
-{
-  return __tu::tuple_drop_invoke<N>(std::forward<Tuple>(t), forwarder());
-}
-
-
 template<class Function, class Tuple>
 __AGENCY_ANNOTATION
 auto tuple_apply(Function&& f, Tuple&& t)
@@ -194,17 +147,6 @@ auto tuple_apply(Function&& f, Tuple&& t)
      )
 {
   return __tu::tuple_apply(agency::detail::host_device_cast(std::forward<Function>(f)), std::forward<Tuple>(t));
-}
-
-
-template<template<class T> class MetaFunction, class Tuple>
-__AGENCY_ANNOTATION
-auto tuple_filter_view(Tuple&& t)
-  -> decltype(
-        __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), forwarder())
-     )
-{
-  return __tu::tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), forwarder());
 }
 
 
