@@ -12,10 +12,10 @@ namespace cuda
 {
 
 
-class grid_executor : public detail::basic_grid_executor<parallel_execution_tag, agency::uint2>
+class concurrent_grid_executor : public detail::basic_grid_executor<concurrent_execution_tag, agency::uint2>
 {
   private:
-    using super_t = detail::basic_grid_executor<parallel_execution_tag, agency::uint2>;
+    using super_t = detail::basic_grid_executor<concurrent_execution_tag, agency::uint2>;
 
   public:
     using super_t::super_t;
@@ -34,22 +34,8 @@ class grid_executor : public detail::basic_grid_executor<parallel_execution_tag,
     shape_type max_shape_dimensions() const
     {
       // XXX it's not clear that this is correct
-      return shape_type{detail::maximum_grid_size_x(device()), 256};
+      return shape_type{detail::maximum_grid_size_x(device()), detail::maximum_block_size_x(device())};
     }
-};
-
-
-class grid_executor_2d : public detail::basic_grid_executor<parallel_execution_tag, point<agency::uint2,2>>
-{
-  private:
-    using super_t = detail::basic_grid_executor<parallel_execution_tag, point<agency::uint2,2>>;
-
-  public:
-    using super_t::super_t;
-
-    // XXX implement unit_shape()
-
-    // XXX implement max_shape_dimensions()
 };
 
 

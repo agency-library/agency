@@ -244,10 +244,24 @@ size_t maximum_grid_size_x(const device_id& d)
 {
 #if __cuda_lib_has_cudart
   int attr = 0;
-  throw_on_error(cudaDeviceGetAttribute(&attr, cudaDevAttrMaxGridDimX, d.native_handle()), "cuda::detail::maximum_grid_size(): cudaDeviceGetAttribute()");
+  throw_on_error(cudaDeviceGetAttribute(&attr, cudaDevAttrMaxGridDimX, d.native_handle()), "cuda::detail::maximum_grid_size_x(): cudaDeviceGetAttribute()");
   return static_cast<size_t>(attr);
 #else
-  throw_on_error(cudaErrorNotSupported, "cuda::detail::maximum_grid_size(): cudaDeviceGetAttribute() requires CUDART");
+  throw_on_error(cudaErrorNotSupported, "cuda::detail::maximum_grid_size_x(): cudaDeviceGetAttribute() requires CUDART");
+  return 0;
+#endif
+}
+
+
+__host__ __device__
+size_t maximum_block_size_x(const device_id& d)
+{
+#if __cuda_lib_has_cudart
+  int attr = 0;
+  throw_on_error(cudaDeviceGetAttribute(&attr, cudaDevAttrMaxBlockDimX, d.native_handle()), "cuda::detail::maximum_block_size_x(): cudaDeviceGetAttribute()");
+  return static_cast<size_t>(attr);
+#else
+  throw_on_error(cudaErrorNotSupported, "cuda::detail::maximum_block_size_x(): cudaDeviceGetAttribute() requires CUDART");
   return 0;
 #endif
 }
