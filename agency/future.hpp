@@ -4,7 +4,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/exception_list.hpp>
 #include <agency/tuple.hpp>
-#include <agency/tuple/detail/tuple_utility.hpp>
+#include <agency/detail/tuple/tuple_utility.hpp>
 #include <agency/future/future_traits/future_rebind_value.hpp>
 #include <agency/detail/has_member.hpp>
 

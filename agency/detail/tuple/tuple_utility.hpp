@@ -5,7 +5,7 @@
 // XXX this #include should be eliminated from this file
 #define TUPLE_UTILITY_ANNOTATION __AGENCY_ANNOTATION
 #define TUPLE_UTILITY_NAMESPACE __tu
-#include <agency/tuple/detail/tuple_utility_impl.hpp>
+#include <agency/detail/tuple/tuple_utility_impl.hpp>
 #undef TUPLE_UTILITY_ANNOTATION
 #undef TUPLE_UTILITY_NAMESPACE
 

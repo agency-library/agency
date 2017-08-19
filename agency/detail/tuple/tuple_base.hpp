@@ -30,7 +30,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_list.hpp>
-#include <agency/tuple/detail/tuple_leaf.hpp>
+#include <agency/detail/tuple/tuple_leaf.hpp>
 #include <stddef.h> // XXX instead of <cstddef> to WAR clang issue
 #include <type_traits>
 #include <utility> // <utility> declares std::tuple_element et al. for us

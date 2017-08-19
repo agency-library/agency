@@ -2,7 +2,7 @@
 
 #include <type_traits>
 #include <agency/coordinate.hpp>
-#include <agency/tuple/detail/tuple_utility.hpp>
+#include <agency/detail/tuple/tuple_utility.hpp>
 
 namespace agency
 {

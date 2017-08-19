@@ -1,6 +1,6 @@
 #pragma once
 
-#include <agency/tuple/detail/tuple_utility.hpp>
+#include <agency/detail/tuple/tuple_utility.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/tuple.hpp>
 #include <agency/detail/tuple_matrix.hpp>

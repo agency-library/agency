@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
 #include <agency/tuple.hpp>
-#include <agency/tuple/detail/tuple_utility.hpp>
+#include <agency/detail/tuple/tuple_utility.hpp>
 #include <type_traits>
 #include <iterator>
 
