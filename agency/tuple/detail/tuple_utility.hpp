@@ -2,14 +2,6 @@
 
 #include <agency/detail/config.hpp>
 
-
-// XXX this #include should be eliminated from this file
-#define __TUPLE_ANNOTATION __AGENCY_ANNOTATION
-#define __TUPLE_NAMESPACE __tu
-#include <agency/tuple/detail/tuple_impl.hpp>
-#undef __TUPLE_ANNOTATION
-#undef __TUPLE_NAMESPACE
-
 // XXX this #include should be eliminated from this file
 #define TUPLE_UTILITY_ANNOTATION __AGENCY_ANNOTATION
 #define TUPLE_UTILITY_NAMESPACE __tu
