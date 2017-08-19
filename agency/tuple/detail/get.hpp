@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <utility>
 #include <tuple> // #include this so that at least some definition of std::get<i>() exists
 #include <type_traits>
@@ -42,8 +43,10 @@ template<size_t i, class Tuple,
            has_get_member_function<Tuple&&,i>::value
          )>
 __AGENCY_ANNOTATION
-auto get(Tuple&& t) ->
-  decltype(std::forward<Tuple>(t).template get<i>())
+propagate_reference_t<
+  Tuple&&,
+  typename std::tuple_element<i, typename std::decay<Tuple>::type>::type
+> get(Tuple&& t)
 {
   return std::forward<Tuple>(t).template get<i>();
 }
@@ -77,8 +80,10 @@ template<size_t i, class Tuple,
            has_std_get_free_function<Tuple&&,i>::value
          )>
 __AGENCY_ANNOTATION
-auto get(Tuple&& t) ->
-  decltype(std::get<i>(std::forward<Tuple>(t)))
+propagate_reference_t<
+  Tuple&&,
+  typename std::tuple_element<i, typename std::decay<Tuple>::type>::type
+> get(Tuple&& t)
 {
   return std::get<i>(std::forward<Tuple>(t));
 }

@@ -67,22 +67,6 @@ scoped_shape_t<ExecutionCategory1,ExecutionCategory2,Shape1,Shape2> make_scoped_
 } // end agency
 
 
-namespace __tu
-{
-
-// tuple_traits specializations
-
-template<class... Shapes>
-struct tuple_traits<agency::detail::shape_tuple<Shapes...>>
-  : __tu::tuple_traits<agency::tuple<Shapes...>>
-{
-  using tuple_type = agency::tuple<Shapes...>;
-}; // end tuple_traits
-
-
-} // end __tu
-
-
 namespace std
 {
 

@@ -671,6 +671,17 @@ void output(std::ostream&, const Tuple&, const T&)
 } // end detail
 
 
+// note that this operator<< for tuple is non-standard
+template<class... Types>
+std::ostream& operator<<(std::ostream& os, const tuple<Types...>& t)
+{
+  os << "{";
+  detail::tuple_detail::output<0>(os, t, ", ");
+  os << "}";
+  return os;
+}
+
+
 // a fancy version of get<i>() which works for Tuple-like types which
 // either have
 //
@@ -689,17 +700,6 @@ auto get(Tuple&& t) ->
 }
 
 
-// note that this operator<< for tuple is non-standard
-template<class... Types>
-std::ostream& operator<<(std::ostream& os, const tuple<Types...>& t)
-{
-  os << "{";
-  detail::tuple_detail::output<0>(os, t, ", ");
-  os << "}";
-  return os;
-}
-
-
 } // end agency
 
 
@@ -715,33 +715,6 @@ namespace agency
 
 namespace detail
 {
-
-
-//template<class IndexSequence, class... Tuples>
-//struct tuple_cat_result_impl_impl;
-//
-//
-//template<size_t... I, class... Tuples>
-//struct tuple_cat_result_impl_impl<index_sequence<I...>, Tuples...>
-//{
-//  using type = tuple<typename __tu::__tuple_cat_element<I, Tuples...>::type...>;
-//};
-//
-//
-//template<class... Tuples>
-//struct tuple_cat_result_impl
-//{
-//  static const size_t result_size = __tu::__sum<0u, std::tuple_size<Tuples>::value...>::value;
-//
-//  using type = typename tuple_cat_result_impl_impl<
-//    make_index_sequence<result_size>,
-//    Tuples...
-//  >::type;
-//};
-//
-//
-//template<class... Tuples>
-//using tuple_cat_result = typename tuple_cat_result_impl<typename std::decay<Tuples>::type...>::type;
 
 
 template<class T>
@@ -869,22 +842,7 @@ template<std::size_t i, class Tuple1, class... Tuples,
 __AGENCY_ANNOTATION
 tuple_cat_get_result_t<i,Tuple1&&,Tuples&&...> tuple_cat_get_impl(Tuple1&& tuple1, Tuples&&...)
 {
-  // XXX we should use agency::get() here
-  //     agency::get should be a customization point
-  //     it should first try .get<i>()
-  //     if that doesn't work, it can try std::get<i>()
-  //     if that doesn't work, it should fail
-  // XXX we should eliminate use of tuple_traits in favor of this simpler scheme
-  //
-  // XXX tuple_traits::get should also first try .get<i>() to make porting to this scheme easier
-  //
-  // XXX after all that is finished, move the implementation of tuple_cat into a separate header file
-
-  //return std::get<i>(std::forward<Tuple1>(tuple1));
-
-
-  // XXX just call agency::get<i>()
-  return __tu::tuple_traits<typename std::decay<Tuple1>::type>::template get<i>(std::forward<Tuple1>(tuple1));
+  return agency::get<i>(std::forward<Tuple1>(tuple1));
 }
 
 
@@ -958,18 +916,6 @@ detail::tuple_cat_result_t<Tuples&&...> tuple_cat(Tuples&&... tuples)
   // make an index sequence of that size and call the implementation
   return detail::tuple_cat_impl(detail::make_index_sequence<size>(), std::forward<Tuples>(tuples)...);
 }
-
-
-//// XXX next step: move tuple_cat() up after forward_as_tuple()
-//
-//// XXX this doesn't forward tuple elements which are reference types correctly
-////     because make_tuple() doesn't do that
-//template<class... Tuples>
-//__AGENCY_ANNOTATION
-//detail::tuple_cat_result<Tuples...> tuple_cat(Tuples&&... tuples)
-//{
-//  return __tu::tuple_cat_apply(detail::maker<detail::tuple_cat_result<Tuples...>>{}, std::forward<Tuples>(tuples)...);
-//}
 
 
 // XXX move this stuff into detail/tuple_utility.hpp

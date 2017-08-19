@@ -268,63 +268,19 @@ using double10 = point<double,10>;
 } // end agency
 
 
-namespace __tu
-{
-
-// tuple_traits specializations
-
-template<class T, size_t Rank>
-struct tuple_traits<agency::point<T,Rank>>
-{
-  static const size_t size = Rank;
-
-  template<size_t i, class Enable = typename std::enable_if<(i < Rank)>::type>
-  using element_type = T;
-
-  template<size_t I>
-  __AGENCY_ANNOTATION
-  static T& get(agency::point<T,Rank>& x)
-  {
-    return x[I];
-  } // end get()
-
-  template<size_t I>
-  __AGENCY_ANNOTATION
-  static const T& get(const agency::point<T,Rank>& x)
-  {
-    return x[I];
-  } // end get()
-
-  template<size_t I>
-  __AGENCY_ANNOTATION
-  static T&& get(agency::point<T,Rank>&& x)
-  {
-    return std::move(x[I]);
-  } // end get()
-}; // end tuple_traits
-
-
-} // end __tu
-
-
 // specialize Tuple-like interface for agency::point
 namespace std
 {
 
 
-template<size_t I, class T, size_t Rank>
-class tuple_element<I,agency::point<T,Rank>>
-{
-  public:
-    using type = typename __tu::tuple_traits<agency::point<T,Rank>>::template element_type<I>;
-};
-
-
 template<class T, size_t Rank>
-class tuple_size<agency::point<T,Rank>>
+class tuple_size<agency::point<T,Rank>> : public std::integral_constant<std::size_t, Rank> {};
+
+
+template<size_t I, class T, size_t Rank>
+struct tuple_element<I,agency::point<T,Rank>>
 {
-  public:
-    static const size_t value = __tu::tuple_traits<agency::point<T,Rank>>::size;
+  using type = T;
 };
 
 

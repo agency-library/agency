@@ -100,22 +100,6 @@ scoped_index_t<ExecutionCategory1,ExecutionCategory2,Index1,Index2> make_scoped_
 } // end agency
 
 
-namespace __tu
-{
-
-// tuple_traits specializations
-
-template<class... Indices>
-struct tuple_traits<agency::detail::index_tuple<Indices...>>
-  : __tu::tuple_traits<agency::tuple<Indices...>>
-{
-  using tuple_type = agency::tuple<Indices...>;
-}; // end tuple_traits
-
-
-} // end __tu
-
-
 namespace std
 {
 
