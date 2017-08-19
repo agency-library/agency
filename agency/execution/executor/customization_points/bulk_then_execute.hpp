@@ -5,6 +5,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/future/detail/future_cast.hpp>
+#include <agency/tuple.hpp>
 #include <future>
 
 
@@ -150,7 +151,7 @@ struct then_with_nested_bulk_sync_execute_functor
   mutable Function f;
   executor_shape_t<Executor> shape;
   mutable ResultFactory result_factory;
-  mutable detail::tuple<SharedFactories...> shared_factories;
+  mutable tuple<SharedFactories...> shared_factories;
 
   // this functor is passed to bulk_sync_execute() below
   // it has a reference to the predecessor future to use as a parameter to f
@@ -174,7 +175,7 @@ struct then_with_nested_bulk_sync_execute_functor
   {
     functor_for_bulk_sync_execute functor{f, predecessor};
 
-    return exec.bulk_sync_execute(functor, shape, result_factory, detail::get<Indices>(shared_factories)...);
+    return exec.bulk_sync_execute(functor, shape, result_factory, agency::get<Indices>(shared_factories)...);
   }
 
   __AGENCY_ANNOTATION
@@ -193,14 +194,14 @@ struct then_with_nested_bulk_sync_execute_functor<Executor,Function,void,ResultF
   mutable Function f;
   executor_shape_t<Executor> shape;
   mutable ResultFactory result_factory;
-  mutable detail::tuple<SharedFactories...> shared_factories;
+  mutable tuple<SharedFactories...> shared_factories;
 
   __agency_exec_check_disable__
   template<size_t... Indices>
   __AGENCY_ANNOTATION
   result_of_t<ResultFactory()> impl(detail::index_sequence<Indices...>) const
   {
-    return exec.bulk_sync_execute(f, shape, result_factory, detail::get<Indices>(shared_factories)...);
+    return exec.bulk_sync_execute(f, shape, result_factory, agency::get<Indices>(shared_factories)...);
   }
 
   // the predecessor future is void, so operator() receives no parameter
@@ -229,7 +230,7 @@ executor_future_t<
 bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   using predecessor_type = detail::future_value_t<Future>;
-  detail::then_with_nested_bulk_sync_execute_functor<E,Function,predecessor_type,ResultFactory,Factories...> functor{exec,f,shape,result_factory,detail::make_tuple(shared_factories...)};
+  detail::then_with_nested_bulk_sync_execute_functor<E,Function,predecessor_type,ResultFactory,Factories...> functor{exec,f,shape,result_factory,agency::make_tuple(shared_factories...)};
 
   auto intermediate_fut = future_traits<Future>::then(predecessor, std::move(functor));
 

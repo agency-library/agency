@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/control_structures/executor_functions/shared_parameter_packaging.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 
 namespace agency
 {

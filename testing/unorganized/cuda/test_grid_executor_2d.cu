@@ -6,8 +6,8 @@ struct hello_world
   __device__
   void operator()(agency::cuda::grid_executor_2d::index_type index)
   {
-    auto outer = agency::detail::get<0>(index);
-    auto inner = agency::detail::get<1>(index);
+    auto outer = agency::get<0>(index);
+    auto inner = agency::get<1>(index);
     printf("Hello world from block {%d,%d}, thread {%d,%d}\n", outer[0], outer[1], inner[0], inner[1]);
   }
 };

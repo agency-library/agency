@@ -8,6 +8,7 @@
 #include <agency/coordinate/detail/shape/shape_size.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/tuple.hpp>
 #include <utility>
 
 
@@ -77,7 +78,7 @@ launch_bulk_then_execute_concurrent_kernel_and_invalidate_predecessor(agency::cu
   // invalidate the future by splitting it into its event and state
   detail::event predecessor_event;
   detail::asynchronous_state<T> predecessor_state;
-  agency::detail::tie(predecessor_event, predecessor_state) = detail::invalidate_async_future(predecessor);
+  agency::tie(predecessor_event, predecessor_state) = detail::invalidate_async_future(predecessor);
 
   // execute the grid
   auto result = detail::launch_bulk_then_execute_concurrent_kernel_impl(device, predecessor_event.make_dependent_stream_and_invalidate(device), f, grid_dim, block_dim, predecessor_state, result_factory, outer_factory, inner_factory);

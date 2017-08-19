@@ -21,7 +21,7 @@ __AGENCY_ANNOTATION
 RandomAccessIterator2 copy(ExecutionPolicy&& policy, RandomAccessIterator1 first, RandomAccessIterator1 last, RandomAccessIterator2 result)
 {
   auto iter_pair = detail::copy_n(std::forward<ExecutionPolicy>(policy), first, last - first, result);
-  return detail::get<1>(iter_pair);
+  return agency::get<1>(iter_pair);
 }
 
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <agency/detail/tuple_utility.hpp>
+#include <agency/detail/tuple/tuple_utility.hpp>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/detail/tuple_matrix.hpp>
 #include <agency/detail/control_structures/bind.hpp>
 #include <agency/detail/control_structures/shared_parameter.hpp>
@@ -67,7 +67,7 @@ __AGENCY_ANNOTATION
 typename tuple_find_non_null_result<tuple<Types...>>::type
   tuple_find_non_null(const tuple<Types...>& t)
 {
-  return detail::get<find_exactly_one_not_null<Types...>::value>(t);
+  return agency::get<find_exactly_one_not_null<Types...>::value>(t);
 }
 
 
@@ -143,7 +143,7 @@ using shared_parameter_factory_t = decltype(
 
 template<size_t execution_level, class... SharedArgs>
 __AGENCY_ANNOTATION
-shared_parameter_factory_t<execution_level,agency::detail::tuple<SharedArgs...>> make_shared_parameter_factory(const agency::detail::tuple<SharedArgs...>& shared_arg_tuple)
+shared_parameter_factory_t<execution_level,agency::tuple<SharedArgs...>> make_shared_parameter_factory(const agency::tuple<SharedArgs...>& shared_arg_tuple)
 {
   return make_zip_factory(agency::detail::tuple_map(make_factory_tuple_element<execution_level>{}, shared_arg_tuple));
 }
@@ -156,7 +156,7 @@ struct shared_parameter_factory_tuple_t_impl;
 template<size_t... ExecutionLevel, class Tuple>
 struct shared_parameter_factory_tuple_t_impl<agency::detail::index_sequence<ExecutionLevel...>,Tuple>
 {
-  using type = agency::detail::tuple<
+  using type = agency::tuple<
     shared_parameter_factory_t<ExecutionLevel,Tuple>...
   >;
 };
@@ -173,11 +173,11 @@ using shared_parameter_factory_tuple_t = typename shared_parameter_factory_tuple
 
 template<size_t... ExecutionLevel, class... SharedArgs>
 __AGENCY_ANNOTATION
-shared_parameter_factory_tuple_t<sizeof...(ExecutionLevel), agency::detail::tuple<SharedArgs...>>
+shared_parameter_factory_tuple_t<sizeof...(ExecutionLevel), agency::tuple<SharedArgs...>>
   make_shared_parameter_factory_tuple_impl(agency::detail::index_sequence<ExecutionLevel...>,
-                                           const agency::detail::tuple<SharedArgs...>& shared_arg_tuple)
+                                           const agency::tuple<SharedArgs...>& shared_arg_tuple)
 {
-  return agency::detail::make_tuple(
+  return agency::make_tuple(
     make_shared_parameter_factory<ExecutionLevel>(shared_arg_tuple)...
   );
 }
@@ -185,8 +185,8 @@ shared_parameter_factory_tuple_t<sizeof...(ExecutionLevel), agency::detail::tupl
 
 template<size_t executor_depth, class... SharedArgs>
 __AGENCY_ANNOTATION
-shared_parameter_factory_tuple_t<executor_depth,agency::detail::tuple<SharedArgs...>>
-  make_shared_parameter_factory_tuple(const agency::detail::tuple<SharedArgs...>& shared_arg_tuple)
+shared_parameter_factory_tuple_t<executor_depth,agency::tuple<SharedArgs...>>
+  make_shared_parameter_factory_tuple(const agency::tuple<SharedArgs...>& shared_arg_tuple)
 {
   return make_shared_parameter_factory_tuple_impl(
     agency::detail::make_index_sequence<executor_depth>{},
@@ -202,7 +202,7 @@ struct extracted_shared_parameters_t_impl;
 template<size_t... RowIndices, class TupleMatrix>
 struct extracted_shared_parameters_t_impl<index_sequence<RowIndices...>,TupleMatrix>
 {
-  using type = agency::detail::tuple<
+  using type = agency::tuple<
     typename tuple_find_non_null_result<
       typename std::tuple_element<
         RowIndices,
@@ -227,8 +227,8 @@ __AGENCY_ANNOTATION
 extracted_shared_parameters_t<tuple<Rows...>>
   extract_shared_parameters_from_rows_impl(index_sequence<RowIndex...>, const tuple<Rows...>& mtx)
 {
-  return detail::tie(
-    detail::tuple_find_non_null(detail::get<RowIndex>(mtx))...
+  return agency::tie(
+    detail::tuple_find_non_null(agency::get<RowIndex>(mtx))...
   );
 }
 
@@ -274,7 +274,7 @@ __AGENCY_ANNOTATION
 unpack_shared_parameters_from_executor_t<tuple<Types&...>>
   unpack_shared_parameters_from_executor(Types&... shared_params)
 {
-  return detail::unpack_shared_parameter_matrix_from_executor(detail::tie(shared_params...));
+  return detail::unpack_shared_parameter_matrix_from_executor(agency::tie(shared_params...));
 }
 
 
@@ -283,13 +283,13 @@ __AGENCY_ANNOTATION
 auto forward_shared_parameters_as_tuple(Args&&... args)
   -> decltype(
        __tu::tuple_filter_invoke<is_shared_parameter_ref>(
-         detail::forward_as_tuple(std::forward<Args>(args)...),
+         agency::forward_as_tuple(std::forward<Args>(args)...),
          detail::forwarder()
        )
      )
 {
   return __tu::tuple_filter_invoke<is_shared_parameter_ref>(
-    detail::forward_as_tuple(std::forward<Args>(args)...),
+    agency::forward_as_tuple(std::forward<Args>(args)...),
     detail::forwarder()
   );
 }

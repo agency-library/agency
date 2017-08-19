@@ -12,7 +12,7 @@ int main()
 
     auto result = f4.get();
 
-    assert(result == agency::detail::make_tuple(7,13,42));
+    assert(result == agency::make_tuple(7,13,42));
     assert(!f1.valid());
     assert(!f2.valid());
     assert(!f3.valid());
@@ -27,7 +27,7 @@ int main()
 
     auto result = f3.get();
 
-    assert(result == agency::detail::make_tuple(7,13));
+    assert(result == agency::make_tuple(7,13));
     assert(!f1.valid());
     assert(!f2.valid());
   }

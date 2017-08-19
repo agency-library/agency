@@ -11,6 +11,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/detail/integer_sequence.hpp>
+#include <agency/tuple.hpp>
 
 #include <type_traits>
 #include <utility>
@@ -157,7 +158,7 @@ class variant_executor
       Function f;
       shape_type shape;
       ResultFactory result_factory;
-      detail::tuple<SharedFactories...> shared_factories;
+      tuple<SharedFactories...> shared_factories;
 
       __agency_exec_check_disable__
       template<class E, size_t... Indices>
@@ -168,7 +169,7 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        return agency::bulk_async_execute(exec, f, casted_shape, result_factory, detail::get<Indices>(shared_factories)...);
+        return agency::bulk_async_execute(exec, f, casted_shape, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       __agency_exec_check_disable__
@@ -189,7 +190,7 @@ class variant_executor
     future<detail::result_of_t<ResultFactory()>>
     bulk_async_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
     {
-      auto visitor = bulk_async_execute_visitor<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, detail::make_tuple(shared_factories...)};
+      auto visitor = bulk_async_execute_visitor<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, agency::make_tuple(shared_factories...)};
       return experimental::visit(visitor, variant_);
     }
 
@@ -201,7 +202,7 @@ class variant_executor
       Function f;
       shape_type shape;
       ResultFactory result_factory;
-      detail::tuple<SharedFactories...> shared_factories;
+      tuple<SharedFactories...> shared_factories;
 
       template<class E, size_t... Indices>
       __AGENCY_ANNOTATION
@@ -211,7 +212,7 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        return agency::bulk_sync_execute(exec, f, casted_shape, result_factory, detail::get<Indices>(shared_factories)...);
+        return agency::bulk_sync_execute(exec, f, casted_shape, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       template<class E>
@@ -231,7 +232,7 @@ class variant_executor
     detail::result_of_t<ResultFactory()>
     bulk_sync_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
     {
-      auto visitor = bulk_sync_execute_visitor<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, detail::make_tuple(shared_factories...)};
+      auto visitor = bulk_sync_execute_visitor<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, agency::make_tuple(shared_factories...)};
       return experimental::visit(visitor, variant_);
     }
 
@@ -245,7 +246,7 @@ class variant_executor
       shape_type shape;
       Future& predecessor_future;
       ResultFactory result_factory;
-      detail::tuple<SharedFactories...> shared_factories;
+      tuple<SharedFactories...> shared_factories;
 
       template<class E, size_t... Indices>
       __AGENCY_ANNOTATION
@@ -255,7 +256,7 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        return agency::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, detail::get<Indices>(shared_factories)...);
+        return agency::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       template<class E>
@@ -274,7 +275,7 @@ class variant_executor
       Function f;
       shape_type shape;
       ResultFactory result_factory;
-      detail::tuple<SharedFactories...> shared_factories;
+      tuple<SharedFactories...> shared_factories;
 
       __agency_exec_check_disable__
       template<class E, class VariantFuture, size_t... Indices>
@@ -285,7 +286,7 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        return agency::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, detail::get<Indices>(shared_factories)...);
+        return agency::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       __agency_exec_check_disable__
@@ -311,7 +312,7 @@ class variant_executor
                       ResultFactory result_factory,
                       SharedFactories... shared_factories)
     {
-      auto visitor = bulk_then_execute_visitor2<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, detail::make_tuple(shared_factories...)};
+      auto visitor = bulk_then_execute_visitor2<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, agency::make_tuple(shared_factories...)};
       auto future_variant = predecessor_future.variant();
       return experimental::visit(visitor, variant_, future_variant);
     }
@@ -328,7 +329,7 @@ class variant_executor
                       ResultFactory result_factory,
                       SharedFactories... shared_factories)
     {
-      auto visitor = bulk_then_execute_visitor1<Function,Future,ResultFactory,SharedFactories...>{f, shape, predecessor_future, result_factory, detail::make_tuple(shared_factories...)};
+      auto visitor = bulk_then_execute_visitor1<Function,Future,ResultFactory,SharedFactories...>{f, shape, predecessor_future, result_factory, agency::make_tuple(shared_factories...)};
       return experimental::visit(visitor, variant_);
     }
 
@@ -389,14 +390,14 @@ class variant_executor
     template<class T, class... Args>
     struct make_ready_future_visitor
     {
-      detail::tuple<Args...> args;
+      tuple<Args...> args;
 
       __agency_exec_check_disable__
       template<class E, size_t... Indices>
       __AGENCY_ANNOTATION
       future<T> impl(detail::index_sequence<Indices...>, E& exec) const
       {
-        return agency::make_ready_future<T>(exec, detail::get<Indices>(args)...);
+        return agency::make_ready_future<T>(exec, agency::get<Indices>(args)...);
       }
 
       __agency_exec_check_disable__
@@ -413,7 +414,7 @@ class variant_executor
     __AGENCY_ANNOTATION
     future<T> make_ready_future(Args&&... args)
     {
-      auto args_tuple = detail::forward_as_tuple(std::forward<Args>(args)...);
+      auto args_tuple = agency::forward_as_tuple(std::forward<Args>(args)...);
       auto visitor = make_ready_future_visitor<T,Args&&...>{args_tuple};
       return experimental::visit(visitor, variant_);
     }

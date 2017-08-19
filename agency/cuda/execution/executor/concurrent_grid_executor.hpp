@@ -3,9 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/execution/executor/detail/basic_grid_executor.hpp>
 #include <agency/execution/execution_categories.hpp>
-#include <agency/coordinate.hpp>
-#include <agency/cuda/device.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/coordinate/point.hpp>
 
 
 namespace agency

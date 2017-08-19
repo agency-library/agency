@@ -3,8 +3,10 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/exception_list.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
+#include <agency/detail/tuple/tuple_utility.hpp>
 #include <agency/future/future_traits/future_rebind_value.hpp>
+#include <agency/detail/has_member.hpp>
 
 #include <future>
 #include <utility>
@@ -928,7 +930,7 @@ unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
                        >::value == 1
                      >::type* = 0)
 {
-  return std::move(detail::get<0>(t));
+  return std::move(agency::get<0>(t));
 }
 
 template<class Tuple>
@@ -951,7 +953,7 @@ struct make_tuple_for_impl;
 template<class... Types>
 struct make_tuple_for_impl<type_list<Types...>>
 {
-  using type = detail::tuple<Types...>;
+  using type = tuple<Types...>;
 };
 
 template<class TypeList>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/execution/execution_categories.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <utility>
 
 
@@ -23,9 +23,9 @@ T make_tuple_if_not_scoped(agency::scoped_execution_tag<ExecutionCategory1,Execu
 // execution is not scoped, wrap up x in a tuple
 template<class ExecutionCategory, class T>
 __AGENCY_ANNOTATION
-agency::detail::tuple<T> make_tuple_if_not_scoped(ExecutionCategory, const T& x)
+agency::tuple<T> make_tuple_if_not_scoped(ExecutionCategory, const T& x)
 {
-  return agency::detail::make_tuple(x);
+  return agency::make_tuple(x);
 }
 
 
@@ -50,9 +50,9 @@ auto tie_if_not_scoped(scoped_execution_tag<ExecutionCategory1,ExecutionCategory
 template<class ExecutionCategory, class T>
 __AGENCY_ANNOTATION
 auto tie_if_not_scoped(ExecutionCategory, T&& x)
-  -> decltype(agency::detail::tie(std::forward<T>(x)))
+  -> decltype(agency::tie(std::forward<T>(x)))
 {
-  return agency::detail::tie(std::forward<T>(x));
+  return agency::tie(std::forward<T>(x));
 }
 
 

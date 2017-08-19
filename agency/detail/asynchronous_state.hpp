@@ -4,7 +4,7 @@
 #include <agency/detail/unit.hpp>
 #include <agency/memory/detail/unique_ptr.hpp>
 #include <agency/memory/allocator/detail/allocator_traits/is_allocator.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/detail/tuple/tuple_utility.hpp>
 #include <type_traits>
 
 namespace agency

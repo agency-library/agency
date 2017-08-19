@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/execution/executor/customization_points/future_cast.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_collected_result.hpp>
@@ -33,7 +33,7 @@ executor_future_t<E, result_of_t<ResultFactory()>>
                           Tuple&& shared_factory_tuple,
                           detail::index_sequence<TupleIndices...>)
 {
-  return detail::bulk_then_execute_with_collected_result(exec, f, shape, predecessor, result_factory, detail::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
+  return detail::bulk_then_execute_with_collected_result(exec, f, shape, predecessor, result_factory, agency::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
 }
 
 // this overload handles the special case where the user function returns a scope_result
@@ -50,7 +50,7 @@ executor_future_t<E, typename detail::scope_result_container<scope,T,E>::result_
                           Tuple&& shared_factory_tuple,
                           detail::index_sequence<TupleIndices...>)
 {
-  auto intermediate_future = bulk_then_execute_with_collected_result(exec, f, shape, predecessor, result_factory, detail::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
+  auto intermediate_future = bulk_then_execute_with_collected_result(exec, f, shape, predecessor, result_factory, agency::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
 
   using result_type = typename detail::scope_result_container<scope,T,E>::result_type;
 
@@ -70,7 +70,7 @@ executor_future_t<E, void>
                           Tuple&& shared_factory_tuple,
                           detail::index_sequence<TupleIndices...>)
 {
-  return detail::bulk_then_execute_with_void_result(exec, f, shape, predecessor, detail::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
+  return detail::bulk_then_execute_with_void_result(exec, f, shape, predecessor, agency::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
 }
 
 
@@ -85,7 +85,7 @@ struct unpack_shared_parameters_from_then_execute_and_invoke
   __AGENCY_ANNOTATION
   Result impl(detail::index_sequence<TupleIndices...>, const Index& idx, PastArg& past_arg, Tuple&& tuple_of_shared_args) const
   {
-    return f(idx, past_arg, detail::get<TupleIndices>(tuple_of_shared_args)...);
+    return f(idx, past_arg, agency::get<TupleIndices>(tuple_of_shared_args)...);
   }
 
   // this overload of impl() handles the case when the future given to then_execute() is void
@@ -93,7 +93,7 @@ struct unpack_shared_parameters_from_then_execute_and_invoke
   __AGENCY_ANNOTATION
   Result impl(detail::index_sequence<TupleIndices...>, const Index& idx, Tuple&& tuple_of_shared_args) const
   {
-    return f(idx, detail::get<TupleIndices>(tuple_of_shared_args)...);
+    return f(idx, agency::get<TupleIndices>(tuple_of_shared_args)...);
   }
 
   // this overload of operator() handles the case when the future given to then_execute() is non-void

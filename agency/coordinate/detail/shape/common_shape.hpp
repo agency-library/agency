@@ -5,7 +5,7 @@
 #include <agency/coordinate/detail/shape/shape_size.hpp>
 #include <agency/coordinate/detail/shape/shape_element.hpp>
 #include <agency/coordinate/detail/shape/shape_append.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <type_traits>
 
 namespace agency
@@ -101,7 +101,7 @@ struct case_3<Shape1, Shape2, index_sequence<Indices...>>
   // XXX we might prefer to use something more specific than detail::tuple, e.g detail::shape_tuple
   using type = detail::tuple_rebind_if_t<
     Shape1,
-    detail::tuple,
+    tuple,
     common_shape2_t<                       // the resulting Shape is composed of the the common shape of Shape1's & Shape2's constituent elements
       shape_element_t<Indices,Shape1>,
       shape_element_t<Indices,Shape2>

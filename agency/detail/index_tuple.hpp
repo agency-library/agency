@@ -1,8 +1,8 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/tuple.hpp>
-#include <agency/detail/arithmetic_tuple_facade.hpp>
+#include <agency/tuple.hpp>
+#include <agency/detail/tuple/arithmetic_tuple_facade.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/make_tuple_if_not_scoped.hpp>
 
@@ -16,11 +16,11 @@ namespace detail
 // because it also requires arithmetic operators
 template<class... Indices>
 class index_tuple :
-  public agency::detail::tuple<Indices...>,
+  public agency::tuple<Indices...>,
   public arithmetic_tuple_facade<index_tuple<Indices...>>
 {
   public:
-    using agency::detail::tuple<Indices...>::tuple;
+    using agency::tuple<Indices...>::tuple;
 };
 
 
@@ -100,31 +100,15 @@ scoped_index_t<ExecutionCategory1,ExecutionCategory2,Index1,Index2> make_scoped_
 } // end agency
 
 
-namespace __tu
-{
-
-// tuple_traits specializations
-
-template<class... Indices>
-struct tuple_traits<agency::detail::index_tuple<Indices...>>
-  : __tu::tuple_traits<agency::detail::tuple<Indices...>>
-{
-  using tuple_type = agency::detail::tuple<Indices...>;
-}; // end tuple_traits
-
-
-} // end __tu
-
-
 namespace std
 {
 
 
 template<class... Indices>
-class tuple_size<agency::detail::index_tuple<Indices...>> : public std::tuple_size<agency::detail::tuple<Indices...>> {};
+class tuple_size<agency::detail::index_tuple<Indices...>> : public std::tuple_size<agency::tuple<Indices...>> {};
 
 template<size_t i, class... Indices>
-class tuple_element<i,agency::detail::index_tuple<Indices...>> : public std::tuple_element<i,agency::detail::tuple<Indices...>> {};
+class tuple_element<i,agency::detail::index_tuple<Indices...>> : public std::tuple_element<i,agency::tuple<Indices...>> {};
 
 
 } // end namespace std

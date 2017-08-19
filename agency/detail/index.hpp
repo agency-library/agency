@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/shape.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <type_traits>
 
@@ -22,8 +22,8 @@ merge_front_index_elements_t<Index>
   merge_front_index_elements_impl(detail::index_sequence<Indices...>, const Index& idx, const Shape& shape)
 {
   return merge_front_index_elements_t<Index>{
-    detail::get<0>(idx) * detail::get<1>(shape) + detail::get<1>(idx),
-    detail::get<Indices+2>(idx)...
+    agency::get<0>(idx) * agency::get<1>(shape) + agency::get<1>(idx),
+    agency::get<Indices+2>(idx)...
   };
 } // end merge_front_index_elements_impl()
 
@@ -94,7 +94,7 @@ typename std::enable_if<
 >::type
   is_bounded_by_impl(const Tuple1& x, const Tuple2& bound)
 {
-  return detail::is_bounded_by(detail::get<i>(x), detail::get<i>(bound)) && detail::is_bounded_by_impl<i+1>(x,bound);
+  return detail::is_bounded_by(agency::get<i>(x), agency::get<i>(bound)) && detail::is_bounded_by_impl<i+1>(x,bound);
 }
 
 

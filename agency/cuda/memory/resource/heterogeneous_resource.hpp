@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/memory/allocator/detail/allocator_traits.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 
 
 namespace agency

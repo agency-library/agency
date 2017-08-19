@@ -17,6 +17,7 @@ TODO
   * `invoke`
 
 ### New Utilities
+  * `tuple`
   * `shared`
   * `shared_array`
   * `shared_vector`

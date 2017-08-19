@@ -1,7 +1,6 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/tuple.hpp>
 #include <agency/memory/detail/resource/malloc_resource.hpp>
 #include <agency/memory/allocator/detail/allocator_traits.hpp>
 #include <agency/memory/allocator/detail/allocator_adaptor.hpp>

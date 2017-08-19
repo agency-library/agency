@@ -11,6 +11,7 @@
 #include <agency/execution/executor/detail/utility.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
+#include <agency/tuple.hpp>
 
 
 namespace agency
@@ -151,14 +152,14 @@ class executor_array
       outer_shape_type outer_shape;
       inner_shape_type inner_shape;
       mutable Function f;
-      detail::tuple<InnerFactories...> inner_factories;
+      tuple<InnerFactories...> inner_factories;
 
       template<class... OuterArgs>
       struct inner_functor
       {
         mutable Function f;
         outer_index_type outer_idx;
-        detail::tuple<OuterArgs&...> outer_args;
+        tuple<OuterArgs&...> outer_args;
 
         template<size_t... Indices, class... InnerSharedArgs>
         __AGENCY_ANNOTATION
@@ -166,7 +167,7 @@ class executor_array
         {
           index_type idx = make_index(outer_idx, inner_idx);
 
-          f(idx, detail::get<Indices>(outer_args)..., inner_args...);
+          f(idx, agency::get<Indices>(outer_args)..., inner_args...);
         }
 
         template<class... InnerSharedArgs>
@@ -194,11 +195,11 @@ class executor_array
         //  f(idx, predecessor, result, outer_shared_arg, inner_shared_args...);
         //},
         //inner_shape,
-        //detail::get<Indices>(inner_factories)...);
+        //agency::get<Indices>(inner_factories)...);
 
-        inner_functor<OuterArgs...> execute_me{f, outer_idx, detail::forward_as_tuple(outer_args...)};
+        inner_functor<OuterArgs...> execute_me{f, outer_idx, agency::forward_as_tuple(outer_args...)};
 
-        detail::bulk_sync_execute_with_void_result(adapted_exec, execute_me, inner_shape, detail::get<Indices>(inner_factories)...);
+        detail::bulk_sync_execute_with_void_result(adapted_exec, execute_me, inner_shape, agency::get<Indices>(inner_factories)...);
       }
 
       template<class... OuterArgs>
@@ -242,7 +243,7 @@ class executor_array
       //outer_factory
       //);
 
-      lazy_bulk_then_execute_functor<Function,InnerFactories...> execute_me{*this,outer_shape,inner_shape,f,detail::make_tuple(inner_factories...)};
+      lazy_bulk_then_execute_functor<Function,InnerFactories...> execute_me{*this,outer_shape,inner_shape,f,agency::make_tuple(inner_factories...)};
 
       detail::bulk_continuation_executor_adaptor<outer_executor_type> adapted_exec(outer_executor());
 
@@ -268,7 +269,7 @@ class executor_array
       Futures& predecessor_futures;
       Result* result_ptr;
       OuterShared* outer_shared_arg_ptr;
-      detail::tuple<Factories...> inner_factories;
+      tuple<Factories...> inner_factories;
       outer_shape_type outer_shape;
       inner_shape_type inner_shape;
 
@@ -330,7 +331,7 @@ class executor_array
           inner_functor{f,outer_idx,*result_ptr,*outer_shared_arg_ptr},
           inner_shape,
           predecessor_futures[outer_idx],
-          detail::get<Indices>(inner_factories)...
+          agency::get<Indices>(inner_factories)...
         );
       }
 
@@ -389,7 +390,7 @@ class executor_array
       //},
       //outer_shape);
 
-      auto functor = eager_bulk_then_execute_functor<Function,future_container,result_type,outer_shared_arg_type,InnerFactories...>{*this, f, shared_predecessor_futures, results_raw_ptr, outer_shared_arg_raw_ptr, detail::make_tuple(inner_factories...), outer_shape, inner_shape};
+      auto functor = eager_bulk_then_execute_functor<Function,future_container,result_type,outer_shared_arg_type,InnerFactories...>{*this, f, shared_predecessor_futures, results_raw_ptr, outer_shared_arg_raw_ptr, agency::make_tuple(inner_factories...), outer_shape, inner_shape};
       auto inner_futures = detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(outer_executor(), functor, outer_shape);
 
       // create a continuation to synchronize the futures and return the result
