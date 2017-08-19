@@ -68,7 +68,7 @@ __AGENCY_ANNOTATION
 typename tuple_matrix_element<row_idx, column_idx, tuple<Rows...>>::type &
   tuple_matrix_get(tuple<Rows...>& mtx)
 {
-  return detail::get<column_idx>(detail::get<row_idx>(mtx));
+  return agency::get<column_idx>(agency::get<row_idx>(mtx));
 }
 
 

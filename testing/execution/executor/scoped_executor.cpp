@@ -6,6 +6,7 @@
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
+#include <agency/tuple.hpp>
 #include "test_executors.hpp"
 
 template<class OuterExecutor, class InnerExecutor>
@@ -50,16 +51,16 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
   auto f = exec.bulk_then_execute(
     [=](index_type idx, int& past_arg, std::vector<int>& results, std::vector<int>& outer_shared_arg, std::vector<int>& inner_shared_arg)
     {
-      auto rank = detail::get<0>(idx) * detail::get<1>(shape) + detail::get<1>(idx);
-      auto outer_idx = detail::get<0>(idx);
-      auto inner_idx = detail::get<1>(idx);
+      auto rank = agency::get<0>(idx) * agency::get<1>(shape) + agency::get<1>(idx);
+      auto outer_idx = agency::get<0>(idx);
+      auto inner_idx = agency::get<1>(idx);
       results[rank] = past_arg + outer_shared_arg[outer_idx] + inner_shared_arg[inner_idx];
     },
     shape,
     fut,
     [=]{ return std::vector<int>(detail::shape_cast<int>(shape)); }, // results
-    [=]{ return std::vector<int>(detail::get<0>(shape), 13); },      // outer_shared_arg
-    [=]{ return std::vector<int>(detail::get<1>(shape), 42); }       // inner_shared_arg
+    [=]{ return std::vector<int>(agency::get<0>(shape), 13); },      // outer_shared_arg
+    [=]{ return std::vector<int>(agency::get<1>(shape), 42); }       // inner_shared_arg
   );
 
   auto result = f.get();

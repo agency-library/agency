@@ -32,7 +32,7 @@ result_of_t<ResultFactory()>
                             Tuple&& shared_factory_tuple,
                             detail::index_sequence<TupleIndices...>)
 {
-  return detail::bulk_sync_execute_with_collected_result(exec, f, shape, result_factory, detail::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
+  return detail::bulk_sync_execute_with_collected_result(exec, f, shape, result_factory, agency::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
 }
 
 // this overload handles the special case where the user function returns void
@@ -45,7 +45,7 @@ void bulk_invoke_executor_impl(Executor& exec,
                                Tuple&& factory_tuple,
                                detail::index_sequence<TupleIndices...>)
 {
-  return detail::bulk_sync_execute_with_void_result(exec, f, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
+  return detail::bulk_sync_execute_with_void_result(exec, f, shape, agency::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
 }
 
 

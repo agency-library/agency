@@ -269,7 +269,7 @@ __AGENCY_ANNOTATION
 merge_front_shape_elements_t<Shape>
   merge_front_shape_elements_impl(detail::index_sequence<Indices...>, const Shape& s)
 {
-  return merge_front_shape_elements_t<Shape>{detail::get<0>(s) * detail::get<1>(s), detail::get<Indices+2>(s)...};
+  return merge_front_shape_elements_t<Shape>{agency::get<0>(s) * agency::get<1>(s), agency::get<Indices+2>(s)...};
 } // end merge_front_shape_elements_impl()
 
 

@@ -39,7 +39,7 @@ struct execute_agent_functor
   static result_of_t<OtherFunction(agent_type&)>
     unpack_shared_params_and_execute(OtherFunction f, const agent_index_type& index, const agent_param_type& param, Tuple&& shared_params, detail::index_sequence<Indices...>)
   {
-    return AgentTraits::execute(f, index, param, detail::get<Indices>(std::forward<Tuple>(shared_params))...);
+    return AgentTraits::execute(f, index, param, agency::get<Indices>(std::forward<Tuple>(shared_params))...);
   }
 
   // execution_agent_traits::execute expects a function whose only parameter is agent_type
@@ -60,7 +60,7 @@ struct execute_agent_functor
       // XXX we explicitly cast the result of f_ to result_type
       //     this is due to our special implementation of result_of,
       //     coerces the return type of a CUDA extended device lambda to be void
-      return static_cast<result_type>(agency::detail::invoke(f_, self, agency::detail::get<Indices>(args_)...));
+      return static_cast<result_type>(agency::detail::invoke(f_, self, agency::get<Indices>(args_)...));
     }
   };
 
@@ -84,7 +84,7 @@ struct execute_agent_functor
     //auto invoke_f = [&user_args,this] (agent_type& self)
     //{
     //  // invoke f by passing the agent, then the user's parameters
-    //  return f_(self, detail::get<UserArgIndices>(user_args)...);
+    //  return f_(self, agency::get<UserArgIndices>(user_args)...);
     //};
     // XXX seems like we could do this with a bind() instead of introducing a named functor
     auto invoke_f = unpack_arguments_and_invoke_with_self<decltype(user_args), UserArgIndices...>{f_,user_args};

@@ -33,7 +33,7 @@ class construct
     __AGENCY_ANNOTATION
     T impl(index_sequence<Indices...>) const &
     {
-      return T(detail::get<Indices>(args_)...);
+      return T(agency::get<Indices>(args_)...);
     }
 
     __agency_exec_check_disable__
@@ -41,7 +41,7 @@ class construct
     __AGENCY_ANNOTATION
     T impl(index_sequence<Indices...>) &&
     {
-      return T(detail::get<Indices>(std::move(args_))...);
+      return T(agency::get<Indices>(std::move(args_))...);
     }
 
     __AGENCY_ANNOTATION
@@ -153,7 +153,7 @@ struct zip_factory
   >
     impl(agency::detail::index_sequence<Indices...>)
   {
-    return agency::make_tuple(detail::get<Indices>(factory_tuple_)()...);
+    return agency::make_tuple(agency::get<Indices>(factory_tuple_)()...);
   }
 
   __AGENCY_ANNOTATION

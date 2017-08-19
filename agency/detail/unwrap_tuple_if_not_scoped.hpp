@@ -13,9 +13,9 @@ namespace detail
 template<class ExecutionCategory, class Tuple>
 __AGENCY_ANNOTATION
 static auto unwrap_tuple_if_not_scoped_impl(ExecutionCategory, Tuple&& t)
-  -> decltype(detail::get<0>(std::forward<Tuple>(t)))
+  -> decltype(agency::get<0>(std::forward<Tuple>(t)))
 {
-  return detail::get<0>(std::forward<Tuple>(t));
+  return agency::get<0>(std::forward<Tuple>(t));
 }
 
 template<class ExecutionCategory1, class ExecutionCategory2, class Tuple>

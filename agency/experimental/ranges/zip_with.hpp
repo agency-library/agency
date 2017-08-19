@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
 #include <agency/tuple.hpp>
+#include <agency/tuple/detail/tuple_utility.hpp>
 #include <type_traits>
 #include <iterator>
 
@@ -61,7 +62,7 @@ class zip_with_iterator
     __AGENCY_ANNOTATION
     Iterator first_iterator() const
     {
-      return agency::detail::get<0>(iterator_tuple());
+      return agency::get<0>(iterator_tuple());
     }
 
   private:

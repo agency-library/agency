@@ -11,6 +11,7 @@
 
 
 #include <agency/detail/requires.hpp>
+#include <agency/tuple.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/host_device_cast.hpp>
@@ -33,21 +34,6 @@ template<class T>
 struct is_tuple : has_value<std::tuple_size<T>> {};
 
 
-// fancy version of std::get which uses tuple_traits and can get() from things which aren't in std::
-template<size_t i, class Tuple,
-         class = typename std::enable_if<
-           is_tuple<typename std::decay<Tuple>::type>::value
-         >::type>
-__AGENCY_ANNOTATION
-auto get(Tuple&& t)
-  -> decltype(
-       __tu::tuple_traits<typename std::decay<Tuple>::type>::template get<i>(std::forward<Tuple>(t))
-     )
-{
-  return __tu::tuple_traits<typename std::decay<Tuple>::type>::template get<i>(std::forward<Tuple>(t));
-}
-
-
 // get_if returns the ith element of an object when that object is a Tuple-like type
 // otherwise, it returns its second parameter
 template<size_t i, class Tuple, class T,
@@ -58,7 +44,7 @@ __AGENCY_ANNOTATION
 auto get_if(Tuple&& t, T&&)
   -> decltype(get<i>(std::forward<Tuple>(t)))
 {
-  return detail::get<i>(std::forward<Tuple>(t));
+  return agency::get<i>(std::forward<Tuple>(t));
 }
 
 
@@ -91,9 +77,9 @@ template<class T,
          >::type>
 __AGENCY_ANNOTATION
 auto tuple_head_if(T&& t) ->
-  decltype(detail::get<0>(std::forward<T>(t)))
+  decltype(agency::get<0>(std::forward<T>(t)))
 {
-  return detail::get<0>(std::forward<T>(t));
+  return agency::get<0>(std::forward<T>(t));
 }
 
 
@@ -225,10 +211,10 @@ template<class Tuple,
 __AGENCY_ANNOTATION
 auto unwrap_single_element_tuple(Tuple&& t)
   -> decltype(
-       detail::get<0>(std::forward<Tuple>(t))
+       agency::get<0>(std::forward<Tuple>(t))
      )
 {
-  return detail::get<0>(std::forward<Tuple>(t));
+  return agency::get<0>(std::forward<Tuple>(t));
 }
 
 
@@ -690,6 +676,26 @@ struct tuple_prepend_result
 
 template<class Tuple, class T>
 using tuple_prepend_result_t = typename tuple_prepend_result<Tuple,T>::type;
+
+
+template<class T>
+struct maker
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  T operator()(Args&&... args)
+  {
+    return T{std::forward<Args>(args)...};
+  }
+};
+
+
+template<class T, class Tuple>
+__AGENCY_ANNOTATION
+T make_from_tail(Tuple&& t)
+{
+  return __tu::tuple_tail_invoke(std::forward<Tuple>(t), detail::maker<T>());
+}
 
 
 } // end detail

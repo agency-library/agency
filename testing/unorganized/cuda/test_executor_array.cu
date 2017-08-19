@@ -84,7 +84,7 @@ int main()
 
     auto f = exec.bulk_then_execute([=] __host__ __device__ (const index_type& idx, int& past, container_type& results, int& outer_shared, int& inner_shared, int& inner_inner_shared)
     {
-      printf("hello from agent %d %d %d\n", (int)agency::detail::get<0>(idx), (int)agency::detail::get<1>(idx), (int)agency::detail::get<2>(idx));
+      printf("hello from agent %d %d %d\n", (int)agency::get<0>(idx), (int)agency::get<1>(idx), (int)agency::get<2>(idx));
       results[idx] = past + outer_shared + inner_shared + inner_inner_shared;
     },
     shape,

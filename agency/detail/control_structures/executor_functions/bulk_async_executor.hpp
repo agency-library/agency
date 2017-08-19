@@ -33,7 +33,7 @@ executor_future_t<E, result_of_t<ResultFactory()>>
                            Tuple&& shared_factory_tuple,
                            detail::index_sequence<TupleIndices...>)
 {
-  return detail::bulk_async_execute_with_collected_result(exec, f, shape, result_factory, detail::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
+  return detail::bulk_async_execute_with_collected_result(exec, f, shape, result_factory, agency::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
 }
 
 // this overload handles the special case where the user function returns a scope_result
@@ -49,7 +49,7 @@ executor_future_t<E, typename detail::scope_result_container<scope,T,E>::result_
                            Tuple&& shared_factory_tuple,
                            detail::index_sequence<TupleIndices...>)
 {
-  auto intermediate_future = detail::bulk_async_execute_with_collected_result(exec, f, shape, result_factory, detail::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
+  auto intermediate_future = detail::bulk_async_execute_with_collected_result(exec, f, shape, result_factory, agency::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
 
   using result_type = typename detail::scope_result_container<scope,T,E>::result_type;
 
@@ -68,7 +68,7 @@ executor_future_t<E,void>
                            Tuple&& factory_tuple,
                            detail::index_sequence<TupleIndices...>)
 {
-  return detail::bulk_async_execute_with_void_result(exec, f, shape, detail::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
+  return detail::bulk_async_execute_with_void_result(exec, f, shape, agency::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
 }
 
 

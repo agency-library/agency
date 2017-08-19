@@ -11,6 +11,7 @@
 #include <agency/execution/executor/detail/utility.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
+#include <agency/tuple.hpp>
 
 
 namespace agency
@@ -166,7 +167,7 @@ class executor_array
         {
           index_type idx = make_index(outer_idx, inner_idx);
 
-          f(idx, detail::get<Indices>(outer_args)..., inner_args...);
+          f(idx, agency::get<Indices>(outer_args)..., inner_args...);
         }
 
         template<class... InnerSharedArgs>
@@ -194,11 +195,11 @@ class executor_array
         //  f(idx, predecessor, result, outer_shared_arg, inner_shared_args...);
         //},
         //inner_shape,
-        //detail::get<Indices>(inner_factories)...);
+        //agency::get<Indices>(inner_factories)...);
 
         inner_functor<OuterArgs...> execute_me{f, outer_idx, agency::forward_as_tuple(outer_args...)};
 
-        detail::bulk_sync_execute_with_void_result(adapted_exec, execute_me, inner_shape, detail::get<Indices>(inner_factories)...);
+        detail::bulk_sync_execute_with_void_result(adapted_exec, execute_me, inner_shape, agency::get<Indices>(inner_factories)...);
       }
 
       template<class... OuterArgs>
@@ -330,7 +331,7 @@ class executor_array
           inner_functor{f,outer_idx,*result_ptr,*outer_shared_arg_ptr},
           inner_shape,
           predecessor_futures[outer_idx],
-          detail::get<Indices>(inner_factories)...
+          agency::get<Indices>(inner_factories)...
         );
       }
 

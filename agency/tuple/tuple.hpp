@@ -619,47 +619,6 @@ auto get(Tuple&& t) ->
 }
 
 
-} // end agency
-
-
-// we have to #include tuple_utility *after* the definition of std::get<i>(agency::tuple)
-#include <agency/tuple/detail/tuple_utility.hpp>
-
-
-namespace agency
-{
-
-
-// XXX move as much of the stuff in agency:: up immediately after the definition of agency::tuple
-
-namespace detail
-{
-
-
-template<class T>
-struct maker
-{
-  template<class... Args>
-  __AGENCY_ANNOTATION
-  T operator()(Args&&... args)
-  {
-    return T{std::forward<Args>(args)...};
-  }
-};
-
-
-// XXX this should be moved into some file underneath agency/detail/tuple
-template<class T, class Tuple>
-__AGENCY_ANNOTATION
-T make_from_tail(Tuple&& t)
-{
-  return __tu::tuple_tail_invoke(std::forward<Tuple>(t), detail::maker<T>());
-}
-
-
-} // end detail
-
-
 namespace detail
 {
 

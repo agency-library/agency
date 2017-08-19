@@ -33,7 +33,7 @@ struct continuation
   __device__
   void impl(agency::detail::index_sequence<Indices...>) const
   {
-    *result_ptr_ = f_(*agency::detail::get<Indices>(arg_ptr_tuple_)...);
+    *result_ptr_ = f_(*agency::get<Indices>(arg_ptr_tuple_)...);
   }
 
   __device__
@@ -60,7 +60,7 @@ struct continuation<Function, agency::detail::empty_type_ptr<void>, PointerTuple
   __device__
   void impl(agency::detail::index_sequence<Indices...>) const
   {
-    f_(*agency::detail::get<Indices>(arg_ptr_tuple_)...);
+    f_(*agency::get<Indices>(arg_ptr_tuple_)...);
   }
 
   __device__

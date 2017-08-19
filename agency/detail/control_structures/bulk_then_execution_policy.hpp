@@ -12,6 +12,7 @@
 #include <agency/execution/execution_agent.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
 #include <agency/execution/execution_policy/execution_policy_traits.hpp>
+#include <agency/tuple.hpp>
 #include <utility>
 
 namespace agency
@@ -45,7 +46,7 @@ struct then_execute_agent_functor
   static result_of_t<OtherFunction(agent_type&)>
     unpack_shared_params_and_execute(OtherFunction f, const agent_index_type& index, const agent_param_type& param, Tuple&& shared_params, detail::index_sequence<Indices...>)
   {
-    return AgentTraits::execute(f, index, param, detail::get<Indices>(std::forward<Tuple>(shared_params))...);
+    return AgentTraits::execute(f, index, param, agency::get<Indices>(std::forward<Tuple>(shared_params))...);
   }
 
   // this overload of operator() handles the case where the Future given to then_execute() is non-void
@@ -73,7 +74,7 @@ struct then_execute_agent_functor
     auto invoke_f = [&past_arg,&user_args,this](agent_type& self)
     {
       // invoke f by passing the agent, then the past_arg, then the user's parameters
-      return f_(self, past_arg, detail::get<UserArgIndices>(user_args)...);
+      return f_(self, past_arg, agency::get<UserArgIndices>(user_args)...);
     };
 
     return this->unpack_shared_params_and_execute(invoke_f, agent_idx, agent_param_, agent_shared_args, detail::make_tuple_indices(agent_shared_args));
@@ -105,7 +106,7 @@ struct then_execute_agent_functor
     auto invoke_f = [&user_args,this](agent_type& self)
     {
       // invoke f by passing the agent, then the user's parameters
-      return f_(self, detail::get<UserArgIndices>(user_args)...);
+      return f_(self, agency::get<UserArgIndices>(user_args)...);
     };
 
     return this->unpack_shared_params_and_execute(invoke_f, agent_idx, agent_param_, agent_shared_args, detail::make_tuple_indices(agent_shared_args));
@@ -171,7 +172,7 @@ bulk_then_execution_policy_result_t<
     lambda,
     fut,
     std::forward<Args>(args)...,
-    agency::share_at_scope_from_factory<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_parameter_factory_tuple))...
+    agency::share_at_scope_from_factory<SharedArgIndices>(agency::get<SharedArgIndices>(agent_shared_parameter_factory_tuple))...
   );
 }
 

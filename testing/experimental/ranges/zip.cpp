@@ -8,7 +8,7 @@
 template<class Tuple>
 void assign_second_to_first(const Tuple& t)
 {
-  agency::detail::get<0>(t) = agency::detail::get<1>(t);
+  agency::get<0>(t) = agency::get<1>(t);
 }
 
 

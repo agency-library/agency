@@ -5,6 +5,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/future/detail/future_cast.hpp>
+#include <agency/tuple.hpp>
 #include <future>
 
 
@@ -174,7 +175,7 @@ struct then_with_nested_bulk_sync_execute_functor
   {
     functor_for_bulk_sync_execute functor{f, predecessor};
 
-    return exec.bulk_sync_execute(functor, shape, result_factory, detail::get<Indices>(shared_factories)...);
+    return exec.bulk_sync_execute(functor, shape, result_factory, agency::get<Indices>(shared_factories)...);
   }
 
   __AGENCY_ANNOTATION
@@ -200,7 +201,7 @@ struct then_with_nested_bulk_sync_execute_functor<Executor,Function,void,ResultF
   __AGENCY_ANNOTATION
   result_of_t<ResultFactory()> impl(detail::index_sequence<Indices...>) const
   {
-    return exec.bulk_sync_execute(f, shape, result_factory, detail::get<Indices>(shared_factories)...);
+    return exec.bulk_sync_execute(f, shape, result_factory, agency::get<Indices>(shared_factories)...);
   }
 
   // the predecessor future is void, so operator() receives no parameter

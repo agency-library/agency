@@ -213,7 +213,7 @@ class basic_grid_executor
       // create a closure wrapping f which will pass f the execution agent's index as its first parameter
       invoke_with_agent_index<Function,index_type> closure{f};
       
-      return detail::launch_bulk_then_execute_kernel_and_invalidate_predecessor(device(), closure, grid_dim, agency::detail::get<1>(shape), predecessor, result_factory, outer_factory, inner_factory);
+      return detail::launch_bulk_then_execute_kernel_and_invalidate_predecessor(device(), closure, grid_dim, agency::get<1>(shape), predecessor, result_factory, outer_factory, inner_factory);
     }
 
 
@@ -242,7 +242,7 @@ class basic_grid_executor
 
       // implement with lower-level kernel launch functionality
       using result_type = agency::detail::result_of_t<ResultFactory()>;
-      return detail::launch_bulk_then_execute_kernel(device(), closure, grid_dim, agency::detail::get<1>(shape), async_predecessor, result_factory, outer_factory, inner_factory);
+      return detail::launch_bulk_then_execute_kernel(device(), closure, grid_dim, agency::get<1>(shape), async_predecessor, result_factory, outer_factory, inner_factory);
     }
 
 
@@ -309,7 +309,7 @@ class basic_grid_executor
     static dim3 make_grid_dim(shape_type shape)
     {
       // cast the 0th element of shape into a uint3
-      uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::detail::get<0>(shape));
+      uint3 outer_shape = agency::detail::shape_cast<uint3>(agency::get<0>(shape));
 
       // unpack outer_shape into dim3
       return dim3(outer_shape.x, outer_shape.y, outer_shape.z);
@@ -348,8 +348,8 @@ class grid_executor : public detail::basic_grid_executor<agency::uint2>
     __host__ __device__
     shape_type max_shape_dimensions(Function f, shape_type shape, async_future<T>& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory) const
     {
-      unsigned int outer_size = agency::detail::get<0>(shape);
-      unsigned int inner_size = agency::detail::get<1>(shape);
+      unsigned int outer_size = agency::get<0>(shape);
+      unsigned int inner_size = agency::get<1>(shape);
 
       if(inner_size == 0)
       {

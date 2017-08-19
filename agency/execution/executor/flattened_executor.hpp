@@ -283,12 +283,12 @@ class flattened_executor
       base_shape_type base_executor_shape = agency::unit_shape(base_executor());
 
       size_t outer_granularity = detail::index_space_size_of_shape_head(base_executor_shape);
-      size_t inner_granularity = detail::index_space_size(detail::get<1>(base_executor_shape));
+      size_t inner_granularity = detail::index_space_size(agency::get<1>(base_executor_shape));
 
       base_shape_type base_executor_max_sizes = detail::max_sizes(agency::max_shape_dimensions(base_executor()));
 
       size_t outer_max_size = detail::shape_head(base_executor_max_sizes);
-      size_t inner_max_size = detail::get<1>(base_executor_max_sizes);
+      size_t inner_max_size = agency::get<1>(base_executor_max_sizes);
 
       // set outer subscription to 1
       size_t outer_size = detail::min(outer_max_size, detail::min(requested_size, outer_granularity));
@@ -346,7 +346,7 @@ class flattened_executor
     __AGENCY_ANNOTATION
     static base_shape_type make_base_shape_impl(detail::index_sequence<Indices...>, const head_partition_type& partition_of_head, const shape_tail_type& tail)
     {
-      return base_shape_type{detail::get<0>(partition_of_head), detail::get<1>(partition_of_head), detail::get<Indices>(tail)...};
+      return base_shape_type{agency::get<0>(partition_of_head), agency::get<1>(partition_of_head), agency::get<Indices>(tail)...};
     }
 
     __AGENCY_ANNOTATION

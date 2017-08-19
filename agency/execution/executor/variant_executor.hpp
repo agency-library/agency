@@ -11,6 +11,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/detail/integer_sequence.hpp>
+#include <agency/tuple.hpp>
 
 #include <type_traits>
 #include <utility>
@@ -168,7 +169,7 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        return agency::bulk_async_execute(exec, f, casted_shape, result_factory, detail::get<Indices>(shared_factories)...);
+        return agency::bulk_async_execute(exec, f, casted_shape, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       __agency_exec_check_disable__
@@ -211,7 +212,7 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        return agency::bulk_sync_execute(exec, f, casted_shape, result_factory, detail::get<Indices>(shared_factories)...);
+        return agency::bulk_sync_execute(exec, f, casted_shape, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       template<class E>
@@ -255,7 +256,7 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        return agency::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, detail::get<Indices>(shared_factories)...);
+        return agency::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       template<class E>
@@ -285,7 +286,7 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        return agency::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, detail::get<Indices>(shared_factories)...);
+        return agency::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       __agency_exec_check_disable__
@@ -396,7 +397,7 @@ class variant_executor
       __AGENCY_ANNOTATION
       future<T> impl(detail::index_sequence<Indices...>, E& exec) const
       {
-        return agency::make_ready_future<T>(exec, detail::get<Indices>(args)...);
+        return agency::make_ready_future<T>(exec, agency::get<Indices>(args)...);
       }
 
       __agency_exec_check_disable__

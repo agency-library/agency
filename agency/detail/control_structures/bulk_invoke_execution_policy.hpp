@@ -13,6 +13,7 @@
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/detail/utility/executor_bulk_result_or_void.hpp>
 #include <agency/execution/execution_policy/execution_policy_traits.hpp>
+#include <agency/tuple.hpp>
 #include <utility>
 
 namespace agency
@@ -77,7 +78,7 @@ bulk_invoke_execution_policy_result_t<
     executor_shape,
     lambda,
     std::forward<Args>(args)...,
-    agency::share_at_scope_from_factory<SharedArgIndices>(detail::get<SharedArgIndices>(agent_shared_parameter_factory_tuple))...
+    agency::share_at_scope_from_factory<SharedArgIndices>(agency::get<SharedArgIndices>(agent_shared_parameter_factory_tuple))...
   );
 }
 

@@ -67,7 +67,7 @@ __AGENCY_ANNOTATION
 typename tuple_find_non_null_result<tuple<Types...>>::type
   tuple_find_non_null(const tuple<Types...>& t)
 {
-  return detail::get<find_exactly_one_not_null<Types...>::value>(t);
+  return agency::get<find_exactly_one_not_null<Types...>::value>(t);
 }
 
 
@@ -228,7 +228,7 @@ extracted_shared_parameters_t<tuple<Rows...>>
   extract_shared_parameters_from_rows_impl(index_sequence<RowIndex...>, const tuple<Rows...>& mtx)
 {
   return agency::tie(
-    detail::tuple_find_non_null(detail::get<RowIndex>(mtx))...
+    detail::tuple_find_non_null(agency::get<RowIndex>(mtx))...
   );
 }
 
