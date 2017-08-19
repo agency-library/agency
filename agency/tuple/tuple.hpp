@@ -538,87 +538,6 @@ struct ignore_t
 constexpr detail::ignore_t ignore{};
 
 
-} // end agency
-
-
-// implement std::get()
-// XXX eliminate this
-namespace std
-{
-
-
-template<size_t i, class... Types>
-class tuple_element<i, agency::tuple<Types...>>
-{
-  public:
-    using type = typename std::tuple_element<i, agency::detail::tuple_base<agency::detail::make_index_sequence<sizeof...(Types)>, Types...>>::type;
-};
-
-
-template<class... Types>
-class tuple_size<agency::tuple<Types...>>
-  : public std::tuple_size<agency::detail::tuple_base<agency::detail::make_index_sequence<sizeof...(Types)>, Types...>>
-{};
-
-
-template<size_t i, class... UTypes>
-__AGENCY_ANNOTATION
-typename std::tuple_element<i, agency::tuple<UTypes...>>::type &
-  get(agency::tuple<UTypes...>& t)
-{
-  return agency::get<i>(t);
-}
-
-
-template<size_t i, class... UTypes>
-__AGENCY_ANNOTATION
-const typename std::tuple_element<i, agency::tuple<UTypes...>>::type &
-  get(const agency::tuple<UTypes...>& t)
-{
-  return agency::get<i>(t);
-}
-
-
-template<size_t i, class... UTypes>
-__AGENCY_ANNOTATION
-typename std::tuple_element<i, agency::tuple<UTypes...>>::type &&
-  get(agency::tuple<UTypes...>&& t)
-{
-  return agency::get<i>(std::move(t));
-}
-
-
-template<class T, class... Types>
-__AGENCY_ANNOTATION
-T& get(agency::tuple<Types...>& t)
-{
-  return std::get<T>(t);
-}
-
-
-template<class T, class... Types>
-__AGENCY_ANNOTATION
-const T& get(const agency::tuple<Types...>& t)
-{
-  return std::get<T>(t);
-}
-
-
-template<class T, class... Types>
-__AGENCY_ANNOTATION
-T&& get(agency::tuple<Types...>&& t)
-{
-  return std::get<T>(std::move(t));
-}
-
-
-} // end std
-
-
-namespace agency
-{
-
-
 // declare tuple's operator<< before tuple_print, which may use it below
 template<class... Types>
 std::ostream& operator<<(std::ostream& os, const tuple<Types...>& t);
@@ -1249,4 +1168,26 @@ using tuple_prepend_result_t = typename tuple_prepend_result<Tuple,T>::type;
 
 } // end detail
 } // end agency
+
+
+// specialize Tuple-related functionality in namespace std
+namespace std
+{
+
+
+template<size_t i, class... Types>
+class tuple_element<i, agency::tuple<Types...>>
+{
+  public:
+    using type = typename std::tuple_element<i, agency::detail::tuple_base<agency::detail::make_index_sequence<sizeof...(Types)>, Types...>>::type;
+};
+
+
+template<class... Types>
+class tuple_size<agency::tuple<Types...>>
+  : public std::tuple_size<agency::detail::tuple_base<agency::detail::make_index_sequence<sizeof...(Types)>, Types...>>
+{};
+
+
+} // end std
 
