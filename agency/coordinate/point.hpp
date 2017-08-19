@@ -62,7 +62,6 @@ class point : public agency::detail::point_base_t<T,Rank>,
               public agency::detail::arithmetic_tuple_facade<point<T,Rank>>
 {
   static_assert(agency::detail::has_arithmetic_operators<T>::value, "T must have arithmetic operators.");
-  static_assert(Rank > 0, "Rank must be greater than 0.");
 
   using super_t = detail::point_base_t<T,Rank>;
 
@@ -205,6 +204,7 @@ typename std::enable_if<
 }
 
 
+using int0  = point<int,0>;
 using int1  = point<int,1>;
 using int2  = point<int,2>;
 using int3  = point<int,3>;
@@ -217,6 +217,7 @@ using int9  = point<int,9>;
 using int10 = point<int,10>;
 
 
+using uint0  = point<unsigned int,0>;
 using uint1  = point<unsigned int,1>;
 using uint2  = point<unsigned int,2>;
 using uint3  = point<unsigned int,3>;
@@ -229,6 +230,7 @@ using uint9  = point<unsigned int,9>;
 using uint10 = point<unsigned int,10>;
 
 
+using size0  = point<size_t,0>;
 using size1  = point<size_t,1>;
 using size2  = point<size_t,2>;
 using size3  = point<size_t,3>;
@@ -241,6 +243,7 @@ using size9  = point<size_t,9>;
 using size10 = point<size_t,10>;
 
 
+using float0  = point<float,0>;
 using float1  = point<float,1>;
 using float2  = point<float,2>;
 using float3  = point<float,3>;
@@ -253,6 +256,7 @@ using float9  = point<float,9>;
 using float10 = point<float,10>;
 
 
+using double0  = point<double,0>;
 using double1  = point<double,1>;
 using double2  = point<double,2>;
 using double3  = point<double,3>;
