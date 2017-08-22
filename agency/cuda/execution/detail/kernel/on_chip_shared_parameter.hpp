@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/uninitialized.hpp>
+#include <agency/detail/tuple/tuple_utility.hpp>
 #include <type_traits>
 
 namespace agency
