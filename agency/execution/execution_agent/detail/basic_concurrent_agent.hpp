@@ -14,11 +14,13 @@ namespace detail
 {
 
 
-template<class Index, class MemoryResource>
+template<class Index, class Barrier, class MemoryResource>
 class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_execution_tag, Index>
 {
   private:
     using super_t = detail::basic_execution_agent<concurrent_execution_tag, Index>;
+
+    using barrier_type = Barrier;
 
     static constexpr size_t broadcast_channel_size = sizeof(void*);
     using broadcast_channel_type = agency::array<char, broadcast_channel_size>;
@@ -57,7 +59,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       wait();
     }
 
-
+    
     // this overload of broadcast_impl() is for small T
     template<class T,
              __AGENCY_REQUIRES(
@@ -70,7 +72,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       // send it through directly without needing to dynamically allocate storage
       
       // reinterpret the broadcast channel into the right kind of type
-      T* shared_temporary_object = reinterpret_cast<T*>(broadcast_channel_.data());
+      T* shared_temporary_object = reinterpret_cast<T*>(shared_param_.broadcast_channel_.data());
 
       // the thread with the value copies it into a shared temporary
       if(value)
@@ -107,8 +109,8 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       // we need to dynamically allocate storage
 
       // reinterpret the broadcast channel into a pointer
-      static_assert(sizeof(broadcast_channel_) >= sizeof(T*), "broadcast channel is too small to accomodate T*");
-      T* shared_temporary_object = reinterpret_cast<T*>(&broadcast_channel_);
+      static_assert(sizeof(broadcast_channel_type) >= sizeof(T*), "broadcast channel is too small to accomodate T*");
+      T* shared_temporary_object = reinterpret_cast<T*>(&shared_param_.broadcast_channel_);
 
       if(value)
       {
@@ -147,7 +149,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     __AGENCY_ANNOTATION
     void wait() const
     {
-      barrier_.arrive_and_wait();
+      shared_param_.barrier_.arrive_and_wait();
     }
 
     template<class T>
@@ -162,46 +164,46 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     __AGENCY_ANNOTATION
     memory_resource_type& memory_resource()
     {
-      return memory_resource_;
+      return shared_param_.memory_resource_;
     }
 
-    struct shared_param_type
+    class shared_param_type
     {
-      __AGENCY_ANNOTATION
-      shared_param_type(const typename super_t::param_type& param)
-        : barrier_(param.domain().size()),
-          memory_resource_()
-      {
-        // note we specifically avoid default constructing broadcast_channel_
-      }
+      public:
+        __AGENCY_ANNOTATION
+        shared_param_type(const typename super_t::param_type& param)
+          : barrier_(param.domain().size()),
+            memory_resource_()
+        {
+          // note we specifically avoid default constructing broadcast_channel_
+        }
 
-      // XXX see if we can eliminate this copy constructor
-      //     i'm not certain it's necessary to copy shared_param_type anymore
-      __AGENCY_ANNOTATION
-      shared_param_type(const shared_param_type& other)
-        : barrier_(other.barrier_.count()),
-          memory_resource_()
-      {}
+        // XXX see if we can eliminate this copy constructor
+        //     i'm not certain it's necessary to copy shared_param_type anymore
+        __AGENCY_ANNOTATION
+        shared_param_type(const shared_param_type& other)
+          : barrier_(other.barrier_.count()),
+            memory_resource_()
+        {}
 
-      // broadcast_channel_ needs to be the first member to ensure proper alignment because we reinterpret it to arbitrary T*
-      // XXX is there a more comprehensive way to ensure that this member falls on the right address?
-      broadcast_channel_type broadcast_channel_;
-      concurrent_agent_barrier barrier_;
-      memory_resource_type memory_resource_;
+      private:
+        // broadcast_channel_ needs to be the first member to ensure proper alignment because we reinterpret it to arbitrary T*
+        // XXX is there a more comprehensive way to ensure that this member falls on the right address?
+        broadcast_channel_type broadcast_channel_;
+        barrier_type barrier_;
+        memory_resource_type memory_resource_;
+
+        friend basic_concurrent_agent;
     };
 
   private:
-    concurrent_agent_barrier& barrier_;
-    broadcast_channel_type& broadcast_channel_;
-    memory_resource_type& memory_resource_;
+    shared_param_type& shared_param_;
 
   protected:
     __AGENCY_ANNOTATION
     basic_concurrent_agent(const typename super_t::index_type& index, const typename super_t::param_type& param, shared_param_type& shared_param)
       : super_t(index, param),
-        barrier_(shared_param.barrier_),
-        broadcast_channel_(shared_param.broadcast_channel_),
-        memory_resource_(shared_param.memory_resource_)
+        shared_param_(shared_param)
     {}
 
     // friend execution_agent_traits to give it access to the constructor

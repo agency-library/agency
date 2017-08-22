@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution/execution_agent/experimental/detail/basic_static_execution_agent.hpp>
 #include <agency/execution/execution_agent/concurrent_agent.hpp>
+#include <agency/execution/execution_agent/detail/concurrent_agent_barrier.hpp>
 #include <agency/memory/detail/resource/arena_resource.hpp>
 #include <cstddef>
 
@@ -22,6 +23,7 @@ template<std::size_t group_size, std::size_t grain_size = 1, std::size_t pool_si
 using static_concurrent_agent = detail::basic_static_execution_agent<
   agency::detail::basic_concurrent_agent<
     std::size_t,
+    agency::detail::concurrent_agent_barrier,
     agency::detail::arena_resource<pool_size>
   >,
   group_size,
