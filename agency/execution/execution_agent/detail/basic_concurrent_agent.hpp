@@ -215,10 +215,14 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
         // note we specifically avoid default constructing broadcast_channel_
       }
 
-      // XXX see if we can eliminate this copy constructor
-      //     i'm not certain it's necessary to copy shared_param_type anymore
+      // shared_param_type needs to be moveable, even if its member types aren't,
+      // because shared_param_type objects will be returned from factory functions
+      // at the moment, this requires moveability
+      //
+      // XXX we should be able to eliminate this move constructor in C++17
+      //     see wg21.link/P0135
       __AGENCY_ANNOTATION
-      shared_param_type(const shared_param_type& other)
+      shared_param_type(shared_param_type&& other)
         : barrier_(other.barrier_.count()),
           memory_resource_()
       {}
