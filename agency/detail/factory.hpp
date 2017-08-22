@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/detail/unit.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
@@ -33,7 +33,7 @@ class construct
     __AGENCY_ANNOTATION
     T impl(index_sequence<Indices...>) const &
     {
-      return T(detail::get<Indices>(args_)...);
+      return T(agency::get<Indices>(args_)...);
     }
 
     __agency_exec_check_disable__
@@ -41,7 +41,7 @@ class construct
     __AGENCY_ANNOTATION
     T impl(index_sequence<Indices...>) &&
     {
-      return T(detail::get<Indices>(std::move(args_))...);
+      return T(agency::get<Indices>(std::move(args_))...);
     }
 
     __AGENCY_ANNOTATION
@@ -65,7 +65,7 @@ template<class T, class... Args>
 __AGENCY_ANNOTATION
 construct<T,typename std::decay<Args>::type...> make_construct(Args&&... args)
 {
-  return construct<T,typename std::decay<Args>::type...>(agency::detail::make_tuple(std::forward<Args>(args)...));
+  return construct<T,typename std::decay<Args>::type...>(agency::make_tuple(std::forward<Args>(args)...));
 }
 
 
@@ -148,16 +148,16 @@ struct zip_factory
 
   template<size_t... Indices>
   __AGENCY_ANNOTATION
-  agency::detail::tuple<
+  agency::tuple<
     result_of_t<Factories()>...
   >
     impl(agency::detail::index_sequence<Indices...>)
   {
-    return agency::detail::make_tuple(detail::get<Indices>(factory_tuple_)()...);
+    return agency::make_tuple(agency::get<Indices>(factory_tuple_)()...);
   }
 
   __AGENCY_ANNOTATION
-  agency::detail::tuple<
+  agency::tuple<
     result_of_t<Factories()>...
   >
     operator()()

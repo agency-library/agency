@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/cuda/device.hpp>
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>

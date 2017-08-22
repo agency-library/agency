@@ -2,7 +2,8 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
+#include <agency/detail/tuple/tuple_utility.hpp>
 #include <type_traits>
 #include <iterator>
 
@@ -20,7 +21,7 @@ template<class Function, class Iterator, class... Iterators>
 class zip_with_iterator
 {
   private:
-    using iterator_tuple_type = agency::detail::tuple<Iterator, Iterators...>;
+    using iterator_tuple_type = agency::tuple<Iterator, Iterators...>;
 
     __AGENCY_ANNOTATION
     zip_with_iterator(Function f, const iterator_tuple_type& iterator_tuple)
@@ -55,13 +56,13 @@ class zip_with_iterator
 
     __AGENCY_ANNOTATION
     zip_with_iterator(Function f, Iterator iter, Iterators... iters)
-      : zip_with_iterator(f, agency::detail::make_tuple(iter, iters...))
+      : zip_with_iterator(f, agency::make_tuple(iter, iters...))
     {}
 
     __AGENCY_ANNOTATION
     Iterator first_iterator() const
     {
-      return agency::detail::get<0>(iterator_tuple());
+      return agency::get<0>(iterator_tuple());
     }
 
   private:

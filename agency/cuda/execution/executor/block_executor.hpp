@@ -2,7 +2,7 @@
 
 #include <agency/cuda/execution/executor/grid_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 
@@ -24,7 +24,7 @@ struct block_executor_helper_functor
   __device__
   void operator()(grid_executor::index_type idx, Predecessor& predecessor, Result& result, agency::detail::unit, InnerSharedArg& inner_shared_arg) const
   {
-    agency::detail::invoke(f_, agency::detail::get<1>(idx), predecessor, result, inner_shared_arg);
+    agency::detail::invoke(f_, agency::get<1>(idx), predecessor, result, inner_shared_arg);
   }
 
   // this is the form of operator() for bulk_then_execute() with a void predecessor future
@@ -32,7 +32,7 @@ struct block_executor_helper_functor
   __device__
   void operator()(grid_executor::index_type idx, Result& result, agency::detail::unit, InnerSharedArg& inner_shared_arg) const
   {
-    agency::detail::invoke(f_, agency::detail::get<1>(idx), result, inner_shared_arg);
+    agency::detail::invoke(f_, agency::get<1>(idx), result, inner_shared_arg);
   }
 };
 

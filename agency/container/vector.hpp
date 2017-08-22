@@ -242,7 +242,7 @@ class vector
 
         // construct new elements at the end
         // XXX we should really involve the allocator in construction here
-        end_ = detail::uninitialized_copy_n(policy, detail::get<0>(mid_and_end), n - size(), end());
+        end_ = detail::uninitialized_copy_n(policy, agency::get<0>(mid_and_end), n - size(), end());
       }
     }
 

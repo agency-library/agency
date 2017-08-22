@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/factory.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/execution/execution_agent.hpp>
 #include <type_traits>
 
@@ -30,10 +30,10 @@ template<class ExecutionAgent,
            !detail::has_shared_param_type<ExecutionAgent>::value
          >::type>
 __AGENCY_ANNOTATION
-detail::construct<agency::detail::ignore_t>
+detail::construct<ignore_t>
   make_agent_shared_parameter_factory(const typename execution_agent_traits<ExecutionAgent>::param_type&)
 {
-  return detail::make_construct<agency::detail::ignore_t>();
+  return detail::make_construct<ignore_t>();
 }
 
 
@@ -49,7 +49,7 @@ struct agent_shared_parameter_factory_tuple_impl;
 template<class... ExecutionAgents>
 struct agent_shared_parameter_factory_tuple_impl<detail::type_list<ExecutionAgents...>>
 {
-  using type = detail::tuple<
+  using type = tuple<
     agent_shared_parameter_factory<ExecutionAgents>...
   >;
 };
@@ -81,7 +81,7 @@ agent_shared_parameter_factory_tuple_t<ExecutionAgent>
 {
   auto factory = detail::make_agent_shared_parameter_factory<ExecutionAgent>(param);
 
-  return detail::make_tuple(factory);
+  return agency::make_tuple(factory);
 }
 
 // this is the recursive case for scoped agents -- agents which do have an ::inner_execution_agent_type

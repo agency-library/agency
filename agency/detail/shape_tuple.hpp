@@ -1,8 +1,8 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/tuple.hpp>
-#include <agency/detail/arithmetic_tuple_facade.hpp>
+#include <agency/tuple.hpp>
+#include <agency/detail/tuple/arithmetic_tuple_facade.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/make_tuple_if_not_scoped.hpp>
 
@@ -16,11 +16,11 @@ namespace detail
 // because it also requires arithmetic operators
 template<class... Shapes>
 class shape_tuple :
-  public agency::detail::tuple<Shapes...>,
+  public agency::tuple<Shapes...>,
   public arithmetic_tuple_facade<shape_tuple<Shapes...>>
 {
   public:
-    using agency::detail::tuple<Shapes...>::tuple;
+    using agency::tuple<Shapes...>::tuple;
 };
 
 template<class ExecutionCategory1,
@@ -30,7 +30,7 @@ template<class ExecutionCategory1,
 struct scoped_shape
 {
   using type = decltype(
-    detail::tuple_cat(
+    agency::tuple_cat(
       detail::make_tuple_if_not_scoped<ExecutionCategory1>(std::declval<Shape1>()),
       detail::make_tuple_if_not_scoped<ExecutionCategory2>(std::declval<Shape2>())
     )
@@ -57,7 +57,7 @@ template<class ExecutionCategory1,
 __AGENCY_ANNOTATION
 scoped_shape_t<ExecutionCategory1,ExecutionCategory2,Shape1,Shape2> make_scoped_shape(const Shape1& outer_shape, const Shape2& inner_shape)
 {
-  return detail::tuple_cat(
+  return agency::tuple_cat(
     detail::make_tuple_if_not_scoped<ExecutionCategory1>(outer_shape),
     detail::make_tuple_if_not_scoped<ExecutionCategory2>(inner_shape)
   );
@@ -67,31 +67,15 @@ scoped_shape_t<ExecutionCategory1,ExecutionCategory2,Shape1,Shape2> make_scoped_
 } // end agency
 
 
-namespace __tu
-{
-
-// tuple_traits specializations
-
-template<class... Shapes>
-struct tuple_traits<agency::detail::shape_tuple<Shapes...>>
-  : __tu::tuple_traits<agency::detail::tuple<Shapes...>>
-{
-  using tuple_type = agency::detail::tuple<Shapes...>;
-}; // end tuple_traits
-
-
-} // end __tu
-
-
 namespace std
 {
 
 
 template<class... Shapes>
-class tuple_size<agency::detail::shape_tuple<Shapes...>> : public std::tuple_size<agency::detail::tuple<Shapes...>> {};
+class tuple_size<agency::detail::shape_tuple<Shapes...>> : public std::tuple_size<agency::tuple<Shapes...>> {};
 
 template<size_t i, class... Shapes>
-class tuple_element<i,agency::detail::shape_tuple<Shapes...>> : public std::tuple_element<i,agency::detail::tuple<Shapes...>> {};
+class tuple_element<i,agency::detail::shape_tuple<Shapes...>> : public std::tuple_element<i,agency::tuple<Shapes...>> {};
 
 
 } // end namespace std

@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -25,12 +25,12 @@ __AGENCY_ANNOTATION
 auto apply_impl(F&& f, Tuple&& t, agency::detail::index_sequence<I...>)
   -> decltype(
        std::forward<F>(f)(
-         detail::get<I>(std::forward<Tuple>(t))...
+         agency::get<I>(std::forward<Tuple>(t))...
        )
      )
 {
   return std::forward<F>(f)(
-    detail::get<I>(std::forward<Tuple>(t))...
+    agency::get<I>(std::forward<Tuple>(t))...
   );
 }
 
@@ -76,12 +76,12 @@ template<class ArgTuple, class BoundArg,
 __AGENCY_ANNOTATION
 auto substitute_arg(ArgTuple&& arg_tuple, const BoundArg&)
   -> decltype(
-       detail::get<
+       agency::get<
          static_cast<size_t>(std::is_placeholder<BoundArg>::value) - 1
        >(std::forward<ArgTuple>(arg_tuple))
      )
 {
-  return detail::get<
+  return agency::get<
     static_cast<size_t>(std::is_placeholder<BoundArg>::value) - 1
   >(std::forward<ArgTuple>(arg_tuple));
 }
@@ -91,18 +91,18 @@ template<class ArgTuple, class BoundArgTuple, size_t... I>
 __AGENCY_ANNOTATION
 auto substitute_impl(ArgTuple&& arg_tuple, BoundArgTuple&& bound_arg_tuple, agency::detail::index_sequence<I...>)
   -> decltype(
-       detail::forward_as_tuple(
+       agency::forward_as_tuple(
          substitute_arg(
            std::forward<ArgTuple>(arg_tuple),
-           detail::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
+           agency::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
          )...
        )
      )
 {
-  return detail::forward_as_tuple(
+  return agency::forward_as_tuple(
     substitute_arg(
       std::forward<ArgTuple>(arg_tuple),
-      detail::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
+      agency::get<I>(std::forward<BoundArgTuple>(bound_arg_tuple))
     )...
   );
 }
@@ -145,7 +145,7 @@ class bind_expression
            apply(
              fun_,
              substitute(
-               detail::forward_as_tuple(std::forward<OtherArgs>(args)...),
+               agency::forward_as_tuple(std::forward<OtherArgs>(args)...),
                bound_args_
              )
            )
@@ -154,7 +154,7 @@ class bind_expression
       return apply(
         fun_,
         substitute(
-          detail::forward_as_tuple(std::forward<OtherArgs>(args)...),
+          agency::forward_as_tuple(std::forward<OtherArgs>(args)...),
           bound_args_
         )
       );
@@ -167,7 +167,7 @@ class bind_expression
            apply(
              fun_,
              substitute(
-               detail::forward_as_tuple(std::forward<OtherArgs>(args)...),
+               agency::forward_as_tuple(std::forward<OtherArgs>(args)...),
                bound_args_
              )
            )
@@ -176,7 +176,7 @@ class bind_expression
       return apply(
         fun_,
         substitute(
-          detail::forward_as_tuple(std::forward<OtherArgs>(args)...),
+          agency::forward_as_tuple(std::forward<OtherArgs>(args)...),
           bound_args_
         )
       );

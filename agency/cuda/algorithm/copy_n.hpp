@@ -6,7 +6,7 @@
 #include <agency/execution/execution_policy.hpp>
 #include <agency/detail/iterator/iterator_traits.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <iterator>
@@ -33,7 +33,7 @@ template<class ExecutionPolicy, class RandomAccessIterator1, class Size, class R
          __AGENCY_REQUIRES(
            iterator_values_are_trivially_copyable<RandomAccessIterator1,RandomAccessIterator2>::value
          )>
-agency::detail::tuple<RandomAccessIterator1,RandomAccessIterator2> copy_n(ExecutionPolicy&& policy, RandomAccessIterator1 first, Size n, RandomAccessIterator2 result)
+agency::tuple<RandomAccessIterator1,RandomAccessIterator2> copy_n(ExecutionPolicy&& policy, RandomAccessIterator1 first, Size n, RandomAccessIterator2 result)
 {
   // XXX we leak this stream if we throw an exception below
   cudaStream_t stream = experimental::make_dependent_stream(cuda::make_ready_async_future());
@@ -47,7 +47,7 @@ agency::detail::tuple<RandomAccessIterator1,RandomAccessIterator2> copy_n(Execut
   detail::throw_on_error(cudaStreamSynchronize(stream), "cuda::copy_n(): After cudaStreamSynchronize()");
   detail::throw_on_error(cudaStreamDestroy(stream), "cuda::copy_n(): After cudaStreamDestroy()");
 
-  return agency::detail::make_tuple(first + n, result + n);
+  return agency::make_tuple(first + n, result + n);
 }
 
 
@@ -56,7 +56,7 @@ template<class ExecutionPolicy, class RandomAccessIterator1, class Size, class R
          __AGENCY_REQUIRES(
            !iterator_values_are_trivially_copyable<RandomAccessIterator1,RandomAccessIterator2>::value
          )>
-agency::detail::tuple<RandomAccessIterator1,RandomAccessIterator2> copy_n(ExecutionPolicy&& policy, RandomAccessIterator1 first, Size n, RandomAccessIterator2 result)
+agency::tuple<RandomAccessIterator1,RandomAccessIterator2> copy_n(ExecutionPolicy&& policy, RandomAccessIterator1 first, Size n, RandomAccessIterator2 result)
 {
   return agency::detail::default_copy_n(std::forward<ExecutionPolicy>(policy), first, n, result);
 }
@@ -67,7 +67,7 @@ agency::detail::tuple<RandomAccessIterator1,RandomAccessIterator2> copy_n(Execut
 
 
 template<class ExecutionPolicy, class InputIterator, class Size, class OutputIterator>
-agency::detail::tuple<InputIterator,OutputIterator> copy_n(ExecutionPolicy&& policy, InputIterator first, Size n, OutputIterator result)
+agency::tuple<InputIterator,OutputIterator> copy_n(ExecutionPolicy&& policy, InputIterator first, Size n, OutputIterator result)
 {
   return detail::copy_n_detail::copy_n(std::forward<ExecutionPolicy>(policy), first, n, result);
 }

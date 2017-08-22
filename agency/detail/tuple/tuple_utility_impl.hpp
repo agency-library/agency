@@ -42,6 +42,9 @@
 #  define TUPLE_UTILITY_ANNOTATION_NEEDS_UNDEF
 #endif
 
+
+#define TUPLE_UTILITY_REQUIRES(...) typename std::enable_if<(__VA_ARGS__)>::type* = nullptr
+
 // allow the user to define a namespace for these functions
 #ifdef TUPLE_UTILITY_NAMESPACE
 namespace TUPLE_UTILITY_NAMESPACE
@@ -87,6 +90,47 @@ template<size_t N>
 using __make_index_sequence = typename __make_index_sequence_impl<0, __index_sequence<>, N>::type;
 
 
+
+template<class Reference, std::size_t i>
+struct __has_get_member_function_impl
+{
+  // XXX consider requiring that Result matches the expected result,
+  //     i.e. propagate_reference_t<Reference, std::tuple_element_t<i,T>>
+  template<class T = Reference,
+           std::size_t j = i,
+           class Result = decltype(std::declval<T>().template get<j>())
+          >
+  static std::true_type test(int);
+
+  static std::false_type test(...);
+
+  using type = decltype(test(0));
+};
+
+template<class Reference, std::size_t i>
+using __has_get_member_function = typename __has_get_member_function_impl<Reference,i>::type;
+
+
+template<class Reference, std::size_t i>
+struct __has_std_get_free_function_impl
+{
+  // XXX consider requiring that Result matches the expected result,
+  //     i.e. propagate_reference_t<Reference, std::tuple_element_t<i,T>>
+  template<class T = Reference,
+           std::size_t j = i,
+           class Result = decltype(std::get<j>(std::declval<T>()))
+          >
+  static std::true_type test(int);
+
+  static std::false_type test(...);
+
+  using type = decltype(test(0));
+};
+
+template<class T, std::size_t i>
+using __has_std_get_free_function = typename __has_std_get_free_function_impl<T,i>::type;
+
+
 template<class T>
 struct tuple_traits
 {
@@ -97,21 +141,63 @@ struct tuple_traits
   template<size_t i>
   using element_type = typename std::tuple_element<i,tuple_type>::type;
 
-  template<size_t i>
+  template<size_t i,
+           TUPLE_UTILITY_REQUIRES(
+             __has_get_member_function<tuple_type&, i>::value
+           )>
+  TUPLE_UTILITY_ANNOTATION
+  static element_type<i>& get(tuple_type& t)
+  {
+    return t.template get<i>();
+  }
+
+  template<size_t i,
+           TUPLE_UTILITY_REQUIRES(
+             __has_get_member_function<const tuple_type&, i>::value
+           )>
+  TUPLE_UTILITY_ANNOTATION
+  static const element_type<i>& get(const tuple_type& t)
+  {
+    return t.template get<i>();
+  }
+
+  template<size_t i,
+           TUPLE_UTILITY_REQUIRES(
+             __has_get_member_function<tuple_type&&, i>::value
+           )>
+  TUPLE_UTILITY_ANNOTATION
+  static element_type<i>&& get(tuple_type&& t)
+  {
+    return std::move(t).template get<i>();
+  }
+
+  template<size_t i,
+           TUPLE_UTILITY_REQUIRES(
+             !__has_get_member_function<tuple_type&, i>::value and
+             __has_std_get_free_function<tuple_type&, i>::value
+           )>
   TUPLE_UTILITY_ANNOTATION
   static element_type<i>& get(tuple_type& t)
   {
     return std::get<i>(t);
   }
 
-  template<size_t i>
+  template<size_t i,
+           TUPLE_UTILITY_REQUIRES(
+             !__has_get_member_function<const tuple_type&, i>::value and
+             __has_std_get_free_function<const tuple_type&, i>::value
+           )>
   TUPLE_UTILITY_ANNOTATION
   static const element_type<i>& get(const tuple_type& t)
   {
     return std::get<i>(t);
   }
 
-  template<size_t i>
+  template<size_t i,
+           TUPLE_UTILITY_REQUIRES(
+             !__has_get_member_function<tuple_type&&, i>::value and
+             __has_std_get_free_function<tuple_type&&, i>::value
+           )>
   TUPLE_UTILITY_ANNOTATION
   static element_type<i>&& get(tuple_type&& t)
   {
@@ -1240,4 +1326,6 @@ auto tuple_gather(Tuple&& t)
 #undef TUPLE_UTILITY_NAMESPACE
 #undef TUPLE_UTILITY_NAMESPACE_NEEDS_UNDEF
 #endif
+
+#undef TUPLE_UTILITY_REQUIRES
 

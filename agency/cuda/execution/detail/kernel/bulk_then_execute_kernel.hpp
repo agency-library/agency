@@ -15,6 +15,8 @@ namespace detail
 {
 
 
+// XXX consider moving the stuff related to bulk_then_execute_closure into its own header
+//     as bulk_then_execution_concurrent_grid.hpp also depends on it
 template<size_t block_dimension, class Function, class PredecessorPointer, class ResultPointer, class OuterParameterPointer, class InnerFactory>
 struct bulk_then_execute_closure
 {
@@ -183,7 +185,7 @@ launch_bulk_then_execute_kernel_and_invalidate_predecessor(device_id device, Fun
   // invalidate the future by splitting it into its event and state
   detail::event predecessor_event;
   detail::asynchronous_state<T> predecessor_state;
-  agency::detail::tie(predecessor_event, predecessor_state) = detail::invalidate_async_future(predecessor);
+  agency::tie(predecessor_event, predecessor_state) = detail::invalidate_async_future(predecessor);
 
   // launch the kernel
   auto result = detail::launch_bulk_then_execute_kernel_impl(device, predecessor_event.make_dependent_stream_and_invalidate(device), f, grid_dim, block_dim, predecessor_state, result_factory, outer_factory, inner_factory);

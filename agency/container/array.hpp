@@ -1,8 +1,11 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 #include <agency/detail/utility.hpp>
 #include <cstddef>
+#include <tuple>
+#include <utility>
 
 
 namespace agency
@@ -172,9 +175,32 @@ bool operator==(const array<T,N>& lhs,  const array<T,N>& rhs)
   return true;
 }
 
+
+template<std::size_t I, class T, std::size_t N, __AGENCY_REQUIRES(I < N)>
+__AGENCY_ANNOTATION
+T& get(array<T,N>& a)
+{
+  return a[I];
+}
+
+
+template<std::size_t I, class T, std::size_t N, __AGENCY_REQUIRES(I < N)>
+__AGENCY_ANNOTATION
+const T& get(const array<T,N>& a)
+{
+  return a[I];
+}
+
+
+template<std::size_t I, class T, std::size_t N, __AGENCY_REQUIRES(I < N)>
+__AGENCY_ANNOTATION
+T&& get(array<T,N>&& a)
+{
+  return std::move(a[I]);
+}
+
+
 // XXX other relational operators here
-// XXX get() here?
-// XXX tuple specializations here?
 
 
 template<class T, std::size_t N>
@@ -195,4 +221,23 @@ struct range_cardinality<array<T,N>> : std::integral_constant<size_t, N> {};
 
 
 } // end agency
+
+
+// specialize tuple-related functionality for agency::array
+namespace std
+{
+
+
+template<class T, std::size_t N>
+struct tuple_size<agency::array<T,N>> : std::integral_constant<std::size_t, N> {};
+
+
+template<std::size_t I, class T, std::size_t N>
+struct tuple_element<I, agency::array<T,N>>
+{
+  using type = T;
+};
+
+
+} // end std
 

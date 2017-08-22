@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/coordinate/detail/shape/shape_size.hpp>
 #include <agency/coordinate/detail/shape/shape_element.hpp>
 
@@ -20,7 +20,7 @@ struct shape_append_t_impl_general_case;
 template<size_t... Indices, class Shape, class T>
 struct shape_append_t_impl_general_case<index_sequence<Indices...>, Shape, T>
 {
-  using type = detail::tuple<shape_element_t<Indices,Shape>..., T>;
+  using type = agency::tuple<shape_element_t<Indices,Shape>..., T>;
 };
 
 

@@ -15,8 +15,8 @@ void test(ExecutionPolicy policy)
 
   auto result = agency::cuda::copy_n(policy, source.begin(), source.size(), dest.begin());
 
-  assert(source.end() == agency::detail::get<0>(result));
-  assert(dest.end()   == agency::detail::get<1>(result));
+  assert(source.end() == agency::get<0>(result));
+  assert(dest.end()   == agency::get<1>(result));
   assert(Container(10, 7) == dest);
 }
 

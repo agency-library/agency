@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <tuple>
 #include <utility>
 #include <type_traits>
@@ -19,7 +19,7 @@ struct select_from_tuple_result
 {
   using tuple_type = typename std::decay<TupleReference>::type;
 
-  using type = detail::tuple<
+  using type = tuple<
     propagate_reference_t<
       TupleReference,
       typename std::tuple_element<
@@ -38,7 +38,7 @@ template<size_t... Indices, class Tuple>
 __AGENCY_ANNOTATION
 select_from_tuple_result_t<Tuple&&,Indices...> select_from_tuple(Tuple&& t)
 {
-  return detail::forward_as_tuple(std::get<Indices>(std::forward<Tuple>(t))...);
+  return agency::forward_as_tuple(std::get<Indices>(std::forward<Tuple>(t))...);
 }
 
 
@@ -100,7 +100,7 @@ struct select_result<index_sequence<Indices...>, Arg1, Arg2, Args...>
   static_assert(sizeof...(Indices) <= 2 + sizeof...(Args), "Too many arguments selected.");
 
   using type = select_from_tuple_result_t<
-    detail::tuple<Arg1,Arg2,Args...>,
+    tuple<Arg1,Arg2,Args...>,
     Indices...
   >;
 };
@@ -143,7 +143,7 @@ select_result_t<index_sequence<Indices...>, Arg1, Arg2, Args...>
 
   static_assert(sizeof...(Indices) <= 2 + sizeof...(Args), "Too many arguments selected.");
 
-  return select_from_tuple<Indices...>(detail::forward_as_tuple(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2), std::forward<Args>(args)...));
+  return select_from_tuple<Indices...>(agency::forward_as_tuple(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2), std::forward<Args>(args)...));
 }
 
 

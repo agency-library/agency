@@ -6,7 +6,7 @@
 #include <agency/cuda/execution/executor/parallel_executor.hpp>
 #include <agency/cuda/execution/executor/concurrent_executor.hpp>
 #include <agency/cuda/execution/executor/scoped_executor.hpp>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <type_traits>
 
 

@@ -3,6 +3,9 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/utility.hpp>
 #include <cstddef>
+#include <tuple>
+#include <utility>
+
 
 namespace agency
 {
@@ -253,9 +256,52 @@ struct named_array : named_array_base<T,make_index_sequence<N>>
       agency::detail::adl_swap((*this)[i], other[i]);
     }
   }
+
+
+  template<std::size_t I, __AGENCY_REQUIRES(I < N)>
+  __AGENCY_ANNOTATION
+  T& get() &
+  {
+    return operator[](I);
+  }
+  
+  
+  template<std::size_t I, __AGENCY_REQUIRES(I < N)>
+  __AGENCY_ANNOTATION
+  const T& get() const &
+  {
+    return operator[](I);
+  }
+  
+  
+  template<std::size_t I, __AGENCY_REQUIRES(I < N)>
+  __AGENCY_ANNOTATION
+  T&& get() &&
+  {
+    return std::move(operator[](I));
+  }
 };
 
 
 } // end detail
 } // end agency
+
+
+// specialize tuple-related functionality for agency::detail::named_array
+namespace std
+{
+
+
+template<class T, std::size_t N>
+struct tuple_size<agency::detail::named_array<T,N>> : std::integral_constant<std::size_t, N> {};
+
+
+template<std::size_t I, class T, std::size_t N>
+struct tuple_element<I, agency::detail::named_array<T,N>>
+{
+  using type = T;
+};
+
+
+} // end std
 

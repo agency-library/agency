@@ -2,10 +2,10 @@
 
 #include <type_traits>
 #include <tuple>
-#include <agency/detail/tuple.hpp>
+#include <agency/tuple.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/coordinate.hpp>
-#include <agency/detail/tuple_utility.hpp>
+#include <agency/detail/tuple/tuple_utility.hpp>
 #include <agency/detail/point_size.hpp>
 
 namespace agency
@@ -143,7 +143,7 @@ using lift_t = typename index_cast_detail::lift_t_impl<Point>::type;
 
 template<class Index, class FromShape, class ToShape>
 __AGENCY_ANNOTATION
-detail::tuple<lift_t<Index>, lift_t<FromShape>>
+agency::tuple<lift_t<Index>, lift_t<FromShape>>
   lift_index(const Index& idx, const FromShape& from_shape, const ToShape& to_shape)
 {
   // to lift idx into to_shape,
@@ -154,17 +154,17 @@ detail::tuple<lift_t<Index>, lift_t<FromShape>>
   auto idx_tuple = wrap_scalar(idx);
 
   auto intermediate_result = idx_tuple;
-  __tu::tuple_last(intermediate_result) %= detail::get<i>(to_shape);
+  __tu::tuple_last(intermediate_result) %= agency::get<i>(to_shape);
 
   auto index_maker = index_cast_detail::make<lift_t<Index>>{};
 
-  auto lifted_index = __tu::tuple_append_invoke(intermediate_result, __tu::tuple_last(idx_tuple) / detail::get<i>(to_shape), index_maker);
+  auto lifted_index = __tu::tuple_append_invoke(intermediate_result, __tu::tuple_last(idx_tuple) / agency::get<i>(to_shape), index_maker);
 
   // to lift from_shape, simply append the element of to_shape we just divided by
   auto shape_maker = index_cast_detail::make<lift_t<FromShape>>{};
-  auto lifted_shape = __tu::tuple_append_invoke(wrap_scalar(from_shape), detail::get<i>(to_shape), shape_maker);
+  auto lifted_shape = __tu::tuple_append_invoke(wrap_scalar(from_shape), agency::get<i>(to_shape), shape_maker);
 
-  return detail::make_tuple(lifted_index, lifted_shape);
+  return agency::make_tuple(lifted_index, lifted_shape);
 }
 
 
@@ -234,7 +234,7 @@ typename std::enable_if<
 {
   // from_idx might not be a tuple, but instead a scalar type
   // to ensure we can get the 0th value from from_idx in a uniform way, wrap it first
-  return static_cast<ToIndex>(detail::get<0>(wrap_scalar(from_idx)));
+  return static_cast<ToIndex>(agency::get<0>(wrap_scalar(from_idx)));
 }
 
 
@@ -281,7 +281,7 @@ typename std::enable_if<
              const ToShape&   to_shape)
 {
   auto lifted_idx_and_shape = lift_index(from_idx, from_shape, to_shape);
-  return index_cast<ToIndex>(detail::get<0>(lifted_idx_and_shape), detail::get<1>(lifted_idx_and_shape), to_shape);
+  return index_cast<ToIndex>(agency::get<0>(lifted_idx_and_shape), agency::get<1>(lifted_idx_and_shape), to_shape);
 }
 
 
