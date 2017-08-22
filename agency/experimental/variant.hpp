@@ -1118,6 +1118,9 @@ typename std::remove_reference<T>::type&&
 }
 
 
+struct monostate {};
+
+
 } // end experimental
 } // end agency
 
