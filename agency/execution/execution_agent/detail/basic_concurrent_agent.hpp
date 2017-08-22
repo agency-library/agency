@@ -2,8 +2,8 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/execution_agent/detail/basic_execution_agent.hpp>
+#include <agency/execution/execution_agent/detail/concurrent_agent_barrier.hpp>
 #include <agency/container/array.hpp>
-#include <agency/detail/concurrency/barrier.hpp>
 #include <agency/experimental/optional.hpp>
 #include <type_traits>
 
@@ -23,47 +23,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     static constexpr size_t broadcast_channel_size = sizeof(void*);
     using broadcast_channel_type = agency::array<char, broadcast_channel_size>;
 
-    // this class hides agency::detail::barrier & __syncthreads()
-    // behind a uniform interface so that we can use basic_concurrent_agent
-    // in both C++ and CUDA C++
-    class barrier
-    {
-      public:
-        __AGENCY_ANNOTATION
-        barrier(size_t num_threads)
-#ifndef __CUDA_ARCH__
-         : barrier_(num_threads)
-#endif
-        {}
-
-        __AGENCY_ANNOTATION
-        size_t count() const
-        {
-#ifndef __CUDA_ARCH__
-          return barrier_.count();
-#else
-          return blockDim.x * blockDim.y * blockDim.z;
-#endif
-        }
-
-        __AGENCY_ANNOTATION
-        void arrive_and_wait()
-        {
-#ifndef __CUDA_ARCH__
-          barrier_.arrive_and_wait();
-#else
-          __syncthreads();
-#endif
-        }
-
-#ifndef __CUDA_ARCH__
-      private:
-        agency::detail::barrier barrier_;
-#endif
-    };
-
-
-    // this function destroys *ptr and then makes the entire group wait
+    // this function destroys *ptr if ptr is not null and then makes the entire group wait
     // only one agent should pass a non-nullptr to this function
     // the entire group should be convergent before calling this function
     template<class T>
@@ -77,7 +37,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       // including synchronize
     }
 
-    // this function destroys *ptr and then makes the entire group wait
+    // this function destroys *ptr if ptr is not null and then makes the entire group wait
     // only one agent should pass a non-nullptr to this function
     // the entire group should be convergent before calling this function
     template<class T>
@@ -107,7 +67,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     T broadcast_impl(const experimental::optional<T>& value)
     {
       // value is small enough to fit inside broadcast_channel_, so we can
-      // send it through directly without needing to dynamically allocating storage
+      // send it through directly without needing to dynamically allocate storage
       
       // reinterpret the broadcast channel into the right kind of type
       T* shared_temporary_object = reinterpret_cast<T*>(broadcast_channel_.data());
@@ -226,12 +186,12 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       // broadcast_channel_ needs to be the first member to ensure proper alignment because we reinterpret it to arbitrary T*
       // XXX is there a more comprehensive way to ensure that this member falls on the right address?
       broadcast_channel_type broadcast_channel_;
-      barrier barrier_;
+      concurrent_agent_barrier barrier_;
       memory_resource_type memory_resource_;
     };
 
   private:
-    barrier& barrier_;
+    concurrent_agent_barrier& barrier_;
     broadcast_channel_type& broadcast_channel_;
     memory_resource_type& memory_resource_;
 
