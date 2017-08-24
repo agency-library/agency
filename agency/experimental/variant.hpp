@@ -30,6 +30,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/tuple.hpp>
 #include <agency/detail/integer_sequence.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 #include <iostream>
 #include <cassert>
@@ -372,6 +373,13 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     };
 
   public:
+    template<bool deduced_true = true,
+             __AGENCY_REQUIRES(
+               deduced_true and
+               agency::detail::conjunction<
+                 std::is_move_constructible<Types>...
+               >::value
+             )>
     __AGENCY_ANNOTATION
     variant(variant&& other)
       : index_(other.index())
@@ -397,6 +405,13 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     };
 
   public:
+    template<bool deduced_true = true,
+             __AGENCY_REQUIRES(
+               deduced_true and
+               agency::detail::conjunction<
+                 std::is_copy_constructible<Types>...
+               >::value
+             )>
     __AGENCY_ANNOTATION
     variant(const variant& other)
       : index_(other.index())
@@ -540,6 +555,13 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     };
 
   public:
+    template<bool deduced_true = true,
+             __AGENCY_REQUIRES(
+               deduced_true and
+               agency::detail::conjunction<
+                 std::is_copy_assignable<Types>...
+               >::value
+            )>
     __AGENCY_ANNOTATION
     variant& operator=(const variant& other)
     {
@@ -574,6 +596,13 @@ class variant : private detail::variant_detail::variant_storage<Types...>
 
 
   public:
+    template<bool deduced_true = true,
+             __AGENCY_REQUIRES(
+               deduced_true and
+               agency::detail::conjunction<
+                 std::is_move_assignable<Types>...
+               >::value
+            )>
     __AGENCY_ANNOTATION
     variant& operator=(variant&& other)
     {
