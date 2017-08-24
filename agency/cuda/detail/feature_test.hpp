@@ -28,3 +28,10 @@
 #  define __cuda_lib_has_cudaLaunchCooperativeKernel 0
 #endif
 
+
+#if (__CUDA_ARCH__ != 0) && (CUDART_VERSION >= 9000) && (__CUDACC_RDC__)
+#  define __cuda_lib_has_cooperative_groups 1
+#else
+#  define __cuda_lib_has_cooperative_groups 0
+#endif
+
