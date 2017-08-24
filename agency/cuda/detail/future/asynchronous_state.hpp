@@ -19,6 +19,7 @@ using asynchronous_state = agency::detail::asynchronous_state<T,cuda::detail::an
 
 
 // XXX consider giving this function an overload taking an allocator
+__agency_exec_check_disable__
 template<class Factory>
 __host__ __device__
 asynchronous_state<agency::detail::result_of_t<Factory()>>
