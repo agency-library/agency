@@ -23,7 +23,7 @@ struct execution_group_base {};
 
 
 // if execution_group's OuterExecutionAgent has a shared_param_type,
-// then execution_group needs to have a shared_param_type which can be constructed from our param_type
+// then execution_group needs to have a shared_param_type which can be constructed from execution_group::param_type
 template<class OuterExecutionAgent>
 struct execution_group_base<OuterExecutionAgent,
                             typename std::enable_if<
