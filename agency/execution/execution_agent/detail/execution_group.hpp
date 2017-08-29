@@ -32,9 +32,11 @@ struct execution_group_base<OuterExecutionAgent,
 {
   struct shared_param_type : public OuterExecutionAgent::shared_param_type
   {
-    template<class ParamType>
+    template<class ParamType, class... Args>
     __AGENCY_ANNOTATION
-    shared_param_type(const ParamType& param) : OuterExecutionAgent::shared_param_type(param.outer()) {}
+    shared_param_type(const ParamType& param, Args&&... args)
+      : OuterExecutionAgent::shared_param_type(param.outer(), std::forward<Args>(args)...)
+    {}
   };
 };
 
