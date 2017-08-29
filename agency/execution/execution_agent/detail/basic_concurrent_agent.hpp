@@ -146,6 +146,10 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     }
 
   public:
+    using param_type = typename super_t::param_type;
+
+    using index_type = typename super_t::index_type;
+
     __AGENCY_ANNOTATION
     void wait() const
     {
@@ -171,7 +175,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
     {
       public:
         __AGENCY_ANNOTATION
-        shared_param_type(const typename super_t::param_type& param)
+        shared_param_type(const param_type& param)
           : barrier_(param.domain().size()),
             memory_resource_()
         {
@@ -205,7 +209,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
 
   protected:
     __AGENCY_ANNOTATION
-    basic_concurrent_agent(const typename super_t::index_type& index, const typename super_t::param_type& param, shared_param_type& shared_param)
+    basic_concurrent_agent(const index_type& index, const param_type& param, shared_param_type& shared_param)
       : super_t(index, param),
         shared_param_(shared_param)
     {}
