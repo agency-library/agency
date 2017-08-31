@@ -16,12 +16,6 @@ TODO
   * `async`
   * `invoke`
 
-### New Utilities
-  * `tuple`
-  * `shared`
-  * `shared_array`
-  * `shared_vector`
-
 ### New Execution Policies
 
   * `concurrent_execution_policy_2d`
@@ -34,14 +28,18 @@ TODO
 
 ### New Executors
 
+  * `cuda::concurrent_grid_executor`
   * `omp::parallel_for_executor` AKA `omp::parallel_executor`
   * `omp::simd_executor` AKA `omp::unsequenced_executor`
   * `experimental::unrolling_executor`
   * `variant_executor`
 
 ### New Utilities
-  
   * `array`
+  * `tuple`
+  * `shared`
+  * `shared_array`
+  * `shared_vector`
   * `vector`
 
 ### New Experimental Execution Policies
