@@ -1,10 +1,13 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 #include <agency/execution/execution_agent/detail/basic_execution_agent.hpp>
-#include <agency/execution/execution_agent/detail/concurrent_agent_barrier.hpp>
+#include <agency/detail/concurrency/barrier.hpp>
+#include <agency/detail/concurrency/in_place_barrier.hpp>
 #include <agency/container/array.hpp>
 #include <agency/experimental/optional.hpp>
+#include <agency/experimental/variant.hpp>
 #include <type_traits>
 
 
@@ -20,7 +23,9 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
   private:
     using super_t = detail::basic_execution_agent<concurrent_execution_tag, Index>;
 
-    using barrier_type = Barrier;
+    // wrap the user's Barrier type with in_place_barrier so that we may use
+    // in_place_type_t with its constructor
+    using barrier_type = in_place_barrier<Barrier>;
 
     static constexpr size_t broadcast_channel_size = sizeof(void*);
     using broadcast_channel_type = agency::array<char, broadcast_channel_size>;
@@ -176,7 +181,16 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       public:
         __AGENCY_ANNOTATION
         shared_param_type(const param_type& param)
-          : barrier_(param.domain().size()),
+          : shared_param_type(param, experimental::in_place_type_t<detail::barrier>())
+        {}
+
+        template<class OtherBarrier,
+                 __AGENCY_REQUIRES(
+                   std::is_constructible<barrier_type, experimental::in_place_type_t<OtherBarrier>, std::size_t>::value
+                )>
+        __AGENCY_ANNOTATION
+        shared_param_type(const param_type& param, experimental::in_place_type_t<OtherBarrier> which_barrier)
+          : barrier_(which_barrier, param.domain().size()),
             memory_resource_()
         {
           // note we specifically avoid default constructing broadcast_channel_
@@ -190,7 +204,7 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
         //     see wg21.link/P0135
         __AGENCY_ANNOTATION
         shared_param_type(shared_param_type&& other)
-          : barrier_(other.barrier_.count()),
+          : barrier_(other.barrier_.index(), other.barrier_.count()),
             memory_resource_()
         {}
 
