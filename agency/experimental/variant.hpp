@@ -373,9 +373,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     };
 
   public:
-    template<bool deduced_true = true,
-             __AGENCY_REQUIRES(
-               deduced_true and
+    template<__AGENCY_REQUIRES(
                agency::detail::conjunction<
                  std::is_move_constructible<Types>...
                >::value
@@ -405,9 +403,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     };
 
   public:
-    template<bool deduced_true = true,
-             __AGENCY_REQUIRES(
-               deduced_true and
+    template<__AGENCY_REQUIRES(
                agency::detail::conjunction<
                  std::is_copy_constructible<Types>...
                >::value
@@ -555,9 +551,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
     };
 
   public:
-    template<bool deduced_true = true,
-             __AGENCY_REQUIRES(
-               deduced_true and
+    template<__AGENCY_REQUIRES(
                agency::detail::conjunction<
                  std::is_copy_assignable<Types>...
                >::value
@@ -596,9 +590,7 @@ class variant : private detail::variant_detail::variant_storage<Types...>
 
 
   public:
-    template<bool deduced_true = true,
-             __AGENCY_REQUIRES(
-               deduced_true and
+    template<__AGENCY_REQUIRES(
                agency::detail::conjunction<
                  std::is_move_assignable<Types>...
                >::value
