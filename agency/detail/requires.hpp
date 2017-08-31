@@ -17,5 +17,14 @@
 //       return x + 1;
 //     }
 //
-#define __AGENCY_REQUIRES(...) typename std::enable_if<(__VA_ARGS__)>::type* = nullptr
+
+#define __AGENCY_CONCATENATE_IMPL(x, y) x##y
+
+#define __AGENCY_CONCATENATE(x, y) __AGENCY_CONCATENATE_IMPL(x, y)
+
+#define __AGENCY_MAKE_UNIQUE(x) __AGENCY_CONCATENATE(x, __COUNTER__)
+
+#define __AGENCY_REQUIRES_IMPL(unique_name, ...) bool unique_name = true, typename std::enable_if<(unique_name and __VA_ARGS__)>::type* = nullptr
+
+#define __AGENCY_REQUIRES(...) __AGENCY_REQUIRES_IMPL(__AGENCY_MAKE_UNIQUE(__deduced_true), __VA_ARGS__)
 
