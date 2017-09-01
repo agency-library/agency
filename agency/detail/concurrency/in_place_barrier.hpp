@@ -85,9 +85,12 @@ struct in_place_barrier : Barrier
   {}
 
   // constructor which receives both an index and a count parameter.
-  // This constructor is enabled when the underlying Barrier type has a constructor which receives only a count parameter.
+  // This constructor is enabled when the underlying Barrier type
+  //   1. has a constructor which receives only a count parameter and
+  //   2. has no constructor which receives both an index and a count parameter.
   template<__AGENCY_REQUIRES(
-            std::is_constructible<Barrier, std::size_t>::value
+            std::is_constructible<Barrier, std::size_t>::value and
+            !std::is_constructible<Barrier, std::size_t, std::size_t>::value
           )>
   __AGENCY_ANNOTATION
   in_place_barrier(std::size_t /*index*/, std::size_t count)

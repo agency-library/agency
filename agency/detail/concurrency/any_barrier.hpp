@@ -31,21 +31,26 @@ class any_barrier
         using super_t = cuda::detail::heterogeneous_barrier<barrier, cuda::detail::block_barrier>;
 
       public:
+        __AGENCY_ANNOTATION
+        host_or_device_barrier(std::size_t count)
+          : super_t(count)
+        {}
+
         // give this type constructors which match variant_barrier's in-place constructors
         // these constructors simply ignore the additional argument
         __AGENCY_ANNOTATION
         host_or_device_barrier(experimental::in_place_type_t<detail::barrier>, std::size_t count)
-          : super_t(count)
+          : host_or_device_barrier(count)
         {}
 
         __AGENCY_ANNOTATION
         host_or_device_barrier(experimental::in_place_type_t<cuda::detail::block_barrier>, std::size_t count)
-          : super_t(count)
+          : host_or_device_barrier(count)
         {}
 
         __AGENCY_ANNOTATION
         host_or_device_barrier(std::size_t /*index*/, std::size_t count)
-          : super_t(count)
+          : host_or_device_barrier(count)
         {}
 
         __AGENCY_ANNOTATION
@@ -89,6 +94,12 @@ class any_barrier
     __AGENCY_ANNOTATION
     any_barrier(std::size_t index, std::size_t count)
       : implementation_(index, count)
+    {}
+
+    // by default, any_barrier constructs itself as an agency::detail::barrier
+    __AGENCY_ANNOTATION
+    any_barrier(std::size_t count)
+      : any_barrier(experimental::in_place_type_t<agency::detail::barrier>(), count)
     {}
 
     __AGENCY_ANNOTATION

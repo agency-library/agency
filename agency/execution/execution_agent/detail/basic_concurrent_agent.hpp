@@ -181,8 +181,11 @@ class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_e
       public:
         __AGENCY_ANNOTATION
         shared_param_type(const param_type& param)
-          : shared_param_type(param, experimental::in_place_type_t<detail::barrier>())
-        {}
+          : barrier_(param.domain().size()),
+            memory_resource_()
+        {
+          // note we specifically avoid default constructing broadcast_channel_
+        }
 
         template<class OtherBarrier,
                  __AGENCY_REQUIRES(
