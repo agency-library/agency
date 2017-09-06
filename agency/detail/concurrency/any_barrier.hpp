@@ -94,11 +94,14 @@ class any_barrier
 #if !__cuda_lib_has_cooperative_groups
     // if the user asks for a grid_barrier, and cooperative_groups is not available,
     // emit an error
+    // use a deduced template non-type parameter here so that the static_assert below is
+    // raised only if this constructor is called
+    template<bool deduced_false = false>
     __AGENCY_ANNOTATION
     any_barrier(experimental::in_place_type_t<cuda::detail::grid_barrier>, std::size_t count)
       : any_barrier(count)
     {
-      static_assert(false, "any_barrier constructor: Constructing a cuda::detail::grid_barrier requires requires CUDA version >= 9, __CUDA_ARCH__ >= 600, and relocatable device code.");
+      static_assert(deduced_false, "any_barrier constructor: Constructing a cuda::detail::grid_barrier requires CUDA version >= 9, __CUDA_ARCH__ >= 600, and relocatable device code.");
     }
 #endif
 
