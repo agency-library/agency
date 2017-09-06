@@ -4,6 +4,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/scoped_in_place_type.hpp>
+#include <agency/execution/executor/executor_traits/detail/member_barrier_type_or.hpp>
 #include <agency/execution/executor/executor_traits/executor_execution_depth.hpp>
 
 
@@ -11,19 +12,6 @@ namespace agency
 {
 namespace detail
 {
-
-
-template<class T, class Default>
-struct member_barrier_type_or
-{
-  template<class U>
-  using helper = typename U::barrier_type;
-
-  using type = agency::detail::detected_or_t<Default, helper, T>;
-};
-
-template<class T, class Default>
-using member_barrier_type_or_t = typename member_barrier_type_or<T,Default>::type;
 
 
 template<class Executor>
