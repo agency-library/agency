@@ -23,7 +23,7 @@ class device_allocator : public agency::detail::allocator_adaptor<T,device_resou
     {}
 
     device_allocator()
-      : device_allocator(detail::all_devices()[0])
+      : device_allocator(device_id(0))
     {}
 
     device_allocator(const device_allocator&) = default;

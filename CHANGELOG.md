@@ -41,6 +41,9 @@ TODO
   * `shared_array`
   * `shared_vector`
   * `vector`
+  * `cuda::device`
+  * `cuda::devices`
+  * `cuda::all_devices`
 
 ### New Experimental Execution Policies
   
