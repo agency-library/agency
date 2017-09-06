@@ -16,6 +16,9 @@ template<>
 class scoped_executor<cuda::parallel_executor, cuda::concurrent_executor>
   : public cuda::grid_executor
 {
+  private:
+    using super_t = cuda::grid_executor;
+
   public:
     using outer_executor_type = cuda::parallel_executor;
     using inner_executor_type = cuda::concurrent_executor;
@@ -24,7 +27,8 @@ class scoped_executor<cuda::parallel_executor, cuda::concurrent_executor>
 
     scoped_executor(const outer_executor_type& outer_ex,
                     const inner_executor_type& inner_ex)
-      : outer_ex_(outer_ex),
+      : super_t(outer_ex.base_executor().device()),
+        outer_ex_(outer_ex),
         inner_ex_(inner_ex)
     {}
 
@@ -58,15 +62,19 @@ template<>
 class scoped_executor<cuda::concurrent_executor, cuda::concurrent_executor>
   : public cuda::concurrent_grid_executor
 {
+  private:
+    using super_t = cuda::concurrent_grid_executor;
+
   public:
-    using outer_executor_type = cuda::parallel_executor;
+    using outer_executor_type = cuda::concurrent_executor;
     using inner_executor_type = cuda::concurrent_executor;
 
     scoped_executor() = default;
 
     scoped_executor(const outer_executor_type& outer_ex,
                     const inner_executor_type& inner_ex)
-      : outer_ex_(outer_ex),
+      : super_t(outer_ex.device()),
+        outer_ex_(outer_ex),
         inner_ex_(inner_ex)
     {}
 
