@@ -144,6 +144,10 @@ auto grid(size2 grid_dim, size2 block_dim) ->
 using grid_agent_2d = parallel_group_2d<concurrent_agent_2d>;
 
 
+// XXX consider making this a unique type instead of an alias
+using con_grid_agent = concurrent_group<concurrent_agent>;
+
+
 namespace experimental
 {
 
