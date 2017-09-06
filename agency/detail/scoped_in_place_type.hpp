@@ -61,6 +61,42 @@ template<class OuterType, class... InnerTypes>
 using make_scoped_in_place_type_t = typename make_scoped_in_place_type_t_impl<OuterType,InnerTypes...>::type;
 
 
+// scoped_in_place_type_t_cat is like tuple_cat for scoped_in_place_type_t
+template<class ScopedInPlaceType, class... ScopedInPlaceTypes>
+struct scoped_in_place_type_t_cat;
+
+// for a single scoped_in_place_type_t, scoped_in_place_type_t_cat is the identity
+template<class... Types>
+struct scoped_in_place_type_t_cat<scoped_in_place_type_t<Types...>>
+{
+  using type = scoped_in_place_type_t<Types...>;
+};
+
+// for two scoped_in_place_type_t, combine the two lists of types
+template<class... Types1, class... Types2>
+struct scoped_in_place_type_t_cat<scoped_in_place_type_t<Types1...>, scoped_in_place_type_t<Types2...>>
+{
+  using type = scoped_in_place_type_t<Types1..., Types2...>;
+};
+
+// for multiple scoped_in_place_type_t, recurse twice
+template<class... Types1, class... Types2, class... ScopedInPlaceTypes>
+struct scoped_in_place_type_t_cat<scoped_in_place_type_t<Types1...>, scoped_in_place_type_t<Types2...>, ScopedInPlaceTypes...>
+{
+  using type = typename scoped_in_place_type_t_cat<
+    scoped_in_place_type_t<Types1...>,
+    typename scoped_in_place_type_t_cat<
+      scoped_in_place_type_t<Types2...>,
+      ScopedInPlaceTypes...
+    >::type
+  >::type;
+};
+
+
+template<class ScopedInPlaceType, class... ScopedInPlaceTypes>
+using scoped_in_place_type_t_cat_t = typename scoped_in_place_type_t_cat<ScopedInPlaceType, ScopedInPlaceTypes...>::type;
+
+
 } // end detail
 } // end agency
 
