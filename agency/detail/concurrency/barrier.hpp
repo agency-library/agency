@@ -26,6 +26,9 @@ class blocking_barrier
       if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
     }
 
+    // define this to workaround nvcc's automatic execution space deduction for compiler-generated functions
+    inline ~blocking_barrier() {}
+
     inline size_t count() const
     {
       return count_;
@@ -90,6 +93,9 @@ class spinning_barrier
     {
       if(num_threads == 0) throw std::invalid_argument("barrier: num_threads may not be 0.");
     }
+
+    // define this to workaround nvcc's automatic execution space deduction for compiler-generated functions
+    inline ~spinning_barrier() {}
 
     inline size_t count() const
     {

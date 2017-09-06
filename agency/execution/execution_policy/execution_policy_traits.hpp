@@ -6,6 +6,7 @@
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/execution_agent.hpp>
+#include <agency/execution/execution_policy/execution_policy_traits.hpp>
 #include <utility>
 #include <type_traits>
 
@@ -196,6 +197,34 @@ using execution_policy_execution_category_t = typename execution_policy_executio
 
 template<class ExecutionPolicy>
 using policy_is_sequenced = std::is_same<sequenced_execution_tag, execution_policy_execution_category_t<ExecutionPolicy>>;
+
+
+template<class ExecutionPolicy>
+using policy_is_parallel = std::is_same<parallel_execution_tag, execution_policy_execution_category_t<ExecutionPolicy>>;
+
+
+template<class ExecutionPolicy>
+using policy_is_concurrent = std::is_same<concurrent_execution_tag, execution_policy_execution_category_t<ExecutionPolicy>>;
+
+
+template<class ExecutionPolicy>
+using policy_is_scoped_parallel_concurrent = std::is_same<
+  scoped_execution_tag<
+    parallel_execution_tag,
+    concurrent_execution_tag
+  >,
+  execution_policy_execution_category_t<ExecutionPolicy>
+>;
+
+
+template<class ExecutionPolicy>
+using policy_is_scoped_concurrent_concurrent = std::is_same<
+  scoped_execution_tag<
+    concurrent_execution_tag,
+    concurrent_execution_tag
+  >,
+  execution_policy_execution_category_t<ExecutionPolicy>
+>;
 
 
 } // end detail

@@ -23,7 +23,7 @@ namespace detail
 template<class T>
 std::vector<managed_allocator<T>> all_devices_managed_allocators()
 {
-  auto devices = cuda::detail::all_devices();
+  auto devices = cuda::all_devices();
 
   std::vector<managed_allocator<T>> result;
 

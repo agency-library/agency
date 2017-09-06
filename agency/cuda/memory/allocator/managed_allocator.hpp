@@ -23,7 +23,7 @@ class managed_allocator : public agency::detail::allocator_adaptor<T,managed_res
     {}
 
     managed_allocator()
-      : managed_allocator(detail::all_devices()[0])
+      : managed_allocator(device_id(0))
     {}
 
     managed_allocator(const managed_allocator&) = default;

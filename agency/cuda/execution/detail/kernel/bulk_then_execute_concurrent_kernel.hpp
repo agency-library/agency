@@ -62,7 +62,6 @@ agency::cuda::async_future<agency::detail::result_of_t<ResultFactory()>>
 
 
 template<class Function, class Shape, class T, class ResultFactory, class OuterFactory, class InnerFactory>
-__host__ __device__
 agency::cuda::async_future<agency::detail::result_of_t<ResultFactory()>>
 launch_bulk_then_execute_concurrent_kernel(agency::cuda::device_id device, Function f, ::dim3 grid_dim, Shape block_dim, agency::cuda::async_future<T>& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactory inner_factory)
 {

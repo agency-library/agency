@@ -28,7 +28,7 @@ class managed_resource
     {}
 
     inline managed_resource()
-      : managed_resource(detail::all_devices()[0])
+      : managed_resource(cuda::device(0))
     {}
 
     managed_resource(const managed_resource&) = default;

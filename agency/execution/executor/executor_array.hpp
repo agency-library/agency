@@ -10,7 +10,9 @@
 #include <agency/execution/executor/detail/this_thread_parallel_executor.hpp>
 #include <agency/execution/executor/detail/utility.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/executor_traits/detail/member_barrier_type_or.hpp>
 #include <agency/execution/executor/customization_points.hpp>
+#include <agency/detail/scoped_in_place_type.hpp>
 #include <agency/tuple.hpp>
 
 
@@ -42,6 +44,11 @@ class executor_array
 
     using shape_type = detail::scoped_shape_t<outer_execution_category,inner_execution_category,outer_shape_type,inner_shape_type>;
     using index_type = detail::scoped_index_t<outer_execution_category,inner_execution_category,outer_index_type,inner_index_type>;
+
+    using barrier_type = detail::scoped_in_place_type_t_cat_t<
+      detail::make_scoped_in_place_type_t<detail::member_barrier_type_or_t<outer_executor_type,void>>,
+      detail::make_scoped_in_place_type_t<detail::member_barrier_type_or_t<inner_executor_type,void>>
+    >;
 
     __AGENCY_ANNOTATION
     static shape_type make_shape(const outer_shape_type& outer_shape, const inner_shape_type& inner_shape)

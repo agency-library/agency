@@ -329,6 +329,9 @@ struct type_list_instantiate_impl<Template,type_list<Types...>>
   using type = Template<Types...>;
 };
 
+// type_list_instantiate takes a class template and a list of types as a type_list
+// and returns that class template instantiated with the types in the type_list
+// note that this is the inverse of type_list_of_template_parameters
 template<template<class... Params> class Template, class TypeList>
 using type_list_instantiate = typename type_list_instantiate_impl<Template,TypeList>::type;
 
@@ -344,6 +347,22 @@ struct type_list_tail_impl<type_list<Type1,Types...>>
 
 template<class TypeList>
 using type_list_tail = typename type_list_tail_impl<TypeList>::type;
+
+
+template<class T>
+struct type_list_of_template_parameters_impl;
+
+template<template<class... Params> class Template, class... Types>
+struct type_list_of_template_parameters_impl<Template<Types...>>
+{
+  using type = type_list<Types...>;
+};
+
+// type_list_of_template_parameters takes an instance of a template
+// and returns the list of types used to instantiate that template in a type_list
+// note that this is the inverse of type_list_instantiate
+template<class T>
+using type_list_of_template_parameters = typename type_list_of_template_parameters_impl<T>::type;
 
 
 } // end detail

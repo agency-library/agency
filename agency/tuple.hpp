@@ -549,25 +549,26 @@ template<size_t i,
          class Tuple, class T,
          __AGENCY_REQUIRES(
            std::tuple_size<Tuple>::value > 0 &&
-           i != (std::tuple_size<Tuple>::value - 1)
-         )>
-void output(std::ostream& os, const Tuple& t, const T& delimiter)
-{
-  os << agency::get<i>(t) << delimiter;
-
-  tuple_detail::output<i+1>(t, os, delimiter);
-}
-
-template<size_t i,
-         class Tuple, class T,
-         __AGENCY_REQUIRES(
-           std::tuple_size<Tuple>::value > 0 &&
            i == (std::tuple_size<Tuple>::value - 1)
          )>
 void output(std::ostream& os, const Tuple& t, const T&)
 {
   // omit the delimiter for the final element
   os << agency::get<i>(t);
+}
+
+
+template<size_t i,
+         class Tuple, class T,
+         __AGENCY_REQUIRES(
+           std::tuple_size<Tuple>::value > 0 &&
+           i != (std::tuple_size<Tuple>::value - 1)
+         )>
+void output(std::ostream& os, const Tuple& t, const T& delimiter)
+{
+  os << agency::get<i>(t) << delimiter;
+
+  tuple_detail::output<i+1>(os, t, delimiter);
 }
 
 

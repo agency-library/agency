@@ -8,9 +8,10 @@
 #include <agency/detail/control_structures/scope_result.hpp>
 #include <agency/detail/control_structures/single_result.hpp>
 #include <agency/detail/control_structures/shared_parameter.hpp>
-#include <agency/detail/control_structures/agent_shared_parameter_factory_tuple.hpp>
+#include <agency/detail/control_structures/tuple_of_agent_shared_parameter_factories.hpp>
 #include <agency/execution/execution_agent.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/executor_traits/detail/executor_barrier_types_as_scoped_in_place_type.hpp>
 #include <agency/execution/executor/detail/utility/executor_bulk_result_or_void.hpp>
 #include <agency/execution/execution_policy/execution_policy_traits.hpp>
 #include <agency/tuple.hpp>
@@ -60,11 +61,14 @@ bulk_invoke_execution_policy_result_t<
   auto param = policy.param();
   auto agent_shape = agent_traits::domain(param).shape();
 
+  using executor_type = typename ExecutionPolicy::executor_type;
+
+  // get a list of barrier types to create as a scoped_in_place_type_t
+  executor_barrier_types_as_scoped_in_place_type_t<executor_type> barriers;
+
   // this is a tuple of factories
   // each factory in the tuple creates the execution agent's shared parameter at the corresponding hierarchy level
-  auto agent_shared_parameter_factory_tuple = detail::make_agent_shared_parameter_factory_tuple<agent_type>(param);
-
-  using executor_type = typename ExecutionPolicy::executor_type;
+  auto tuple_of_factories = detail::make_tuple_of_agent_shared_parameter_factories<agent_type>(param, barriers);
 
   // convert the shape of the agent into the type of the executor's shape
   using executor_shape_type = executor_shape_t<executor_type>;
@@ -78,7 +82,7 @@ bulk_invoke_execution_policy_result_t<
     executor_shape,
     lambda,
     std::forward<Args>(args)...,
-    agency::share_at_scope_from_factory<SharedArgIndices>(agency::get<SharedArgIndices>(agent_shared_parameter_factory_tuple))...
+    agency::share_at_scope_from_factory<SharedArgIndices>(agency::get<SharedArgIndices>(tuple_of_factories))...
   );
 }
 

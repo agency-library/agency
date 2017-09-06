@@ -1,6 +1,8 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/container/array.hpp>
+#include <agency/container/vector.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <vector>
@@ -42,6 +44,37 @@ class scoped_current_device
   private:
     int old_device;
 };
+
+
+template<class T>
+struct is_range_of_device_id_impl
+{
+  // this is hacky but sufficient for our purposes
+  template<class U,
+
+           // get U's iterator type
+           class Iterator = decltype(std::declval<U>().begin()),
+
+           // get U's sentinel type
+           class Sentinel = decltype(std::declval<U>().end()),
+
+           // get iterator's value_type
+           class ValueType = typename std::iterator_traits<Iterator>::value_type,
+
+           // ValueType should be device_id
+           class Result = std::is_same<ValueType, device_id>
+          >
+  static Result test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<T>(0));
+};
+
+
+template<class T>
+using is_range_of_device_id = typename is_range_of_device_id_impl<T>::type;
 
 
 } // end detail
@@ -125,6 +158,63 @@ class device_id
 };
 
 
+
+// device() is included for symmetry with devices()
+// note that when an integer is passed as a parameter to device(d),
+// it will be automatically converted into a device_id
+__AGENCY_ANNOTATION
+device_id device(device_id d)
+{
+  return d;
+}
+
+
+template<class... IntegersOrDeviceIds>
+__AGENCY_ANNOTATION
+array<device_id, 1 + sizeof...(IntegersOrDeviceIds)> devices(device_id id0, IntegersOrDeviceIds... ids)
+{
+  return {{id0, device_id(ids)...}};
+}
+
+
+template<class Range,
+         __AGENCY_REQUIRES(
+           !std::is_convertible<const Range&, device_id>::value
+         )>
+__AGENCY_ANNOTATION
+vector<device_id> devices(const Range& integers_or_device_ids)
+{
+  vector<device_id> result(integers_or_device_ids.size());
+
+  for(size_t i = 0; i < integers_or_device_ids.size(); ++i)
+  {
+    result[i] = device_id(integers_or_device_ids[i]);
+  }
+
+  return result;
+}
+
+
+__AGENCY_ANNOTATION
+vector<device_id> all_devices()
+{
+  vector<device_id> result;
+
+#if __cuda_lib_has_cudart
+  int device_count = 0;
+  detail::throw_on_error(cudaGetDeviceCount(&device_count), "cuda::all_devices(): cudaGetDeviceCount()");
+  result.reserve(static_cast<size_t>(device_count));
+
+  for(int i = 0; i < device_count; ++i)
+  {
+    result.push_back(device_id(i));
+  }
+#endif
+
+  return result;
+}
+
+
 namespace detail
 {
 
@@ -170,25 +260,6 @@ __host__ __device__
 scoped_current_device::~scoped_current_device()
 {
   detail::set_current_device(device_id(old_device));
-}
-
-
-std::vector<device_id> all_devices()
-{
-  std::vector<device_id> result;
-
-#if __cuda_lib_has_cudart
-  int device_count = 0;
-  throw_on_error(cudaGetDeviceCount(&device_count), "cuda::detail::all_devices(): cudaGetDeviceCount()");
-  result.reserve(static_cast<size_t>(device_count));
-
-  for(int i = 0; i < device_count; ++i)
-  {
-    result.push_back(device_id(i));
-  }
-#endif
-
-  return result;
 }
 
 template<class Container>
@@ -286,7 +357,7 @@ void ensure_contexts_are_initialized(const Container& devices)
 
 void ensure_all_contexts_are_initialized()
 {
-  ensure_contexts_are_initialized(all_devices());
+  ensure_contexts_are_initialized(cuda::all_devices());
 }
 
 

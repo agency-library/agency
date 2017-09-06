@@ -21,7 +21,7 @@ class device_resource
     {}
 
     inline device_resource()
-      : device_resource(detail::all_devices()[0])
+      : device_resource(device_id(0))
     {}
 
     device_resource(const device_resource&) = default;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/cuda/execution/executor/grid_executor.hpp>
+#include <agency/cuda/detail/concurrency/block_barrier.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/tuple.hpp>
 #include <agency/detail/invoke.hpp>
@@ -56,6 +57,8 @@ class block_executor : private grid_executor
 
     template<class T>
     using allocator = typename super_t::template allocator<T>;
+
+    using barrier_type = detail::block_barrier;
 
     using super_t::super_t;
     using super_t::make_ready_future;

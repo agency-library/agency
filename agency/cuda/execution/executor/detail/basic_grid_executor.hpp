@@ -10,6 +10,9 @@
 #include <agency/cuda/memory/allocator.hpp>
 #include <agency/cuda/future.hpp>
 #include <agency/cuda/device.hpp>
+#include <agency/detail/scoped_in_place_type.hpp>
+#include <agency/cuda/detail/concurrency/block_barrier.hpp>
+#include <agency/cuda/detail/concurrency/grid_barrier.hpp>
 #include <tuple>
 
 
@@ -181,6 +184,14 @@ class basic_grid_executor
     template<class T>
     using allocator = cuda::allocator<T>;
 
+    using barrier_type = agency::detail::scoped_in_place_type_t<
+      typename std::conditional<
+        std::is_same<parallel_execution_tag, OuterExecutionCategory>::value,
+        void,                // parallel grid_executors have no outer barrier type
+        detail::grid_barrier // concurrent grid_executors' outer barrier_type is grid_barrier
+      >::type,
+      detail::block_barrier  // the inner barrier_type is always block_barrier
+    >;
 
     __host__ __device__
     explicit basic_grid_executor(device_id device = device_id(0))
