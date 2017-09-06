@@ -30,9 +30,10 @@ class basic_execution_policy;
 // declare replace_executor() so basic_execution_policy.on() can use it below
 template<class ExecutionPolicy, class Executor>
 __AGENCY_ANNOTATION
-basic_execution_policy<
-  typename ExecutionPolicy::execution_agent_type,
-  Executor>
+typename std::enable_if<
+  is_executor<Executor>::value,
+  basic_execution_policy<typename ExecutionPolicy::execution_agent_type, Executor>
+>::type
 replace_executor(const ExecutionPolicy& policy, const Executor& exec);
 
 
@@ -206,6 +207,7 @@ class basic_execution_policy
     ///       execution policy's forward progress requirements.
     /// \note on() is sugar for the expression `replace_executor(*this, exec)`.
     /// \see replace_executor
+    __agency_exec_check_disable__
     template<class OtherExecutor>
     __AGENCY_ANNOTATION
     auto on(const OtherExecutor& exec) const ->
@@ -370,11 +372,11 @@ class scoped_execution_policy
 __agency_exec_check_disable__
 template<class ExecutionPolicy, class Executor>
 __AGENCY_ANNOTATION
-basic_execution_policy<
-  typename ExecutionPolicy::execution_agent_type,
-  Executor
->
-replace_executor(const ExecutionPolicy& policy, const Executor& exec)
+typename std::enable_if<
+  is_executor<Executor>::value,
+  basic_execution_policy<typename ExecutionPolicy::execution_agent_type, Executor>
+>::type
+  replace_executor(const ExecutionPolicy& policy, const Executor& exec)
 {
   using policy_category = detail::execution_policy_execution_category_t<ExecutionPolicy>;
   using executor_category = executor_execution_category_t<Executor>;
