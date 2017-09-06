@@ -8,6 +8,8 @@
 #include <agency/detail/index.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/execution_categories.hpp>
+#include <agency/detail/scoped_in_place_type.hpp>
+#include <agency/execution/executor/executor_traits/detail/member_barrier_type_or.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/detail/utility/bulk_continuation_executor_adaptor.hpp>
@@ -23,18 +25,18 @@ namespace detail
 
 
 template<class ExecutionCategory>
-struct flattened_execution_tag_impl;
+struct flattened_execution_tag;
 
 template<class OuterCategory, class InnerCategory>
-struct flattened_execution_tag_impl<scoped_execution_tag<OuterCategory,InnerCategory>>
+struct flattened_execution_tag<scoped_execution_tag<OuterCategory,InnerCategory>>
 {
   using type = parallel_execution_tag;
 };
 
 template<class OuterCategory, class InnerCategory, class InnerInnerCategory>
-struct flattened_execution_tag_impl<scoped_execution_tag<OuterCategory, scoped_execution_tag<InnerCategory,InnerInnerCategory>>>
+struct flattened_execution_tag<scoped_execution_tag<OuterCategory, scoped_execution_tag<InnerCategory,InnerInnerCategory>>>
 {
-  // OuterCategory and InnerInnerCategory merge into parallel as the outer category
+  // OuterCategory and InnerCategory merge into parallel as the outer category
   // while InnerInnerCategory is promoted to the inner category
   using type = scoped_execution_tag<
     parallel_execution_tag,
@@ -43,7 +45,7 @@ struct flattened_execution_tag_impl<scoped_execution_tag<OuterCategory, scoped_e
 };
 
 template<class ExecutionCategory>
-using flattened_execution_tag = typename flattened_execution_tag_impl<ExecutionCategory>::type;
+using flattened_execution_tag_t = typename flattened_execution_tag<ExecutionCategory>::type;
 
 
 template<class ShapeTuple>
@@ -53,6 +55,37 @@ using flattened_shape_type_t = merge_front_shape_elements_t<ShapeTuple>;
 // XXX might not want to use a alias template here
 template<class IndexTuple>
 using flattened_index_type_t = merge_front_shape_elements_t<IndexTuple>;
+
+
+template<class ScopedInPlaceBarrier>
+struct flattened_barrier_type;
+
+template<>
+struct flattened_barrier_type<void>
+{
+  using type = void;
+};
+
+template<class OuterBarrier, class InnerBarrier>
+struct flattened_barrier_type<scoped_in_place_type_t<OuterBarrier,InnerBarrier>>
+{
+  // the InnerBarrier is elided
+  using type = OuterBarrier;
+};
+
+template<class OuterBarrier, class InnerBarrier, class... Barriers>
+struct flattened_barrier_type<scoped_in_place_type_t<OuterBarrier,InnerBarrier,Barriers...>>
+{
+  // OuterBarrier and InnerBarrier are replaced by OuterBarrier
+  // while the innermost Barriers are promoted one scope
+  using type = scoped_in_place_type_t<
+    OuterBarrier,
+    Barriers...
+  >;
+};
+
+template<class Barrier>
+using flattened_barrier_type_t = typename flattened_barrier_type<Barrier>::type;
 
 
 // flatten_index_and_invoke is used by flattened_executor::bulk_then_execute()
@@ -191,7 +224,7 @@ class flattened_executor
 
   public:
     using base_executor_type = Executor;
-    using execution_category = detail::flattened_execution_tag<base_execution_category>;
+    using execution_category = detail::flattened_execution_tag_t<base_execution_category>;
     using shape_type = detail::flattened_shape_type_t<executor_shape_t<base_executor_type>>;
     using index_type = detail::flattened_index_type_t<executor_shape_t<base_executor_type>>;
 
@@ -200,6 +233,8 @@ class flattened_executor
 
     template<class T>
     using allocator = executor_allocator_t<base_executor_type, T>;
+
+    using barrier_type = detail::flattened_barrier_type_t<detail::member_barrier_type_or_t<base_executor_type, void>>;
 
     __AGENCY_ANNOTATION
     future<void> make_ready_future()
