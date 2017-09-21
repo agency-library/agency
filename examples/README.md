@@ -12,7 +12,9 @@ CUDA C++ source (`.cu` files) should be built with the NVIDIA compiler (`nvcc`).
 
 ## Automated Builds
 
-To build the test programs automatically, run the following command from this directory:
+The example programs may be built automatically with [Scons](https://scons.org), which is a portable, Python-based build tool.
+
+To build automatically, run the following command from this directory:
 
     $ scons
 
@@ -24,13 +26,13 @@ To build *and* run the example programs, specify `run_examples` as a command lin
 
     $ scons -j8 run_examples
 
-To build all tests underneath a particular subdirectory, run `scons` with the path to the subdirectory of interest as a command line argument.
+To build all examples underneath a particular subdirectory, run `scons` with the path to the subdirectory of interest as a command line argument.
 
-For example, the following command builds all of the test programs underneath the `cuda` subdirectory:
+For example, the following command builds all of the example programs underneath the `cuda` subdirectory:
 
     $ scons cuda
 
-Likewise, the following command will build *and* run the tests programs underneath the `cuda` subdirectory:
+Likewise, the following command will build *and* run the example programs underneath the `cuda` subdirectory:
 
     $ scons cuda/run_examples
 
@@ -39,5 +41,5 @@ Likewise, the following command will build *and* run the tests programs undernea
 The top-level directory named 'examples' contains a `SConstruct` and `SConscript` file. `SContruct` contains definitions of common functionality used by the rest of the build system. `SConscript` describes what targets the build process should build. 
 
 After setting up a SCons build environment, the `SConstruct` sets up a hierarchical build by invoking the top-level `SConscript` files in the root directory.
-The top-level `SConscript` file calls the `RecursivelyCreateProgramsAndUnitTestAliases()` method to recursively traverse the directory tree and create a program and unit test from each source file.
+The top-level `SConscript` file calls the `RecursivelyCreateProgramsAndUnitTestAliases()` method to recursively traverse the directory tree and create a program from each source file.
 

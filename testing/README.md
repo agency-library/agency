@@ -12,7 +12,9 @@ CUDA C++ source (`.cu` files) should be built with the NVIDIA compiler (`nvcc`).
 
 ## Automated Builds
 
-To build the test programs automatically, run the following command from this directory:
+The test programs may be built automatically with [Scons](https://scons.org), which is a portable, Python-based build tool.
+
+To build automatically, run the following command from this directory:
 
     $ scons
 
