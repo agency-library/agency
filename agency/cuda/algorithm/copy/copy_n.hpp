@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/detail/algorithm/copy_n.hpp>
+#include <agency/detail/algorithm/copy/default_copy_n.hpp>
 #include <agency/execution/execution_policy.hpp>
 #include <agency/detail/iterator/iterator_traits.hpp>
 #include <agency/detail/type_traits.hpp>
