@@ -92,7 +92,9 @@ def apply_compiler_flags(env):
       #     eliminate this workaround once 1890561 is resolved
       # XXX with clang, nvcc generates -Wunused-private-field warnings due to nvbug 1890717
       #     eliminate this workaround once 1890717 is resolved
-      'all' : '-Wall -Wno-unused-local-typedef -Wno-unused-private-field', 
+      # XXX with clang, coperative_groups.h generates -Wunused-function warnings due to nvbug 1997442
+      #     eliminate this workaround once 1997442 is resolved
+      'all' : '-Wall -Wno-unused-local-typedef -Wno-unused-private-field -Wno-unused-function', 
                                                  
 
       # -Wmismatched-tags produces warnings we cannot eliminate, so don't enable it
