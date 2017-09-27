@@ -1,4 +1,4 @@
-#include <agency/cuda/algorithm/copy/copy_n.hpp>
+#include <agency/cuda/algorithm/copy/async_copy_n.hpp>
 #include <agency/cuda/memory/allocator/managed_allocator.hpp>
 #include <agency/cuda/memory/allocator/device_allocator.hpp>
 #include <agency/cuda/execution.hpp>
@@ -13,12 +13,31 @@ void test(ExecutionPolicy policy)
   Container source(policy, 10, 7);
   Container dest(policy, source.size(), 13);
 
-  auto result = agency::cuda::copy_n(policy, source.begin(), source.size(), dest.begin());
+  agency::cuda::async_copy_n(policy, source.begin(), source.size(), dest.begin()).wait();
 
-  assert(source.end() == agency::get<0>(result));
-  assert(dest.end()   == agency::get<1>(result));
   assert(Container(10, 7) == dest);
 }
+
+struct non_trivial
+{
+  __host__ __device__
+  non_trivial(int v)
+    : value(v)
+  {}
+
+  __host__ __device__
+  non_trivial(const non_trivial& other)
+    : value(other.value)
+  {}
+
+  __host__ __device__
+  bool operator==(const non_trivial& other)
+  {
+    return value == other.value;
+  }
+
+  int value;
+};
 
 int main()
 {

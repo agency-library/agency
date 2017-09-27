@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/execution_policy.hpp>
-#include <agency/detail/algorithm/uninitialized_copy_n.hpp>
+#include <agency/detail/algorithm/copy/uninitialized_copy_n.hpp>
 #include <agency/detail/iterator/move_iterator.hpp>
 #include <utility>
 

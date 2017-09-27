@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/detail/algorithm/uninitialized_copy.hpp>
+#include <agency/detail/algorithm/copy/uninitialized_copy.hpp>
 #include <agency/detail/iterator/iterator_traits.hpp>
 
 namespace agency
