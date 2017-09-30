@@ -117,17 +117,6 @@ T&& tuple_last_if(T&& t)
 }
 
 
-template<class Function, class Tuple>
-__AGENCY_ANNOTATION
-auto tuple_apply(Function&& f, Tuple&& t)
-  -> decltype(
-       __tu::tuple_apply(agency::detail::host_device_cast(std::forward<Function>(f)), std::forward<Tuple>(t))
-     )
-{
-  return __tu::tuple_apply(agency::detail::host_device_cast(std::forward<Function>(f)), std::forward<Tuple>(t));
-}
-
-
 template<class Function>
 struct tuple_all_of_functor
 {

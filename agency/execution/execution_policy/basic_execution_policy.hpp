@@ -264,7 +264,7 @@ class basic_execution_policy
       auto outer_args = detail::tuple_drop_last(arg_tuple);
 
       // create the outer execution policy
-      auto outer = detail::tuple_apply(*this, outer_args);
+      auto outer = agency::apply(*this, outer_args);
 
       // get the inner execution policy
       auto inner = __tu::tuple_last(arg_tuple);
