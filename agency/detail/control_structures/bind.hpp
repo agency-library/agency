@@ -19,42 +19,6 @@ namespace bind_detail
 {
 
 
-__agency_exec_check_disable__
-template<typename F, typename Tuple, size_t... I>
-__AGENCY_ANNOTATION
-auto apply_impl(F&& f, Tuple&& t, agency::detail::index_sequence<I...>)
-  -> decltype(
-       std::forward<F>(f)(
-         agency::get<I>(std::forward<Tuple>(t))...
-       )
-     )
-{
-  return std::forward<F>(f)(
-    agency::get<I>(std::forward<Tuple>(t))...
-  );
-}
-
-
-template<typename F, typename Tuple>
-__AGENCY_ANNOTATION
-auto apply(F&& f, Tuple&& t)
-  -> decltype(
-       apply_impl(
-         std::forward<F>(f),
-         std::forward<Tuple>(t),
-         agency::detail::make_index_sequence<std::tuple_size<decay_t<Tuple>>::value>()
-       )
-     )
-{
-  using Indices = agency::detail::make_index_sequence<std::tuple_size<decay_t<Tuple>>::value>;
-  return apply_impl(
-    std::forward<F>(f),
-    std::forward<Tuple>(t),
-    Indices()
-  );
-}
-
-
 template<class ArgTuple, class BoundArg,
          class = typename std::enable_if<
            (std::is_placeholder<decay_t<BoundArg>>::value == 0)
@@ -142,7 +106,7 @@ class bind_expression
     __AGENCY_ANNOTATION
     auto operator()(OtherArgs&&... args)
       -> decltype(
-           apply(
+           agency::apply(
              fun_,
              substitute(
                agency::forward_as_tuple(std::forward<OtherArgs>(args)...),
@@ -151,7 +115,7 @@ class bind_expression
            )
          )
     {
-      return apply(
+      return agency::apply(
         fun_,
         substitute(
           agency::forward_as_tuple(std::forward<OtherArgs>(args)...),
@@ -164,7 +128,7 @@ class bind_expression
     __AGENCY_ANNOTATION
     auto operator()(OtherArgs&&... args) const
       -> decltype(
-           apply(
+           agency::apply(
              fun_,
              substitute(
                agency::forward_as_tuple(std::forward<OtherArgs>(args)...),
@@ -173,7 +137,7 @@ class bind_expression
            )
          )
     {
-      return apply(
+      return agency::apply(
         fun_,
         substitute(
           agency::forward_as_tuple(std::forward<OtherArgs>(args)...),

@@ -23,7 +23,7 @@ struct unpack_shared_parameters_from_executor_and_invoke
   __AGENCY_ANNOTATION
   auto operator()(const Index& idx, Types&... packaged_shared_params) const
     -> decltype(
-         __tu::tuple_apply(
+         agency::apply(
            g,
            __tu::tuple_prepend_invoke(
              agency::detail::unpack_shared_parameters_from_executor(packaged_shared_params...),
@@ -37,10 +37,10 @@ struct unpack_shared_parameters_from_executor_and_invoke
     // XXX the following is the moral equivalent of:
     // g(idx, shared_params...);
 
-    // create one big tuple of the arguments so we can just call tuple_apply
+    // create one big tuple of the arguments so we can just call apply
     auto idx_and_shared_params = __tu::tuple_prepend_invoke(shared_params, idx, agency::detail::forwarder{});
 
-    return __tu::tuple_apply(g, idx_and_shared_params);
+    return agency::apply(g, idx_and_shared_params);
   }
 };
 

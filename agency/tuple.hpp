@@ -778,6 +778,22 @@ tuple_cat_result_t<Tuples&&...> tuple_cat_impl(index_sequence<indices...>, Tuple
 }
 
 
+__agency_exec_check_disable__
+template<typename F, typename Tuple, size_t... I>
+__AGENCY_ANNOTATION
+auto apply_impl(F&& f, Tuple&& t, index_sequence<I...>)
+  -> decltype(
+       std::forward<F>(f)(
+         agency::get<I>(std::forward<Tuple>(t))...
+       )
+     )
+{
+  return std::forward<F>(f)(
+    agency::get<I>(std::forward<Tuple>(t))...
+  );
+}
+
+
 } // end detail
 
 
@@ -790,6 +806,26 @@ detail::tuple_cat_result_t<Tuples&&...> tuple_cat(Tuples&&... tuples)
 
   // make an index sequence of that size and call the implementation
   return detail::tuple_cat_impl(detail::make_index_sequence<size>(), std::forward<Tuples>(tuples)...);
+}
+
+
+template<typename F, typename Tuple>
+__AGENCY_ANNOTATION
+auto apply(F&& f, Tuple&& t)
+  -> decltype(
+       detail::apply_impl(
+         std::forward<F>(f),
+         std::forward<Tuple>(t),
+         detail::make_index_sequence<std::tuple_size<detail::decay_t<Tuple>>::value>()
+       )
+     )
+{
+  using Indices = detail::make_index_sequence<std::tuple_size<detail::decay_t<Tuple>>::value>;
+  return detail::apply_impl(
+    std::forward<F>(f),
+    std::forward<Tuple>(t),
+    Indices()
+  );
 }
 
 
