@@ -91,11 +91,14 @@ class vector
       : vector(sequenced_execution_policy(), count, alloc)
     {}
 
+    // this is a fundamental constructor
     template<class ExecutionPolicy, __AGENCY_REQUIRES(is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value)>
     __AGENCY_ANNOTATION
     vector(ExecutionPolicy&& policy, size_type count, const Allocator& alloc = Allocator())
-      : vector(std::forward<ExecutionPolicy>(policy), count, T(), alloc)
-    {}
+      : vector(alloc)
+    {
+      emplace_n(std::forward<ExecutionPolicy>(policy), end(), count);
+    }
 
     template<class InputIterator,
              __AGENCY_REQUIRES(
@@ -109,7 +112,7 @@ class vector
       : vector(sequenced_execution_policy(), first, last, alloc)
     {}
 
-    // this is the most fundamental constructor
+    // this is a fundamental constructor
     template<class ExecutionPolicy,
              class InputIterator,
              __AGENCY_REQUIRES(
@@ -120,8 +123,7 @@ class vector
              )>
     __AGENCY_ANNOTATION
     vector(ExecutionPolicy&& policy, InputIterator first, InputIterator last, const Allocator& alloc = Allocator())
-      : storage_(alloc), // initialize the storage to empty
-        end_(begin())    // initialize end_ to begin()
+      : vector(alloc)
     {
       insert(std::forward<ExecutionPolicy>(policy), end(), first, last);
     }
@@ -776,11 +778,11 @@ class vector
           // XXX we should really involve the allocator in construction here
           end_ = detail::uninitialized_move_n(policy, end() - count, count, end());
 
-          // copy construct num_displaced_elements - n elements to existing elements
-          // this copy overlaps
-          size_type copy_length = (old_end - count) - position;
+          // move num_displaced_elements - n elements to existing elements
+          // this move overlaps
+          size_type overlap_length = (old_end - count) - position;
           // XXX we should really involve the allocator in construction here
-          detail::overlapped_uninitialized_copy(policy, position, old_end - count, old_end - copy_length);
+          detail::overlapped_uninitialized_move(policy, position, old_end - count, old_end - overlap_length);
 
           // XXX we should destroy the elements [position, position + num_displaced_elements) before constructing new ones
 
