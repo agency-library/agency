@@ -66,6 +66,10 @@ TODO
 
   * [`fork_executor.cpp`](../0.2.0/examples/fork_executor.cpp)
 
+## Known Issues
+
+  * [#428](../../issues/428) nvcc 9.0 emits spurious warnings regarding ignored annotations
+
 ## Resolved Issues
 
   * [#347](../../issues/347) Various warnings at aggressive reporting levels have been eliminated
