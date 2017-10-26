@@ -94,7 +94,7 @@ range-based programming.
 ## Acknowledgments
 
   * Thanks to Steven Dalton and other Github users for submitting bug reports.
-  * Thanks to Steven Dalton, Michael Garland, Mike Bauer, Isaac Gelado, and Cris Cecka for continued input into Agency's overall design.
+  * Thanks to Steven Dalton, Michael Garland, Mike Bauer, Isaac Gelado, Saurav Muralidharan, and Cris Cecka for continued input into Agency's overall design and implementation.
 
 
 Agency v0.1.0 Changelog
