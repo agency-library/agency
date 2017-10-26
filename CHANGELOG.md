@@ -3,7 +3,15 @@ Agency v0.2.0 Changelog
 
 ## Summary
 
-TODO
+Agency 0.2.0 introduces new components for creating parallel C++ programs.  A
+suite of new **containers** allow easy management of collections of objects in
+parallel programs. `agency::array` and `agency::vector` provide familiar C++
+components in CUDA codes while components like `shared` and `shared_vector`
+allow groups of concurrent execution agents to cooperatively own an object.
+New **executors** target CUDA cooperative kernels, OpenMP, loop unrolling, and
+polymorphism. Finally, new speculative features allow programmers to experiment
+with interfacing with native CUDA APIs, multidimensional arrays, and
+range-based programming.
 
 ### Breaking Changes
 
@@ -11,58 +19,65 @@ TODO
 
 ## New Features
 
-### New Control Structures
+### Control Structures
 
-  * `async`
-  * `invoke`
+  * `async` : Composes with an executor to create a single asynchronous function invocation.
+  * `invoke` : Composes with an executor to create a single synchronous function invocation.
 
-### New Execution Policies
+### Containers
+  * `array` : Statically-sized object container based on `std::array`.
+  * `vector`: Dynamically-sized object container based on `std::vector`.
+  * `shared`: Container for a single object shared by a group of concurrent execution agents.
+  * `shared_array` : Container for a statically-sized collection of objects shared by a group of concurrent execution agents.
+  * `shared_vector`: Container for a dynamically-sized collection of objects shared by a group of concurrent execution agents.
+  * `tuple` : A product type based on `std::tuple`.
 
-  * `concurrent_execution_policy_2d`
-  * `sequenced_execution_policy_2d`
-  * `parallel_execution_policy_2d`
-  * `unsequenced_execution_policy_2d`
+### Execution Policies
+
+  * `concurrent_execution_policy_2d` : Induces a two-dimensional group of concurrent execution agents.
+  * `sequenced_execution_policy_2d` : Induces a two-dimensional group of sequenced execution agents. 
+  * `parallel_execution_policy_2d` : Induces a two-dimensional group of parallel execution agents.
+  * `unsequenced_execution_policy_2d` : Induces a two-dimensional group of unsequenced execution agents.
   * OpenMP-specific execution policies
-    * `omp::parallel_execution_policy`
-    * `omp::unsequenced_execution_policy`
+    * `omp::parallel_execution_policy` : Induces a group of parallel execution agents using an OpenMP executor.
+    * `omp::unsequenced_execution_policy` : Induces a group of unsequenced execution agents using an OpenMP executor.
 
-### New Executors
+### Executors
 
-  * `cuda::concurrent_grid_executor`
-  * `omp::parallel_for_executor` AKA `omp::parallel_executor`
-  * `omp::simd_executor` AKA `omp::unsequenced_executor`
-  * `experimental::unrolling_executor`
-  * `variant_executor`
+  * `cuda::concurrent_grid_executor` : Creates concurrent-concurrent execution agents using CUDA 9's cooperative grid launch.
+  * `omp::parallel_for_executor` AKA `omp::parallel_executor` : Creates parallel execution agents using OpenMP's parallel for loop.
+  * `omp::simd_executor` AKA `omp::unsequenced_executor` : Creates unsequenced execution agents using OpenMP's SIMD for loop.
+  * `experimental::unrolling_executor` : Creates sequenced execution agents using an unrolled for loop.
+  * `variant_executor` : Creates execution agents with polymorphic execution guarantees using an dynamic, underlying executor.
 
-### New Utilities
-  * `array`
-  * `tuple`
-  * `shared`
-  * `shared_array`
-  * `shared_vector`
-  * `vector`
-  * `cuda::device`
-  * `cuda::devices`
-  * `cuda::all_devices`
+### Utilities
+  * `cuda::device` : Creates a `cuda::device_id` from a device enumerant.
+  * `cuda::devices`: Creates a collection of `cuda::device_id` from a sequence of device enumerants.
+  * `cuda::all_devices`: Creates a collection of `cuda::device_id` corresponding to all devices in the system.
 
-### New Experimental Execution Policies
+## New Experimental Features
+
+### Containers
+
+  * `experimental::ndarray` : Dynamically-sized multidimensional object container.
+  * `experimental::ndarray_ref`: View of a multidimensional object container.
+
+### Execution Policies
   
-  * `cuda::experimental::static_grid`
-  * `cuda::experimental::static_con`
+  * `cuda::experimental::static_grid` : Induces a statically-sized group of parallel-concurrent execution agents using CUDA grid launch.
+  * `cuda::experimental::static_con` : Indicues a statically-sized group of concurrent execution agents using CUDA grid launch.
 
-### New Experimental Utilities
+### Utilities
 
-  * `experimental::ndarray`
-  * `experimental::ndarray_ref`
-  * `cuda::experimental::make_async_future`
-  * `cuda::experimental::native_handle`
-  * New fancy ranges
-    * `experimental::interval()`
-    * `experimental::iota_view`
-    * `experimental::transformed_view`
-    * `experimental::zip_with_view`
+  * `cuda::experimental::make_async_future` : Creates a `cuda::async_future` from underlying CUDA resources.
+  * `cuda::experimental::make_dependent_stream` : Creates a `cudaStream_t` from a `cuda::async_future`.
+  * Fancy ranges
+    * `experimental::interval()` : Creates a range of integers specified by two end points.
+    * `experimental::iota_view` : A range of increasing integers.
+    * `experimental::transformed_view` : A transformed view of an underlying range.
+    * `experimental::zip_with_view` : A zipped-and-then-transformed view of multiple underlying ranges.
 
-### New Examples
+## New Examples
 
   * [`fork_executor.cpp`](../0.2.0/examples/fork_executor.cpp)
 
