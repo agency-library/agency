@@ -91,6 +91,11 @@ range-based programming.
   * [#289](../../issues/289) `async_future::bulk_then()` needs to schedule the `outer_arg`'s destruction
   * [#352](../../issues/352) .rank() generates results in the wrong order
 
+## Acknowledgments
+
+  * Thanks to Steven Dalton and other Github users for submitting bug reports.
+  * Thanks to Steven Dalton, Michael Garland, Mike Bauer, Isaac Gelado, and Cris Cecka for continued input into Agency's overall design.
+
 
 Agency v0.1.0 Changelog
 =======================
