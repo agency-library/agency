@@ -1,5 +1,5 @@
 /*
- *  Copyright 2008-2015 NVIDIA Corporation
+ *  Copyright 2008-2017 NVIDIA Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 //  AGENCY_VERSION / 100000 is the major version
 
 // XXX there are no leading zeros on AGENCY_VERSION because that is interpreted as an octal value
-#define AGENCY_VERSION 200
+#define AGENCY_VERSION 300
 
 #define AGENCY_MAJOR_VERSION     (AGENCY_VERSION / 100000)
 
