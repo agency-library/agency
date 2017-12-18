@@ -137,8 +137,16 @@ class async_copy_n_t
 
 namespace
 {
-  // async_copy_n customization point
-  constexpr async_copy_n_detail::async_copy_n_t async_copy_n{};
+
+// async_copy_n customization point
+
+#ifndef __CUDA_ARCH__
+constexpr async_copy_n_detail::async_copy_n_t async_copy_n{};
+#else
+// __device__ functions cannot access global variables, so make copy_n a __device__ variable in __device__ code
+const __device__ async_copy_n_detail::async_copy_n_t async_copy_n;
+#endif
+
 } // end namespace
 
 

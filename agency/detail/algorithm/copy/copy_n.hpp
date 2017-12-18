@@ -82,8 +82,16 @@ class copy_n_t
 
 namespace
 {
-  // copy_n customization point
-  constexpr copy_n_detail::copy_n_t copy_n{};
+
+// copy_n customization point
+
+#ifndef __CUDA_ARCH__
+constexpr copy_n_detail::copy_n_t copy_n{};
+#else
+// __device__ functions cannot access global variables, so make copy_n a __device__ variable in __device__ code
+const __device__ copy_n_detail::copy_n_t copy_n;
+#endif
+
 } // end namespace
 
 
