@@ -93,5 +93,3 @@ Iterator destroy(Allocator& alloc, Iterator first, Iterator last)
 } // end detail
 } // end agency
 
-
-
