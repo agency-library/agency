@@ -9,7 +9,6 @@ namespace agency
 {
 
 
-__agency_exec_check_disable__
 template<class E, class Function>
 __AGENCY_ANNOTATION
 executor_future_t<
