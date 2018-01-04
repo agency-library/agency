@@ -67,6 +67,11 @@ class basic_executor_adaptor
     }
 
   public:
+    template<class T>
+    using future = executor_future_t<Executor,T>;
+
+    // XXX need to publicize the other executor member typedefs such as execution_category, etc.
+
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_executor_adaptor(const Executor& base) noexcept : base_executor_{base} {}
@@ -76,7 +81,7 @@ class basic_executor_adaptor
              __AGENCY_REQUIRES(is_twoway_executor<Executor>::value)
             >
     __AGENCY_ANNOTATION
-    executor_future_t<Executor, result_of_t<decay_t<Function>()>>
+    future<result_of_t<decay_t<Function>()>>
       twoway_execute(Function&& f) const
     {
       return base_executor_.twoway_execute(std::forward<Function>(f));
@@ -92,7 +97,7 @@ class basic_executor_adaptor
                is_asynchronous_executor<Executor>::value
              )>
     __AGENCY_ANNOTATION
-    executor_future_t<Executor, result_of_t<decay_t<Function>()>>
+    future<result_of_t<decay_t<Function>()>>
       twoway_execute(Function&& f) const
     {
       return base_executor_.async_execute(std::forward<Function>(f));
@@ -103,7 +108,7 @@ class basic_executor_adaptor
              __AGENCY_REQUIRES(is_then_executor<Executor>::value)
             >
     __AGENCY_ANNOTATION
-    executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
+    future<result_of_continuation_t<decay_t<Function>, Future>>
       then_execute(Function&& f, Future& fut) const
     {
       return base_executor_.then_execute(std::forward<Function>(f), fut);
@@ -120,14 +125,14 @@ class basic_executor_adaptor
     //}
 
     __agency_exec_check_disable__
-    template<class Function, class Shape, class Future, class ResultFactory, class SharedFactory,
+    template<class Function, class Shape, class Future, class ResultFactory, class... Factories,
              __AGENCY_REQUIRES(is_bulk_then_executor<Executor>::value)
             >
     __AGENCY_ANNOTATION
-    executor_future_t<Executor, result_of_t<ResultFactory()>>
-      bulk_then_execute(Function f, Shape shape, Future& fut, ResultFactory result_factory, SharedFactory shared_factory) const
+    future<result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, Shape shape, Future& fut, ResultFactory result_factory, Factories... shared_factories) const
     {
-      return base_executor_.bulk_then_execute(f, shape, fut, result_factory, shared_factory);
+      return base_executor_.bulk_then_execute(f, shape, fut, result_factory, shared_factories...);
     }
 };
 

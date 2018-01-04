@@ -142,52 +142,6 @@ class then_executor : public basic_executor_adaptor<Executor>
       return future_traits<decltype(intermediate_future)>::template cast<result_of_function>(intermediate_future);
     }
 
-
-    // XXX eliminate this overload once is_bulk_then_executor can handle hierarchical executors
-    template<class Function, class Future,
-             __AGENCY_REQUIRES(
-               !is_then_executor<super_t>::value and
-               !is_bulk_then_executor<super_t>::value and
-               is_bulk_continuation_executor<Executor>::value
-            )>
-    __AGENCY_ANNOTATION
-    executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
-      then_execute_impl(Function&& f, Future& fut) const
-    {
-      using result_of_function = detail::result_of_continuation_t<Function,Future>;
-
-      // if f returns void, then return a unit from bulk_then_execute()
-      using result_type = typename std::conditional<
-        std::is_void<result_of_function>::value,
-        detail::unit,
-        result_of_function
-      >::type;
-
-      // XXX should really move f into this functor, but it's not clear how to make move-only
-      //     parameters to CUDA kernels
-      auto execute_me = detail::then_execute_functor<Function>{f};
-
-      using shape_type = executor_shape_t<Executor>;
-
-      // XXX nomerge
-      // XXX eliminate this and just call base_executor() below once Agency's
-      //     executors implement shallow-constness correctly
-      Executor& exec = super_t::base_executor();
-
-      // call bulk_then_execute_without_shared_parameters() to get an intermediate future
-      auto intermediate_future = detail::bulk_then_execute_without_shared_parameters(
-        exec,                              // the executor
-        execute_me,                        // the functor to execute
-        detail::shape_cast<shape_type>(1), // create only a single agent
-        fut,                               // the predecessor argument to f
-        detail::construct<result_type>()   // a factory for creating f's result
-      );
-
-      // cast the intermediate future into the right type of future for the result
-      return future_traits<decltype(intermediate_future)>::template cast<result_of_function>(intermediate_future);
-    }
-
-
     // XXX implement when Agency supports oneway executors
     //template<class Function, class T,
     //         __EXECUTORS_REQUIRES(
