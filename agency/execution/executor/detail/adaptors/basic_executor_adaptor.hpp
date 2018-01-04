@@ -29,6 +29,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_twoway_executor.hpp>
 #include <agency/execution/executor/executor_traits/is_asynchronous_executor.hpp>
@@ -118,15 +119,16 @@ class basic_executor_adaptor
     //  return base_executor_.bulk_twoway_execute(f, shape, result_factory, shared_factory);
     //}
 
-    //__agency_exec_check_disable__
-    //template<class Function, class Shape, class Future, class ResultFactory, class SharedFactory,
-    //         __EXECUTORS_REQUIRES(is_bulk_then_executor<Executor>::value)
-    //        >
-    //__AGENCY_ANNOTATION
-    //auto bulk_then_execute(Function f, Shape shape, Future& fut, ResultFactory result_factory, SharedFactory shared_factory) const
-    //{
-    //  return base_executor_.bulk_then_execute(f, shape, fut, result_factory, shared_factory);
-    //}
+    __agency_exec_check_disable__
+    template<class Function, class Shape, class Future, class ResultFactory, class SharedFactory,
+             __AGENCY_REQUIRES(is_bulk_then_executor<Executor>::value)
+            >
+    __AGENCY_ANNOTATION
+    executor_future_t<Executor, result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, Shape shape, Future& fut, ResultFactory result_factory, SharedFactory shared_factory) const
+    {
+      return base_executor_.bulk_then_execute(f, shape, fut, result_factory, shared_factory);
+    }
 };
 
 
