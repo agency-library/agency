@@ -27,7 +27,6 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/future/future_traits/is_future.hpp>
 #include <type_traits>
@@ -52,6 +51,7 @@ struct dummy_functor<void>
 };
 
 
+// XXX nomerge
 // XXX this should be changed to say std::declval<const T&>() below
 //     once Agency's executors implement const execution functions
 //     as intended by P0443's design
