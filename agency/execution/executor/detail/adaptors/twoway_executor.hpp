@@ -141,6 +141,7 @@ class twoway_executor : public basic_executor_adaptor<Executor>
 
       using shape_type = executor_shape_t<Executor>;
 
+      // XXX nomerge
       // XXX eliminate this and just call base_executor() below once Agency's
       //     executors implement shallow-constness correctly
       Executor& exec = super_t::base_executor();
