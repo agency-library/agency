@@ -117,6 +117,7 @@ class twoway_executor : public basic_executor_adaptor<Executor>
 
 
     // this case handles executors which have no single-agent execution functions
+    __agency_exec_check_disable__
     template<class Function,
              __AGENCY_REQUIRES(
                !is_twoway_executor<super_t>::value and
