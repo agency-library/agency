@@ -30,6 +30,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_bulk_twoway_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_twoway_executor.hpp>
 #include <agency/execution/executor/executor_traits/is_asynchronous_executor.hpp>
@@ -114,15 +115,33 @@ class basic_executor_adaptor
       return base_executor_.then_execute(std::forward<Function>(f), fut);
     }
 
-    //__agency_exec_check_disable__
-    //template<class Function, class Shape, class ResultFactory, class SharedFactory, 
-    //         __EXECUTORS_REQUIRES(is_bulk_twoway_executor<Executor>::value)
-    //        >
-    //__AGENCY_ANNOTATION
-    //auto bulk_twoway_execute(Function f, Shape shape, ResultFactory result_factory, SharedFactory shared_factory) const
-    //{
-    //  return base_executor_.bulk_twoway_execute(f, shape, result_factory, shared_factory);
-    //}
+    __agency_exec_check_disable__
+    template<class Function, class Shape, class ResultFactory, class... Factories, 
+             __AGENCY_REQUIRES(is_bulk_twoway_executor<Executor>::value)
+            >
+    __AGENCY_ANNOTATION
+    future<result_of_t<ResultFactory()>>
+      bulk_twoway_execute(Function f, Shape shape, ResultFactory result_factory, Factories... shared_factories) const
+    {
+      return base_executor_.bulk_twoway_execute(f, shape, result_factory, shared_factories...);
+    }
+
+    // XXX nomerge
+    // XXX eliminate this once Agency's executors have been ported to P0443's interface
+    //     i.e., functions named .bulk_async_execute() are renamed .bulk_twoway_execute()
+    __agency_exec_check_disable__
+    template<class Function, class Shape, class ResultFactory, class... Factories, 
+             __AGENCY_REQUIRES(
+               !is_bulk_twoway_executor<Executor>::value and
+               is_bulk_asynchronous_executor<Executor>::value
+            )>
+    __AGENCY_ANNOTATION
+    future<result_of_t<ResultFactory()>>
+      bulk_twoway_execute(Function f, Shape shape, ResultFactory result_factory, Factories... shared_factories) const
+    {
+      return base_executor_.bulk_async_execute(f, shape, result_factory, shared_factories...);
+    }
+
 
     __agency_exec_check_disable__
     template<class Function, class Shape, class Future, class ResultFactory, class... Factories,
