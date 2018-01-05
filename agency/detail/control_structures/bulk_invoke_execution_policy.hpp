@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/control_structures/executor_functions/bulk_invoke_executor.hpp>
+#include <agency/detail/control_structures/executor_functions/bulk_invoke_with_executor.hpp>
 #include <agency/detail/control_structures/decay_parameter.hpp>
 #include <agency/detail/control_structures/execute_agent_functor.hpp>
 #include <agency/detail/control_structures/scope_result.hpp>
@@ -77,7 +77,7 @@ bulk_invoke_execution_policy_result_t<
   // create the function that will marshal parameters received from bulk_invoke(executor) and execute the agent
   auto lambda = execute_agent_functor<executor_type,agent_traits,Function,UserArgIndices...>{param, agent_shape, executor_shape, f};
 
-  return detail::bulk_invoke_executor(
+  return detail::bulk_invoke_with_executor(
     policy.executor(),
     executor_shape,
     lambda,

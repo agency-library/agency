@@ -25,12 +25,12 @@ namespace detail
 template<class Executor, class Function, class ResultFactory, class Tuple, size_t... TupleIndices>
 __AGENCY_ANNOTATION
 result_of_t<ResultFactory()>
-  bulk_invoke_executor_impl(Executor& exec,
-                            Function f,
-                            ResultFactory result_factory,
-                            executor_shape_t<Executor> shape,
-                            Tuple&& shared_factory_tuple,
-                            detail::index_sequence<TupleIndices...>)
+  bulk_invoke_with_executor_impl(Executor& exec,
+                                 Function f,
+                                 ResultFactory result_factory,
+                                 executor_shape_t<Executor> shape,
+                                 Tuple&& shared_factory_tuple,
+                                 detail::index_sequence<TupleIndices...>)
 {
   return detail::bulk_sync_execute_with_collected_result(exec, f, shape, result_factory, agency::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
 }
@@ -38,12 +38,12 @@ result_of_t<ResultFactory()>
 // this overload handles the special case where the user function returns void
 template<class Executor, class Function, class Tuple, size_t... TupleIndices>
 __AGENCY_ANNOTATION
-void bulk_invoke_executor_impl(Executor& exec,
-                               Function f,
-                               void_factory,
-                               executor_shape_t<Executor> shape,
-                               Tuple&& factory_tuple,
-                               detail::index_sequence<TupleIndices...>)
+void bulk_invoke_with_executor_impl(Executor& exec,
+                                    Function f,
+                                    void_factory,
+                                    executor_shape_t<Executor> shape,
+                                    Tuple&& factory_tuple,
+                                    detail::index_sequence<TupleIndices...>)
 {
   return detail::bulk_sync_execute_with_void_result(exec, f, shape, agency::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
 }
@@ -51,7 +51,7 @@ void bulk_invoke_executor_impl(Executor& exec,
 
 // computes the result type of bulk_invoke(executor)
 template<class Executor, class Function, class... Args>
-struct bulk_invoke_executor_result
+struct bulk_invoke_with_executor_result
 {
   // first figure out what type the user function returns
   using user_function_result = result_of_t<
@@ -68,13 +68,13 @@ struct bulk_invoke_executor_result
 };
 
 template<class Executor, class Function, class... Args>
-using bulk_invoke_executor_result_t = typename bulk_invoke_executor_result<Executor,Function,Args...>::type;
+using bulk_invoke_with_executor_result_t = typename bulk_invoke_with_executor_result<Executor,Function,Args...>::type;
 
 
 template<class Executor, class Function, class... Args>
 __AGENCY_ANNOTATION
-bulk_invoke_executor_result_t<Executor, Function, Args...>
-  bulk_invoke_executor(Executor& exec, executor_shape_t<Executor> shape, Function f, Args&&... args)
+bulk_invoke_with_executor_result_t<Executor, Function, Args...>
+  bulk_invoke_with_executor(Executor& exec, executor_shape_t<Executor> shape, Function f, Args&&... args)
 {
   // the _1 is for the executor idx parameter, which is the first parameter passed to f
   auto g = detail::bind_agent_local_parameters_workaround_nvbug1754712(std::integral_constant<size_t,1>(), f, detail::placeholders::_1, std::forward<Args>(args)...);
@@ -97,7 +97,7 @@ bulk_invoke_executor_result_t<Executor, Function, Args...>
   // based on the type of f's result, make a factory that will create the appropriate type of container to store f's results
   auto result_factory = detail::make_result_factory<result_of_f>(exec, shape);
 
-  return detail::bulk_invoke_executor_impl(exec, h, result_factory, shape, factory_tuple, detail::make_index_sequence<execution_depth>());
+  return detail::bulk_invoke_with_executor_impl(exec, h, result_factory, shape, factory_tuple, detail::make_index_sequence<execution_depth>());
 }
 
 
