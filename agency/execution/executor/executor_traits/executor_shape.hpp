@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/default_shape.hpp>
-#include <agency/execution/executor/executor_traits/is_bulk_executor.hpp>
+#include <agency/execution/executor/executor_traits/is_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/member_shape_type_or.hpp>
 #include <cstddef>
 
@@ -12,26 +12,26 @@ namespace detail
 {
 
 
-template<class BulkExecutor, bool Enable = is_bulk_executor<BulkExecutor>::value>
+template<class Executor, bool Enable = is_executor<Executor>::value>
 struct executor_shape_impl
 {
 };
 
-template<class BulkExecutor>
-struct executor_shape_impl<BulkExecutor,true>
+template<class Executor>
+struct executor_shape_impl<Executor,true>
 {
-  using type = member_shape_type_or_t<BulkExecutor,default_shape_t<1>>;
+  using type = member_shape_type_or_t<Executor,default_shape_t<1>>;
 };
 
 
 } // end detail
 
 
-template<class BulkExecutor>
-struct executor_shape : detail::executor_shape_impl<BulkExecutor> {};
+template<class Executor>
+struct executor_shape : detail::executor_shape_impl<Executor> {};
 
-template<class BulkExecutor>
-using executor_shape_t = typename executor_shape<BulkExecutor>::type;
+template<class Executor>
+using executor_shape_t = typename executor_shape<Executor>::type;
 
 
 } // end agency
