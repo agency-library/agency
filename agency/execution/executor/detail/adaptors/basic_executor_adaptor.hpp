@@ -29,11 +29,14 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
+#include <agency/execution/executor/executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/executor_traits/executor_execution_category.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_twoway_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_twoway_executor.hpp>
 #include <agency/execution/executor/executor_traits/is_asynchronous_executor.hpp>
+#include <agency/execution/executor/customization_points/make_ready_future.hpp>
 #include <agency/future.hpp>
 #include <utility>
 
@@ -71,6 +74,10 @@ class basic_executor_adaptor
     template<class T>
     using future = executor_future_t<Executor,T>;
 
+    using shape_type = executor_shape_t<Executor>;
+
+    using execution_category = executor_execution_category_t<Executor>;
+
     // XXX need to publicize the other executor member typedefs such as execution_category, etc.
 
     __agency_exec_check_disable__
@@ -102,6 +109,45 @@ class basic_executor_adaptor
       twoway_execute(Function&& f) const
     {
       return base_executor_.async_execute(std::forward<Function>(f));
+    }
+
+    // XXX nomerge
+    // XXX eliminate this once Agency's executors have been ported to P0443's interface
+    //     i.e., functions named .sync_execute() do not exist
+    __agency_exec_check_disable__
+    template<class Function,
+             __AGENCY_REQUIRES(
+               !is_twoway_executor<Executor>::value and
+               !is_asynchronous_executor<Executor>::value and
+               is_synchronous_executor<Executor>::value and
+               std::is_void<result_of_t<decay_t<Function>()>>::value
+             )>
+    __AGENCY_ANNOTATION
+    future<result_of_t<decay_t<Function>()>>
+      twoway_execute(Function&& f) const
+    {
+      base_executor_.sync_execute(std::forward<Function>(f));
+      return agency::make_ready_future<void>(base_executor_);
+    }
+
+    // XXX nomerge
+    // XXX eliminate this once Agency's executors have been ported to P0443's interface
+    //     i.e., functions named .sync_execute() do not exist
+    __agency_exec_check_disable__
+    template<class Function,
+             __AGENCY_REQUIRES(
+               !is_twoway_executor<Executor>::value and
+               !is_asynchronous_executor<Executor>::value and
+               is_synchronous_executor<Executor>::value and
+               !std::is_void<result_of_t<decay_t<Function>()>>::value
+             )>
+    __AGENCY_ANNOTATION
+    future<result_of_t<decay_t<Function>()>>
+      twoway_execute(Function&& f) const
+    {
+      using result_type = result_of_t<decay_t<Function>()>;
+      auto result = base_executor_.sync_execute(std::forward<Function>(f));
+      return agency::make_ready_future<result_type>(base_executor_, std::move(result));
     }
 
     __agency_exec_check_disable__
@@ -142,6 +188,26 @@ class basic_executor_adaptor
       return base_executor_.bulk_async_execute(f, shape, result_factory, shared_factories...);
     }
 
+    // XXX nomerge
+    // XXX eliminate this once Agency's executors have been ported to P0443's interface
+    //     i.e., functions named .bulk_sync_execute() do not exist
+    __agency_exec_check_disable__
+    template<class Function, class Shape, class ResultFactory, class... Factories,
+             __AGENCY_REQUIRES(
+               !is_bulk_twoway_executor<Executor>::value and
+               !is_bulk_asynchronous_executor<Executor>::value and
+               is_bulk_synchronous_executor<Executor>::value
+             )>
+    __AGENCY_ANNOTATION
+    future<result_of_t<ResultFactory()>>
+      bulk_twoway_execute(Function f, Shape shape, ResultFactory result_factory, Factories... shared_factories) const
+    {
+      using result_type = result_of_t<ResultFactory()>;
+
+      result_type result = base_executor_.bulk_sync_execute(f, shape, result_factory, shared_factories...);
+
+      return agency::make_ready_future<result_type>(base_executor_, std::move(result));
+    }
 
     __agency_exec_check_disable__
     template<class Function, class Shape, class Future, class ResultFactory, class... Factories,
