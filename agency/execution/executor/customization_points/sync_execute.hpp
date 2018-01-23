@@ -7,36 +7,22 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points/async_execute.hpp>
 #include <agency/execution/executor/detail/utility/bulk_sync_execute_with_one_shared_parameter.hpp>
+#include <agency/execution/executor/detail/adaptors/always_blocking_executor.hpp>
 
 
 namespace agency
 {
 
 
-// this case handles executors which have .sync_execute()
 __agency_exec_check_disable__
 template<class E, class Function,
-         __AGENCY_REQUIRES(detail::SynchronousExecutor<E>())
-        >
+         __AGENCY_REQUIRES(!detail::BulkSynchronousExecutor<E>())>
 __AGENCY_ANNOTATION
 detail::result_of_t<detail::decay_t<Function>()>
   sync_execute(E& exec, Function&& f)
 {
-  return exec.sync_execute(std::forward<Function>(f));
-}
-
-
-// this case handles executors which are SimpleExecutors but do not have .sync_execute()
-__agency_exec_check_disable__
-template<class E, class Function,
-         __AGENCY_REQUIRES(!detail::SynchronousExecutor<E>()),
-         __AGENCY_REQUIRES(detail::SimpleExecutor<E>())
-        >
-__AGENCY_ANNOTATION
-detail::result_of_t<detail::decay_t<Function>()>
-  sync_execute(E& exec, Function&& f)
-{
-  return agency::async_execute(exec, std::forward<Function>(f)).get();
+  detail::always_blocking_executor<E> blocking_exec(exec);
+  return agency::async_execute(blocking_exec, std::forward<Function>(f)).get();
 }
 
 
@@ -61,11 +47,12 @@ struct sync_execute_functor
 } // end detail
 
 
+// XXX nomerge
+// XXX eliminate this once we eliminate .bulk_sync_execute()
 // this case handles executors which have no way to create single-agent synchrony
 __agency_exec_check_disable__
 template<class E, class Function,
-         __AGENCY_REQUIRES(!detail::SimpleExecutor<E>()),
-         __AGENCY_REQUIRES(detail::BulkExecutor<E>())>
+         __AGENCY_REQUIRES(detail::BulkSynchronousExecutor<E>())>
 __AGENCY_ANNOTATION
 detail::result_of_t<detail::decay_t<Function>()>
   sync_execute(E& exec, Function f)
