@@ -163,6 +163,7 @@ class always_blocking_executor : public basic_executor_adaptor<Executor>
       return super_t::bulk_twoway_execute(f, shape, result_factory, shared_factories...);
     }
 
+    __agency_exec_check_disable__
     template<class Function, class Shape, class ResultFactory, class... Factories,
              __AGENCY_REQUIRES(
                !executor_is_always_blocking<super_t>::value
