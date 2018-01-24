@@ -13,7 +13,9 @@ namespace agency
 
 
 template<class E, class Function, class ResultFactory, class... Factories,
-         __AGENCY_REQUIRES(detail::BulkAsynchronousExecutor<E>() or detail::BulkContinuationExecutor<E>()),
+         __AGENCY_REQUIRES(detail::is_bulk_twoway_executor<E>::value or
+                           detail::BulkAsynchronousExecutor<E>() or
+                           detail::BulkContinuationExecutor<E>()),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
@@ -31,7 +33,9 @@ bulk_async_execute(E& exec, Function f, executor_shape_t<E> shape, ResultFactory
 // XXX eliminate this when we eliminate .bulk_sync_execute()
 __agency_exec_check_disable__
 template<class E, class Function, class ResultFactory, class... Factories,
-         __AGENCY_REQUIRES(!detail::BulkAsynchronousExecutor<E>() and !detail::BulkContinuationExecutor<E>()),
+         __AGENCY_REQUIRES(!detail::is_bulk_twoway_executor<E>::value and
+                           !detail::BulkAsynchronousExecutor<E>() and
+                           !detail::BulkContinuationExecutor<E>()),
          __AGENCY_REQUIRES(detail::BulkSynchronousExecutor<E>()),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
