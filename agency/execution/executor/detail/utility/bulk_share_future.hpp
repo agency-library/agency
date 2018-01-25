@@ -48,9 +48,7 @@ class bulk_share_future_functor
 
 
 __agency_exec_check_disable__
-template<class E, class Future,
-         __AGENCY_REQUIRES(Executor<E>())
-        >
+template<class E, class Future, __AGENCY_REQUIRES(is_executor<E>::value)>
 __AGENCY_ANNOTATION
 executor_bulk_result_t<E, typename future_traits<Future>::shared_future_type>
   bulk_share_future(E& exec, executor_shape_t<E> shape, Future& f)
