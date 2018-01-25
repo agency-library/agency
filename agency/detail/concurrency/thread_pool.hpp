@@ -136,39 +136,6 @@ class thread_pool_executor
   public:
     using execution_category = parallel_execution_tag;
 
-    template<class Function, class ResultFactory, class SharedFactory>
-    result_of_t<ResultFactory()>
-      bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
-    {
-      auto result = result_factory();
-      auto shared_arg = shared_factory();
-
-      // XXX we might prefer to unconditionally execute task 0 inline
-      if(n <= 1)
-      {
-        if(n == 1) f(0, result, shared_arg);
-      }
-      else
-      {
-        agency::detail::latch work_remaining(n);
-
-        for(size_t idx = 0; idx < n; ++idx)
-        {
-          system_thread_pool().submit([=,&result,&shared_arg,&work_remaining] () mutable
-          {
-            f(idx, result, shared_arg);
-
-            work_remaining.count_down(1);
-          });
-        }
-
-        // wait for all the work to complete
-        work_remaining.wait();
-      }
-
-      return std::move(result);
-    }
-
   private:
     // this deleter fulfills a promise just before
     // it deletes its argument

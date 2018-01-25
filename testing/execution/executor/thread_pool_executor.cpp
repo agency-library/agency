@@ -36,24 +36,6 @@ int main()
 
 
   {
-    // bulk_sync_execute()
-    size_t shape = 10;
-
-    auto result = exec.bulk_sync_execute(
-      [](size_t idx, std::vector<int>& results, std::vector<int>& shared_arg)
-      {
-        results[idx] = shared_arg[idx] - 1;
-      },
-      shape,
-      [=]{ return std::vector<int>(shape); },     // results
-      [=]{ return std::vector<int>(shape, 13); }  // shared_arg
-    );
-
-    assert(std::vector<int>(10, 13 - 1) == result);
-  }
-
-
-  {
     // bulk_then_execute() with non-void predecessor
     
     std::future<int> predecessor_fut = agency::make_ready_future<int>(exec, 7);
