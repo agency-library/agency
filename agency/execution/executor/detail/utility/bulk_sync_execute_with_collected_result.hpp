@@ -6,6 +6,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/utility/invoke_functors.hpp>
 #include <agency/execution/executor/customization_points/bulk_sync_execute.hpp>
+#include <agency/execution/executor/executor_traits.hpp>
 #include <type_traits>
 
 
@@ -16,7 +17,7 @@ namespace detail
 
 
 template<class E, class Function, class ResultFactory, class... SharedFactories,
-         __AGENCY_REQUIRES(BulkExecutor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(SharedFactories)),
          __AGENCY_REQUIRES(!std::is_void<result_of_t<Function(executor_index_t<E>, result_of_t<SharedFactories()>&...)>>::value)
         >

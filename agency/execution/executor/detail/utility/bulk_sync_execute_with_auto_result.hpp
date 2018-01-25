@@ -18,7 +18,7 @@ namespace detail
 // this is the case for when Function returns void
 __agency_exec_check_disable__
 template<class E, class Function, class... Factories,
-         __AGENCY_REQUIRES(BulkExecutor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories)),
          __AGENCY_REQUIRES(std::is_void<result_of_t<Function(executor_index_t<E>, result_of_t<Factories()>&...)>>::value)
         >
@@ -34,7 +34,7 @@ void bulk_sync_execute_with_auto_result(E& exec, Function f, executor_shape_t<E>
 // the results of each invocation into a container
 // this container is returned through a future
 template<class E, class Function, class... Factories,
-         __AGENCY_REQUIRES(BulkExecutor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories)),
          __AGENCY_REQUIRES(!std::is_void<result_of_t<Function(executor_index_t<E>, result_of_t<Factories()>&...)>>::value)
         >

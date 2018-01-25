@@ -39,9 +39,9 @@ using factory_returning_ignored_result = agency::detail::unit_factory;
 template<size_t... Indices, class E, class Function>
 __AGENCY_ANNOTATION
 auto bulk_sync_execute_with_auto_result_and_without_shared_parameters_impl(index_sequence<Indices...>,
-                                                                      E& exec,
-                                                                      Function f,
-                                                                      executor_shape_t<E> shape) ->
+                                                                           E& exec,
+                                                                           Function f,
+                                                                           executor_shape_t<E> shape) ->
 
   decltype(
     bulk_sync_execute_with_auto_result(
@@ -64,13 +64,11 @@ auto bulk_sync_execute_with_auto_result_and_without_shared_parameters_impl(index
 } // end bulk_sync_execute_with_auto_result_and_without_shared_parameters_detail
 
 
-template<class E, class Function,
-         __AGENCY_REQUIRES(BulkExecutor<E>())
-        >
+template<class E, class Function, __AGENCY_REQUIRES(is_executor<E>::value)>
 __AGENCY_ANNOTATION
 auto bulk_sync_execute_with_auto_result_and_without_shared_parameters(E& exec,
-                                                                 Function f,
-                                                                 executor_shape_t<E> shape) ->
+                                                                      Function f,
+                                                                      executor_shape_t<E> shape) ->
   decltype(
     bulk_sync_execute_with_auto_result_and_without_shared_parameters_detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters_impl(
       detail::make_index_sequence<executor_execution_depth<E>::value>(),

@@ -16,7 +16,7 @@ namespace detail
 
 __agency_exec_check_disable__
 template<class E, class Function, class... Factories,
-         __AGENCY_REQUIRES(BulkExecutor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
