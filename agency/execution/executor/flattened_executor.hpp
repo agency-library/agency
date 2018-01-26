@@ -237,7 +237,7 @@ class flattened_executor
     using barrier_type = detail::flattened_barrier_type_t<detail::member_barrier_type_or_t<base_executor_type, void>>;
 
     __AGENCY_ANNOTATION
-    future<void> make_ready_future()
+    future<void> make_ready_future() const
     {
       return agency::make_ready_future<void>(base_executor());
     }
@@ -252,7 +252,7 @@ class flattened_executor
             >
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       base_shape_type base_shape = partition_into_base_shape(shape);
 

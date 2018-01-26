@@ -13,23 +13,24 @@ namespace detail
 
 
 // this adaptor turns an Executor into a BulkSynchronousExecutor
+// XXX nomerge
 // XXX eliminate this when Agency drops support for legacy executors 
-template<class E, bool Enable = BulkExecutor<E>()>
+template<class E, bool Enable = is_executor<E>::value>
 class bulk_synchronous_executor_adaptor;
 
-template<class BulkExecutor>
-class bulk_synchronous_executor_adaptor<BulkExecutor,true>
+template<class Executor>
+class bulk_synchronous_executor_adaptor<Executor,true>
 {
   private:
-    BulkExecutor adapted_executor_;
+    Executor adapted_executor_;
 
   public:
-    using execution_category = member_execution_category_or_t<BulkExecutor, unsequenced_execution_tag>;
-    using shape_type = executor_shape_t<BulkExecutor>;
-    using index_type = executor_index_t<BulkExecutor>;
+    using execution_category = member_execution_category_or_t<Executor, unsequenced_execution_tag>;
+    using shape_type = executor_shape_t<Executor>;
+    using index_type = executor_index_t<Executor>;
 
     template<class T>
-    using allocator = executor_allocator_t<BulkExecutor,T>;
+    using allocator = executor_allocator_t<Executor,T>;
 
     __AGENCY_ANNOTATION
     bulk_synchronous_executor_adaptor() = default;
@@ -38,14 +39,14 @@ class bulk_synchronous_executor_adaptor<BulkExecutor,true>
     bulk_synchronous_executor_adaptor(const bulk_synchronous_executor_adaptor&) = default;
 
     __AGENCY_ANNOTATION
-    bulk_synchronous_executor_adaptor(const BulkExecutor& other)
+    bulk_synchronous_executor_adaptor(const Executor& other)
       : adapted_executor_(other)
     {}
 
     template<class Function, class ResultFactory, class... SharedFactories>
     __AGENCY_ANNOTATION
     result_of_t<ResultFactory()>
-      bulk_sync_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
+      bulk_sync_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories) const
     {
       return agency::bulk_sync_execute(adapted_executor_, f, shape, result_factory, shared_factories...);
     }

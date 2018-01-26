@@ -18,7 +18,7 @@ template<class E, class Function, class ResultFactory, class... Factories,
         >
 __AGENCY_ANNOTATION
 detail::result_of_t<ResultFactory()>
-bulk_sync_execute(E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
+bulk_sync_execute(const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
 {
   return exec.bulk_sync_execute(f, shape, result_factory, shared_factories...);
 }
@@ -31,7 +31,7 @@ template<class E, class Function, class ResultFactory, class... Factories,
         >
 __AGENCY_ANNOTATION
 detail::result_of_t<ResultFactory()>
-bulk_sync_execute(E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
+bulk_sync_execute(const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
 {
   detail::always_blocking_executor<E> blocking_exec(exec);
   return agency::bulk_async_execute(blocking_exec, f, shape, result_factory, shared_factories...).get();

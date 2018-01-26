@@ -23,7 +23,7 @@ template<class E, class Function, class Future, class... Factories,
         >
 __AGENCY_ANNOTATION
 executor_future_t<E,void>
-  bulk_then_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
+  bulk_then_execute_with_auto_result(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
   return bulk_then_execute_with_void_result(exec, f, shape, predecessor, factories...);
 }
@@ -44,7 +44,7 @@ executor_future_t<E,
     result_of_continuation_t<Function,executor_index_t<E>,Future,result_of_t<Factories()>&...>
   >
 >
-  bulk_then_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
+  bulk_then_execute_with_auto_result(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
   // compute the type of f's result
   using result_type = result_of_continuation_t<Function,executor_index_t<E>,Future,result_of_t<Factories()>&...>;

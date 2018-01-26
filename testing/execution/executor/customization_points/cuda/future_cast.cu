@@ -17,13 +17,13 @@ struct continuation_executor_with_future_cast : continuation_executor
   }
 
   template<class T, class Future>
-  std::future<T> future_cast(Future& fut)
+  std::future<T> future_cast(Future& fut) const
   {
     function_called_ = true;
     return agency::future_traits<Future>::template cast<T>(fut);
   }
 
-  bool function_called_;
+  mutable bool function_called_;
 };
 
 
@@ -39,13 +39,13 @@ struct bulk_continuation_executor_with_future_cast : bulk_continuation_executor
   }
 
   template<class T, class Future>
-  std::future<T> future_cast(Future& fut)
+  std::future<T> future_cast(Future& fut) const
   {
     function_called_ = true;
     return agency::future_traits<Future>::template cast<T>(fut);
   }
 
-  bool function_called_;
+  mutable bool function_called_;
 };
 
 

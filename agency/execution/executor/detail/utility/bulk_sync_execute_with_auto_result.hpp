@@ -23,7 +23,7 @@ template<class E, class Function, class... Factories,
          __AGENCY_REQUIRES(std::is_void<result_of_t<Function(executor_index_t<E>, result_of_t<Factories()>&...)>>::value)
         >
 __AGENCY_ANNOTATION
-void bulk_sync_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
+void bulk_sync_execute_with_auto_result(const E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
 {
   return detail::bulk_sync_execute_with_void_result(exec, f, shape, factories...);
 }
@@ -43,7 +43,7 @@ executor_bulk_result_t<
   E,
   result_of_t<Function(executor_index_t<E>,result_of_t<Factories()>&...)>
 >
-  bulk_sync_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
+  bulk_sync_execute_with_auto_result(const E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
 {
   // compute the type of f's result
   using result_type = result_of_t<Function(executor_index_t<E>,result_of_t<Factories()>&...)>;

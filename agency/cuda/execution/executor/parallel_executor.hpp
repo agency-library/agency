@@ -38,7 +38,7 @@ class parallel_executor
     template<class Function, class ResultFactory, class SharedFactory>
     __AGENCY_ANNOTATION
     future<agency::detail::result_of_t<ResultFactory()>>
-      bulk_twoway_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
+      bulk_twoway_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       auto result = result_factory();
       auto shared_arg = shared_factory();

@@ -66,7 +66,7 @@ class fork_executor
 
     template<class Function, class ResultFactory, class SharedFactory>
     typename std::result_of<ResultFactory()>::type
-    bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
+    bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       // name the types of the objects returned by the factories
       using result_type = typename std::result_of<ResultFactory()>::type;

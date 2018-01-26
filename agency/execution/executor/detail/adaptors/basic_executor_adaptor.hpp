@@ -82,6 +82,10 @@ class basic_executor_adaptor
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
+    basic_executor_adaptor() = default;
+
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
     basic_executor_adaptor(const Executor& base) noexcept : base_executor_{base} {}
 
     __agency_exec_check_disable__

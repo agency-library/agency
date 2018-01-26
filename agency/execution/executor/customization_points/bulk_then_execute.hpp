@@ -16,7 +16,7 @@ namespace agency
 // this case handles executors which may be adapted by detail::bulk_then_executor
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class ResultFactory, class... Factories,
-         __AGENCY_REQUIRES(detail::BulkAsynchronousExecutor<E>() or detail::BulkContinuationExecutor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value and !detail::BulkSynchronousExecutor<E>()),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
@@ -24,7 +24,7 @@ executor_future_t<
   E,
   detail::result_of_t<ResultFactory()>
 >
-bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
+bulk_then_execute(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   return detail::bulk_then_executor<E>(exec).bulk_then_execute(f, shape, predecessor, result_factory, shared_factories...);
 }
@@ -39,7 +39,7 @@ namespace detail
 template<class Executor, class Function, class Predecessor, class ResultFactory, class... SharedFactories>
 struct then_with_nested_bulk_sync_execute_functor
 {
-  mutable Executor exec;
+  Executor exec;
   mutable Function f;
   executor_shape_t<Executor> shape;
   mutable ResultFactory result_factory;
@@ -82,7 +82,7 @@ struct then_with_nested_bulk_sync_execute_functor
 template<class Executor, class Function, class ResultFactory, class... SharedFactories>
 struct then_with_nested_bulk_sync_execute_functor<Executor,Function,void,ResultFactory,SharedFactories...>
 {
-  mutable Executor exec;
+  Executor exec;
   mutable Function f;
   executor_shape_t<Executor> shape;
   mutable ResultFactory result_factory;
@@ -113,7 +113,7 @@ struct then_with_nested_bulk_sync_execute_functor<Executor,Function,void,ResultF
 // this case handles executors which only have .bulk_sync_execute() -- these may not be adapted by detail::bulk_then_executor
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class ResultFactory, class... Factories,
-         __AGENCY_REQUIRES(!detail::BulkAsynchronousExecutor<E>() and !detail::BulkContinuationExecutor<E>()),
+         __AGENCY_REQUIRES(detail::BulkSynchronousExecutor<E>()),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
@@ -121,7 +121,7 @@ executor_future_t<
   E,
   detail::result_of_t<ResultFactory()>
 >
-bulk_then_execute(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
+bulk_then_execute(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   using predecessor_type = detail::future_value_t<Future>;
   detail::then_with_nested_bulk_sync_execute_functor<E,Function,predecessor_type,ResultFactory,Factories...> functor{exec,f,shape,result_factory,agency::make_tuple(shared_factories...)};

@@ -105,7 +105,7 @@ class executor_array
   private:
     template<class Futures, class UniquePtr1, class UniquePtr2>
     __AGENCY_ANNOTATION
-    wait_for_futures_and_move_result<typename std::decay<Futures>::type,UniquePtr1,UniquePtr2>
+    static wait_for_futures_and_move_result<typename std::decay<Futures>::type,UniquePtr1,UniquePtr2>
       make_wait_for_futures_and_move_result(Futures&& futures, UniquePtr1&& result_ptr, UniquePtr2&& shared_arg_ptr)
     {
       return wait_for_futures_and_move_result<typename std::decay<Futures>::type,UniquePtr1,UniquePtr2>{std::move(futures),std::move(result_ptr),std::move(shared_arg_ptr)};
@@ -221,7 +221,7 @@ class executor_array
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      lazy_bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      lazy_bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       // this implementation of bulk_then_execute() is "lazy" in the sense that it
       // immediately calls bulk_then_execute() on the outer executor, but bulk_sync_execute() is
@@ -260,7 +260,7 @@ class executor_array
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      bulk_then_execute_impl(lazy_strategy, Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      bulk_then_execute_impl(lazy_strategy, Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       return lazy_bulk_then_execute(f, shape, predecessor, result_factory, outer_factory, inner_factories...);
     }
@@ -271,7 +271,7 @@ class executor_array
     template<class Function, class Futures, class Result, class OuterShared, class... Factories>
     struct eager_bulk_then_execute_functor
     {
-      executor_array& exec;
+      const executor_array& exec;
       mutable Function f;
       Futures& predecessor_futures;
       Result* result_ptr;
@@ -354,7 +354,7 @@ class executor_array
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      eager_bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      eager_bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       // this implementation legal when the outer_category is not sequenced
       // XXX and the inner executor's is concurrent with the launching agent
@@ -410,7 +410,7 @@ class executor_array
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      bulk_then_execute_impl(eager_strategy, Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      bulk_then_execute_impl(eager_strategy, Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       return eager_bulk_then_execute(f, shape, predecessor, result_factory, outer_factory, inner_factories...);
     }
@@ -421,7 +421,7 @@ class executor_array
             >
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       // tag dispatch the appropriate implementation strategy for bulk_then_execute() using this first parameter
       return bulk_then_execute_impl(bulk_then_execute_implementation_strategy(), f, shape, predecessor, result_factory, outer_factory, inner_factories...);

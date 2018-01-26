@@ -17,13 +17,13 @@ namespace detail
 
 
 template<class E, class Function, class Future, class ResultFactory, class... SharedFactories,
-         __AGENCY_REQUIRES(BulkExecutor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(SharedFactories)),
          __AGENCY_REQUIRES(!std::is_void<result_of_continuation_t<Function, executor_index_t<E>, Future, result_of_t<SharedFactories()>&...>>::value)
         >
 __AGENCY_ANNOTATION
 executor_future_t<E,result_of_t<ResultFactory()>>
-  bulk_then_execute_with_collected_result(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, SharedFactories... shared_factories)
+  bulk_then_execute_with_collected_result(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, SharedFactories... shared_factories)
 {
   using predecessor_type = future_value_t<Future>;
 

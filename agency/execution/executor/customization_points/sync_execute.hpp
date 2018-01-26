@@ -19,7 +19,7 @@ template<class E, class Function,
          __AGENCY_REQUIRES(!detail::BulkSynchronousExecutor<E>())>
 __AGENCY_ANNOTATION
 detail::result_of_t<detail::decay_t<Function>()>
-  sync_execute(E& exec, Function&& f)
+  sync_execute(const E& exec, Function&& f)
 {
   detail::always_blocking_executor<E> blocking_exec(exec);
   return agency::async_execute(blocking_exec, std::forward<Function>(f)).get();
@@ -55,7 +55,7 @@ template<class E, class Function,
          __AGENCY_REQUIRES(detail::BulkSynchronousExecutor<E>())>
 __AGENCY_ANNOTATION
 detail::result_of_t<detail::decay_t<Function>()>
-  sync_execute(E& exec, Function f)
+  sync_execute(const E& exec, Function f)
 {
   using result_of_function = detail::result_of_t<Function()>;
 

@@ -18,12 +18,12 @@ namespace detail
 
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class... Factories,
-         __AGENCY_REQUIRES(BulkExecutor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
 executor_future_t<E,void>
-  bulk_then_execute_with_void_result(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
+  bulk_then_execute_with_void_result(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
   using predecessor_type = future_value_t<Future>;
 

@@ -20,7 +20,7 @@ template<class E, class Function, class... Factories,
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
-void bulk_sync_execute_with_void_result(E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
+void bulk_sync_execute_with_void_result(const E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
 {
   // wrap f in a functor that will ignore the unit object we pass to it
   ignore_unit_result_parameter_and_invoke<Function> g{f};

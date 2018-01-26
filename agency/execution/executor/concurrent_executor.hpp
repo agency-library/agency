@@ -34,7 +34,7 @@ class concurrent_executor
     std::future<
       detail::result_of_t<ResultFactory()>
     >
-    bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+    bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       return bulk_then_execute_impl(f, n, predecessor, result_factory, shared_factory);
     }
@@ -47,7 +47,7 @@ class concurrent_executor
                                !std::is_void<
                                  typename agency::future_traits<Future>::value_type
                                >::value
-                             >::type* = 0)
+                             >::type* = 0) const
     {
       if(n > 0)
       {
@@ -98,7 +98,7 @@ class concurrent_executor
                                std::is_void<
                                  typename agency::future_traits<Future>::value_type
                                >::value
-                             >::type* = 0)
+                             >::type* = 0) const
     {
       if(n > 0)
       {
@@ -142,7 +142,7 @@ class concurrent_executor
 
     // first must be less than last
     template<class Function>
-    std::future<void> async_execute(Function f, size_t first, size_t last)
+    std::future<void> async_execute(Function f, size_t first, size_t last) const
     {
       return std::async(std::launch::async, [=]() mutable
       {

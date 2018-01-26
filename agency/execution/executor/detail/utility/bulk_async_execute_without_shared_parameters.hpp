@@ -39,7 +39,7 @@ template<size_t... Indices, class E, class Function, class ResultFactory>
 __AGENCY_ANNOTATION
 executor_future_t<E, result_of_t<ResultFactory()>>
   bulk_async_execute_without_shared_parameters_impl(index_sequence<Indices...>,
-                                                    E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory)
+                                                    const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory)
 {
   bulk_async_execute_without_shared_parameters_detail::ignore_shared_parameters_and_invoke<Function> execute_me{f};
 
@@ -60,7 +60,7 @@ template<class E, class Function, class ResultFactory,
         >
 __AGENCY_ANNOTATION
 executor_future_t<E, result_of_t<ResultFactory()>>
-  bulk_async_execute_without_shared_parameters(E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory)
+  bulk_async_execute_without_shared_parameters(const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory)
 {
   return bulk_async_execute_without_shared_parameters_detail::bulk_async_execute_without_shared_parameters_impl(
     detail::make_index_sequence<executor_execution_depth<E>::value>(),

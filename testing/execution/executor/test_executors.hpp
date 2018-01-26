@@ -14,7 +14,7 @@ class continuation_executor
   public:
     template<class Function, class T>
     std::future<agency::detail::result_of_t<Function(T&)>>
-      then_execute(Function&& f, std::future<T>& predecessor)
+      then_execute(Function&& f, std::future<T>& predecessor) const
     {
       return std::async(std::launch::async, [](std::future<T>&& predecessor, Function&& f)
       {
@@ -28,7 +28,7 @@ class continuation_executor
 
     template<class Function>
     std::future<agency::detail::result_of_t<Function()>>
-      then_execute(Function&& f, std::future<void>& predecessor)
+      then_execute(Function&& f, std::future<void>& predecessor) const
     {
       return std::async(std::launch::async, [](std::future<void>&& predecessor, Function&& f)
       {
@@ -47,7 +47,7 @@ class asynchronous_executor
   public:
     template<class Function>
     std::future<agency::detail::result_of_t<Function()>>
-      async_execute(Function&& f)
+      async_execute(Function&& f) const
     {
       return std::async(std::launch::async, std::forward<Function>(f));
     }
@@ -59,7 +59,7 @@ class synchronous_executor
   public:
     template<class Function>
     agency::detail::result_of_t<Function()>
-      sync_execute(Function&& f)
+      sync_execute(Function&& f) const
     {
       return std::forward<Function>(f)();
     }
@@ -73,7 +73,7 @@ class bulk_continuation_executor
     std::future<
       typename std::result_of<ResultFactory()>::type
     >
-    bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+    bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       return bulk_then_execute_impl(f, n, predecessor, result_factory, shared_factory);
     }
@@ -86,7 +86,7 @@ class bulk_continuation_executor
                                !std::is_void<
                                  typename agency::future_traits<Future>::value_type
                                >::value
-                             >::type* = 0)
+                             >::type* = 0) const
     {
       if(n > 0)
       {
@@ -137,7 +137,7 @@ class bulk_continuation_executor
                                std::is_void<
                                  typename agency::future_traits<Future>::value_type
                                >::value
-                             >::type* = 0)
+                             >::type* = 0) const
     {
       if(n > 0)
       {
@@ -181,7 +181,7 @@ class bulk_continuation_executor
 
     // first must be less than last
     template<class Function>
-    std::future<void> async(Function f, size_t first, size_t last)
+    std::future<void> async(Function f, size_t first, size_t last) const
     {
       return std::async(std::launch::async, [=]() mutable
       {
@@ -213,7 +213,7 @@ class bulk_synchronous_executor
   public:
     template<class Function, class ResultFactory, class SharedFactory>
     typename std::result_of<ResultFactory()>::type
-    bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
+    bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       auto result = result_factory();
       auto shared_parm = shared_factory();
@@ -235,7 +235,7 @@ class bulk_asynchronous_executor
     std::future<
       typename std::result_of<ResultFactory()>::type
     >
-    bulk_async_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
+    bulk_async_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       return std::async(std::launch::async, [=]
       {
@@ -267,7 +267,7 @@ struct bulk_executor_without_shape_type
 {
   template<class Function, class ResultFactory, class SharedFactory>
   typename std::result_of<ResultFactory()>::type
-  bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
+  bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const;
 };
 
 struct bulk_executor_with_shape_type
@@ -279,6 +279,6 @@ struct bulk_executor_with_shape_type
 
   template<class Function, class ResultFactory, class SharedFactory>
   typename std::result_of<ResultFactory()>::type
-  bulk_sync_execute(Function f, shape_type n, ResultFactory result_factory, SharedFactory shared_factory);
+  bulk_sync_execute(Function f, shape_type n, ResultFactory result_factory, SharedFactory shared_factory) const;
 };
 

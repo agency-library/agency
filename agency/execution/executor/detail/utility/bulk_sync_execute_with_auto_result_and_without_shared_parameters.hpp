@@ -39,7 +39,7 @@ using factory_returning_ignored_result = agency::detail::unit_factory;
 template<size_t... Indices, class E, class Function>
 __AGENCY_ANNOTATION
 auto bulk_sync_execute_with_auto_result_and_without_shared_parameters_impl(index_sequence<Indices...>,
-                                                                           E& exec,
+                                                                           const E& exec,
                                                                            Function f,
                                                                            executor_shape_t<E> shape) ->
 

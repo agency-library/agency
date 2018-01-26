@@ -145,7 +145,7 @@ class variant_executor
     template<class Function>
     __AGENCY_ANNOTATION
     future<detail::result_of_t<detail::decay_t<Function>()>>
-    async_execute(Function&& f)
+    async_execute(Function&& f) const
     {
       return experimental::visit(async_execute_visitor<Function&&>{std::forward<Function>(f)}, variant_);
     }
@@ -164,7 +164,7 @@ class variant_executor
       template<class E, size_t... Indices>
       __AGENCY_ANNOTATION
       future<detail::result_of_t<ResultFactory()>>
-        impl(detail::index_sequence<Indices...>, E& exec) const
+        impl(detail::index_sequence<Indices...>, const E& exec) const
       {
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
@@ -176,7 +176,7 @@ class variant_executor
       template<class E>
       __AGENCY_ANNOTATION
       future<detail::result_of_t<ResultFactory()>>
-        operator()(E& exec) const
+        operator()(const E& exec) const
       {
         return impl(detail::make_index_sequence<sizeof...(SharedFactories)>(), exec);
       }
@@ -188,7 +188,7 @@ class variant_executor
             >
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-    bulk_async_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
+    bulk_async_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories) const
     {
       auto visitor = bulk_async_execute_visitor<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, agency::make_tuple(shared_factories...)};
       return experimental::visit(visitor, variant_);
@@ -207,7 +207,7 @@ class variant_executor
       template<class E, size_t... Indices>
       __AGENCY_ANNOTATION
       detail::result_of_t<ResultFactory()>
-        impl(detail::index_sequence<Indices...>, E& exec) const
+        impl(detail::index_sequence<Indices...>, const E& exec) const
       {
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
@@ -218,7 +218,7 @@ class variant_executor
       template<class E>
       __AGENCY_ANNOTATION
       detail::result_of_t<ResultFactory()>
-        operator()(E& exec) const
+        operator()(const E& exec) const
       {
         return impl(detail::make_index_sequence<sizeof...(SharedFactories)>(), exec);
       }
@@ -230,7 +230,7 @@ class variant_executor
             >
     __AGENCY_ANNOTATION
     detail::result_of_t<ResultFactory()>
-    bulk_sync_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories)
+    bulk_sync_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories) const
     {
       auto visitor = bulk_sync_execute_visitor<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, agency::make_tuple(shared_factories...)};
       return experimental::visit(visitor, variant_);
@@ -310,7 +310,7 @@ class variant_executor
     bulk_then_execute(Function f, shape_type shape,
                       VariantFuture& predecessor_future,
                       ResultFactory result_factory,
-                      SharedFactories... shared_factories)
+                      SharedFactories... shared_factories) const
     {
       auto visitor = bulk_then_execute_visitor2<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, agency::make_tuple(shared_factories...)};
       auto future_variant = predecessor_future.variant();
@@ -327,7 +327,7 @@ class variant_executor
     bulk_then_execute(Function f, shape_type shape,
                       Future& predecessor_future,
                       ResultFactory result_factory,
-                      SharedFactories... shared_factories)
+                      SharedFactories... shared_factories) const
     {
       auto visitor = bulk_then_execute_visitor1<Function,Future,ResultFactory,SharedFactories...>{f, shape, predecessor_future, result_factory, agency::make_tuple(shared_factories...)};
       return experimental::visit(visitor, variant_);
@@ -342,7 +342,7 @@ class variant_executor
 
       template<class E>
       __AGENCY_ANNOTATION
-      future<T> operator()(E& exec) const
+      future<T> operator()(const E& exec) const
       {
         return agency::future_cast<T>(exec, fut);
       }
@@ -354,7 +354,7 @@ class variant_executor
     {
       template<class E, class Future>
       __AGENCY_ANNOTATION
-      future<T> operator()(E& exec, Future& fut) const
+      future<T> operator()(const E& exec, Future& fut) const
       {
         return agency::future_cast<T>(exec, fut);
       }
@@ -367,7 +367,7 @@ class variant_executor
              __AGENCY_REQUIRES(detail::is_variant_future<VariantFuture>::value)
             >
     __AGENCY_ANNOTATION
-    future<T> future_cast(VariantFuture& fut)
+    future<T> future_cast(VariantFuture& fut) const
     {
       auto visitor = future_cast_visitor2<T>();
       auto future_variant = fut.variant();
@@ -379,7 +379,7 @@ class variant_executor
              __AGENCY_REQUIRES(!detail::is_variant_future<Future>::value)
             >
     __AGENCY_ANNOTATION
-    future<T> future_cast(Future& fut)
+    future<T> future_cast(Future& fut) const
     {
       auto visitor = future_cast_visitor1<T,Future>{fut};
       return experimental::visit(visitor, variant_);
@@ -395,7 +395,7 @@ class variant_executor
       __agency_exec_check_disable__
       template<class E, size_t... Indices>
       __AGENCY_ANNOTATION
-      future<T> impl(detail::index_sequence<Indices...>, E& exec) const
+      future<T> impl(detail::index_sequence<Indices...>, const E& exec) const
       {
         return agency::make_ready_future<T>(exec, agency::get<Indices>(args)...);
       }
@@ -403,7 +403,7 @@ class variant_executor
       __agency_exec_check_disable__
       template<class E>
       __AGENCY_ANNOTATION
-      future<T> operator()(E& exec) const
+      future<T> operator()(const E& exec) const
       {
         return impl(detail::make_index_sequence<sizeof...(Args)>(), exec);
       }
@@ -412,7 +412,7 @@ class variant_executor
   public:
     template<class T, class... Args>
     __AGENCY_ANNOTATION
-    future<T> make_ready_future(Args&&... args)
+    future<T> make_ready_future(Args&&... args) const
     {
       auto args_tuple = agency::forward_as_tuple(std::forward<Args>(args)...);
       auto visitor = make_ready_future_visitor<T,Args&&...>{args_tuple};
@@ -448,7 +448,7 @@ class variant_executor
       template<class E>
       __AGENCY_ANNOTATION
       detail::result_of_t<detail::decay_t<FunctionRef>()>
-        operator()(E& exec) const
+        operator()(const E& exec) const
       {
         return agency::sync_execute(exec, std::forward<FunctionRef>(f));
       }
@@ -458,7 +458,7 @@ class variant_executor
     template<class Function>
     __AGENCY_ANNOTATION
     detail::result_of_t<detail::decay_t<Function>()>
-    sync_execute(Function&& f)
+    sync_execute(Function&& f) const
     {
       return experimental::visit(sync_execute_visitor<Function&&>{std::forward<Function>(f)}, variant_);
     }
@@ -475,7 +475,7 @@ class variant_executor
       template<class E>
       __AGENCY_ANNOTATION
       future<detail::result_of_continuation_t<detail::decay_t<FunctionRef>, Future>>
-        operator()(E& exec) const
+        operator()(const E& exec) const
       {
         return agency::then_execute(exec, std::forward<FunctionRef>(f), predecessor_future);
       }
@@ -490,7 +490,7 @@ class variant_executor
       template<class E, class Future>
       __AGENCY_ANNOTATION
       future<detail::result_of_continuation_t<detail::decay_t<FunctionRef>, Future>>
-        operator()(E& exec, Future& predecessor_future) const
+        operator()(const E& exec, Future& predecessor_future) const
       {
         return agency::then_execute(exec, std::forward<FunctionRef>(f), predecessor_future);
       }
@@ -503,7 +503,7 @@ class variant_executor
             >
     __AGENCY_ANNOTATION
     future<detail::result_of_continuation_t<detail::decay_t<Function>, VariantFuture>>
-    then_execute(Function&& f, VariantFuture& predecessor_future)
+    then_execute(Function&& f, VariantFuture& predecessor_future) const
     {
       auto visitor = then_execute_visitor2<Function&&>{std::forward<Function>(f)};
       auto future_variant = predecessor_future.variant();
@@ -516,7 +516,7 @@ class variant_executor
             >
     __AGENCY_ANNOTATION
     future<detail::result_of_continuation_t<detail::decay_t<Function>, Future>>
-    then_execute(Function&& f, Future& predecessor_future)
+    then_execute(Function&& f, Future& predecessor_future) const
     {
       auto visitor = then_execute_visitor1<Function&&,Future>{std::forward<Function>(f), predecessor_future};
       return experimental::visit(visitor, variant_);

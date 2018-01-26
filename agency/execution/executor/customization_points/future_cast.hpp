@@ -47,7 +47,7 @@ template<class T, class E, class Future,
          __AGENCY_REQUIRES(has_future_cast<T,E,Future>::value)
         >
 __AGENCY_ANNOTATION
-executor_future_t<E,T> future_cast_impl(E& exec, Future& fut)
+executor_future_t<E,T> future_cast_impl(const E& exec, Future& fut)
 {
   return exec.template future_cast<T>(fut);
 }
@@ -79,7 +79,7 @@ template<class T, class E, class Future,
          __AGENCY_REQUIRES(is_future_castable<Future, executor_future_t<E,T>>::value)
         >
 __AGENCY_ANNOTATION
-executor_future_t<E,T> future_cast_impl(E&, Future& fut)
+executor_future_t<E,T> future_cast_impl(const E&, Future& fut)
 {
   return future_traits<Future>::template cast<T>(fut);
 }
@@ -114,7 +114,7 @@ template<class T, class E, class Future,
          __AGENCY_REQUIRES(!is_future_castable<Future, executor_future_t<E,T>>::value)
         >
 __AGENCY_ANNOTATION
-executor_future_t<E,T> future_cast_impl(E& exec, Future& fut)
+executor_future_t<E,T> future_cast_impl(const E& exec, Future& fut)
 {
   return agency::then_execute(exec, future_cast_functor<T>(), fut);
 }
@@ -126,7 +126,7 @@ executor_future_t<E,T> future_cast_impl(E& exec, Future& fut)
 __agency_exec_check_disable__
 template<class T, class E, class Future>
 __AGENCY_ANNOTATION
-executor_future_t<E,T> future_cast(E& exec, Future& fut)
+executor_future_t<E,T> future_cast(const E& exec, Future& fut)
 {
   return detail::future_cast_impl<T>(exec, fut);
 } // end future_cast()

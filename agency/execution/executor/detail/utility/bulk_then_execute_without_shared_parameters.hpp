@@ -56,7 +56,7 @@ template<size_t... Indices, class E, class Function, class Future, class ResultF
 __AGENCY_ANNOTATION
 executor_future_t<E, result_of_t<ResultFactory()>>
   bulk_then_execute_without_shared_parameters_impl(index_sequence<Indices...>,
-                                                   E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory)
+                                                   const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory)
 {
   using predecessor_type = future_value_t<Future>;
   bulk_then_execute_without_shared_parameters_detail::ignore_shared_parameters_and_invoke<Function,predecessor_type> execute_me{f};
@@ -79,7 +79,7 @@ template<class E, class Function, class Future, class ResultFactory,
         >
 __AGENCY_ANNOTATION
 executor_future_t<E, result_of_t<ResultFactory()>>
-  bulk_then_execute_without_shared_parameters(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory)
+  bulk_then_execute_without_shared_parameters(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory)
 {
   return bulk_then_execute_without_shared_parameters_detail::bulk_then_execute_without_shared_parameters_impl(
     detail::make_index_sequence<executor_execution_depth<E>::value>(),

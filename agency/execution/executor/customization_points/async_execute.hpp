@@ -15,7 +15,7 @@ executor_future_t<
   E,
   detail::result_of_t<detail::decay_t<Function>()>
 >
-async_execute(E& exec, Function&& f)
+async_execute(const E& exec, Function&& f)
 {
   return detail::twoway_executor<E>(exec).twoway_execute(std::forward<Function>(f));
 }
