@@ -51,9 +51,12 @@ class simd_executor
   public:
     using execution_category = unsequenced_execution_tag;
 
+    template<class T>
+    using future = always_ready_future<T>;
+
     template<class Function, class ResultFactory, class SharedFactory>
-    agency::detail::result_of_t<ResultFactory()>
-      bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
+    future<agency::detail::result_of_t<ResultFactory()>>
+      bulk_twoway_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
     {
 #if _OPENMP < 201307
       static_assert(sizeof(Function) && false, "agency::omp::simd_executor requires C++ OpenMP 4.0 or better language extensions (typically enabled with -fopenmp or /openmp).");
@@ -68,7 +71,7 @@ class simd_executor
         f(i, result, shared_parm);
       }
 
-      return std::move(result);
+      return agency::make_always_ready_future(std::move(result));
     }
 };
 
