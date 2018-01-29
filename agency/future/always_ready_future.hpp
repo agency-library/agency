@@ -81,7 +81,7 @@ class always_ready_future
 
       T operator()(std::exception_ptr& e) const
       {
-        throw e;
+        std::rethrow_exception(e);
 
         // XXX rework this visitor to avoid returning T in both cases
         return T();
