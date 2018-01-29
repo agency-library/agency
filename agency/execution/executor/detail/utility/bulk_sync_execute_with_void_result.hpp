@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/customization_points/bulk_sync_execute.hpp>
+#include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute.hpp>
 #include <agency/execution/executor/detail/utility/invoke_functors.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
@@ -25,8 +25,8 @@ void bulk_sync_execute_with_void_result(const E& exec, Function f, executor_shap
   // wrap f in a functor that will ignore the unit object we pass to it
   ignore_unit_result_parameter_and_invoke<Function> g{f};
 
-  // just call bulk_sync_execute() and use a result factory that creates a unit object which can be easily discarded
-  agency::bulk_sync_execute(exec, g, shape, unit_factory(), factories...);
+  // just call blocking_bulk_twoway_execute() and use a result factory that creates a unit object which can be easily discarded
+  detail::blocking_bulk_twoway_execute(exec, g, shape, unit_factory(), factories...);
 }
 
 

@@ -222,7 +222,7 @@ class executor_array
       lazy_bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       // this implementation of bulk_then_execute() is "lazy" in the sense that it
-      // immediately calls bulk_then_execute() on the outer executor, but bulk_sync_execute() is
+      // immediately calls bulk_then_execute() on the outer executor, but bulk_twoway_execute() is
       // called on the inner executors eventually at some point in the future
 
       // split shape into its outer and inner components

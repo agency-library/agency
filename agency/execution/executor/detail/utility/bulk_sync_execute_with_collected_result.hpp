@@ -5,7 +5,7 @@
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/utility/invoke_functors.hpp>
-#include <agency/execution/executor/customization_points/bulk_sync_execute.hpp>
+#include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <type_traits>
 
@@ -25,8 +25,8 @@ __AGENCY_ANNOTATION
 result_of_t<ResultFactory()>
   bulk_sync_execute_with_collected_result(const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, SharedFactories... shared_factories)
 {
-  // wrap f in a functor that will collect f's result and call bulk_sync_execute()
-  return agency::bulk_sync_execute(exec, invoke_and_collect_result<Function>{f}, shape, result_factory, shared_factories...);
+  // wrap f in a functor that will collect f's result and call blocking_bulk_twoway_execute()
+  return detail::blocking_bulk_twoway_execute(exec, invoke_and_collect_result<Function>{f}, shape, result_factory, shared_factories...);
 }
 
 

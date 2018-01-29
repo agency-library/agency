@@ -7,7 +7,7 @@ TODO
 
 ### Breaking Changes
 
-TODO
+  * `agency::bulk_sync_execute` has been eliminated
 
 ## New Features
 

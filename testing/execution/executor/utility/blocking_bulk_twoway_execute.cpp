@@ -4,7 +4,7 @@
 #include <cassert>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/customization_points.hpp>
+#include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute.hpp>
 
 #include "../test_executors.hpp"
 
@@ -17,7 +17,7 @@ void test(Executor exec)
 
   shape_type shape = 10;
   
-  auto result = agency::bulk_sync_execute(exec,
+  auto result = agency::detail::blocking_bulk_twoway_execute(exec,
     [](index_type idx, std::vector<int>& results, std::vector<int>& shared_arg)
     {
       results[idx] = 7 + shared_arg[idx];

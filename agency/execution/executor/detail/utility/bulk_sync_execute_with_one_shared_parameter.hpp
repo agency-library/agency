@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/customization_points/bulk_sync_execute.hpp>
+#include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
@@ -43,7 +43,8 @@ result_of_t<ResultFactory()>
 {
   bulk_sync_execute_with_one_shared_parameter_detail::ignore_trailing_shared_parameters_and_invoke<Function> execute_me{f};
 
-  return agency::bulk_sync_execute(exec,
+  return detail::blocking_bulk_twoway_execute(
+    exec,                                          // the executor
     execute_me,                                    // the functor to execute
     shape,                                         // the number of agents to create
     result_factory,                                // the factory to create the result
