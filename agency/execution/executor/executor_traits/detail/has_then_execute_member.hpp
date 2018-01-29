@@ -51,12 +51,8 @@ struct dummy_functor<void>
 };
 
 
-// XXX nomerge
-// XXX this should be changed to say std::declval<const T&>() below
-//     once Agency's executors implement const execution functions
-//     as intended by P0443's design
 template<class T, class Future>
-using then_execute_member_t = decltype(std::declval<T>().then_execute(dummy_functor<future_value_t<Future>>(), std::declval<Future&>()));
+using then_execute_member_t = decltype(std::declval<const T&>().then_execute(dummy_functor<future_value_t<Future>>(), std::declval<Future&>()));
 
 
 template<class T, class Future>

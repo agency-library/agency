@@ -54,13 +54,9 @@ struct has_bulk_then_execute_member_impl
   using result_type = result_of_t<ResultFactory()>;
   using expected_future_type = member_future_or_t<Executor,result_type,std::future>;
 
-  // XXX nomerge
-  // XXX this should be changed to say std::declval<const Executor1&>() below
-  //     once Agency's executors implement const execution functions
-  //     as intended by P0443
   template<class Executor1,
            class ReturnType = decltype(
-             std::declval<Executor1>().bulk_then_execute(
+             std::declval<const Executor1&>().bulk_then_execute(
                std::declval<Function>(),
                std::declval<Shape>(),
                std::declval<Future&>(),

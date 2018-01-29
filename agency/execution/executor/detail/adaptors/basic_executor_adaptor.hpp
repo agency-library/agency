@@ -54,18 +54,12 @@ template<class Executor>
 class basic_executor_adaptor
 {
   private:
-    // XXX nomerge
     // eliminate mutable once the execution functions of Agency's executors are const
-    mutable Executor base_executor_;
+    Executor base_executor_;
 
   protected:
-    // XXX nomerge
-    // XXX this function should return const Executor& 
-    // XXX currently, Agency's executors are not shallow-const as intended by P0443's design
-    // XXX this function should return the correct type of reference once P0443's material has been fully incorporated and
-    //     the execution functions of Agency's executors are const
     __AGENCY_ANNOTATION
-    Executor& base_executor() const
+    const Executor& base_executor() const
     {
       return const_cast<Executor&>(base_executor_);
     }

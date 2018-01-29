@@ -163,7 +163,7 @@ class thread_pool_executor
     std::future<
       result_of_t<ResultFactory()>
     >
-      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       using result_type = result_of_t<ResultFactory()>;
 
@@ -225,7 +225,7 @@ class thread_pool_executor
     std::future<
       result_of_t<ResultFactory()>
     >
-      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       using result_type = result_of_t<ResultFactory()>;
 

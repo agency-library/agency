@@ -243,13 +243,8 @@ class twoway_executor : public basic_executor_adaptor<Executor>
 
       using shape_type = executor_shape_t<Executor>;
 
-      // XXX nomerge
-      // XXX eliminate this and just call base_executor() below once Agency's
-      //     executors implement shallow-constness correctly
-      Executor& exec = super_t::base_executor();
-
       auto intermediate_future = agency::detail::bulk_async_execute_with_one_shared_parameter(
-        exec,                                                  // the executor
+        super_t::base_executor(),                              // the executor
         twoway_execute_functor(),                              // the functor to execute
         detail::shape_cast<shape_type>(1),                     // create only a single agent
         detail::construct<result_type>(),                      // a factory for creating f's result
