@@ -649,12 +649,14 @@ struct future_traits
       return share_impl(fut);
     }
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     static rebind_value<void> make_ready()
     {
       return rebind_value<void>::make_ready();
     }
 
+    __agency_exec_check_disable__
     template<class T, class... Args>
     __AGENCY_ANNOTATION
     static rebind_value<T> make_ready(Args&&... args)
@@ -669,6 +671,7 @@ struct future_traits
       return rebind_value<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
     }
 
+    __agency_exec_check_disable__
     template<class Function,
              class = typename std::enable_if<
                detail::has_then<future_type,Function&&>::value
