@@ -1,6 +1,6 @@
 #pragma once
 
-#include <agency/future.hpp>
+#include <agency/future/always_ready_future.hpp>
 #include <agency/execution/execution_categories.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <utility>
@@ -65,10 +65,13 @@ class unrolling_executor
       return unroll_factor;
     }
 
+    template<class T>
+    using future = always_ready_future<T>;
+
     template<class Function, class ResultFactory, class SharedFactory>
     __AGENCY_ANNOTATION
-    agency::detail::result_of_t<ResultFactory()>
-      bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
+    future<agency::detail::result_of_t<ResultFactory()>>
+      bulk_twoway_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       auto result = result_factory();
       auto shared_parm = shared_factory();
@@ -132,7 +135,7 @@ class unrolling_executor
         }
       }
 
-      return std::move(result);
+      return agency::make_always_ready_future(std::move(result));
     }
 };
 
