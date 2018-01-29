@@ -1,3 +1,5 @@
+#pragma once
+
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
