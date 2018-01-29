@@ -84,36 +84,6 @@ int test_alternative(Executor alternative)
   }
 
   {
-    // test bulk_sync_execute()
-    using int_container = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<VariantExecutor,int>>;
-
-    size_t num_agents = 10;
-
-    shape_type shape = detail::shape_cast<shape_type>(num_agents);
-
-    // create an allocator corresponding to the selected alternative
-    executor_allocator_t<Executor,int> alternative_alloc;
-
-    std::atomic<size_t> counter{0};
-
-    int_container results = exec.bulk_sync_execute([](index_type idx, int_container& results, std::reference_wrapper<std::atomic<size_t>>& counter)
-    {
-      results[idx] = detail::index_lexicographical_rank(idx, results.shape());
-      counter.get()++;
-    },
-    shape,
-    [=]{ return int_container(shape, alternative_alloc); }, // result factory
-    [&]{ return std::ref(counter); }                        // shared factory
-    );
-
-    int_container reference(shape);
-    std::iota(reference.begin(), reference.end(), 0);
-
-    assert(num_agents == counter);
-    assert(reference == results);
-  }
-
-  {
     // test bulk_then_execute()
     using int_container = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<VariantExecutor,int>>;
 

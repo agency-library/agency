@@ -194,48 +194,6 @@ class variant_executor
       return experimental::visit(visitor, variant_);
     }
 
-    // bulk_sync_execute
-  private:
-    template<class Function, class ResultFactory, class... SharedFactories>
-    struct bulk_sync_execute_visitor
-    {
-      Function f;
-      shape_type shape;
-      ResultFactory result_factory;
-      tuple<SharedFactories...> shared_factories;
-
-      template<class E, size_t... Indices>
-      __AGENCY_ANNOTATION
-      detail::result_of_t<ResultFactory()>
-        impl(detail::index_sequence<Indices...>, const E& exec) const
-      {
-        // cast from our shape type to E's shape type
-        executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
-
-        return agency::bulk_sync_execute(exec, f, casted_shape, result_factory, agency::get<Indices>(shared_factories)...);
-      }
-
-      template<class E>
-      __AGENCY_ANNOTATION
-      detail::result_of_t<ResultFactory()>
-        operator()(const E& exec) const
-      {
-        return impl(detail::make_index_sequence<sizeof...(SharedFactories)>(), exec);
-      }
-    };
-
-  public:
-    template<class Function, class ResultFactory, class... SharedFactories,
-             __AGENCY_REQUIRES(execution_depth == sizeof...(SharedFactories))
-            >
-    __AGENCY_ANNOTATION
-    detail::result_of_t<ResultFactory()>
-    bulk_sync_execute(Function f, shape_type shape, ResultFactory result_factory, SharedFactories... shared_factories) const
-    {
-      auto visitor = bulk_sync_execute_visitor<Function,ResultFactory,SharedFactories...>{f, shape, result_factory, agency::make_tuple(shared_factories...)};
-      return experimental::visit(visitor, variant_);
-    }
-
     // bulk_then_execute
   private:
     // this is a unary visitor that only visits variant_executor
