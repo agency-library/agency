@@ -11,7 +11,7 @@ void test(Executor exec)
 
   size_t shape = 10;
   
-  auto result = agency::detail::bulk_sync_execute_with_collected_result(exec,
+  auto result = agency::detail::blocking_bulk_twoway_execute_with_collected_result(exec,
     [](index_type idx, std::vector<int>& shared_arg)
     {
       return shared_arg[idx];

@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/detail/utility/bulk_sync_execute_with_auto_result.hpp>
+#include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute_with_auto_result.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
@@ -14,7 +14,7 @@ namespace agency
 {
 namespace detail
 {
-namespace bulk_sync_execute_with_auto_result_and_without_shared_parameters_detail
+namespace blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters_detail
 {
 
 
@@ -38,13 +38,13 @@ using factory_returning_ignored_result = agency::detail::unit_factory;
 
 template<size_t... Indices, class E, class Function>
 __AGENCY_ANNOTATION
-auto bulk_sync_execute_with_auto_result_and_without_shared_parameters_impl(index_sequence<Indices...>,
-                                                                           const E& exec,
-                                                                           Function f,
-                                                                           executor_shape_t<E> shape) ->
+auto blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters_impl(index_sequence<Indices...>,
+                                                                                      const E& exec,
+                                                                                      Function f,
+                                                                                      executor_shape_t<E> shape) ->
 
   decltype(
-    bulk_sync_execute_with_auto_result(
+    blocking_bulk_twoway_execute_with_auto_result(
       exec,
       ignore_shared_parameters_and_invoke<Function>{f},
       shape,
@@ -52,7 +52,7 @@ auto bulk_sync_execute_with_auto_result_and_without_shared_parameters_impl(index
     )
   )
 {
-  return bulk_sync_execute_with_auto_result(
+  return blocking_bulk_twoway_execute_with_auto_result(
     exec,                                             // the executor
     ignore_shared_parameters_and_invoke<Function>{f}, // the functor to execute
     shape,                                            // the number of agents to create
@@ -61,16 +61,16 @@ auto bulk_sync_execute_with_auto_result_and_without_shared_parameters_impl(index
 }
 
 
-} // end bulk_sync_execute_with_auto_result_and_without_shared_parameters_detail
+} // end blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters_detail
 
 
 template<class E, class Function, __AGENCY_REQUIRES(is_executor<E>::value)>
 __AGENCY_ANNOTATION
-auto bulk_sync_execute_with_auto_result_and_without_shared_parameters(E& exec,
-                                                                      Function f,
-                                                                      executor_shape_t<E> shape) ->
+auto blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters(E& exec,
+                                                                                 Function f,
+                                                                                 executor_shape_t<E> shape) ->
   decltype(
-    bulk_sync_execute_with_auto_result_and_without_shared_parameters_detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters_impl(
+    blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters_detail::blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters_impl(
       detail::make_index_sequence<executor_execution_depth<E>::value>(),
       exec,
       f,
@@ -78,15 +78,15 @@ auto bulk_sync_execute_with_auto_result_and_without_shared_parameters(E& exec,
     )
   )
 {
-  namespace ns = bulk_sync_execute_with_auto_result_and_without_shared_parameters_detail;
+  namespace ns = blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters_detail;
 
-  return ns::bulk_sync_execute_with_auto_result_and_without_shared_parameters_impl(
+  return ns::blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters_impl(
     detail::make_index_sequence<executor_execution_depth<E>::value>(),
     exec,
     f,
     shape
   );
-} // end bulk_sync_execute_with_auto_result_and_without_shared_parameters()
+} // end blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters()
 
 
 } // end detail

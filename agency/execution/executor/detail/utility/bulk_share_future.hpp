@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
-#include <agency/execution/executor/detail/utility/bulk_sync_execute_with_auto_result_and_without_shared_parameters.hpp>
+#include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters.hpp>
 #include <agency/execution/executor/detail/utility/executor_bulk_result.hpp>
 #include <agency/future.hpp>
 
@@ -59,7 +59,7 @@ executor_bulk_result_t<E, typename future_traits<Future>::shared_future_type>
   shared_future_type shared_f = future_traits<Future>::share(f);
 
   // bulk execute a function that returns copies of shared_f
-  return bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, bulk_share_future_functor<shared_future_type>(shared_f), shape);
+  return detail::blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters(exec, bulk_share_future_functor<shared_future_type>(shared_f), shape);
 }
 
 

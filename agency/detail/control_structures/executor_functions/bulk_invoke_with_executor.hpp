@@ -5,8 +5,8 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/tuple.hpp>
 #include <agency/execution/executor/detail/utility/executor_bulk_result_or_void.hpp>
-#include <agency/execution/executor/detail/utility/bulk_sync_execute_with_void_result.hpp>
-#include <agency/execution/executor/detail/utility/bulk_sync_execute_with_collected_result.hpp>
+#include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute_with_void_result.hpp>
+#include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute_with_collected_result.hpp>
 #include <agency/detail/control_structures/executor_functions/bind_agent_local_parameters.hpp>
 #include <agency/detail/control_structures/executor_functions/unpack_shared_parameters_from_executor_and_invoke.hpp>
 #include <agency/detail/control_structures/executor_functions/result_factory.hpp>
@@ -32,7 +32,7 @@ result_of_t<ResultFactory()>
                                  Tuple&& shared_factory_tuple,
                                  detail::index_sequence<TupleIndices...>)
 {
-  return detail::bulk_sync_execute_with_collected_result(exec, f, shape, result_factory, agency::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
+  return detail::blocking_bulk_twoway_execute_with_collected_result(exec, f, shape, result_factory, agency::get<TupleIndices>(std::forward<Tuple>(shared_factory_tuple))...);
 }
 
 // this overload handles the special case where the user function returns void
@@ -45,7 +45,7 @@ void bulk_invoke_with_executor_impl(Executor& exec,
                                     Tuple&& factory_tuple,
                                     detail::index_sequence<TupleIndices...>)
 {
-  return detail::bulk_sync_execute_with_void_result(exec, f, shape, agency::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
+  return detail::blocking_bulk_twoway_execute_with_void_result(exec, f, shape, agency::get<TupleIndices>(std::forward<Tuple>(factory_tuple))...);
 }
 
 
