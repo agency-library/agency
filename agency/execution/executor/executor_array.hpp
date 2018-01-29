@@ -192,8 +192,6 @@ class executor_array
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
         inner_executor_type& inner_exec = exec.inner_executor(inner_executor_idx);
 
-        detail::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_exec(inner_exec);
-
         // XXX avoid lambdas to workaround nvcc limitations
         //detail::bulk_sync_execute_with_void_result(adapted_exec, [=,&predecessor,&result,&outer_shared_arg](const inner_index_type& inner_idx, detail::result_of_t<InnerFactories()>&... inner_shared_args)
         //{
@@ -206,7 +204,7 @@ class executor_array
 
         inner_functor<OuterArgs...> execute_me{f, outer_idx, agency::forward_as_tuple(outer_args...)};
 
-        detail::bulk_sync_execute_with_void_result(adapted_exec, execute_me, inner_shape, agency::get<Indices>(inner_factories)...);
+        detail::bulk_sync_execute_with_void_result(inner_exec, execute_me, inner_shape, agency::get<Indices>(inner_factories)...);
       }
 
       template<class... OuterArgs>
