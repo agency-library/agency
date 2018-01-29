@@ -95,6 +95,7 @@ class twoway_executor : public basic_executor_adaptor<Executor>
     // XXX one advantage of prioritizing an implementation using .then_execute() over .bulk_twoway_execute() is
     //     that no intermediate future is involved
     // XXX also, there's no weirdness involving move-only functions which .bulk_twoway_execute() would have trouble with
+    __agency_exec_check_disable__
     template<class Function,
              __AGENCY_REQUIRES(
                !is_twoway_executor<super_t>::value and

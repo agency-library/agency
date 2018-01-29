@@ -22,11 +22,9 @@ int main()
 {
   test(continuation_executor());
   test(asynchronous_executor());
-  test(synchronous_executor());
 
   test(bulk_continuation_executor());
   test(bulk_asynchronous_executor());
-  test(bulk_synchronous_executor());
 
   // XXX call test() with all the other types of executors
 

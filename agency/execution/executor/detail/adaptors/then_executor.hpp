@@ -97,6 +97,7 @@ class then_executor : public basic_executor_adaptor<Executor>
     // Executor1 may be distinct from Executor
     // note that the return type, executor_future_t, depends on Executor
 
+    __agency_exec_check_disable__
     template<class Executor1, class Function, class Future,
              __AGENCY_REQUIRES(
                is_then_executor<Executor1>::value

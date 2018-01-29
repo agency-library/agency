@@ -13,20 +13,7 @@ namespace agency
 
 __agency_exec_check_disable__
 template<class E, class Function, class ResultFactory, class... Factories,
-         __AGENCY_REQUIRES(detail::BulkSynchronousExecutor<E>()),
-         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
-        >
-__AGENCY_ANNOTATION
-detail::result_of_t<ResultFactory()>
-bulk_sync_execute(const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
-{
-  return exec.bulk_sync_execute(f, shape, result_factory, shared_factories...);
-}
-
-
-__agency_exec_check_disable__
-template<class E, class Function, class ResultFactory, class... Factories,
-         __AGENCY_REQUIRES(is_executor<E>::value && !detail::BulkSynchronousExecutor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION

@@ -5,8 +5,6 @@
 #include <agency/execution/executor/detail/adaptors/bulk_then_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/future/detail/future_cast.hpp>
-#include <agency/tuple.hpp>
 
 
 namespace agency
@@ -16,7 +14,7 @@ namespace agency
 // this case handles executors which may be adapted by detail::bulk_then_executor
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class ResultFactory, class... Factories,
-         __AGENCY_REQUIRES(is_executor<E>::value and !detail::BulkSynchronousExecutor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
@@ -27,113 +25,6 @@ executor_future_t<
 bulk_then_execute(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
 {
   return detail::bulk_then_executor<E>(exec).bulk_then_execute(f, shape, predecessor, result_factory, shared_factories...);
-}
-
-
-namespace detail
-{
-
-
-// this functor is used by the implementation of bulk_then_execute() below which calls .then() with a nested bulk_sync_execute() inside
-// this definition is for the general case, when the predecessor Future type is non-void
-template<class Executor, class Function, class Predecessor, class ResultFactory, class... SharedFactories>
-struct then_with_nested_bulk_sync_execute_functor
-{
-  Executor exec;
-  mutable Function f;
-  executor_shape_t<Executor> shape;
-  mutable ResultFactory result_factory;
-  mutable tuple<SharedFactories...> shared_factories;
-
-  // this functor is passed to bulk_sync_execute() below
-  // it has a reference to the predecessor future to use as a parameter to f
-  struct functor_for_bulk_sync_execute
-  {
-    mutable Function f;
-    Predecessor& predecessor;
-
-    template<class Index, class Result, class... SharedArgs>
-    __AGENCY_ANNOTATION
-    void operator()(const Index& idx, Result& result, SharedArgs&... shared_args) const
-    {
-      agency::detail::invoke(f, idx, predecessor, result, shared_args...);
-    }
-  };
-
-  __agency_exec_check_disable__
-  template<size_t... Indices>
-  __AGENCY_ANNOTATION
-  result_of_t<ResultFactory()> impl(detail::index_sequence<Indices...>, Predecessor& predecessor) const
-  {
-    functor_for_bulk_sync_execute functor{f, predecessor};
-
-    return exec.bulk_sync_execute(functor, shape, result_factory, agency::get<Indices>(shared_factories)...);
-  }
-
-  __AGENCY_ANNOTATION
-  result_of_t<ResultFactory()> operator()(Predecessor& predecessor) const
-  {
-    return impl(detail::make_index_sequence<sizeof...(SharedFactories)>(), predecessor);
-  }
-};
-
-
-// this specialization is for the case when the predecessor Future type is void
-template<class Executor, class Function, class ResultFactory, class... SharedFactories>
-struct then_with_nested_bulk_sync_execute_functor<Executor,Function,void,ResultFactory,SharedFactories...>
-{
-  Executor exec;
-  mutable Function f;
-  executor_shape_t<Executor> shape;
-  mutable ResultFactory result_factory;
-  mutable tuple<SharedFactories...> shared_factories;
-
-  __agency_exec_check_disable__
-  template<size_t... Indices>
-  __AGENCY_ANNOTATION
-  result_of_t<ResultFactory()> impl(detail::index_sequence<Indices...>) const
-  {
-    return exec.bulk_sync_execute(f, shape, result_factory, agency::get<Indices>(shared_factories)...);
-  }
-
-  // the predecessor future is void, so operator() receives no parameter
-  __AGENCY_ANNOTATION
-  result_of_t<ResultFactory()> operator()() const
-  {
-    return impl(detail::make_index_sequence<sizeof...(SharedFactories)>());
-  }
-};
-
-
-} // end detail
-
-
-// XXX nomerge
-// XXX eliminate this when we eliminate .bulk_sync_execute()
-// this case handles executors which only have .bulk_sync_execute() -- these may not be adapted by detail::bulk_then_executor
-__agency_exec_check_disable__
-template<class E, class Function, class Future, class ResultFactory, class... Factories,
-         __AGENCY_REQUIRES(detail::BulkSynchronousExecutor<E>()),
-         __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
-        >
-__AGENCY_ANNOTATION
-executor_future_t<
-  E,
-  detail::result_of_t<ResultFactory()>
->
-bulk_then_execute(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories)
-{
-  using predecessor_type = detail::future_value_t<Future>;
-  detail::then_with_nested_bulk_sync_execute_functor<E,Function,predecessor_type,ResultFactory,Factories...> functor{exec,f,shape,result_factory,agency::make_tuple(shared_factories...)};
-
-  auto intermediate_fut = future_traits<Future>::then(predecessor, std::move(functor));
-
-  using result_type = detail::result_of_t<ResultFactory()>;
-  using result_future_type = executor_future_t<E,result_type>;
-
-  // XXX we need to call future_cast<result_type>(exec, intermediate_fut) here
-  //     however, #including future_cast.hpp causes circular inclusion problems.
-  return agency::detail::future_cast<result_future_type>(intermediate_fut);
 }
 
 

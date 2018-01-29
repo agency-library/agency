@@ -208,26 +208,6 @@ class bulk_continuation_executor
 };
 
 
-class bulk_synchronous_executor
-{
-  public:
-    template<class Function, class ResultFactory, class SharedFactory>
-    typename std::result_of<ResultFactory()>::type
-    bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
-    {
-      auto result = result_factory();
-      auto shared_parm = shared_factory();
-
-      for(size_t i = 0; i < n; ++i)
-      {
-        f(i, result, shared_parm);
-      }
-
-      return std::move(result);
-    }
-};
-
-
 class bulk_asynchronous_executor
 {
   public:
@@ -253,21 +233,20 @@ class bulk_asynchronous_executor
 };
 
 
-// these executor types fall into two categories
-struct not_a_bulk_synchronous_executor : bulk_asynchronous_executor, bulk_continuation_executor {};
-struct not_a_bulk_asynchronous_executor : bulk_synchronous_executor, bulk_continuation_executor {};
-struct not_a_bulk_continuation_executor : bulk_synchronous_executor, bulk_asynchronous_executor {};
+// these executor types fall into one category
+struct not_a_bulk_asynchronous_executor : bulk_continuation_executor {};
+struct not_a_bulk_continuation_executor : bulk_asynchronous_executor {};
 
 
-// this executor type falls into three categories
-struct complete_bulk_executor : bulk_synchronous_executor, bulk_asynchronous_executor, bulk_continuation_executor {};
+// this executor type falls into two categories
+struct complete_bulk_executor : bulk_asynchronous_executor, bulk_continuation_executor {};
 
 
 struct bulk_executor_without_shape_type
 {
   template<class Function, class ResultFactory, class SharedFactory>
-  typename std::result_of<ResultFactory()>::type
-  bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const;
+  std::future<typename std::result_of<ResultFactory()>::type>
+  bulk_twoway_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const;
 };
 
 struct bulk_executor_with_shape_type
@@ -278,7 +257,7 @@ struct bulk_executor_with_shape_type
   };
 
   template<class Function, class ResultFactory, class SharedFactory>
-  typename std::result_of<ResultFactory()>::type
-  bulk_sync_execute(Function f, shape_type n, ResultFactory result_factory, SharedFactory shared_factory) const;
+  std::future<typename std::result_of<ResultFactory()>::type>
+  bulk_twoway_execute(Function f, shape_type n, ResultFactory result_factory, SharedFactory shared_factory) const;
 };
 

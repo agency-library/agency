@@ -85,18 +85,14 @@ void test_returning_results2(Executor exec)
 
 int main()
 {
-  test_returning_void(bulk_synchronous_executor());
   test_returning_void(bulk_asynchronous_executor());
   test_returning_void(bulk_continuation_executor());
-  test_returning_void(not_a_bulk_synchronous_executor());
   test_returning_void(not_a_bulk_asynchronous_executor());
   test_returning_void(not_a_bulk_continuation_executor());
   test_returning_void(complete_bulk_executor());
 
-  test_returning_results(bulk_synchronous_executor());
   test_returning_results(bulk_asynchronous_executor());
   test_returning_results(bulk_continuation_executor());
-  test_returning_results(not_a_bulk_synchronous_executor());
   test_returning_results(not_a_bulk_asynchronous_executor());
   test_returning_results(not_a_bulk_continuation_executor());
   test_returning_results(complete_bulk_executor());

@@ -57,10 +57,8 @@ void test2(Executor exec)
 
 int main()
 {
-  test(bulk_synchronous_executor());
   test(bulk_asynchronous_executor());
   test(bulk_continuation_executor());
-  test(not_a_bulk_synchronous_executor());
   test(not_a_bulk_asynchronous_executor());
   test(not_a_bulk_continuation_executor());
   test(complete_bulk_executor());

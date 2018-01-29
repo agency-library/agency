@@ -186,27 +186,6 @@ class basic_executor_adaptor
       return base_executor_.bulk_async_execute(f, shape, result_factory, shared_factories...);
     }
 
-    // XXX nomerge
-    // XXX eliminate this once Agency's executors have been ported to P0443's interface
-    //     i.e., functions named .bulk_sync_execute() do not exist
-    __agency_exec_check_disable__
-    template<class Function, class Shape, class ResultFactory, class... Factories,
-             __AGENCY_REQUIRES(
-               !is_bulk_twoway_executor<Executor>::value and
-               !is_bulk_asynchronous_executor<Executor>::value and
-               is_bulk_synchronous_executor<Executor>::value
-             )>
-    __AGENCY_ANNOTATION
-    future<result_of_t<ResultFactory()>>
-      bulk_twoway_execute(Function f, Shape shape, ResultFactory result_factory, Factories... shared_factories) const
-    {
-      using result_type = result_of_t<ResultFactory()>;
-
-      result_type result = base_executor_.bulk_sync_execute(f, shape, result_factory, shared_factories...);
-
-      return agency::make_ready_future<result_type>(base_executor_, std::move(result));
-    }
-
     __agency_exec_check_disable__
     template<class Function, class Shape, class Future, class ResultFactory, class... Factories,
              __AGENCY_REQUIRES(is_bulk_then_executor<Executor>::value)
