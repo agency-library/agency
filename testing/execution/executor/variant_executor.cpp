@@ -52,7 +52,7 @@ int test_alternative(Executor alternative)
   }
 
   {
-    // test bulk_async_execute()
+    // test bulk_twoway_execute()
     using int_container = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<VariantExecutor,int>>;
 
     size_t num_agents = 10;
@@ -64,7 +64,7 @@ int test_alternative(Executor alternative)
 
     std::atomic<size_t> counter{0};
 
-    auto future_results = exec.bulk_async_execute([](index_type idx, int_container& results, std::reference_wrapper<std::atomic<size_t>>& counter)
+    auto future_results = exec.bulk_twoway_execute([](index_type idx, int_container& results, std::reference_wrapper<std::atomic<size_t>>& counter)
     {
       results[idx] = detail::index_lexicographical_rank(idx, results.shape());
       counter.get()++;
@@ -247,7 +247,7 @@ void test(Executors... execs)
   using executor_type = variant_executor<Executors...>;
 
   static_assert(is_executor<executor_type>::value, "variant_executor is not an executor");
-  static_assert(is_bulk_asynchronous_executor<executor_type>::value, "variant_executor is not a bulk asynchronous executor");
+  static_assert(detail::is_bulk_twoway_executor<executor_type>::value, "variant_executor is not a bulk twoway executor");
   static_assert(is_bulk_executor<executor_type>::value, "variant_executor is not a bulk executor");
 
   std::tuple<Executors...> executor_tuple(execs...);
