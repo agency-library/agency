@@ -14,7 +14,7 @@ void test(Executor exec)
 
   size_t shape = 10;
   
-  auto f = agency::detail::bulk_async_execute_with_collected_result(exec,
+  auto f = agency::detail::bulk_twoway_execute_with_collected_result(exec,
     [](index_type idx, std::vector<int>& shared_arg)
     {
       return shared_arg[idx];
@@ -40,7 +40,7 @@ void test2(Executor exec)
 
   using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<Executor,int>>;
   
-  auto f = agency::detail::bulk_async_execute_with_collected_result(exec,
+  auto f = agency::detail::bulk_twoway_execute_with_collected_result(exec,
     [] __host__ __device__ (index_type, int& outer_shared_arg, int& inner_shared_arg)
     {
       return outer_shared_arg + inner_shared_arg;

@@ -22,12 +22,12 @@ template<class E, class Function, class... Factories,
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories))
         >
 __AGENCY_ANNOTATION
-executor_future_t<E,void> bulk_async_execute_with_void_result(const E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
+executor_future_t<E,void> bulk_twoway_execute_with_void_result(const E& exec, Function f, executor_shape_t<E> shape, Factories... factories)
 {
   // wrap f in a functor that will ignore the unit object we pass to it
   ignore_unit_result_parameter_and_invoke<Function> g{f};
 
-  // just call bulk_async() and use a result factory that creates a unit object which can be easily discarded
+  // just call bulk_async_execute() and use a result factory that creates a unit object which can be easily discarded
   executor_future_t<E,unit> intermediate_future = agency::bulk_async_execute(exec, g, shape, unit_factory(), factories...);
 
   // cast the intermediate_future to void

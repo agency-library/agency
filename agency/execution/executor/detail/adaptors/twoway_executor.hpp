@@ -32,7 +32,7 @@
 #include <agency/detail/factory.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/execution/executor/detail/utility/bulk_async_execute_with_one_shared_parameter.hpp>
+#include <agency/execution/executor/detail/utility/bulk_twoway_execute_with_one_shared_parameter.hpp>
 #include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/future.hpp>
@@ -125,7 +125,7 @@ class twoway_executor : public basic_executor_adaptor<Executor>
     {
       using result_of_function = detail::result_of_t<Function()>;
 
-      // if f returns void, then return a unit from bulk_async_execute()
+      // if f returns void, then return a unit from bulk_twoway_execute()
       using result_type = typename std::conditional<
         std::is_void<result_of_function>::value,
         detail::unit,
@@ -171,7 +171,7 @@ class twoway_executor : public basic_executor_adaptor<Executor>
     {
       using result_of_function = detail::result_of_t<Function()>;
 
-      // if f returns void, then return a unit from bulk_async_execute()
+      // if f returns void, then return a unit from bulk_then_execute()
       using result_type = typename std::conditional<
         std::is_void<result_of_function>::value,
         detail::unit,
@@ -235,7 +235,7 @@ class twoway_executor : public basic_executor_adaptor<Executor>
     {
       using result_of_function = detail::result_of_t<Function()>;
 
-      // if f returns void, then return a unit from bulk_async_execute()
+      // if f returns void, then return a unit from bulk_twoway_execute_with_one_shared_parameter()
       using result_type = typename std::conditional<
         std::is_void<result_of_function>::value,
         detail::unit,
@@ -244,7 +244,7 @@ class twoway_executor : public basic_executor_adaptor<Executor>
 
       using shape_type = executor_shape_t<Executor>;
 
-      auto intermediate_future = agency::detail::bulk_async_execute_with_one_shared_parameter(
+      auto intermediate_future = agency::detail::bulk_twoway_execute_with_one_shared_parameter(
         super_t::base_executor(),                              // the executor
         twoway_execute_functor(),                              // the functor to execute
         detail::shape_cast<shape_type>(1),                     // create only a single agent

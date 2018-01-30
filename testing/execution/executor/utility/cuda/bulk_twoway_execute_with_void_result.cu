@@ -16,7 +16,7 @@ void test(Executor exec)
 
   shape_type shape{10};
   
-  auto f = agency::detail::bulk_async_execute_with_void_result(exec,
+  auto f = agency::detail::bulk_twoway_execute_with_void_result(exec,
     [&](index_type, int& shared_arg)
     {
       counter += shared_arg;
@@ -43,7 +43,7 @@ void test2(Executor exec)
 
   increment_me = 0;
   
-  auto f = agency::detail::bulk_async_execute_with_void_result(exec,
+  auto f = agency::detail::bulk_twoway_execute_with_void_result(exec,
     [] __device__ (index_type, int& outer_arg, int& inner_arg)
     {
       atomicAdd(&increment_me, outer_arg + inner_arg);

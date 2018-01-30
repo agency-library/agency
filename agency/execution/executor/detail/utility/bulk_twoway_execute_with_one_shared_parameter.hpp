@@ -13,7 +13,7 @@ namespace agency
 {
 namespace detail
 {
-namespace bulk_async_execute_with_one_shared_parameter_detail
+namespace bulk_twoway_execute_with_one_shared_parameter_detail
 {
 
 
@@ -38,10 +38,10 @@ using factory_returning_ignored_result = agency::detail::unit_factory;
 template<size_t... Indices, class E, class Function, class ResultFactory, class SharedFactory>
 __AGENCY_ANNOTATION
 executor_future_t<E, result_of_t<ResultFactory()>>
-  bulk_async_execute_with_one_shared_parameter_impl(index_sequence<Indices...>,
-                                                    const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, SharedFactory shared_factory)
+  bulk_twoway_execute_with_one_shared_parameter_impl(index_sequence<Indices...>,
+                                                     const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, SharedFactory shared_factory)
 {
-  bulk_async_execute_with_one_shared_parameter_detail::ignore_trailing_shared_parameters_and_invoke<Function> execute_me{f};
+  bulk_twoway_execute_with_one_shared_parameter_detail::ignore_trailing_shared_parameters_and_invoke<Function> execute_me{f};
 
   return agency::bulk_async_execute(exec,
     execute_me,                                    // the functor to execute
@@ -53,7 +53,7 @@ executor_future_t<E, result_of_t<ResultFactory()>>
 }
 
 
-} // end bulk_async_execute_with_one_shared_parameter_detail
+} // end bulk_twoway_execute_with_one_shared_parameter_detail
 
 
 template<class E, class Function, class ResultFactory, class SharedFactory,
@@ -61,9 +61,9 @@ template<class E, class Function, class ResultFactory, class SharedFactory,
         >
 __AGENCY_ANNOTATION
 executor_future_t<E, result_of_t<ResultFactory()>>
-  bulk_async_execute_with_one_shared_parameter(const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, SharedFactory shared_factory)
+  bulk_twoway_execute_with_one_shared_parameter(const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, SharedFactory shared_factory)
 {
-  return bulk_async_execute_with_one_shared_parameter_detail::bulk_async_execute_with_one_shared_parameter_impl(
+  return bulk_twoway_execute_with_one_shared_parameter_detail::bulk_twoway_execute_with_one_shared_parameter_impl(
     detail::make_index_sequence<executor_execution_depth<E>::value - 1>(),
     exec,
     f,
