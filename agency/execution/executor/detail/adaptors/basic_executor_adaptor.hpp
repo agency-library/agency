@@ -170,21 +170,21 @@ class basic_executor_adaptor
       return base_executor_.bulk_twoway_execute(f, shape, result_factory, shared_factories...);
     }
 
-    // XXX nomerge
-    // XXX eliminate this once Agency's executors have been ported to P0443's interface
-    //     i.e., functions named .bulk_async_execute() are renamed .bulk_twoway_execute()
-    __agency_exec_check_disable__
-    template<class Function, class Shape, class ResultFactory, class... Factories, 
-             __AGENCY_REQUIRES(
-               !is_bulk_twoway_executor<Executor>::value and
-               is_bulk_asynchronous_executor<Executor>::value
-            )>
-    __AGENCY_ANNOTATION
-    future<result_of_t<ResultFactory()>>
-      bulk_twoway_execute(Function f, Shape shape, ResultFactory result_factory, Factories... shared_factories) const
-    {
-      return base_executor_.bulk_async_execute(f, shape, result_factory, shared_factories...);
-    }
+    //// XXX nomerge
+    //// XXX eliminate this once Agency's executors have been ported to P0443's interface
+    ////     i.e., functions named .bulk_async_execute() are renamed .bulk_twoway_execute()
+    //__agency_exec_check_disable__
+    //template<class Function, class Shape, class ResultFactory, class... Factories, 
+    //         __AGENCY_REQUIRES(
+    //           !is_bulk_twoway_executor<Executor>::value and
+    //           is_bulk_asynchronous_executor<Executor>::value
+    //        )>
+    //__AGENCY_ANNOTATION
+    //future<result_of_t<ResultFactory()>>
+    //  bulk_twoway_execute(Function f, Shape shape, ResultFactory result_factory, Factories... shared_factories) const
+    //{
+    //  return base_executor_.bulk_async_execute(f, shape, result_factory, shared_factories...);
+    //}
 
     __agency_exec_check_disable__
     template<class Function, class Shape, class Future, class ResultFactory, class... Factories,

@@ -4,7 +4,7 @@
 
 #include <agency/future.hpp>
 #include <agency/experimental/ndarray.hpp>
-#include <agency/execution/executor/customization_points.hpp>
+#include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
 #include <agency/cuda.hpp>
 
 #include "../../test_executors.hpp"
@@ -18,7 +18,7 @@ void test(Executor exec)
 
   shape_type shape = 10;
   
-  auto f = agency::bulk_async_execute(exec,
+  auto f = agency::detail::bulk_twoway_execute(exec,
     [](index_type idx, std::vector<int>& results, std::vector<int>& shared_arg)
     {
       results[idx] = 7 + shared_arg[idx];
@@ -44,7 +44,7 @@ void test2(TwoLevelExecutor exec)
 
   using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<TwoLevelExecutor,int>>;
   
-  auto f = agency::bulk_async_execute(exec,
+  auto f = agency::detail::bulk_twoway_execute(exec,
     [] __device__ (index_type idx, container_type& results, int& outer_shared_arg, int& inner_shared_arg)
     {
       results[idx] = outer_shared_arg + inner_shared_arg;

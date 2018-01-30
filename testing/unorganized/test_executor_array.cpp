@@ -12,7 +12,7 @@ int main()
   using inner_executor_type = concurrent_executor;
 
   {
-    // test bulk_async_execute()
+    // test bulk_twoway_execute()
     using executor_type = executor_array<inner_executor_type>;
     using shape_type = executor_shape_t<executor_type>;
     using index_type = executor_index_t<executor_type>;
@@ -24,7 +24,7 @@ int main()
     shape_type shape = exec.make_shape(3,5);
 
     std::mutex mut;
-    auto f = agency::bulk_async_execute(exec, [=,&mut](const index_type& idx, int_container& results, int& outer_shared, int& inner_shared)
+    auto f = agency::detail::bulk_twoway_execute(exec, [=,&mut](const index_type& idx, int_container& results, int& outer_shared, int& inner_shared)
     {
       mut.lock();
       std::cout << "Hello from agent " << idx << std::endl;
@@ -116,7 +116,7 @@ int main()
 
     shape_type shape = 10;
 
-    auto f = agency::bulk_async_execute(exec, [](const index_type& idx, int_container& results, int& shared)
+    auto f = agency::detail::bulk_twoway_execute(exec, [](const index_type& idx, int_container& results, int& shared)
     {
       results[idx] = 13 + shared;
     },

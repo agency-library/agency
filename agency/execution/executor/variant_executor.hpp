@@ -10,6 +10,7 @@
 #include <agency/execution/execution_categories.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
+#include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/tuple.hpp>
 
@@ -169,7 +170,7 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        return agency::bulk_async_execute(exec, f, casted_shape, result_factory, agency::get<Indices>(shared_factories)...);
+        return agency::detail::bulk_twoway_execute(exec, f, casted_shape, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       __agency_exec_check_disable__

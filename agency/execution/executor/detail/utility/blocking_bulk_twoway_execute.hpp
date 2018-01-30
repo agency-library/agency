@@ -4,7 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
-#include <agency/execution/executor/customization_points/bulk_async_execute.hpp>
+#include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
 #include <agency/execution/executor/detail/adaptors/always_blocking_executor.hpp>
 
 namespace agency
@@ -23,7 +23,7 @@ detail::result_of_t<ResultFactory()>
 blocking_bulk_twoway_execute(const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
 {
   detail::always_blocking_executor<E> blocking_exec(exec);
-  return agency::bulk_async_execute(blocking_exec, f, shape, result_factory, shared_factories...).get();
+  return detail::bulk_twoway_execute(blocking_exec, f, shape, result_factory, shared_factories...).get();
 }
 
 

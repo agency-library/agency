@@ -7,6 +7,7 @@
 #include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute_with_collected_result.hpp>
 #include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute_with_one_shared_parameter.hpp>
 #include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute_with_void_result.hpp>
+#include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
 #include <agency/execution/executor/detail/utility/bulk_twoway_execute_with_one_shared_parameter.hpp>
 #include <agency/execution/executor/detail/utility/bulk_twoway_execute_without_shared_parameters.hpp>
 #include <agency/execution/executor/detail/utility/bulk_twoway_execute_with_void_result.hpp>
