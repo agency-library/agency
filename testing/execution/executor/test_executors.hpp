@@ -208,14 +208,14 @@ class bulk_continuation_executor
 };
 
 
-class bulk_asynchronous_executor
+class bulk_twoway_executor
 {
   public:
     template<class Function, class ResultFactory, class SharedFactory>
     std::future<
       typename std::result_of<ResultFactory()>::type
     >
-    bulk_async_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
+    bulk_twoway_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       return std::async(std::launch::async, [=]
       {
@@ -234,12 +234,12 @@ class bulk_asynchronous_executor
 
 
 // these executor types fall into one category
-struct not_a_bulk_asynchronous_executor : bulk_continuation_executor {};
-struct not_a_bulk_continuation_executor : bulk_asynchronous_executor {};
+struct not_a_bulk_twoway_executor : bulk_continuation_executor {};
+struct not_a_bulk_continuation_executor : bulk_twoway_executor {};
 
 
 // this executor type falls into two categories
-struct complete_bulk_executor : bulk_asynchronous_executor, bulk_continuation_executor {};
+struct complete_bulk_executor : bulk_twoway_executor, bulk_continuation_executor {};
 
 
 struct bulk_executor_without_shape_type

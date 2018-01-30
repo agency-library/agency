@@ -62,10 +62,10 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 int main()
 {
   test(bulk_continuation_executor(), bulk_continuation_executor());
-  test(bulk_continuation_executor(), bulk_asynchronous_executor());
+  test(bulk_continuation_executor(), bulk_twoway_executor());
 
-  test(bulk_asynchronous_executor(), bulk_continuation_executor());
-  test(bulk_asynchronous_executor(), bulk_asynchronous_executor());
+  test(bulk_twoway_executor(), bulk_continuation_executor());
+  test(bulk_twoway_executor(), bulk_twoway_executor());
 
   std::cout << "OK" << std::endl;
 

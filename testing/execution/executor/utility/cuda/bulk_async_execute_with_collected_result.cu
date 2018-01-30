@@ -59,9 +59,9 @@ void test2(Executor exec)
 
 int main()
 {
-  test(bulk_asynchronous_executor());
+  test(bulk_twoway_executor());
   test(bulk_continuation_executor());
-  test(not_a_bulk_asynchronous_executor());
+  test(not_a_bulk_twoway_executor());
   test(not_a_bulk_continuation_executor());
   test(complete_bulk_executor());
 

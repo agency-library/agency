@@ -123,27 +123,27 @@ void test_with_non_void_predecessor_returning_results(Executor exec)
 
 int main()
 {
-  test_with_void_predecessor_returning_void(bulk_asynchronous_executor());
+  test_with_void_predecessor_returning_void(bulk_twoway_executor());
   test_with_void_predecessor_returning_void(bulk_continuation_executor());
-  test_with_void_predecessor_returning_void(not_a_bulk_asynchronous_executor());
+  test_with_void_predecessor_returning_void(not_a_bulk_twoway_executor());
   test_with_void_predecessor_returning_void(not_a_bulk_continuation_executor());
   test_with_void_predecessor_returning_void(complete_bulk_executor());
 
-  test_with_void_predecessor_returning_results(bulk_asynchronous_executor());
+  test_with_void_predecessor_returning_results(bulk_twoway_executor());
   test_with_void_predecessor_returning_results(bulk_continuation_executor());
-  test_with_void_predecessor_returning_results(not_a_bulk_asynchronous_executor());
+  test_with_void_predecessor_returning_results(not_a_bulk_twoway_executor());
   test_with_void_predecessor_returning_results(not_a_bulk_continuation_executor());
   test_with_void_predecessor_returning_results(complete_bulk_executor());
 
-  test_with_non_void_predecessor_returning_void(bulk_asynchronous_executor());
+  test_with_non_void_predecessor_returning_void(bulk_twoway_executor());
   test_with_non_void_predecessor_returning_void(bulk_continuation_executor());
-  test_with_non_void_predecessor_returning_void(not_a_bulk_asynchronous_executor());
+  test_with_non_void_predecessor_returning_void(not_a_bulk_twoway_executor());
   test_with_non_void_predecessor_returning_void(not_a_bulk_continuation_executor());
   test_with_non_void_predecessor_returning_void(complete_bulk_executor());
 
-  test_with_non_void_predecessor_returning_results(bulk_asynchronous_executor());
+  test_with_non_void_predecessor_returning_results(bulk_twoway_executor());
   test_with_non_void_predecessor_returning_results(bulk_continuation_executor());
-  test_with_non_void_predecessor_returning_results(not_a_bulk_asynchronous_executor());
+  test_with_non_void_predecessor_returning_results(not_a_bulk_twoway_executor());
   test_with_non_void_predecessor_returning_results(not_a_bulk_continuation_executor());
   test_with_non_void_predecessor_returning_results(complete_bulk_executor());
 
