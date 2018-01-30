@@ -12,7 +12,7 @@
 template<class Executor>
 void test(Executor exec)
 {
-  auto f = agency::async_execute(exec, [] __host__ __device__ { return 7;});
+  auto f = agency::detail::twoway_execute(exec, [] __host__ __device__ { return 7;});
   
   auto result = f.get();
   
@@ -23,7 +23,7 @@ void test(Executor exec)
 int main()
 {
   test(continuation_executor());
-  test(asynchronous_executor());
+  test(twoway_executor());
   test(bulk_continuation_executor());
   test(bulk_twoway_executor());
   test(agency::cuda::grid_executor());

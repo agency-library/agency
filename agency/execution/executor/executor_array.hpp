@@ -401,8 +401,8 @@ class executor_array
       // create a continuation to synchronize the futures and return the result
       auto continuation = make_wait_for_futures_and_move_result(std::move(inner_futures), std::move(results_ptr), std::move(outer_shared_arg_ptr));
 
-      // async_execute() with the outer executor to launch the continuation
-      return agency::async_execute(outer_executor(), std::move(continuation));
+      // twoway_execute() with the outer executor to launch the continuation
+      return detail::twoway_execute(outer_executor(), std::move(continuation));
     }
 
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
@@ -433,7 +433,7 @@ class executor_array
     using bulk_then_execute_implementation_strategy = typename std::conditional<
       detail::disjunction<
         std::is_same<outer_execution_category, sequenced_execution_tag>,
-        std::is_same<inner_execution_category, sequenced_execution_tag> // XXX this should really check whether the inner executor's async_execute() method executes concurrently with the caller 
+        std::is_same<inner_execution_category, sequenced_execution_tag> // XXX this should really check whether the inner executor's twoway_execute() method executes concurrently with the caller 
       >::value,
       lazy_strategy,
       eager_strategy

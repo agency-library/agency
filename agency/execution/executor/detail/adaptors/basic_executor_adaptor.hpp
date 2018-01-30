@@ -35,7 +35,6 @@
 #include <agency/execution/executor/executor_traits/detail/is_bulk_twoway_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_twoway_executor.hpp>
-#include <agency/execution/executor/executor_traits/is_asynchronous_executor.hpp>
 #include <agency/execution/executor/customization_points/make_ready_future.hpp>
 #include <agency/future.hpp>
 #include <utility>
@@ -95,28 +94,11 @@ class basic_executor_adaptor
 
     // XXX nomerge
     // XXX eliminate this once Agency's executors have been ported to P0443's interface
-    //     i.e., functions named .async_execute() are renamed .twoway_execute()
-    __agency_exec_check_disable__
-    template<class Function,
-             __AGENCY_REQUIRES(
-               !is_twoway_executor<Executor>::value and
-               is_asynchronous_executor<Executor>::value
-             )>
-    __AGENCY_ANNOTATION
-    future<result_of_t<decay_t<Function>()>>
-      twoway_execute(Function&& f) const
-    {
-      return base_executor_.async_execute(std::forward<Function>(f));
-    }
-
-    // XXX nomerge
-    // XXX eliminate this once Agency's executors have been ported to P0443's interface
     //     i.e., functions named .sync_execute() do not exist
     __agency_exec_check_disable__
     template<class Function,
              __AGENCY_REQUIRES(
                !is_twoway_executor<Executor>::value and
-               !is_asynchronous_executor<Executor>::value and
                is_synchronous_executor<Executor>::value and
                std::is_void<result_of_t<decay_t<Function>()>>::value
              )>
@@ -135,7 +117,6 @@ class basic_executor_adaptor
     template<class Function,
              __AGENCY_REQUIRES(
                !is_twoway_executor<Executor>::value and
-               !is_asynchronous_executor<Executor>::value and
                is_synchronous_executor<Executor>::value and
                !std::is_void<result_of_t<decay_t<Function>()>>::value
              )>

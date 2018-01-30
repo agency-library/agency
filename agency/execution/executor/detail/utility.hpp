@@ -19,4 +19,5 @@
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_void_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_without_shared_parameters.hpp>
 #include <agency/execution/executor/detail/utility/invoke_functors.hpp>
+#include <agency/execution/executor/detail/utility/twoway_execute.hpp>
 

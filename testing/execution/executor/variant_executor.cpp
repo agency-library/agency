@@ -30,9 +30,9 @@ int test_alternative(Executor alternative)
   }
 
   {
-    // test async_execute()
+    // test twoway_execute()
     bool executed = false;
-    auto void_future = exec.async_execute([&]
+    auto void_future = exec.twoway_execute([&]
     {
       executed = true;
     });
@@ -43,7 +43,7 @@ int test_alternative(Executor alternative)
 
     int reference = 13;
 
-    auto int_future = exec.async_execute([=]
+    auto int_future = exec.twoway_execute([=]
     {
       return reference;
     });

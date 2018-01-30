@@ -4,7 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
-#include <agency/execution/executor/customization_points/async_execute.hpp>
+#include <agency/execution/executor/detail/utility/twoway_execute.hpp>
 #include <agency/execution/executor/detail/adaptors/always_blocking_executor.hpp>
 
 
@@ -19,7 +19,7 @@ detail::result_of_t<detail::decay_t<Function>()>
   sync_execute(const E& exec, Function&& f)
 {
   detail::always_blocking_executor<E> blocking_exec(exec);
-  return agency::async_execute(blocking_exec, std::forward<Function>(f)).get();
+  return detail::twoway_execute(blocking_exec, std::forward<Function>(f)).get();
 }
 
 

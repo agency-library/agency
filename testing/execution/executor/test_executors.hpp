@@ -42,12 +42,12 @@ class continuation_executor
 };
 
 
-class asynchronous_executor
+class twoway_executor
 {
   public:
     template<class Function>
     std::future<agency::detail::result_of_t<Function()>>
-      async_execute(Function&& f) const
+      twoway_execute(Function&& f) const
     {
       return std::async(std::launch::async, std::forward<Function>(f));
     }

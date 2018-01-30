@@ -81,9 +81,9 @@ int test_alternative(Executor alternative)
   }
 
   {
-    // test async_execute()
+    // test twoway_execute()
     counter = 0;
-    auto void_future = exec.async_execute([] __host__ __device__
+    auto void_future = exec.twoway_execute([] __host__ __device__
     {
       counter = 1;
     });
@@ -94,7 +94,7 @@ int test_alternative(Executor alternative)
 
     counter = 13;
 
-    auto int_future = exec.async_execute([] __host__ __device__
+    auto int_future = exec.twoway_execute([] __host__ __device__
     {
       return counter;
     });

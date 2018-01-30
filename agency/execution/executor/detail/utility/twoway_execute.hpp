@@ -7,6 +7,8 @@
 
 namespace agency
 {
+namespace detail
+{
 
 
 template<class E, class Function>
@@ -15,11 +17,12 @@ executor_future_t<
   E,
   detail::result_of_t<detail::decay_t<Function>()>
 >
-async_execute(const E& exec, Function&& f)
+twoway_execute(const E& exec, Function&& f)
 {
   return detail::twoway_executor<E>(exec).twoway_execute(std::forward<Function>(f));
 }
 
 
+} // end detail
 } // end agency
 

@@ -11,6 +11,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
+#include <agency/execution/executor/detail/utility/twoway_execute.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/tuple.hpp>
 
@@ -107,7 +108,7 @@ class variant_executor
       return variant_.index();
     }
 
-    // customization points follow in alphabetical order
+    // customization points follow
     //
     // the implementation of each follows the same pattern:
     // 1. define one (possibly two) visitor types that visit an alternative executor
@@ -125,10 +126,10 @@ class variant_executor
     //    and variant_futures. When a variant_future is encountered, the visitor visits both the variant_executor and variant_future
     //    simultaneously.
 
-    // async_execute
+    // twoway_execute
   private:
     template<class FunctionRef>
-    struct async_execute_visitor
+    struct twoway_execute_visitor
     {
       FunctionRef f;
 
@@ -138,7 +139,7 @@ class variant_executor
       future<detail::result_of_t<detail::decay_t<FunctionRef>()>>
         operator()(E& exec) const
       {
-        return agency::async_execute(exec, std::forward<FunctionRef>(f));
+        return detail::twoway_execute(exec, std::forward<FunctionRef>(f));
       }
     };
 
@@ -146,9 +147,9 @@ class variant_executor
     template<class Function>
     __AGENCY_ANNOTATION
     future<detail::result_of_t<detail::decay_t<Function>()>>
-    async_execute(Function&& f) const
+    twoway_execute(Function&& f) const
     {
-      return experimental::visit(async_execute_visitor<Function&&>{std::forward<Function>(f)}, variant_);
+      return experimental::visit(twoway_execute_visitor<Function&&>{std::forward<Function>(f)}, variant_);
     }
     
     // bulk_twoway_execute

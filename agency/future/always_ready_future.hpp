@@ -39,7 +39,7 @@ always_ready_future<detail::result_of_t<Function&&()>>
 // always_ready_future is a future that is always created in a ready state
 //
 // Executors which always block their client can use always_ready_future as their
-// associated future and still expose two-way asynchronous execution functions like async_execute()
+// associated future and still expose two-way asynchronous execution functions like twoway_execute()
 
 template<class T>
 class always_ready_future

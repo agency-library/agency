@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/control_structures/bind.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
-#include <agency/execution/executor/customization_points/async_execute.hpp>
+#include <agency/execution/executor/detail/utility/twoway_execute.hpp>
 #include <agency/execution/executor/parallel_executor.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <utility>
@@ -24,7 +24,7 @@ async(Executor& exec, Function&& f, Args&&... args)
 {
   auto g = detail::bind(std::forward<Function>(f), std::forward<Args>(args)...);
 
-  return agency::async_execute(exec, std::move(g));
+  return detail::twoway_execute(exec, std::move(g));
 }
 
 

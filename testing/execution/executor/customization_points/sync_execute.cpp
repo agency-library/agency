@@ -21,7 +21,7 @@ void test(Executor exec)
 int main()
 {
   test(continuation_executor());
-  test(asynchronous_executor());
+  test(twoway_executor());
 
   test(bulk_continuation_executor());
   test(bulk_twoway_executor());
