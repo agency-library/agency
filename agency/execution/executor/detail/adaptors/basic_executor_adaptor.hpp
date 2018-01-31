@@ -92,43 +92,6 @@ class basic_executor_adaptor
       return base_executor_.twoway_execute(std::forward<Function>(f));
     }
 
-    // XXX nomerge
-    // XXX eliminate this once Agency's executors have been ported to P0443's interface
-    //     i.e., functions named .sync_execute() do not exist
-    __agency_exec_check_disable__
-    template<class Function,
-             __AGENCY_REQUIRES(
-               !is_twoway_executor<Executor>::value and
-               is_synchronous_executor<Executor>::value and
-               std::is_void<result_of_t<decay_t<Function>()>>::value
-             )>
-    __AGENCY_ANNOTATION
-    future<result_of_t<decay_t<Function>()>>
-      twoway_execute(Function&& f) const
-    {
-      base_executor_.sync_execute(std::forward<Function>(f));
-      return agency::make_ready_future<void>(base_executor_);
-    }
-
-    // XXX nomerge
-    // XXX eliminate this once Agency's executors have been ported to P0443's interface
-    //     i.e., functions named .sync_execute() do not exist
-    __agency_exec_check_disable__
-    template<class Function,
-             __AGENCY_REQUIRES(
-               !is_twoway_executor<Executor>::value and
-               is_synchronous_executor<Executor>::value and
-               !std::is_void<result_of_t<decay_t<Function>()>>::value
-             )>
-    __AGENCY_ANNOTATION
-    future<result_of_t<decay_t<Function>()>>
-      twoway_execute(Function&& f) const
-    {
-      using result_type = result_of_t<decay_t<Function>()>;
-      auto result = base_executor_.sync_execute(std::forward<Function>(f));
-      return agency::make_ready_future<result_type>(base_executor_, std::move(result));
-    }
-
     __agency_exec_check_disable__
     template<class Function, class Future,
              __AGENCY_REQUIRES(is_then_executor<Executor>::value)

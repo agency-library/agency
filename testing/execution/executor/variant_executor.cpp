@@ -141,26 +141,6 @@ int test_alternative(Executor alternative)
     assert(reference == detail::shape_cast<decltype(reference)>(result));
   }
 
-  {
-    // test sync_execute()
-    bool executed = false;
-    exec.sync_execute([&]
-    {
-      executed = true;
-    });
-
-    assert(executed);
-
-    int reference = 13;
-
-    int result = exec.sync_execute([=]
-    {
-      return reference;
-    });
-
-    assert(reference == result);
-  }
-
   // XXX these tests are disabled because then_execute(sequenced_executor, ...) isn't implemented
   //{
   //  // test then_execute()

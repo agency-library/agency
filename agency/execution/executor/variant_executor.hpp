@@ -398,31 +398,6 @@ class variant_executor
       return experimental::visit(max_shape_dimensions_visitor(), variant_);
     }
     
-    // sync_execute
-  private:
-    template<class FunctionRef>
-    struct sync_execute_visitor
-    {
-      FunctionRef f;
-
-      template<class E>
-      __AGENCY_ANNOTATION
-      detail::result_of_t<detail::decay_t<FunctionRef>()>
-        operator()(const E& exec) const
-      {
-        return agency::sync_execute(exec, std::forward<FunctionRef>(f));
-      }
-    };
-
-  public:
-    template<class Function>
-    __AGENCY_ANNOTATION
-    detail::result_of_t<detail::decay_t<Function>()>
-    sync_execute(Function&& f) const
-    {
-      return experimental::visit(sync_execute_visitor<Function&&>{std::forward<Function>(f)}, variant_);
-    }
-
     // then_execute
   private:
     // this is a unary visitor that only visits variant_executor

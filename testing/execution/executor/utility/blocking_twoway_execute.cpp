@@ -4,7 +4,7 @@
 #include <cassert>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/customization_points.hpp>
+#include <agency/execution/executor/detail/utility/blocking_twoway_execute.hpp>
 
 #include "../test_executors.hpp"
 
@@ -12,7 +12,7 @@
 template<class Executor>
 void test(Executor exec)
 {
-  auto result = agency::sync_execute(exec, []{ return 7; });
+  auto result = agency::detail::blocking_twoway_execute(exec, []{ return 7; });
   
   assert(7 == result);
 }

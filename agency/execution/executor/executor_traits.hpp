@@ -12,5 +12,4 @@
 #include <agency/execution/executor/executor_traits/is_continuation_executor.hpp>
 #include <agency/execution/executor/executor_traits/is_executor.hpp>
 #include <agency/execution/executor/executor_traits/is_simple_executor.hpp>
-#include <agency/execution/executor/executor_traits/is_synchronous_executor.hpp>
 

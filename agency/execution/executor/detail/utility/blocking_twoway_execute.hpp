@@ -10,18 +10,21 @@
 
 namespace agency
 {
+namespace detail
+{
 
 
 __agency_exec_check_disable__
 template<class E, class Function, __AGENCY_REQUIRES(is_executor<E>::value)>
 __AGENCY_ANNOTATION
 detail::result_of_t<detail::decay_t<Function>()>
-  sync_execute(const E& exec, Function&& f)
+  blocking_twoway_execute(const E& exec, Function&& f)
 {
   detail::always_blocking_executor<E> blocking_exec(exec);
   return detail::twoway_execute(blocking_exec, std::forward<Function>(f)).get();
 }
 
 
+} // end detail
 } // end agency
 

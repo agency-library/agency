@@ -205,26 +205,6 @@ int test_alternative(Executor alternative)
     assert(reference == detail::shape_cast<decltype(reference)>(result));
   }
 
-  {
-    // test sync_execute()
-    counter = 0;
-    exec.sync_execute([] __host__ __device__ 
-    {
-      counter = 1;
-    });
-
-    assert(counter);
-
-    int reference = 13;
-
-    int result = exec.sync_execute([=] __host__ __device__
-    {
-      return reference;
-    });
-
-    assert(reference == result);
-  }
-
   // XXX these tests are disabled because then_execute(sequenced_executor, ...) isn't implemented
   //{
   //  // test then_execute()
