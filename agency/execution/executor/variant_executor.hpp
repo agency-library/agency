@@ -216,7 +216,7 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        return agency::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
+        return detail::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       template<class E>
@@ -246,7 +246,7 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        return agency::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
+        return detail::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       __agency_exec_check_disable__

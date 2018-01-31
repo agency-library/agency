@@ -9,6 +9,8 @@
 
 namespace agency
 {
+namespace detail
+{
 
 
 // this case handles executors which may be adapted by detail::bulk_then_executor
@@ -28,5 +30,6 @@ bulk_then_execute(const E& exec, Function f, executor_shape_t<E> shape, Future& 
 }
 
 
+} // end detail
 } // end agency
 

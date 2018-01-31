@@ -15,6 +15,7 @@
 #include <agency/execution/executor/detail/utility/bulk_twoway_execute_with_collected_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_continuation_executor_adaptor.hpp>
 #include <agency/execution/executor/detail/utility/bulk_share_future.hpp>
+#include <agency/execution/executor/detail/utility/bulk_then_execute.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_auto_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_collected_result.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute_with_void_result.hpp>

@@ -5,7 +5,7 @@
 #include <agency/future.hpp>
 #include <agency/container/vector.hpp>
 #include <agency/experimental/ndarray.hpp>
-#include <agency/execution/executor/customization_points.hpp>
+#include <agency/execution/executor/detail/utility/bulk_then_execute.hpp>
 #include <agency/cuda.hpp>
 
 #include "../../test_executors.hpp"
@@ -21,7 +21,7 @@ void test_with_non_void_predecessor(Executor exec)
 
   size_t shape = 10;
   
-  auto f = agency::bulk_then_execute(exec,
+  auto f = agency::detail::bulk_then_execute(exec,
     [] __host__ __device__ (index_type idx, int& predecessor, int_vector& results, int_vector& shared_arg)
     {
       results[idx] = predecessor + shared_arg[idx];
@@ -48,7 +48,7 @@ void test_with_void_predecessor(Executor exec)
 
   size_t shape = 10;
   
-  auto f = agency::bulk_then_execute(exec,
+  auto f = agency::detail::bulk_then_execute(exec,
     [] __host__ __device__ (index_type idx, int_vector& results, int_vector& shared_arg)
     {
       results[idx] = shared_arg[idx];
@@ -77,7 +77,7 @@ void test_with_non_void_predecessor2(TwoLevelExecutor exec)
 
   using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<TwoLevelExecutor,int>>;
   
-  auto f = agency::bulk_then_execute(exec,
+  auto f = agency::detail::bulk_then_execute(exec,
     [] __host__ __device__ (index_type idx, int& predecessor, container_type& results, int& outer_shared_arg, int& inner_shared_arg)
     {
       results[idx] = predecessor + outer_shared_arg + inner_shared_arg;
@@ -107,7 +107,7 @@ void test_with_void_predecessor2(TwoLevelExecutor exec)
 
   using container_type = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<TwoLevelExecutor,int>>;
   
-  auto f = agency::bulk_then_execute(exec,
+  auto f = agency::detail::bulk_then_execute(exec,
     [] __host__ __device__ (index_type idx, container_type& results, int& outer_shared_arg, int& inner_shared_arg)
     {
       results[idx] = outer_shared_arg + inner_shared_arg;

@@ -4,7 +4,7 @@
 #include <cassert>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/customization_points.hpp>
+#include <agency/execution/executor/detail/utility/bulk_then_execute.hpp>
 
 #include "../test_executors.hpp"
 
@@ -18,7 +18,7 @@ void test_with_non_void_predecessor(Executor exec)
 
   size_t shape = 10;
   
-  auto f = agency::bulk_then_execute(exec,
+  auto f = agency::detail::bulk_then_execute(exec,
     [](index_type idx, int& predecessor, std::vector<int>& results, std::vector<int>& shared_arg)
     {
       results[idx] = predecessor + shared_arg[idx];
@@ -44,7 +44,7 @@ void test_with_void_predecessor(Executor exec)
 
   size_t shape = 10;
   
-  auto f = agency::bulk_then_execute(exec,
+  auto f = agency::detail::bulk_then_execute(exec,
     [](index_type idx, std::vector<int>& results, std::vector<int>& shared_arg)
     {
       results[idx] = shared_arg[idx];

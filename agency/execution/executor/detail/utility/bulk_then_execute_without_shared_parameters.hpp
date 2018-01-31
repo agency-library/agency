@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/customization_points/bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/utility/bulk_then_execute.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
@@ -61,7 +61,7 @@ executor_future_t<E, result_of_t<ResultFactory()>>
   using predecessor_type = future_value_t<Future>;
   bulk_then_execute_without_shared_parameters_detail::ignore_shared_parameters_and_invoke<Function,predecessor_type> execute_me{f};
 
-  return agency::bulk_then_execute(exec,
+  return detail::bulk_then_execute(exec,
     execute_me,                                     // the functor to execute
     shape,                                          // the number of agents to create
     predecessor,                                    // the predecessor future

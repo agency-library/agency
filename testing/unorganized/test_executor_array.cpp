@@ -70,7 +70,7 @@ int main()
     shape_type shape = exec.make_shape(3,5);
 
     std::mutex mut;
-    auto f = agency::bulk_then_execute(exec, [=,&mut](const index_type& idx, int& past, int_container& results, int& outer_shared, int& inner_shared)
+    auto f = agency::detail::bulk_then_execute(exec, [=,&mut](const index_type& idx, int& past, int_container& results, int& outer_shared, int& inner_shared)
     {
       mut.lock();
       std::cout << "Hello from agent " << idx << std::endl;

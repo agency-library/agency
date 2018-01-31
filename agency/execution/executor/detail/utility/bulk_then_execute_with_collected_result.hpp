@@ -5,7 +5,7 @@
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/utility/invoke_functors.hpp>
-#include <agency/execution/executor/customization_points/bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/utility/bulk_then_execute.hpp>
 #include <agency/future.hpp>
 #include <type_traits>
 
@@ -28,7 +28,7 @@ executor_future_t<E,result_of_t<ResultFactory()>>
   using predecessor_type = future_value_t<Future>;
 
   // wrap f in a functor that will collect f's result and call bulk_then_execute()
-  return agency::bulk_then_execute(exec, invoke_and_collect_result<Function,predecessor_type>{f}, shape, predecessor, result_factory, shared_factories...);
+  return detail::bulk_then_execute(exec, invoke_and_collect_result<Function,predecessor_type>{f}, shape, predecessor, result_factory, shared_factories...);
 }
 
 
