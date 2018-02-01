@@ -28,47 +28,19 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/detail/utility/bulk_then_execute_without_shared_parameters.hpp>
 #include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
-#include <agency/execution/executor/detail/adaptors/bulk_then_executor.hpp>
+#include <agency/execution/executor/detail/adaptors/adaptations/then_execute_via_bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/adaptors/adaptations/then_execute_via_bulk_twoway_execute.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
-#include <agency/detail/shape_cast.hpp>
 
 
 namespace agency
 {
 namespace detail
 {
-
-
-// this functor is used by then_executor below
-// it is defined outside of the class so that it may be used
-// as the template parameter of a CUDA kernel template
-template<class Function>
-struct then_execute_functor
-{
-  mutable Function f;
-
-  // this overload of operator() handles the case when there is a non-void predecessor future
-  template<class Index, class Predecessor, class Result>
-  __AGENCY_ANNOTATION
-  void operator()(const Index&, Predecessor& predecessor, Result& result) const
-  {
-    result = invoke_and_return_unit_if_void_result(f, predecessor);
-  }
-
-  // this overload of operator() handles the case when there is a void predecessor future
-  template<class Index, class Result>
-  __AGENCY_ANNOTATION
-  void operator()(const Index&, Result& result) const
-  {
-    result = invoke_and_return_unit_if_void_result(f);
-  }
-};
 
 
 template<class Executor>
@@ -89,96 +61,66 @@ class then_executor : public basic_executor_adaptor<Executor>
     executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
       then_execute(Function&& f, Future& fut) const
     {
-      return then_execute_impl(super_t::base_executor(), std::forward<Function>(f), fut);
+      return then_execute_impl(std::forward<Function>(f), fut);
     }
 
   private:
-    // note that these static functions all take a template parameter Executor1 naming the type of their first parameter
-    // Executor1 may be distinct from Executor
-    // note that the return type, executor_future_t, depends on Executor
-
     __agency_exec_check_disable__
-    template<class Executor1, class Function, class Future,
+    template<class Function, class Future,
              __AGENCY_REQUIRES(
-               is_then_executor<Executor1>::value
+               is_then_executor<Executor>::value
              )>
     __AGENCY_ANNOTATION
-    static executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
-      then_execute_impl(const Executor1& exec, Function&& f, Future& fut)
+    executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
+      then_execute_impl(Function&& f, Future& fut) const
     {
-      return exec.then_execute(std::forward<Function>(f), fut);
+      return super_t::base_executor().then_execute(std::forward<Function>(f), fut);
     }
 
-    template<class Executor1, class Function, class Future,
+    template<class Function, class Future,
              __AGENCY_REQUIRES(
-               !is_then_executor<Executor1>::value and
-               is_bulk_then_executor<Executor1>::value
+               !is_then_executor<Executor>::value and
+               is_bulk_then_executor<Executor>::value
             )>
     __AGENCY_ANNOTATION
-    static executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
-      then_execute_impl(const Executor1& exec, Function&& f, Future& fut)
+    executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
+      then_execute_impl(Function&& f, Future& fut) const
     {
-      using result_of_function = detail::result_of_continuation_t<Function,Future>;
-
-      // if f returns void, then return a unit from bulk_then_execute()
-      using result_type = typename std::conditional<
-        std::is_void<result_of_function>::value,
-        detail::unit,
-        result_of_function
-      >::type;
-
-      // XXX should really move f into this functor, but it's not clear how to make move-only
-      //     parameters to CUDA kernels
-      auto execute_me = detail::then_execute_functor<decay_t<Function>>{std::forward<Function>(f)};
-
-      using shape_type = executor_shape_t<Executor1>;
-
-      // call bulk_then_execute_without_shared_parameters() to get an intermediate future
-      auto intermediate_future = detail::bulk_then_execute_without_shared_parameters(
-        exec,                              // the executor
-        execute_me,                        // the functor to execute
-        detail::shape_cast<shape_type>(1), // create only a single agent
-        fut,                               // the predecessor argument to f
-        detail::construct<result_type>()   // a factory for creating f's result
-      );
-
-      // cast the intermediate future into the right type of future for the result
-      return future_traits<decltype(intermediate_future)>::template cast<result_of_function>(intermediate_future);
+      return detail::then_execute_via_bulk_then_execute(super_t::base_executor(), std::forward<Function>(f), fut);
     }
 
     // XXX this is currently unimplemented
-    //template<class E, class Function, class Future,
+    //template<class Function, class Future,
     //         __AGENCY_REQUIRES(
-    //           !is_then_executor<E>::value and
-    //           !is_bulk_then_executor<E>::value
-    //           is_twoway_executor<E>::value
+    //           !is_then_executor<Executor>::value and
+    //           !is_bulk_then_executor<Executor>::value
+    //           is_twoway_executor<Executor>::value
     //         )>
     //__AGENCY_ANNOTATION
-    //static executor_future_t<E, result_of_continuation_t<decay_t<Function>, Future>>
-    //  then_execute_impl(Function&& f, Future& fut);
+    //executor_future_t<E, result_of_continuation_t<decay_t<Function>, Future>>
+    //  then_execute_impl(Function&& f, Future& fut) const;
 
-    template<class Executor1, class Function, class Future,
+    template<class Function, class Future,
              __AGENCY_REQUIRES(
-               !is_then_executor<Executor1>::value and
-               !is_bulk_then_executor<Executor1>::value and
-               !is_twoway_executor<Executor1>::value and
-               is_bulk_twoway_executor<Executor1>::value
+               !is_then_executor<Executor>::value and
+               !is_bulk_then_executor<Executor>::value and
+               !is_twoway_executor<Executor>::value and
+               is_bulk_twoway_executor<Executor>::value
              )>
     __AGENCY_ANNOTATION
-    static executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
-      then_execute_impl(const Executor1& exec, Function&& f, Future& fut)
+    executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
+      then_execute_impl(Function&& f, Future& fut) const
     {
-      bulk_then_executor<Executor1> bulk_then_exec(exec);
-      return then_executor::then_execute_impl(bulk_then_exec, std::forward<Function>(f), fut);
+      return detail::then_execute_via_bulk_twoway_execute(super_t::base_executor(), std::forward<Function>(f), fut);
     }
 
     // XXX implement when Agency supports oneway executors
-    //template<class Executor1, class Function, class T,
+    //template<class Function, class T,
     //         __EXECUTORS_REQUIRES(
-    //           !is_then_executor<Executor1>::value
-    //           and is_oneway_executor<Executor1>::value
+    //           !is_then_executor<Executor>::value
+    //           and is_oneway_executor<Executor>::value
     //         )>
-    //auto then_execute_impl(const Executor1& exec, Function&& f, std::experimental::future<T>& fut) const;
+    //auto then_execute_impl(Function&& f, std::experimental::future<T>& fut) const;
 };
 
 
