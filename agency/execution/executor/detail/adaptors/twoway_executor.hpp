@@ -34,6 +34,9 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/execution/executor/detail/utility/bulk_twoway_execute_with_one_shared_parameter.hpp>
 #include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
+#include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_bulk_twoway_execute.hpp>
+#include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_then_execute.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/future.hpp>
 
@@ -42,20 +45,6 @@ namespace agency
 {
 namespace detail
 {
-
-
-// this functor is used by twoway_executor below
-// it is defined outside of the class so that it may be used
-// as the template parameter of a CUDA kernel template
-struct twoway_execute_functor
-{
-  template<class Index, class Result, class SharedFunction, class... IgnoredArgs>
-  __AGENCY_ANNOTATION
-  void operator()(const Index&, Result& result, SharedFunction& shared_function, IgnoredArgs&...) const
-  {
-    result = detail::invoke_and_return_unit_if_void_result(shared_function);
-  }
-};
 
 
 template<class Executor>
@@ -80,14 +69,15 @@ class twoway_executor : public basic_executor_adaptor<Executor>
     }
 
   private:
+    __agency_exec_check_disable__
     template<class Function,
-             __AGENCY_REQUIRES(is_twoway_executor<super_t>::value)
+             __AGENCY_REQUIRES(is_twoway_executor<Executor>::value)
             >
     __AGENCY_ANNOTATION
     future<result_of_t<decay_t<Function>()>>
       twoway_execute_impl(Function&& f) const
     {
-      return super_t::twoway_execute(std::forward<Function>(f));
+      return super_t::base_executor().twoway_execute(std::forward<Function>(f));
     }
 
     // this case handles executors which have .then_execute() but not .twoway_execute()
@@ -98,121 +88,45 @@ class twoway_executor : public basic_executor_adaptor<Executor>
     __agency_exec_check_disable__
     template<class Function,
              __AGENCY_REQUIRES(
-               !is_twoway_executor<super_t>::value and
-               is_then_executor<super_t>::value 
+               !is_twoway_executor<Executor>::value and
+               is_then_executor<Executor>::value 
              )>
     __AGENCY_ANNOTATION
     future<result_of_t<decay_t<Function>()>>
       twoway_execute_impl(Function&& f) const
     {
-      using void_future_type = future<void>;
-
-      // XXX should really allow the executor to participate here
-      void_future_type ready_predecessor = future_traits<void_future_type>::make_ready();
-
-      return super_t::then_execute(std::forward<Function>(f), ready_predecessor);
-    }
-
-
-    template<size_t>
-    using factory_returning_ignored_result = agency::detail::unit_factory;
-
-    __agency_exec_check_disable__
-    template<size_t... Indices, class Function>
-    __AGENCY_ANNOTATION
-    future<result_of_t<decay_t<Function>()>>
-      twoway_execute_via_bulk_twoway_execute(index_sequence<Indices...>, Function&& f) const
-    {
-      using result_of_function = detail::result_of_t<Function()>;
-
-      // if f returns void, then return a unit from bulk_twoway_execute()
-      using result_type = typename std::conditional<
-        std::is_void<result_of_function>::value,
-        detail::unit,
-        result_of_function
-      >::type;
-
-      using shape_type = executor_shape_t<super_t>;
-
-      auto intermediate_future = super_t::bulk_twoway_execute(
-        twoway_execute_functor(),                               // the functor to execute
-        detail::shape_cast<shape_type>(1),                      // create only a single agent
-        detail::construct<result_type>(),                       // a factory for creating f's result
-        detail::make_moving_factory(std::forward<Function>(f)), // a factory to present f as the one shared parameter
-        factory_returning_ignored_result<Indices>()...          // pass a factory for each inner level of execution hierarchy. the results of these factories will be ignored
-      );
-
-      // cast the intermediate future into the right type of future for the result
-      return future_traits<decltype(intermediate_future)>::template cast<result_of_function>(intermediate_future);
+      return detail::twoway_execute_via_then_execute(super_t::base_executor(), std::forward<Function>(f));
     }
 
 
     // this case handles executors which have .bulk_twoway_execute() but not .twoway_execute()
     template<class Function,
              __AGENCY_REQUIRES(
-               !is_twoway_executor<super_t>::value and
-               !is_then_executor<super_t>::value and
-               is_bulk_twoway_executor<super_t>::value
+               !is_twoway_executor<Executor>::value and
+               !is_then_executor<Executor>::value and
+               is_bulk_twoway_executor<Executor>::value
              )>
     __AGENCY_ANNOTATION
     future<result_of_t<decay_t<Function>()>>
       twoway_execute_impl(Function&& f) const
     {
-      using indices = make_index_sequence<executor_execution_depth<super_t>::value - 1>;
-      return this->twoway_execute_via_bulk_twoway_execute(indices{}, std::forward<Function>(f));
-    }
-
-
-    __agency_exec_check_disable__
-    template<size_t... Indices, class Function>
-    __AGENCY_ANNOTATION
-    future<result_of_t<decay_t<Function>()>>
-      twoway_execute_via_bulk_then_execute(index_sequence<Indices...>, Function&& f) const
-    {
-      using result_of_function = detail::result_of_t<Function()>;
-
-      // if f returns void, then return a unit from bulk_then_execute()
-      using result_type = typename std::conditional<
-        std::is_void<result_of_function>::value,
-        detail::unit,
-        result_of_function
-      >::type;
-
-      using shape_type = executor_shape_t<super_t>;
-
-      using void_future_type = future<void>;
-
-      // XXX we might want to actually allow the executor to participate here
-      future<void> predecessor = future_traits<void_future_type>::make_ready();
-
-      auto intermediate_future = super_t::bulk_then_execute(
-        twoway_execute_functor(),                               // the functor to execute
-        detail::shape_cast<shape_type>(1),                      // create only a single agent
-        predecessor,                                            // an immediately ready predecessor future
-        detail::construct<result_type>(),                       // a factory for creating f's result
-        detail::make_moving_factory(std::forward<Function>(f)), // a factory to present f as the one shared parameter
-        factory_returning_ignored_result<Indices>()...          // pass a factory for each inner level of execution hierarchy. the results of these factories will be ignored
-      );
-
-      // cast the intermediate future into the right type of future for the result
-      return future_traits<decltype(intermediate_future)>::template cast<result_of_function>(intermediate_future);
+      return detail::twoway_execute_via_bulk_twoway_execute(super_t::base_executor(), std::forward<Function>(f));
     }
 
 
     // this case handles executors which have .bulk_then_execute() but not .twoway_execute() or .bulk_twoway_execute()
     template<class Function,
              __AGENCY_REQUIRES(
-               !is_twoway_executor<super_t>::value and
-               !is_then_executor<super_t>::value and
-               !is_bulk_twoway_executor<super_t>::value and
-               is_bulk_then_executor<super_t>::value
+               !is_twoway_executor<Executor>::value and
+               !is_then_executor<Executor>::value and
+               !is_bulk_twoway_executor<Executor>::value and
+               is_bulk_then_executor<Executor>::value
              )>
     __AGENCY_ANNOTATION
     future<result_of_t<decay_t<Function>()>>
       twoway_execute_impl(Function&& f) const
     {
-      using indices = make_index_sequence<executor_execution_depth<super_t>::value - 1>;
-      return this->twoway_execute_via_bulk_then_execute(indices{}, std::forward<Function>(f));
+      return detail::twoway_execute_via_bulk_then_execute(super_t::base_executor(), std::forward<Function>(f));
     }
 };
 
