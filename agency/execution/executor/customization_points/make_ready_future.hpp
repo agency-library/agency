@@ -65,7 +65,7 @@ executor_future_t<Executor,T>
 
 
 template<class T, class E, class... Args,
-         __AGENCY_REQUIRES(detail::Executor<E>())
+         __AGENCY_REQUIRES(is_executor<E>::value)
         >
 __AGENCY_ANNOTATION
 executor_future_t<E,T> make_ready_future(const E& exec, Args&&... args)

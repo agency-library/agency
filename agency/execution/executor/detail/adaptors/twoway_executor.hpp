@@ -214,47 +214,6 @@ class twoway_executor : public basic_executor_adaptor<Executor>
       using indices = make_index_sequence<executor_execution_depth<super_t>::value - 1>;
       return this->twoway_execute_via_bulk_then_execute(indices{}, std::forward<Function>(f));
     }
-
-
-    // XXX nomerge
-    // XXX eliminate this function once Agency has been ported to P0443's executor model
-    //     i.e., functions named .bulk_async_execute() have been renamed .bulk_twoway_execute()
-    // this case handles executors which have no single-agent execution functions
-    __agency_exec_check_disable__
-    template<class Function,
-             __AGENCY_REQUIRES(
-               !is_twoway_executor<super_t>::value and
-               !is_then_executor<super_t>::value and
-               !is_bulk_twoway_executor<super_t>::value and
-               !is_bulk_then_executor<super_t>::value and
-               is_bulk_executor<Executor>::value
-             )>
-    __AGENCY_ANNOTATION
-    future<result_of_t<decay_t<Function>()>>
-      twoway_execute_impl(Function&& f) const
-    {
-      using result_of_function = detail::result_of_t<Function()>;
-
-      // if f returns void, then return a unit from bulk_twoway_execute_with_one_shared_parameter()
-      using result_type = typename std::conditional<
-        std::is_void<result_of_function>::value,
-        detail::unit,
-        result_of_function
-      >::type;
-
-      using shape_type = executor_shape_t<Executor>;
-
-      auto intermediate_future = agency::detail::bulk_twoway_execute_with_one_shared_parameter(
-        super_t::base_executor(),                              // the executor
-        twoway_execute_functor(),                              // the functor to execute
-        detail::shape_cast<shape_type>(1),                     // create only a single agent
-        detail::construct<result_type>(),                      // a factory for creating f's result
-        detail::make_moving_factory(std::forward<Function>(f)) // a factory to present f as the one shared parameter
-      );
-
-      // cast the intermediate future into the right type of future for the result
-      return future_traits<decltype(intermediate_future)>::template cast<result_of_function>(intermediate_future);
-    }
 };
 
 

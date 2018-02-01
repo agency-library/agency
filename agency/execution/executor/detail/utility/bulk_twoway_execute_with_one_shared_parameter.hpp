@@ -57,7 +57,7 @@ executor_future_t<E, result_of_t<ResultFactory()>>
 
 
 template<class E, class Function, class ResultFactory, class SharedFactory,
-         __AGENCY_REQUIRES(BulkExecutor<E>())
+         __AGENCY_REQUIRES(is_executor<E>::value)
         >
 __AGENCY_ANNOTATION
 executor_future_t<E, result_of_t<ResultFactory()>>

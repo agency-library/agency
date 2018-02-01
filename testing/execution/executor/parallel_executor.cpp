@@ -14,9 +14,6 @@ int main()
   static_assert(detail::is_bulk_then_executor<parallel_executor>::value,
     "parallel_executor should be a bulk then executor");
 
-  static_assert(is_bulk_executor<parallel_executor>::value,
-    "parallel_executor should be a bulk executor");
-
   static_assert(detail::is_detected_exact<parallel_execution_tag, executor_execution_category_t, parallel_executor>::value,
     "parallel_executor should have parallel_execution_tag execution_category");
 

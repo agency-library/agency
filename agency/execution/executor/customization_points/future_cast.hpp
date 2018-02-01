@@ -74,7 +74,7 @@ using is_future_castable = typename is_future_castable_impl<FromFuture,ToFuture>
 // this overload handles executors which do not have .future_cast()
 // and when future_traits::cast() may be used
 template<class T, class E, class Future,
-         __AGENCY_REQUIRES(detail::Executor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(!has_future_cast<T,E,Future>::value),
          __AGENCY_REQUIRES(is_future_castable<Future, executor_future_t<E,T>>::value)
         >
@@ -109,7 +109,7 @@ struct future_cast_functor
 // and when future_traits::cast() may not be used
 // in this case, we create a continuation to execute the conversion
 template<class T, class E, class Future,
-         __AGENCY_REQUIRES(detail::Executor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(!has_future_cast<T,E,Future>::value),
          __AGENCY_REQUIRES(!is_future_castable<Future, executor_future_t<E,T>>::value)
         >

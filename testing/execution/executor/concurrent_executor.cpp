@@ -12,11 +12,11 @@ int main()
 {
   using namespace agency;
 
+  static_assert(is_executor<concurrent_executor>::value,
+    "concurrent_executor should be an executor");
+
   static_assert(detail::is_bulk_then_executor<concurrent_executor>::value,
     "concurrent_executor should be a bulk then executor");
-
-  static_assert(is_bulk_executor<concurrent_executor>::value,
-    "concurrent_executor should be a bulk executor");
 
   static_assert(detail::is_detected_exact<concurrent_execution_tag, executor_execution_category_t, concurrent_executor>::value,
     "concurrent_executor should have concurrent_execution_tag execution_category");

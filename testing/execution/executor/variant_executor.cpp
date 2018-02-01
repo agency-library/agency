@@ -227,8 +227,10 @@ void test(Executors... execs)
   using executor_type = variant_executor<Executors...>;
 
   static_assert(is_executor<executor_type>::value, "variant_executor is not an executor");
+  static_assert(detail::is_twoway_executor<executor_type>::value, "variant_executor is not a twoway executor");
+  static_assert(detail::is_then_executor<executor_type>::value, "variant_executor is not a then executor");
   static_assert(detail::is_bulk_twoway_executor<executor_type>::value, "variant_executor is not a bulk twoway executor");
-  static_assert(is_bulk_executor<executor_type>::value, "variant_executor is not a bulk executor");
+  static_assert(detail::is_bulk_then_executor<executor_type>::value, "variant_executor is not a bulk then executor");
 
   std::tuple<Executors...> executor_tuple(execs...);
 

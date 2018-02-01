@@ -34,6 +34,7 @@
 #include <agency/execution/executor/executor_traits/detail/executor_execution_depth_or.hpp>
 #include <utility>
 #include <type_traits>
+#include <future>
 
 
 namespace agency
