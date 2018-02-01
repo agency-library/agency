@@ -66,7 +66,7 @@ class synchronous_executor
 };
 
 
-class bulk_continuation_executor
+class bulk_then_executor
 {
   public:
     template<class Function, class Future, class ResultFactory, class SharedFactory>
@@ -234,12 +234,12 @@ class bulk_twoway_executor
 
 
 // these executor types fall into one category
-struct not_a_bulk_twoway_executor : bulk_continuation_executor {};
-struct not_a_bulk_continuation_executor : bulk_twoway_executor {};
+struct not_a_bulk_twoway_executor : bulk_then_executor {};
+struct not_a_bulk_then_executor : bulk_twoway_executor {};
 
 
 // this executor type falls into two categories
-struct complete_bulk_executor : bulk_twoway_executor, bulk_continuation_executor {};
+struct complete_bulk_executor : bulk_twoway_executor, bulk_then_executor {};
 
 
 struct bulk_executor_without_shape_type

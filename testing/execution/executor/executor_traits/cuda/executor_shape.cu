@@ -13,7 +13,7 @@ int main()
 
   static_assert(agency::detail::is_detected_exact<bulk_executor_with_shape_type::shape_type, agency::executor_shape_t, bulk_executor_with_shape_type>::value, "bulk_executor_with_shape_type should have bulk_executor_with_shape_type::shape_type shape_type");
 
-  static_assert(agency::detail::is_detected_exact<size_t, agency::executor_shape_t, bulk_continuation_executor>::value, "bulk_continuation_executor should have size_t shape_type");
+  static_assert(agency::detail::is_detected_exact<size_t, agency::executor_shape_t, bulk_then_executor>::value, "bulk_then_executor should have size_t shape_type");
 
   static_assert(agency::detail::is_detected_exact<agency::uint2, agency::executor_shape_t, agency::cuda::grid_executor>::value, "grid_executor should have uint2 shape_type");
 

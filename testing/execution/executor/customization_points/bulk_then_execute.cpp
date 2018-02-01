@@ -64,15 +64,15 @@ void test_with_void_predecessor(Executor exec)
 int main()
 {
   test_with_non_void_predecessor(bulk_twoway_executor());
-  test_with_non_void_predecessor(bulk_continuation_executor());
+  test_with_non_void_predecessor(bulk_then_executor());
   test_with_non_void_predecessor(not_a_bulk_twoway_executor());
-  test_with_non_void_predecessor(not_a_bulk_continuation_executor());
+  test_with_non_void_predecessor(not_a_bulk_then_executor());
   test_with_non_void_predecessor(complete_bulk_executor());
 
   test_with_void_predecessor(bulk_twoway_executor());
-  test_with_void_predecessor(bulk_continuation_executor());
+  test_with_void_predecessor(bulk_then_executor());
   test_with_void_predecessor(not_a_bulk_twoway_executor());
-  test_with_void_predecessor(not_a_bulk_continuation_executor());
+  test_with_void_predecessor(not_a_bulk_then_executor());
   test_with_void_predecessor(complete_bulk_executor());
 
   std::cout << "OK" << std::endl;

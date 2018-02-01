@@ -6,6 +6,7 @@
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/flattened_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 #include "test_executors.hpp"
 
@@ -17,8 +18,8 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
   using scoped_executor_type = scoped_executor<OuterExecutor,InnerExecutor>;
   using flattened_executor_type = flattened_executor<scoped_executor_type>;
 
-  static_assert(is_bulk_continuation_executor<flattened_executor_type>::value,
-    "flattened_executor should be a bulk continuation executor");
+  static_assert(detail::is_bulk_then_executor<flattened_executor_type>::value,
+    "flattened_executor should be a bulk then executor");
 
   static_assert(detail::is_detected_exact<size_t, executor_shape_t, flattened_executor_type>::value,
     "flattened_executor should have size_t shape_type");
@@ -61,10 +62,10 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 
 int main()
 {
-  test(bulk_continuation_executor(), bulk_continuation_executor());
-  test(bulk_continuation_executor(), bulk_twoway_executor());
+  test(bulk_then_executor(), bulk_then_executor());
+  test(bulk_then_executor(), bulk_twoway_executor());
 
-  test(bulk_twoway_executor(), bulk_continuation_executor());
+  test(bulk_twoway_executor(), bulk_then_executor());
   test(bulk_twoway_executor(), bulk_twoway_executor());
 
   std::cout << "OK" << std::endl;

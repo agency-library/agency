@@ -108,15 +108,15 @@ void test_returning_results2(Executor exec)
 int main()
 {
   test_returning_void(bulk_twoway_executor());
-  test_returning_void(bulk_continuation_executor());
+  test_returning_void(bulk_then_executor());
   test_returning_void(not_a_bulk_twoway_executor());
-  test_returning_void(not_a_bulk_continuation_executor());
+  test_returning_void(not_a_bulk_then_executor());
   test_returning_void(complete_bulk_executor());
 
   test_returning_results(bulk_twoway_executor());
-  test_returning_results(bulk_continuation_executor());
+  test_returning_results(bulk_then_executor());
   test_returning_results(not_a_bulk_twoway_executor());
-  test_returning_results(not_a_bulk_continuation_executor());
+  test_returning_results(not_a_bulk_then_executor());
   test_returning_results(complete_bulk_executor());
 
   test_returning_void2(agency::cuda::grid_executor());

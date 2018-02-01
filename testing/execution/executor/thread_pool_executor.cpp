@@ -5,14 +5,15 @@
 // XXX use parallel_executor.hpp instead of thread_pool.hpp due to circular #inclusion problems
 #include <agency/execution/executor/parallel_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 
 int main()
 {
   using namespace agency;
 
-  static_assert(is_bulk_continuation_executor<detail::thread_pool_executor>::value,
-    "thread_pool_executor should be a bulk continuation executor");
+  static_assert(detail::is_bulk_then_executor<detail::thread_pool_executor>::value,
+    "thread_pool_executor should be a bulk then executor");
 
   static_assert(is_bulk_executor<detail::thread_pool_executor>::value,
     "thread_pool_executor should be a bulk executor");

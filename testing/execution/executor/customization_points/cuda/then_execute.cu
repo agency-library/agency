@@ -46,12 +46,12 @@ void test_with_void_predecessor(Executor exec)
 int main()
 {
   test_with_non_void_predecessor(continuation_executor());
-  test_with_non_void_predecessor(bulk_continuation_executor());
+  test_with_non_void_predecessor(bulk_then_executor());
 
   test_with_non_void_predecessor(agency::cuda::grid_executor());
 
   test_with_void_predecessor(continuation_executor());
-  test_with_void_predecessor(bulk_continuation_executor());
+  test_with_void_predecessor(bulk_then_executor());
 
   test_with_void_predecessor(agency::cuda::grid_executor());
 

@@ -27,13 +27,13 @@ struct continuation_executor_with_future_cast : continuation_executor
 };
 
 
-struct bulk_continuation_executor_with_future_cast : bulk_continuation_executor
+struct bulk_then_executor_with_future_cast : bulk_then_executor
 {
-  bulk_continuation_executor_with_future_cast()
+  bulk_then_executor_with_future_cast()
     : function_called_(false)
   {}
 
-  ~bulk_continuation_executor_with_future_cast()
+  ~bulk_then_executor_with_future_cast()
   {
     assert(function_called_);
   }
@@ -78,15 +78,15 @@ void test(Executor&& exec)
 int main()
 {
   test(bulk_twoway_executor());
-  test(bulk_continuation_executor());
+  test(bulk_then_executor());
 
   test(not_a_bulk_twoway_executor());
-  test(not_a_bulk_continuation_executor());
+  test(not_a_bulk_then_executor());
 
   test(complete_bulk_executor());
 
   test(continuation_executor_with_future_cast());
-  test(bulk_continuation_executor_with_future_cast());
+  test(bulk_then_executor_with_future_cast());
 
   std::cout << "OK" << std::endl;
 

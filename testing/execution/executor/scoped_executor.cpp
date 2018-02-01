@@ -5,6 +5,7 @@
 
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/tuple.hpp>
 #include "test_executors.hpp"
@@ -16,8 +17,8 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 
   using scoped_executor_type = scoped_executor<OuterExecutor,InnerExecutor>;
 
-  static_assert(is_bulk_continuation_executor<scoped_executor_type>::value,
-    "scoped_executor should be a bulk continuation executor");
+  static_assert(detail::is_bulk_then_executor<scoped_executor_type>::value,
+    "scoped_executor should be a bulk then executor");
 
   using expected_category = scoped_execution_tag<executor_execution_category_t<OuterExecutor>, executor_execution_category_t<InnerExecutor>>;
 
@@ -70,15 +71,18 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
 
 int main()
 {
-  test(bulk_continuation_executor(), bulk_continuation_executor());
-  //test(bulk_continuation_executor(), bulk_synchronous_executor());
-  //test(bulk_continuation_executor(), bulk_asynchronous_executor());
+  // XXX nomerge
+  // XXX why are these tests commented out?
+  //     see if we can reenable before merging
+  test(bulk_then_executor(), bulk_then_executor());
+  //test(bulk_then_executor(), bulk_synchronous_executor());
+  //test(bulk_then_executor(), bulk_asynchronous_executor());
 
-  //test(bulk_synchronous_executor(), bulk_continuation_executor());
+  //test(bulk_synchronous_executor(), bulk_then_executor());
   //test(bulk_synchronous_executor(), bulk_synchronous_executor());
   //test(bulk_synchronous_executor(), bulk_asynchronous_executor());
 
-  //test(bulk_asynchronous_executor(), bulk_continuation_executor());
+  //test(bulk_asynchronous_executor(), bulk_then_executor());
   //test(bulk_asynchronous_executor(), bulk_synchronous_executor());
   //test(bulk_asynchronous_executor(), bulk_asynchronous_executor());
 

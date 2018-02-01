@@ -24,7 +24,7 @@ int main()
 {
   test(continuation_executor());
   test(twoway_executor());
-  test(bulk_continuation_executor());
+  test(bulk_then_executor());
   test(bulk_twoway_executor());
   test(agency::cuda::grid_executor());
 

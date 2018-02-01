@@ -12,6 +12,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/executor_traits/detail/member_barrier_type_or.hpp>
 #include <agency/execution/executor/customization_points.hpp>
+#include <agency/execution/executor/detail/utility/bulk_then_execute.hpp>
 #include <agency/detail/scoped_in_place_type.hpp>
 #include <agency/tuple.hpp>
 
@@ -250,9 +251,7 @@ class executor_array
 
       lazy_bulk_then_execute_functor<Function,InnerFactories...> execute_me{*this,outer_shape,inner_shape,f,agency::make_tuple(inner_factories...)};
 
-      detail::bulk_continuation_executor_adaptor<outer_executor_type> adapted_exec(outer_executor());
-
-      return adapted_exec.bulk_then_execute(execute_me, outer_shape, predecessor, result_factory, outer_factory);
+      return detail::bulk_then_execute(outer_executor(), execute_me, outer_shape, predecessor, result_factory, outer_factory);
     }
 
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
@@ -329,10 +328,8 @@ class executor_array
       {
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
 
-        detail::bulk_continuation_executor_adaptor<inner_executor_type> adapted_inner_executor(exec.inner_executor(inner_executor_idx));
-
         return detail::bulk_then_execute_with_void_result(
-          adapted_inner_executor,
+          exec.inner_executor(inner_executor_idx),
           inner_functor{f,outer_idx,*result_ptr,*outer_shared_arg_ptr},
           inner_shape,
           predecessor_futures[outer_idx],

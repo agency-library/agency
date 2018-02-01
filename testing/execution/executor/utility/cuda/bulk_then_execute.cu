@@ -128,15 +128,15 @@ void test_with_void_predecessor2(TwoLevelExecutor exec)
 int main()
 {
   test_with_non_void_predecessor(bulk_twoway_executor());
-  test_with_non_void_predecessor(bulk_continuation_executor());
+  test_with_non_void_predecessor(bulk_then_executor());
   test_with_non_void_predecessor(not_a_bulk_twoway_executor());
-  test_with_non_void_predecessor(not_a_bulk_continuation_executor());
+  test_with_non_void_predecessor(not_a_bulk_then_executor());
   test_with_non_void_predecessor(complete_bulk_executor());
 
   test_with_void_predecessor(bulk_twoway_executor());
-  test_with_void_predecessor(bulk_continuation_executor());
+  test_with_void_predecessor(bulk_then_executor());
   test_with_void_predecessor(not_a_bulk_twoway_executor());
-  test_with_void_predecessor(not_a_bulk_continuation_executor());
+  test_with_void_predecessor(not_a_bulk_then_executor());
   test_with_void_predecessor(complete_bulk_executor());
 
   test_with_non_void_predecessor(agency::flattened_executor<agency::cuda::grid_executor>());
