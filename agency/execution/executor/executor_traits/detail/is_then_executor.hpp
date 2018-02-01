@@ -30,6 +30,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits/detail/has_then_execute_member.hpp>
 #include <agency/execution/executor/executor_traits/detail/member_future_or.hpp>
+#include <future>
 
 
 namespace agency

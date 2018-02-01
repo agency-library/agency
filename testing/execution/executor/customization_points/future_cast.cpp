@@ -5,13 +5,13 @@
 
 #include "../test_executors.hpp"
 
-struct continuation_executor_with_future_cast : continuation_executor
+struct then_executor_with_future_cast : then_executor
 {
-  continuation_executor_with_future_cast()
+  then_executor_with_future_cast()
     : function_called_(false)
   {}
 
-  ~continuation_executor_with_future_cast()
+  ~then_executor_with_future_cast()
   {
     assert(function_called_);
   }
@@ -85,7 +85,7 @@ int main()
 
   test(complete_bulk_executor());
 
-  test(continuation_executor_with_future_cast());
+  test(then_executor_with_future_cast());
   test(bulk_then_executor_with_future_cast());
 
   std::cout << "OK" << std::endl;

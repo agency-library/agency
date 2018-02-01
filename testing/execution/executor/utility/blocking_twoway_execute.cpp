@@ -20,7 +20,7 @@ void test(Executor exec)
 
 int main()
 {
-  test(continuation_executor());
+  test(then_executor());
   test(twoway_executor());
 
   test(bulk_then_executor());

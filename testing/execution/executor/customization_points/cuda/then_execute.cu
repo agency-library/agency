@@ -14,7 +14,7 @@ void test_with_non_void_predecessor(Executor exec)
 {
   auto predecessor_future = agency::make_ready_future<int>(exec, 7);
   
-  auto f = agency::then_execute(exec, [] __host__ __device__ (int& predecessor)
+  auto f = agency::detail::then_execute(exec, [] __host__ __device__ (int& predecessor)
   {
     return predecessor + 13;
   },
@@ -31,7 +31,7 @@ void test_with_void_predecessor(Executor exec)
 {
   auto predecessor_future = agency::make_ready_future<void>(exec);
 
-  auto f = agency::then_execute(exec, [] __host__ __device__
+  auto f = agency::detail::then_execute(exec, [] __host__ __device__
   {
     return 13;
   },
@@ -45,12 +45,12 @@ void test_with_void_predecessor(Executor exec)
 
 int main()
 {
-  test_with_non_void_predecessor(continuation_executor());
+  test_with_non_void_predecessor(then_executor());
   test_with_non_void_predecessor(bulk_then_executor());
 
   test_with_non_void_predecessor(agency::cuda::grid_executor());
 
-  test_with_void_predecessor(continuation_executor());
+  test_with_void_predecessor(then_executor());
   test_with_void_predecessor(bulk_then_executor());
 
   test_with_void_predecessor(agency::cuda::grid_executor());

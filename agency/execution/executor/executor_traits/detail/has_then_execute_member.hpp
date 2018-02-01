@@ -29,6 +29,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/future/future_traits/is_future.hpp>
+#include <agency/future/future_traits/future_value.hpp>
 #include <type_traits>
 
 

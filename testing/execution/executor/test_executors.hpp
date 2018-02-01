@@ -9,7 +9,7 @@
 struct not_an_executor {};
 
 
-class continuation_executor
+class then_executor
 {
   public:
     template<class Function, class T>

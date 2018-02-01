@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/future.hpp>
-#include <agency/execution/executor/customization_points/then_execute.hpp>
+#include <agency/execution/executor/detail/utility/then_execute.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/is_executor.hpp>
 #include <utility>
@@ -116,7 +116,7 @@ template<class T, class E, class Future,
 __AGENCY_ANNOTATION
 executor_future_t<E,T> future_cast_impl(const E& exec, Future& fut)
 {
-  return agency::then_execute(exec, future_cast_functor<T>(), fut);
+  return agency::detail::then_execute(exec, future_cast_functor<T>(), fut);
 }
 
 

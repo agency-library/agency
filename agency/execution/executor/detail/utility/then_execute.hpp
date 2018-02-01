@@ -8,6 +8,8 @@
 
 namespace agency
 {
+namespace detail
+{
 
 
 template<class E, class Function, class Future,
@@ -23,5 +25,6 @@ then_execute(const E& exec, Function&& f, Future& predecessor)
 }
 
 
+} // end detail
 } // end agency
 

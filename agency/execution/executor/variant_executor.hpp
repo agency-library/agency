@@ -12,6 +12,7 @@
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
 #include <agency/execution/executor/detail/utility/twoway_execute.hpp>
+#include <agency/execution/executor/detail/utility/then_execute.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/tuple.hpp>
 
@@ -412,7 +413,7 @@ class variant_executor
       future<detail::result_of_continuation_t<detail::decay_t<FunctionRef>, Future>>
         operator()(const E& exec) const
       {
-        return agency::then_execute(exec, std::forward<FunctionRef>(f), predecessor_future);
+        return detail::then_execute(exec, std::forward<FunctionRef>(f), predecessor_future);
       }
     };
 
@@ -427,7 +428,7 @@ class variant_executor
       future<detail::result_of_continuation_t<detail::decay_t<FunctionRef>, Future>>
         operator()(const E& exec, Future& predecessor_future) const
       {
-        return agency::then_execute(exec, std::forward<FunctionRef>(f), predecessor_future);
+        return detail::then_execute(exec, std::forward<FunctionRef>(f), predecessor_future);
       }
     };
 
