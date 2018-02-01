@@ -33,6 +33,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
+#include <agency/execution/executor/executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/future/future_traits.hpp>
 #include <agency/detail/shape_cast.hpp>

@@ -28,16 +28,11 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/detail/invoke.hpp>
-#include <agency/detail/factory.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/integer_sequence.hpp>
-#include <agency/execution/executor/detail/utility/bulk_twoway_execute_with_one_shared_parameter.hpp>
 #include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
 #include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_bulk_then_execute.hpp>
 #include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_bulk_twoway_execute.hpp>
 #include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_then_execute.hpp>
-#include <agency/detail/shape_cast.hpp>
 #include <agency/future.hpp>
 
 

@@ -30,108 +30,18 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
+#include <agency/execution/executor/detail/adaptors/adaptations/bulk_then_execute_via_bulk_twoway_execute.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_twoway_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
-#include <agency/future.hpp>
-#include <type_traits>
 
 
 namespace agency
 {
 namespace detail
 {
-namespace bulk_then_executor_detail
-{
-
-
-// this functor is used in the implementation of bulk_then_executor below
-// it is defined outside of the class to allow it to be used as a template parameter
-// to CUDA __global__ function templates
-
-// this specialization of functor is for non-void SharedFuture
-template<class Function, class SharedFuture,
-         bool Enable = std::is_void<detail::future_value_t<SharedFuture>>::value
-        >
-struct functor
-{
-  mutable Function f_;
-  mutable SharedFuture fut_;
-
-  using predecessor_type = typename future_traits<SharedFuture>::value_type;
-
-  __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
-  ~functor() = default;
-
-  __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
-  functor(Function f, const SharedFuture& fut)
-    : f_(f), fut_(fut)
-  {}
-
-  __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
-  functor(const functor&) = default;
-
-  __agency_exec_check_disable__
-  template<class Index, class... Args>
-  __AGENCY_ANNOTATION
-  auto operator()(const Index &idx, Args&... args) const ->
-    decltype(f_(idx, const_cast<predecessor_type&>(fut_.get()),args...))
-  {
-    predecessor_type& predecessor = const_cast<predecessor_type&>(fut_.get());
-
-    return f_(idx, predecessor, args...);
-  }
-};
-
-
-// this specialization of functor is for void SharedFuture
-template<class Function, class SharedFuture>
-struct functor<Function,SharedFuture,true>
-{
-  mutable Function f_;
-  mutable SharedFuture fut_;
-
-  __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
-  ~functor() = default;
-
-  __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
-  functor(Function f, const SharedFuture& fut)
-    : f_(f), fut_(fut)
-  {}
-
-  __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
-  functor(const functor&) = default;
-
-  __agency_exec_check_disable__
-  template<class Index, class... Args>
-  __AGENCY_ANNOTATION
-  auto operator()(const Index &idx, Args&... args) const ->
-    decltype(f_(idx, args...))
-  {
-    fut_.wait();
-
-    return f_(idx, args...);
-  }
-};
-
-
-template<class Function, class SharedFuture>
-__AGENCY_ANNOTATION
-functor<Function,SharedFuture> make_functor(Function f, const SharedFuture& shared_future)
-{
-  return functor<Function,SharedFuture>(f, shared_future);
-}
-
-
-} // end bulk_then_executor_detail
 
 
 template<class Executor>
@@ -155,31 +65,26 @@ class bulk_then_executor : public basic_executor_adaptor<Executor>
     }
 
   private:
+    __agency_exec_check_disable__
     template<class Function, class Future, class ResultFactory, class... Factories,
-             __AGENCY_REQUIRES(is_bulk_then_executor<super_t>::value)>
+             __AGENCY_REQUIRES(is_bulk_then_executor<Executor>::value)>
     __AGENCY_ANNOTATION
     executor_future_t<Executor, result_of_t<ResultFactory()>>
       bulk_then_execute_impl(Function f, executor_shape_t<Executor> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories) const
     {
-      return super_t::bulk_then_execute(f, shape, predecessor, result_factory, shared_factories...);
+      return super_t::base_executor().bulk_then_execute(f, shape, predecessor, result_factory, shared_factories...);
     }
              
-    __agency_exec_check_disable__
     template<class Function, class Future, class ResultFactory, class... Factories,
              __AGENCY_REQUIRES(
-               !is_bulk_then_executor<super_t>::value and
-               is_bulk_twoway_executor<super_t>::value
+               !is_bulk_then_executor<Executor>::value and
+               is_bulk_twoway_executor<Executor>::value
             )>
     __AGENCY_ANNOTATION
     executor_future_t<Executor, result_of_t<ResultFactory()>>
       bulk_then_execute_impl(Function f, executor_shape_t<Executor> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories) const
     {
-      // XXX we may wish to allow the executor to participate in this sharing operation
-      auto shared_predecessor_future = future_traits<Future>::share(predecessor);
-
-      auto functor = bulk_then_executor_detail::make_functor(f, shared_predecessor_future);
-
-      return super_t::bulk_twoway_execute(functor, shape, result_factory, shared_factories...);
+      return detail::bulk_then_execute_via_bulk_twoway_execute(super_t::base_executor(), f, shape, predecessor, result_factory, shared_factories...);
     }
 
     // XXX consider introducing an adaptation for bulk oneway executors here
