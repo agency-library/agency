@@ -5,6 +5,8 @@
 
 #include <agency/future.hpp>
 #include <agency/execution/executor/detail/utility/bulk_then_execute.hpp>
+#include <agency/execution/executor/customization_points/make_ready_future.hpp>
+#include <agency/execution/executor/executor_traits/executor_index.hpp>
 
 #include "../test_executors.hpp"
 
