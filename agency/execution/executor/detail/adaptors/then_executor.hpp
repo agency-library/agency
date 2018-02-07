@@ -27,14 +27,9 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/then_execute_via_bulk_then_execute.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/then_execute_via_bulk_twoway_execute.hpp>
-#include <agency/execution/executor/executor_traits/executor_future.hpp>
-#include <agency/execution/executor/executor_traits/detail/is_then_executor.hpp>
-#include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
+#include <agency/execution/executor/detail/utility/then_execute.hpp>
+#include <utility>
 
 
 namespace agency
@@ -61,66 +56,8 @@ class then_executor : public basic_executor_adaptor<Executor>
     executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
       then_execute(Function&& f, Future& fut) const
     {
-      return then_execute_impl(std::forward<Function>(f), fut);
+      return detail::then_execute(super_t::base_executor(), std::forward<Function>(f), fut);
     }
-
-  private:
-    __agency_exec_check_disable__
-    template<class Function, class Future,
-             __AGENCY_REQUIRES(
-               is_then_executor<Executor>::value
-             )>
-    __AGENCY_ANNOTATION
-    executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
-      then_execute_impl(Function&& f, Future& fut) const
-    {
-      return super_t::base_executor().then_execute(std::forward<Function>(f), fut);
-    }
-
-    template<class Function, class Future,
-             __AGENCY_REQUIRES(
-               !is_then_executor<Executor>::value and
-               is_bulk_then_executor<Executor>::value
-            )>
-    __AGENCY_ANNOTATION
-    executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
-      then_execute_impl(Function&& f, Future& fut) const
-    {
-      return detail::then_execute_via_bulk_then_execute(super_t::base_executor(), std::forward<Function>(f), fut);
-    }
-
-    // XXX this is currently unimplemented
-    //template<class Function, class Future,
-    //         __AGENCY_REQUIRES(
-    //           !is_then_executor<Executor>::value and
-    //           !is_bulk_then_executor<Executor>::value
-    //           is_twoway_executor<Executor>::value
-    //         )>
-    //__AGENCY_ANNOTATION
-    //executor_future_t<E, result_of_continuation_t<decay_t<Function>, Future>>
-    //  then_execute_impl(Function&& f, Future& fut) const;
-
-    template<class Function, class Future,
-             __AGENCY_REQUIRES(
-               !is_then_executor<Executor>::value and
-               !is_bulk_then_executor<Executor>::value and
-               !is_twoway_executor<Executor>::value and
-               is_bulk_twoway_executor<Executor>::value
-             )>
-    __AGENCY_ANNOTATION
-    executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
-      then_execute_impl(Function&& f, Future& fut) const
-    {
-      return detail::then_execute_via_bulk_twoway_execute(super_t::base_executor(), std::forward<Function>(f), fut);
-    }
-
-    // XXX implement when Agency supports oneway executors
-    //template<class Function, class T,
-    //         __EXECUTORS_REQUIRES(
-    //           !is_then_executor<Executor>::value
-    //           and is_oneway_executor<Executor>::value
-    //         )>
-    //auto then_execute_impl(Function&& f, std::experimental::future<T>& fut) const;
 };
 
 
