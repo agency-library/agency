@@ -30,12 +30,10 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/bulk_then_execute_via_bulk_twoway_execute.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
-#include <agency/execution/executor/executor_traits/detail/is_bulk_twoway_executor.hpp>
-#include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/detail/utility/bulk_then_execute.hpp>
 
 
 namespace agency
@@ -61,35 +59,8 @@ class bulk_then_executor : public basic_executor_adaptor<Executor>
     executor_future_t<Executor, result_of_t<ResultFactory()>>
       bulk_then_execute(Function f, executor_shape_t<Executor> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories) const
     {
-      return bulk_then_execute_impl(f, shape, predecessor, result_factory, shared_factories...);
+      return detail::bulk_then_execute(super_t::base_executor(), f, shape, predecessor, result_factory, shared_factories...);
     }
-
-  private:
-    __agency_exec_check_disable__
-    template<class Function, class Future, class ResultFactory, class... Factories,
-             __AGENCY_REQUIRES(is_bulk_then_executor<Executor>::value)>
-    __AGENCY_ANNOTATION
-    executor_future_t<Executor, result_of_t<ResultFactory()>>
-      bulk_then_execute_impl(Function f, executor_shape_t<Executor> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories) const
-    {
-      return super_t::base_executor().bulk_then_execute(f, shape, predecessor, result_factory, shared_factories...);
-    }
-             
-    template<class Function, class Future, class ResultFactory, class... Factories,
-             __AGENCY_REQUIRES(
-               !is_bulk_then_executor<Executor>::value and
-               is_bulk_twoway_executor<Executor>::value
-            )>
-    __AGENCY_ANNOTATION
-    executor_future_t<Executor, result_of_t<ResultFactory()>>
-      bulk_then_execute_impl(Function f, executor_shape_t<Executor> shape, Future& predecessor, ResultFactory result_factory, Factories... shared_factories) const
-    {
-      return detail::bulk_then_execute_via_bulk_twoway_execute(super_t::base_executor(), f, shape, predecessor, result_factory, shared_factories...);
-    }
-
-    // XXX consider introducing an adaptation for bulk oneway executors here
-
-    // XXX consider introducing adaptations for non-bulk executors here
 };
 
 
