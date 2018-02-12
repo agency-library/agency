@@ -28,6 +28,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
 #include <agency/execution/executor/detail/utility/then_execute.hpp>
 #include <utility>
 
