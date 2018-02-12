@@ -32,6 +32,7 @@
 #include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
 #include <agency/execution/executor/properties/always_blocking.hpp>
 #include <agency/execution/executor/executor_traits/detail/executor_is_always_blocking.hpp>
+#include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute.hpp>
 
 
 namespace agency
@@ -40,6 +41,9 @@ namespace detail
 {
 
 
+// XXX this class could be simplified by
+// 1. defining its associated future to be always_ready_future and
+// 2. giving always_ready_future a converting constructor which takes another future, waits on it, and then takes ownership of its result
 template<class Executor>
 class always_blocking_executor : public basic_executor_adaptor<Executor>
 {
@@ -80,13 +84,14 @@ class always_blocking_executor : public basic_executor_adaptor<Executor>
     }
 
     template<class Function, class Shape, class ResultFactory, class... Factories, 
-             __AGENCY_REQUIRES(is_bulk_twoway_executor<super_t>::value)
+             __AGENCY_REQUIRES(is_bulk_twoway_executor<Executor>::value),
+             __AGENCY_REQUIRES(executor_execution_depth<Executor>::value == sizeof...(Factories))
             >
     __AGENCY_ANNOTATION
     future<result_of_t<ResultFactory()>>
       bulk_twoway_execute(Function f, Shape shape, ResultFactory result_factory, Factories... shared_factories) const
     {
-      return bulk_twoway_execute_impl(f, shape, result_factory, shared_factories...);
+      return detail::blocking_bulk_twoway_execute(super_t::base_executor(), f, shape, result_factory, shared_factories...);
     }
 
     template<class Function, class Shape, class Future, class ResultFactory, class... Factories,
@@ -146,33 +151,6 @@ class always_blocking_executor : public basic_executor_adaptor<Executor>
       then_execute_impl(Function&& f, Future& fut) const
     {
       auto future = super_t::then_execute(std::forward<Function>(f), fut);
-
-      future.wait();
-
-      return future;
-    }
-
-    template<class Function, class Shape, class ResultFactory, class... Factories,
-             __AGENCY_REQUIRES(
-               executor_is_always_blocking<super_t>::value
-             )>
-    __AGENCY_ANNOTATION
-    future<result_of_t<ResultFactory()>>
-      bulk_twoway_execute_impl(Function f, Shape shape, ResultFactory result_factory, Factories... shared_factories) const
-    {
-      return super_t::bulk_twoway_execute(f, shape, result_factory, shared_factories...);
-    }
-
-    __agency_exec_check_disable__
-    template<class Function, class Shape, class ResultFactory, class... Factories,
-             __AGENCY_REQUIRES(
-               !executor_is_always_blocking<super_t>::value
-             )>
-    __AGENCY_ANNOTATION
-    future<result_of_t<ResultFactory()>>
-      bulk_twoway_execute_impl(Function f, Shape shape, ResultFactory result_factory, Factories... shared_factories) const
-    {
-      auto future = super_t::bulk_twoway_execute(f, shape, result_factory, shared_factories...);
 
       future.wait();
 
