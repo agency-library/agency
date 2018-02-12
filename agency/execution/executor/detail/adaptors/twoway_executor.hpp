@@ -27,13 +27,10 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_bulk_then_execute.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_bulk_twoway_execute.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_then_execute.hpp>
-#include <agency/future.hpp>
+#include <agency/execution/executor/detail/utility/twoway_execute.hpp>
+#include <utility>
 
 
 namespace agency
@@ -60,68 +57,7 @@ class twoway_executor : public basic_executor_adaptor<Executor>
     future<result_of_t<decay_t<Function>()>>
       twoway_execute(Function&& f) const
     {
-      return twoway_execute_impl(std::forward<Function>(f));
-    }
-
-  private:
-    __agency_exec_check_disable__
-    template<class Function,
-             __AGENCY_REQUIRES(is_twoway_executor<Executor>::value)
-            >
-    __AGENCY_ANNOTATION
-    future<result_of_t<decay_t<Function>()>>
-      twoway_execute_impl(Function&& f) const
-    {
-      return super_t::base_executor().twoway_execute(std::forward<Function>(f));
-    }
-
-    // this case handles executors which have .then_execute() but not .twoway_execute()
-    // XXX not really clear if we should prefer .bulk_twoway_execute() to calling .then_execute()
-    // XXX one advantage of prioritizing an implementation using .then_execute() over .bulk_twoway_execute() is
-    //     that no intermediate future is involved
-    // XXX also, there's no weirdness involving move-only functions which .bulk_twoway_execute() would have trouble with
-    __agency_exec_check_disable__
-    template<class Function,
-             __AGENCY_REQUIRES(
-               !is_twoway_executor<Executor>::value and
-               is_then_executor<Executor>::value 
-             )>
-    __AGENCY_ANNOTATION
-    future<result_of_t<decay_t<Function>()>>
-      twoway_execute_impl(Function&& f) const
-    {
-      return detail::twoway_execute_via_then_execute(super_t::base_executor(), std::forward<Function>(f));
-    }
-
-
-    // this case handles executors which have .bulk_twoway_execute() but not .twoway_execute()
-    template<class Function,
-             __AGENCY_REQUIRES(
-               !is_twoway_executor<Executor>::value and
-               !is_then_executor<Executor>::value and
-               is_bulk_twoway_executor<Executor>::value
-             )>
-    __AGENCY_ANNOTATION
-    future<result_of_t<decay_t<Function>()>>
-      twoway_execute_impl(Function&& f) const
-    {
-      return detail::twoway_execute_via_bulk_twoway_execute(super_t::base_executor(), std::forward<Function>(f));
-    }
-
-
-    // this case handles executors which have .bulk_then_execute() but not .twoway_execute() or .bulk_twoway_execute()
-    template<class Function,
-             __AGENCY_REQUIRES(
-               !is_twoway_executor<Executor>::value and
-               !is_then_executor<Executor>::value and
-               !is_bulk_twoway_executor<Executor>::value and
-               is_bulk_then_executor<Executor>::value
-             )>
-    __AGENCY_ANNOTATION
-    future<result_of_t<decay_t<Function>()>>
-      twoway_execute_impl(Function&& f) const
-    {
-      return detail::twoway_execute_via_bulk_then_execute(super_t::base_executor(), std::forward<Function>(f));
+      return detail::twoway_execute(super_t::base_executor(), std::forward<Function>(f));
     }
 };
 
