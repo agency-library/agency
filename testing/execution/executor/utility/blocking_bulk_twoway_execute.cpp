@@ -4,6 +4,8 @@
 #include <cassert>
 
 #include <agency/future.hpp>
+#include <agency/execution/executor/executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/executor_traits/executor_index.hpp>
 #include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute.hpp>
 
 #include "../test_executors.hpp"
