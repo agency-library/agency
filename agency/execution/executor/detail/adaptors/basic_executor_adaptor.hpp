@@ -48,28 +48,31 @@ namespace detail
 
 // this class wraps a base executor and forwards calls
 // to execution functions to the base, if they exist
+// the underlying executor may be stored as a value, or reference, depending on the template parameter
 // XXX also need to forward .require() and .prefer()
 template<class Executor>
 class basic_executor_adaptor
 {
   private:
-    // eliminate mutable once the execution functions of Agency's executors are const
+    using base_executor_type = typename std::decay<Executor>::type;
+
+  private:
     Executor base_executor_;
 
   protected:
     __AGENCY_ANNOTATION
-    const Executor& base_executor() const
+    const base_executor_type& base_executor() const
     {
-      return const_cast<Executor&>(base_executor_);
+      return base_executor_;
     }
 
   public:
     template<class T>
-    using future = executor_future_t<Executor,T>;
+    using future = executor_future_t<base_executor_type,T>;
 
-    using shape_type = executor_shape_t<Executor>;
+    using shape_type = executor_shape_t<base_executor_type>;
 
-    using execution_category = executor_execution_category_t<Executor>;
+    using execution_category = executor_execution_category_t<base_executor_type>;
 
     // XXX need to publicize the other executor member typedefs such as execution_category, etc.
 
@@ -79,11 +82,15 @@ class basic_executor_adaptor
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    basic_executor_adaptor(const Executor& base) noexcept : base_executor_{base} {}
+    basic_executor_adaptor(const basic_executor_adaptor&) = default;
+
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    basic_executor_adaptor(const base_executor_type& base) noexcept : base_executor_{base} {}
 
     __agency_exec_check_disable__
     template<class Function,
-             __AGENCY_REQUIRES(is_twoway_executor<Executor>::value)
+             __AGENCY_REQUIRES(is_twoway_executor<base_executor_type>::value)
             >
     __AGENCY_ANNOTATION
     future<result_of_t<decay_t<Function>()>>
@@ -94,7 +101,7 @@ class basic_executor_adaptor
 
     __agency_exec_check_disable__
     template<class Function, class Future,
-             __AGENCY_REQUIRES(is_then_executor<Executor>::value)
+             __AGENCY_REQUIRES(is_then_executor<base_executor_type>::value)
             >
     __AGENCY_ANNOTATION
     future<result_of_continuation_t<decay_t<Function>, Future>>
@@ -105,7 +112,7 @@ class basic_executor_adaptor
 
     __agency_exec_check_disable__
     template<class Function, class Shape, class ResultFactory, class... Factories, 
-             __AGENCY_REQUIRES(is_bulk_twoway_executor<Executor>::value)
+             __AGENCY_REQUIRES(is_bulk_twoway_executor<base_executor_type>::value)
             >
     __AGENCY_ANNOTATION
     future<result_of_t<ResultFactory()>>
@@ -116,7 +123,7 @@ class basic_executor_adaptor
 
     __agency_exec_check_disable__
     template<class Function, class Shape, class Future, class ResultFactory, class... Factories,
-             __AGENCY_REQUIRES(is_bulk_then_executor<Executor>::value)
+             __AGENCY_REQUIRES(is_bulk_then_executor<base_executor_type>::value)
             >
     __AGENCY_ANNOTATION
     future<result_of_t<ResultFactory()>>
