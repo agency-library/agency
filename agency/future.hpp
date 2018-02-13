@@ -8,6 +8,7 @@
 #include <agency/future/future_traits/future_rebind_value.hpp>
 #include <agency/future/future_traits/future_result.hpp>
 #include <agency/detail/has_member.hpp>
+#include <agency/detail/unit.hpp>
 
 #include <future>
 #include <utility>
@@ -944,33 +945,30 @@ template<class TypeList>
 using make_tuple_for = typename make_tuple_for_impl<TypeList>::type;
 
 
-struct void_value {};
+template<class T>
+struct is_not_unit : std::integral_constant<bool, !std::is_same<T,unit>::value> {};
 
 
 template<class T>
-struct is_not_void_value : std::integral_constant<bool, !std::is_same<T,void_value>::value> {};
-
-
-template<class T>
-struct void_to_void_value : std::conditional<std::is_void<T>::value, void_value, T> {};
+struct void_to_unit : std::conditional<std::is_void<T>::value, unit, T> {};
 
 
 template<class... Futures>
-struct tuple_of_future_values_impl
+struct tuple_of_future_results_impl
 {
-  using value_types = type_list<
+  using result_types = type_list<
     future_result_t<Futures>...
   >;
 
-  // map void to void_value
-  using mapped_value_types = type_list_map<void_to_void_value, value_types>;
+  // map void to unit
+  using mapped_result_types = type_list_map<void_to_unit, result_types>;
 
   // create a tuple from the list of types
-  using type = make_tuple_for<mapped_value_types>;
+  using type = make_tuple_for<mapped_result_types>;
 };
 
 template<class... Futures>
-using tuple_of_future_values = typename tuple_of_future_values_impl<Futures...>::type;
+using tuple_of_future_results = typename tuple_of_future_results_impl<Futures...>::type;
 
 
 __agency_exec_check_disable__
@@ -982,10 +980,10 @@ template<class Future,
          >::type
         >
 __AGENCY_ANNOTATION
-void_value get_value(Future& fut)
+unit get_result(Future& fut)
 {
   fut.get();
-  return void_value{};
+  return unit{};
 }
 
 
@@ -1008,10 +1006,10 @@ future_result_t<Future>
 __agency_exec_check_disable__
 template<class... Futures>
 __AGENCY_ANNOTATION
-tuple_of_future_values<Futures...>
-  get_tuple_of_future_values(Futures&... futures)
+tuple_of_future_results<Futures...>
+  get_tuple_of_future_results(Futures&... futures)
 {
-  return tuple_of_future_values<Futures...>(detail::get_value(futures)...);
+  return tuple_of_future_results<Futures...>(detail::get_result(futures)...);
 }
 
 
@@ -1023,9 +1021,9 @@ struct when_all_and_select_result<index_sequence<Indices...>,Futures...>
 {
   using type = decltype(
     detail::unwrap_small_tuple(
-      detail::tuple_filter<is_not_void_value>(
+      detail::tuple_filter<is_not_unit>(
         detail::tuple_gather<Indices...>(
-          detail::get_tuple_of_future_values(
+          detail::get_tuple_of_future_results(
             *std::declval<Futures*>()...
           )
         )
