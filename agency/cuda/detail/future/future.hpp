@@ -3,9 +3,11 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/cuda/detail/future/deferred_future.hpp>
+#include <agency/future/always_ready_future.hpp>
 #include <agency/experimental/variant.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/invoke.hpp>
+#include <agency/detail/terminate.hpp>
 #include <utility>
 
 
@@ -25,7 +27,7 @@ class future
   private:
     template<class U> friend class future;
 
-    using variant_type = agency::experimental::variant<agency::cuda::async_future<T>, agency::cuda::deferred_future<T>>;
+    using variant_type = agency::experimental::variant<agency::cuda::async_future<T>, agency::cuda::deferred_future<T>, agency::always_ready_future<T>>;
 
   public:
     __AGENCY_ANNOTATION
@@ -385,7 +387,7 @@ class future
         //     or find a way to attach a deferred continuation onto an asynchronous CUDA future
         //     there ought to be a way to do it by implementing a deferred_continuation which waits on fut
         // XXX when Function is copyable, we ought to just use fut.then()
-        detail::throw_runtime_error("future::then_and_leave_valid_visitor::operator()(cuda::future): unimplemented");
+        agency::detail::throw_runtime_error("future::then_and_leave_valid_visitor::operator()(cuda::future): unimplemented");
 
         using result_type = agency::detail::result_of_continuation_t<
           Function,
