@@ -25,7 +25,7 @@ __AGENCY_ANNOTATION
 executor_future_t<E,void>
   bulk_then_execute_with_void_result(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
-  using predecessor_type = future_value_t<Future>;
+  using predecessor_type = future_result_t<Future>;
 
   // wrap f in a functor that will ignore the unit object we pass to it
   ignore_unit_result_parameter_and_invoke<Function,predecessor_type> g{f};

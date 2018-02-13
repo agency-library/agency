@@ -25,7 +25,7 @@ __AGENCY_ANNOTATION
 executor_future_t<E,result_of_t<ResultFactory()>>
   bulk_then_execute_with_collected_result(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, ResultFactory result_factory, SharedFactories... shared_factories)
 {
-  using predecessor_type = future_value_t<Future>;
+  using predecessor_type = future_result_t<Future>;
 
   // wrap f in a functor that will collect f's result and call bulk_then_execute()
   return detail::bulk_then_execute(exec, invoke_and_collect_result<Function,predecessor_type>{f}, shape, predecessor, result_factory, shared_factories...);

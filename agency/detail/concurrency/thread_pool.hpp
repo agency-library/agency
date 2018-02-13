@@ -158,7 +158,7 @@ class thread_pool_executor
   public:
     // this is the overload of bulk_then_execute for non-void Future
     template<class Function, class Future, class ResultFactory, class SharedFactory,
-             __AGENCY_REQUIRES(!std::is_void<future_value_t<Future>>::value)
+             __AGENCY_REQUIRES(!std::is_void<future_result_t<Future>>::value)
             >
     std::future<
       result_of_t<ResultFactory()>
@@ -197,8 +197,8 @@ class thread_pool_executor
 // to emit warnings about a __host__ __device__ function calling __host__ functions 
 // this #ifndef works around this problem
 #ifndef __CUDA_ARCH__
-          // get the predecessor future's value
-          using predecessor_type = future_value_t<Future>;
+          // get the predecessor future's result
+          using predecessor_type = future_result_t<Future>;
           predecessor_type& predecessor_arg = const_cast<predecessor_type&>(shared_predecessor.get());
 
           // call the user's function
@@ -220,7 +220,7 @@ class thread_pool_executor
 
     // this is the overload of bulk_then_execute for void Future
     template<class Function, class Future, class ResultFactory, class SharedFactory,
-             __AGENCY_REQUIRES(std::is_void<future_value_t<Future>>::value)
+             __AGENCY_REQUIRES(std::is_void<future_result_t<Future>>::value)
             >
     std::future<
       result_of_t<ResultFactory()>

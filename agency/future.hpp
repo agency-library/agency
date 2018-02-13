@@ -6,6 +6,7 @@
 #include <agency/tuple.hpp>
 #include <agency/detail/tuple/tuple_utility.hpp>
 #include <agency/future/future_traits/future_rebind_value.hpp>
+#include <agency/future/future_traits/future_result.hpp>
 #include <agency/detail/has_member.hpp>
 
 #include <future>
@@ -242,26 +243,6 @@ auto monadic_then(std::shared_future<T>& fut, Function&& f) ->
 }
 
 
-__DEFINE_HAS_MEMBER_TYPE(has_value_type, value_type);
-
-
-template<class Future>
-struct future_value
-{
-  // the decay removes the reference returned
-  // from futures like shared_future
-  // the idea is given Future<T>,
-  // future_value<Future<T>> returns T
-  using type = typename std::decay<
-    decltype(std::declval<Future>().get())
-  >::type;
-};
-
-
-template<class Future>
-using future_value_t = typename future_value<Future>::type;
-
-
 namespace is_future_detail
 {
 
@@ -326,7 +307,7 @@ struct is_non_void_future_impl
              is_future<U>::value
            >::type,
            class = typename std::enable_if<
-             !std::is_void<future_value_t<U>>::value
+             !std::is_void<future_result_t<U>>::value
            >::type
           >
   static std::true_type test(int);
@@ -351,7 +332,7 @@ struct is_void_future_impl
              is_future<U>::value
            >::type,
            class = typename std::enable_if<
-             std::is_void<future_value_t<U>>::value
+             std::is_void<future_result_t<U>>::value
            >::type
           >
   static std::true_type test(int);
@@ -380,7 +361,7 @@ struct is_instance_of_future<T,Future,
 > : std::is_same<
   T,
   Future<
-    typename future_value<T>::type
+    typename future_result<T>::type
   >
 >
 {};
@@ -402,7 +383,7 @@ struct is_callable_continuation_impl
   struct map_futures_to_lvalue_reference_to_value_type
     : lazy_conditional<
         is_future<T>::value,
-        lazy_add_lvalue_reference<future_value<T>>,
+        lazy_add_lvalue_reference<future_result<T>>,
         identity<T>
       >
   {};
@@ -444,7 +425,7 @@ struct result_of_continuation
   struct map_futures_to_lvalue_reference_to_value_type
     : lazy_conditional<
         is_future<T>::value,
-        lazy_add_lvalue_reference<future_value<T>>,
+        lazy_add_lvalue_reference<future_result<T>>,
         identity<T>
       >
   {};
@@ -570,7 +551,7 @@ struct future_traits
   public:
     using future_type = Future;
 
-    using value_type = typename detail::future_value<future_type>::type;
+    using value_type = future_result_t<future_type>;
 
     template<class U>
     using rebind_value = future_rebind_value_t<future_type,U>;
@@ -744,7 +725,7 @@ struct future_traits<std::future<T>>
   public:
     using future_type = std::future<T>;
 
-    using value_type = typename detail::future_value<future_type>::type;
+    using value_type = future_result_t<future_type>;
 
     template<class U>
     using rebind_value = std::future<U>;
@@ -819,7 +800,7 @@ struct future_traits<std::shared_future<T>>
   public:
     using future_type = std::shared_future<T>;
 
-    using value_type = typename detail::future_value<future_type>::type;
+    using value_type = future_result_t<future_type>;
 
     template<class U>
     using rebind_value = std::shared_future<U>;

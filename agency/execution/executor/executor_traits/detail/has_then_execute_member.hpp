@@ -29,7 +29,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/future/future_traits/is_future.hpp>
-#include <agency/future/future_traits/future_value.hpp>
+#include <agency/future/future_traits/future_result.hpp>
 #include <type_traits>
 
 
@@ -53,7 +53,7 @@ struct dummy_functor<void>
 
 
 template<class T, class Future>
-using then_execute_member_t = decltype(std::declval<const T&>().then_execute(dummy_functor<future_value_t<Future>>(), std::declval<Future&>()));
+using then_execute_member_t = decltype(std::declval<const T&>().then_execute(dummy_functor<future_result_t<Future>>(), std::declval<Future&>()));
 
 
 template<class T, class Future>

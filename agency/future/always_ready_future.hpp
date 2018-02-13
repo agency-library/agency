@@ -7,7 +7,7 @@
 #include <agency/experimental/variant.hpp>
 #include <agency/experimental/optional.hpp>
 #include <agency/future/future_traits/is_future.hpp>
-#include <agency/future/future_traits/future_value.hpp>
+#include <agency/future/future_traits/future_result.hpp>
 #include <agency/detail/terminate.hpp>
 
 #include <exception>
@@ -71,7 +71,7 @@ class always_ready_future
     __agency_exec_check_disable__
     template<class Future,
              __AGENCY_REQUIRES(is_future<Future>::value),
-             __AGENCY_REQUIRES(std::is_constructible<T, future_value_t<Future>>::value)
+             __AGENCY_REQUIRES(std::is_constructible<T, future_result_t<Future>>::value)
             >
     __AGENCY_ANNOTATION
     always_ready_future(Future& other)
@@ -212,7 +212,7 @@ class always_ready_future<void>
     // converting constructor waits on the given future
     template<class Future,
              __AGENCY_REQUIRES(is_future<Future>::value),
-             __AGENCY_REQUIRES(std::is_void<future_value_t<Future>>::value)
+             __AGENCY_REQUIRES(std::is_void<future_result_t<Future>>::value)
             >
     __AGENCY_ANNOTATION
     always_ready_future(Future& other)

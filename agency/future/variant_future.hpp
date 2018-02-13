@@ -20,7 +20,7 @@ class variant_future
     using variant_type = agency::experimental::variant<Future, Futures...>;
 
   public:
-    using value_type = future_value_t<Future>;
+    using value_type = future_result_t<Future>;
 
     template<class T>
     using rebind_value = variant_future<
@@ -29,7 +29,7 @@ class variant_future
     >;
 
     static_assert(detail::conjunction<is_future<Future>, is_future<Futures>...>::value, "All of variant_future's template parmeter types must be Futures.");
-    static_assert(detail::conjunction<std::is_same<value_type, future_value_t<Futures>>...>::value, "All Futures' value types must be the same.");
+    static_assert(detail::conjunction<std::is_same<value_type, future_result_t<Futures>>...>::value, "All Futures' result types must be the same.");
 
     __AGENCY_ANNOTATION
     variant_future() = default;

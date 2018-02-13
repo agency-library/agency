@@ -379,7 +379,7 @@ class executor_array
       //{
       //  auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
       //
-      //  using past_arg_type = detail::future_value_t<Future>;
+      //  using past_arg_type = future_result_t<Future>;
       //
       //  return bulk_then_execute_with_void_result(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx, past_arg_type& past_arg, decltype(inner_factories())&... inner_shared_args) mutable
       //  {

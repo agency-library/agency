@@ -256,8 +256,8 @@ class flattened_executor
       base_shape_type base_shape = partition_into_base_shape(shape);
 
       using base_index_type = executor_index_t<base_executor_type>;
-      using future_value_type = detail::future_value_t<Future>;
-      auto execute_me = detail::make_flatten_index_and_invoke<base_index_type,future_value_type>(f, base_shape, shape);
+      using future_result_type = future_result_t<Future>;
+      auto execute_me = detail::make_flatten_index_and_invoke<base_index_type,future_result_type>(f, base_shape, shape);
 
       return detail::bulk_then_execute(base_executor(), execute_me, base_shape, predecessor, result_factory, outer_factory, agency::detail::unit_factory(), inner_factories...);
     }

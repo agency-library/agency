@@ -8,12 +8,12 @@ namespace agency
 
 
 template<class Future>
-struct future_value
+struct future_result
 {
   // the decay removes the reference returned
   // from futures like shared_future
   // the idea is given Future<T>,
-  // future_value<Future<T>> returns T
+  // future_result<Future<T>> returns T
   using type = typename std::decay<
     decltype(std::declval<Future>().get())
   >::type;
@@ -21,7 +21,7 @@ struct future_value
 
 
 template<class Future>
-using future_value_t = typename future_value<Future>::type;
+using future_result_t = typename future_result<Future>::type;
 
 
 } // end agency

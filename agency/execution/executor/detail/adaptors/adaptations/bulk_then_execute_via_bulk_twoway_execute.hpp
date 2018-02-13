@@ -47,7 +47,7 @@ namespace bulk_then_execute_via_bulk_twoway_execute_impl
 
 // this specialization of functor is for non-void SharedFuture
 template<class Function, class SharedFuture,
-         bool Enable = std::is_void<detail::future_value_t<SharedFuture>>::value
+         bool Enable = std::is_void<future_result_t<SharedFuture>>::value
         >
 struct functor
 {
