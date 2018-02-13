@@ -140,8 +140,8 @@ unpack_shared_parameters_from_then_execute_and_invoke<Result, Future, Function> 
 template<class Executor, class Function, class Future, class... Args>
 struct bulk_then_with_executor_result
 {
-  // figure out the Future's value_type
-  using future_value_type = typename future_traits<Future>::value_type;
+  // figure out the Future's result_type
+  using future_value_type = future_result_t<Future>;
 
   // assemble a list of template parameters for bulk_async_executor_result
   // when Future is a void future, we don't want to include it in the list

@@ -45,13 +45,13 @@ class concurrent_executor
       bulk_then_execute_impl(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory,
                              typename std::enable_if<
                                !std::is_void<
-                                 typename agency::future_traits<Future>::value_type
+                                 future_result_t<Future>
                                >::value
                              >::type* = 0) const
     {
       if(n > 0)
       {
-        using predecessor_type = typename agency::future_traits<Future>::value_type;
+        using predecessor_type = future_result_t<Future>;
 
         return agency::detail::monadic_then(predecessor, std::launch::async, [=](predecessor_type& predecessor) mutable
         {
@@ -96,7 +96,7 @@ class concurrent_executor
       bulk_then_execute_impl(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory,
                              typename std::enable_if<
                                std::is_void<
-                                 typename agency::future_traits<Future>::value_type
+                                 future_result_t<Future>
                                >::value
                              >::type* = 0) const
     {

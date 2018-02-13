@@ -56,11 +56,11 @@ executor_future_t<E,T> future_cast_impl(const E& exec, Future& fut)
 template<class FromFuture, class ToFuture>
 struct is_future_castable_impl
 {
-  using from_value_type = typename agency::future_traits<FromFuture>::value_type;
-  using to_value_type   = typename agency::future_traits<ToFuture>::value_type;
+  using from_result_type = future_result_t<FromFuture>;
+  using to_result_type   = future_result_t<ToFuture>;
 
   using cast_type = decltype(
-    agency::future_traits<FromFuture>::template cast<to_value_type>(std::declval<FromFuture&>())
+    agency::future_traits<FromFuture>::template cast<to_result_type>(std::declval<FromFuture&>())
   );
 
   using type = std::is_same<cast_type, ToFuture>;

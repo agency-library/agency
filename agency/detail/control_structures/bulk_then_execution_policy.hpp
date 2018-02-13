@@ -26,7 +26,7 @@ namespace detail
 template<class Executor, class AgentTraits, class Function, class Future, size_t... UserArgIndices>
 struct then_execute_agent_functor
 {
-  // XXX should just make the future's value_type a parameter of this functor and try to use it SFINAE the operator()s below
+  // XXX should just make the future's result_type a parameter of this functor and try to use it SFINAE the operator()s below
   using agent_type        = typename AgentTraits::execution_agent_type;
   using agent_param_type  = typename AgentTraits::param_type;
   using agent_domain_type = typename AgentTraits::domain_type;
@@ -119,12 +119,12 @@ struct then_execute_agent_functor
 template<class ExecutionPolicy, class Function, class Future, class... Args>
 struct bulk_then_execution_policy_result
 {
-  // figure out the Future's value_type
-  using future_value_type = typename future_traits<Future>::value_type;
+  // figure out the Future's result_type
+  using future_result_type = future_result_t<Future>;
 
   // avoid passing Future to bulk_invoke_execution_policy_result when it is a void Future
   using bulk_invoke_result_type = typename detail::lazy_conditional<
-    std::is_void<future_value_type>::value,
+    std::is_void<future_result_type>::value,
     bulk_invoke_execution_policy_result<ExecutionPolicy,Function,Args...>,
     bulk_invoke_execution_policy_result<ExecutionPolicy,Function,Future,Args...>
   >::type;

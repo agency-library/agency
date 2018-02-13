@@ -430,7 +430,7 @@ struct result_of_continuation
       >
   {};
 
-  // turn futures into lvalue references to their values
+  // turn futures into lvalue references to their results
   using value_types = type_list_map<map_futures_to_lvalue_reference_to_value_type,types>;
 
   template<class T>
@@ -551,7 +551,7 @@ struct future_traits
   public:
     using future_type = Future;
 
-    using value_type = future_result_t<future_type>;
+    using result_type = future_result_t<future_type>;
 
     template<class U>
     using rebind_value = future_rebind_value_t<future_type,U>;
@@ -577,10 +577,10 @@ struct future_traits
              class = typename std::enable_if<
                !std::is_copy_constructible<Future1>::value
              >::type>
-    static std::shared_future<value_type> share_impl2(Future1& fut)
+    static std::shared_future<result_type> share_impl2(Future1& fut)
     {
       // turn fut into a std::future
-      std::future<value_type> std_fut = std::async(std::launch::deferred, [](Future1&& fut)
+      std::future<result_type> std_fut = std::async(std::launch::deferred, [](Future1&& fut)
       {
         return fut.get();
       },
@@ -725,7 +725,7 @@ struct future_traits<std::future<T>>
   public:
     using future_type = std::future<T>;
 
-    using value_type = future_result_t<future_type>;
+    using result_type = future_result_t<future_type>;
 
     template<class U>
     using rebind_value = std::future<U>;
@@ -800,7 +800,7 @@ struct future_traits<std::shared_future<T>>
   public:
     using future_type = std::shared_future<T>;
 
-    using value_type = future_result_t<future_type>;
+    using result_type = future_result_t<future_type>;
 
     template<class U>
     using rebind_value = std::shared_future<U>;
@@ -959,7 +959,7 @@ template<class... Futures>
 struct tuple_of_future_values_impl
 {
   using value_types = type_list<
-    typename future_traits<Futures>::value_type...
+    future_result_t<Futures>...
   >;
 
   // map void to void_value
@@ -977,7 +977,7 @@ __agency_exec_check_disable__
 template<class Future,
          class = typename std::enable_if<
            std::is_void<
-             typename future_traits<Future>::value_type
+             future_result_t<Future>
            >::value
          >::type
         >
@@ -993,12 +993,12 @@ __agency_exec_check_disable__
 template<class Future,
          class = typename std::enable_if<
            !std::is_void<
-             typename future_traits<Future>::value_type
+             future_result_t<Future>
            >::value
          >::type
         >
 __AGENCY_ANNOTATION
-typename future_traits<Future>::value_type
+future_result_t<Future>
   get_value(Future& fut)
 {
   return fut.get();

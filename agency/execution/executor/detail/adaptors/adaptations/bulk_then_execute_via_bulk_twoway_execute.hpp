@@ -54,7 +54,7 @@ struct functor
   mutable Function f_;
   mutable SharedFuture fut_;
 
-  using predecessor_type = typename future_traits<SharedFuture>::value_type;
+  using predecessor_type = future_result_t<SharedFuture>;
 
   __agency_exec_check_disable__
   __AGENCY_ANNOTATION
