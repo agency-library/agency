@@ -45,46 +45,6 @@ namespace is_bulk_then_executor_detail
 {
 
 
-template<class Executor, class Function, class Shape,
-         class Future,
-         class ResultFactory,
-         class... SharedFactories
-        >
-struct has_bulk_then_execute_member_impl
-{
-  using result_type = result_of_t<ResultFactory()>;
-  using expected_future_type = member_future_or_t<Executor,result_type,std::future>;
-
-  template<class Executor1,
-           class ReturnType = decltype(
-             std::declval<const Executor1&>().bulk_then_execute(
-               std::declval<Function>(),
-               std::declval<Shape>(),
-               std::declval<Future&>(),
-               std::declval<ResultFactory>(),
-               std::declval<SharedFactories>()...
-             )
-           ),
-           class = typename std::enable_if<
-             std::is_same<ReturnType,expected_future_type>::value
-           >::type>
-  static std::true_type test(int);
-
-  template<class>
-  static std::false_type test(...);
-
-  using type = decltype(test<Executor>(0));
-};
-
-
-template<class Executor, class Function, class Shape,
-         class Future,
-         class ResultFactory,
-         class... SharedFactories
-        >
-using has_bulk_then_execute_member = typename has_bulk_then_execute_member_impl<Executor, Function, Shape, Future, ResultFactory, SharedFactories...>::type;
-
-
 template<class T, class IndexSequence>
 struct is_bulk_then_executor_impl;
 
