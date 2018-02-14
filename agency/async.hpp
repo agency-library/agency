@@ -20,7 +20,7 @@ executor_future_t<
     typename std::decay<Function&&>::type(typename std::decay<Args&&>::type...)
   >
 >
-async(Executor& exec, Function&& f, Args&&... args)
+async(const Executor& exec, Function&& f, Args&&... args)
 {
   auto g = detail::bind(std::forward<Function>(f), std::forward<Args>(args)...);
 
