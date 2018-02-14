@@ -51,6 +51,11 @@ template<class T>
 class always_ready_future
 {
   public:
+    // Default constructor creates an invalid always_ready_future
+    // Postcondition: !valid()
+    __AGENCY_ANNOTATION
+    always_ready_future() = default;
+
     __AGENCY_ANNOTATION
     always_ready_future(const T& value) : state_(value) {}
 
@@ -67,16 +72,19 @@ class always_ready_future
       detail::adl_swap(state_, other.state_);
     }
 
-    // converting constructor waits on the given future and moves its result into *this
+    // converting move constructor waits on the given future and moves its result into *this
+    // postcondition: !other.valid()
     __agency_exec_check_disable__
     template<class Future,
-             __AGENCY_REQUIRES(is_future<Future>::value),
-             __AGENCY_REQUIRES(std::is_constructible<T, future_result_t<Future>>::value)
+             __AGENCY_REQUIRES(is_future<detail::decay_t<Future>>::value),
+             __AGENCY_REQUIRES(std::is_constructible<T, future_result_t<detail::decay_t<Future>>&&>::value)
             >
     __AGENCY_ANNOTATION
-    always_ready_future(Future& other)
+    always_ready_future(Future&& other)
       : always_ready_future(other.get())
-    {}
+    {
+      // XXX this implementation doesn't correctly handle exceptional other
+    }
 
     __AGENCY_ANNOTATION
     always_ready_future& operator=(always_ready_future&& other)
@@ -84,6 +92,17 @@ class always_ready_future
       state_.reset();
       detail::adl_swap(state_, other.state_);
       return *this;
+    }
+
+    __agency_exec_check_disable__
+    template<class Future,
+             __AGENCY_REQUIRES(is_future<detail::decay_t<Future>>::value),
+             __AGENCY_REQUIRES(std::is_constructible<T, future_result_t<detail::decay_t<Future>>&&>::value)
+            >
+    __AGENCY_ANNOTATION
+    always_ready_future& operator=(Future&& other)
+    {
+      return operator=(always_ready_future{std::move(other)});
     }
 
     template<class U,
@@ -196,6 +215,11 @@ template<>
 class always_ready_future<void>
 {
   public:
+    // XXX the default constructor creates a ready, valid future, but we may wish
+    //     to redefine the default constructor to create an invalid future
+    //     in such a scheme, we would need to distinguish another constructor for
+    //     creating a ready (void) result.
+    //     We could create an emplacing constructor distinguished with an in_place_t parameter
     __AGENCY_ANNOTATION
     always_ready_future() : valid_(true) {}
 
@@ -209,16 +233,18 @@ class always_ready_future<void>
       detail::adl_swap(valid_, other.valid_);
     }
 
-    // converting constructor waits on the given future
+    // converting constructor waits on and invalidates the given future
+    __agency_exec_check_disable__
     template<class Future,
-             __AGENCY_REQUIRES(is_future<Future>::value),
-             __AGENCY_REQUIRES(std::is_void<future_result_t<Future>>::value)
+             __AGENCY_REQUIRES(is_future<detail::decay_t<Future>>::value),
+             __AGENCY_REQUIRES(std::is_void<future_result_t<detail::decay_t<Future>>>::value)
             >
     __AGENCY_ANNOTATION
-    always_ready_future(Future& other)
+    always_ready_future(Future&& other)
       : always_ready_future()
     {
-      other.wait();
+      // XXX this implementation doesn't correctly handle exceptional other
+      other.get();
     }
 
     __AGENCY_ANNOTATION
@@ -230,6 +256,18 @@ class always_ready_future<void>
       detail::adl_swap(exception_, other.exception_);
       detail::adl_swap(valid_, other.valid_);
       return *this;
+    }
+
+    // converting assignment operator waits on the given future
+    __agency_exec_check_disable__
+    template<class Future,
+             __AGENCY_REQUIRES(is_future<detail::decay_t<Future>>::value),
+             __AGENCY_REQUIRES(std::is_void<future_result_t<detail::decay_t<Future>>>::value)
+            >
+    __AGENCY_ANNOTATION
+    always_ready_future& operator=(Future&& other)
+    {
+      return operator=(always_ready_future{std::move(other)});
     }
 
     __AGENCY_ANNOTATION

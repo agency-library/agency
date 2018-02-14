@@ -44,6 +44,28 @@ int main()
   }
 
   {
+    // move convert std::future<void>
+    int set_me_to_thirteen = 0;
+    std::future<void> f1 = std::async([&] { set_me_to_thirteen = 13; });
+    assert(f1.valid());
+    
+    always_ready_future<void> f2 = std::move(f1);
+    assert(!f1.valid());
+    assert(f2.valid());
+    assert(set_me_to_thirteen == 13);
+  }
+
+  {
+    // move convert std::future<int>
+    std::future<int> f1 = std::async([] { return 13; });
+    
+    always_ready_future<int> f2 = std::move(f1);
+    assert(!f1.valid());
+    assert(f2.valid());
+    assert(f2.get() == 13);
+  }
+
+  {
     // move assign int
     always_ready_future<int> f1 = always_ready_future<int>::make_ready(13);
     assert(f1.valid());
@@ -68,6 +90,35 @@ int main()
     f2 = std::move(f1);
     assert(!f1.valid());
     assert(f2.valid());
+  }
+
+  {
+    // move assign std::future<void>
+    int set_me_to_thirteen = 0;
+    std::future<void> f1 = std::async([&]{ set_me_to_thirteen = 13; });
+    assert(f1.valid());
+
+    always_ready_future<void> f2;
+    assert(f2.valid());
+
+    f2 = std::move(f1);
+    assert(!f1.valid());
+    assert(f2.valid());
+    assert(set_me_to_thirteen == 13);
+  }
+
+  {
+    // move assign std::future<int>
+    std::future<int> f1 = std::async([]{ return 13; });
+    assert(f1.valid());
+
+    always_ready_future<int> f2;
+    assert(!f2.valid());
+
+    f2 = std::move(f1);
+    assert(!f1.valid());
+    assert(f2.valid());
+    assert(f2.get() == 13);
   }
 
   {
