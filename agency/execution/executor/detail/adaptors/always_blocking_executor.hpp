@@ -43,6 +43,13 @@ namespace detail
 // XXX this class could be simplified by
 // 1. defining its associated future to be always_ready_future and
 // 2. giving always_ready_future a converting constructor which takes another future, waits on it, and then takes ownership of its result
+//
+// One issue is that Executor::then_execute() and Executor::bulk_then_execute() may not be able to consume always_ready_future
+// In such cases, an adaptation must be introduced which converts the always_ready_future into a ready "native" future, i.e. executor_future_t<Executor,T>
+//
+// Another issue is that moving a ready executor_future_t<Executor,T>'s result into an always_ready_future<T> could be more expensive than just leaving it inside the native future
+//
+// Perhaps a better idea would be an alternative to always_ready_future<T> that would instead be an adaptor: always_ready_future_adaptor<Future>
 template<class Executor>
 class always_blocking_executor : public basic_executor_adaptor<Executor>
 {
