@@ -32,6 +32,7 @@
 #include <agency/execution/executor/executor_traits/detail/member_shape_type_or.hpp>
 #include <agency/execution/executor/executor_traits/detail/member_index_type_or.hpp>
 #include <agency/execution/executor/executor_traits/detail/executor_execution_depth_or.hpp>
+#include <agency/execution/executor/executor_traits/detail/has_bulk_then_execute_member.hpp>
 #include <utility>
 #include <type_traits>
 #include <future>

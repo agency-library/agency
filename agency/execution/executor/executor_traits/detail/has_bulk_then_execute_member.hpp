@@ -30,6 +30,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits/detail/member_future_or.hpp>
 #include <utility>
+#include <future>
 
 namespace agency
 {
@@ -52,7 +53,7 @@ struct has_bulk_then_execute_member_impl
   using expected_future_type = member_future_or_t<Executor,result_type,std::future>;
 
   template<class Executor1,
-           class ReturnType = detected_t<bulk_then_execute_member_t, Executor1, Function, Shape, Future, ResultFactory, SharedFactories...>;
+           class ReturnType = detected_t<bulk_then_execute_member_t, Executor1, Function, Shape, Future, ResultFactory, SharedFactories...>,
            class = typename std::enable_if<
              std::is_same<ReturnType,expected_future_type>::value
            >::type>
