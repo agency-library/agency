@@ -7,6 +7,7 @@
 #include <agency/detail/tuple/tuple_utility.hpp>
 #include <agency/future/future_traits/future_rebind_value.hpp>
 #include <agency/future/future_traits/future_result.hpp>
+#include <agency/future/detail/monadic_then.hpp>
 #include <agency/detail/has_member.hpp>
 #include <agency/detail/unit.hpp>
 
@@ -133,50 +134,12 @@ std::future<detail::result_of_t<Function(std::future<T>&)>>
 }
 
 
-template<class T, class Function>
-std::future<detail::result_of_t<Function(T&)>>
-  monadic_then(std::future<T>& fut, std::launch policy, Function&& f)
-{
-  return std::async(policy, [](std::future<T>&& fut, Function&& f)
-  {
-    T arg = fut.get();
-    return std::forward<Function>(f)(arg);
-  },
-  std::move(fut),
-  std::forward<Function>(f)
-  );
-}
-
-
-template<class Function>
-std::future<detail::result_of_t<Function()>>
-  monadic_then(std::future<void>& fut, std::launch policy, Function&& f)
-{
-  return std::async(policy, [](std::future<void>&& fut, Function&& f)
-  {
-    fut.get();
-    return std::forward<Function>(f)();
-  },
-  std::move(fut),
-  std::forward<Function>(f)
-  );
-}
-
-
 // then() for std::future
 template<class T, class Function>
 std::future<detail::result_of_t<Function(std::future<T>&)>>
   then(std::future<T>& fut, Function&& f)
 {
   return detail::then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
-}
-
-
-template<class T, class Function>
-auto monadic_then(std::future<T>& fut, Function&& f) ->
-  decltype(detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f)))
-{
-  return detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
 }
 
 
@@ -202,45 +165,6 @@ std::future<detail::result_of_t<Function(std::shared_future<T>&)>>
   then(std::shared_future<T>& fut, Function&& f)
 {
   return detail::then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
-}
-
-
-// monadic_then() for std::shared_future
-template<class T, class Function>
-std::future<detail::result_of_t<Function(T&)>>
-  monadic_then(std::shared_future<T>& fut, std::launch policy, Function&& f)
-{
-  return std::async(policy, [](std::shared_future<T>&& fut, Function&& f)
-  {
-    T& arg = const_cast<T&>(fut.get());
-    return std::forward<Function>(f)(arg);
-  },
-  std::move(fut),
-  std::forward<Function>(f)
-  );
-}
-
-
-template<class Function>
-std::future<detail::result_of_t<Function()>>
-  monadic_then(std::shared_future<void>& fut, std::launch policy, Function&& f)
-{
-  return std::async(policy, [](std::shared_future<void>&& fut, Function&& f)
-  {
-    fut.get();
-    return std::forward<Function>(f)();
-  },
-  std::move(fut),
-  std::forward<Function>(f)
-  );
-}
-
-
-template<class T, class Function>
-auto monadic_then(std::shared_future<T>& fut, Function&& f) ->
-  decltype(detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f)))
-{
-  return detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
 }
 
 
