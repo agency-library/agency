@@ -9,6 +9,8 @@
 #include <agency/execution/executor/detail/adaptors/executor_ref.hpp>
 #include <agency/execution/executor/properties/always_blocking.hpp>
 #include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
+#include <agency/execution/executor/require.hpp>
+
 
 namespace agency
 {
@@ -29,7 +31,7 @@ blocking_bulk_twoway_execute(const E& exec, Function f, executor_shape_t<E> shap
   detail::executor_ref<E> exec_ref(exec);
 
   // adapt exec_ref into an always blocking executor
-  detail::always_blocking_executor<executor_ref<E>> blocking_exec(exec_ref);
+  auto blocking_exec = agency::require(exec_ref, always_blocking);
 
   // do a bulk_twoway_exec using the blocking_exec
   return detail::bulk_twoway_execute(blocking_exec, f, shape, result_factory, shared_factories...).get();
