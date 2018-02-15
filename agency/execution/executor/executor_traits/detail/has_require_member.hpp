@@ -1,4 +1,4 @@
-// Copyright (c) 2017, NVIDIA CORPORATION. All rights reserved.
+// Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -29,25 +29,38 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <utility>
-
+#include <future>
 
 namespace agency
 {
 namespace detail
 {
-namespace executor_has_property_detail
-{
-
-
-template<class P, class E>
-using query_member_t = decltype(std::declval<P>().query(std::declval<const E>()));
-
-
-} // end executor_has_property_detail
 
 
 template<class Executor, class Property>
-struct executor_has_property : detail::is_detected<executor_has_property_detail::query_member_t, Property, Executor> {};
+using require_member_t = decltype(std::declval<const Executor>().require(std::declval<Property>()));
+
+
+// XXX WAR nvcc issue with is_detected + require_member_t
+//template<class Executor, class Property>
+//using has_require_member = is_detected<require_member_t, Executor, Property>;
+
+template<class Executor, class Property>
+struct has_require_member_impl
+{
+  template<class E, class P,
+           class = require_member_t<E,P>
+          >
+  static std::true_type test(int);
+
+  template<class, class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor,Property>(0));
+};
+
+template<class Executor, class Property>
+using has_require_member = typename has_require_member_impl<Executor,Property>::type;
 
 
 } // end detail

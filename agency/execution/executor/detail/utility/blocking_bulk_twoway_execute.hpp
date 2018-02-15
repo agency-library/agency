@@ -7,7 +7,7 @@
 #include <agency/execution/executor/executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/executor_traits/is_executor.hpp>
 #include <agency/execution/executor/detail/adaptors/executor_ref.hpp>
-#include <agency/execution/executor/detail/adaptors/always_blocking_executor.hpp>
+#include <agency/execution/executor/properties/always_blocking.hpp>
 #include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
 
 namespace agency

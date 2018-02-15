@@ -27,8 +27,6 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/executor/executor_traits/detail/executor_has_property.hpp>
-#include <agency/execution/executor/properties/always_blocking.hpp>
 
 namespace agency
 {
@@ -36,8 +34,16 @@ namespace detail
 {
 
 
-template<class Executor>
-using executor_is_always_blocking = executor_has_property<Executor, always_blocking_t>;
+template<class T>
+struct static_const
+{
+  static constexpr T value{};
+};
+
+
+// provide the definition of static_const<T>::value
+template<class T>
+constexpr T static_const<T>::value;
 
 
 } // end detail

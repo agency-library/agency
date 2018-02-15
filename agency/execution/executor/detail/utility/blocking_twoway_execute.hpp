@@ -5,7 +5,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/detail/utility/twoway_execute.hpp>
-#include <agency/execution/executor/detail/adaptors/always_blocking_executor.hpp>
+#include <agency/execution/executor/properties/always_blocking.hpp>
 
 
 namespace agency
