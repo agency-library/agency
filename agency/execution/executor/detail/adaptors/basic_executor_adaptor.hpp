@@ -31,6 +31,8 @@
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/executor_traits/executor_execution_category.hpp>
+#include <agency/execution/executor/executor_traits/detail/has_require_member.hpp>
+#include <agency/execution/executor/executor_traits/detail/has_query_member.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_twoway_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_then_executor.hpp>
@@ -49,7 +51,6 @@ namespace detail
 // this class wraps a base executor and forwards calls
 // to execution functions to the base, if they exist
 // the underlying executor may be stored as a value, or reference, depending on the template parameter
-// XXX also need to forward .require() and .prefer()
 template<class Executor>
 class basic_executor_adaptor
 {
@@ -87,6 +88,32 @@ class basic_executor_adaptor
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_executor_adaptor(const base_executor_type& base) noexcept : base_executor_{base} {}
+
+    __agency_exec_check_disable__
+    template<class Property,
+             class E = Executor,
+             __AGENCY_REQUIRES(
+               has_query_member<E,Property>::value
+             )>
+    __AGENCY_ANNOTATION
+    constexpr auto query(const Property& p) const ->
+      decltype(std::declval<const E>().query(p))
+    {
+      return base_executor().query(p);
+    }
+
+    __agency_exec_check_disable__
+    template<class Property,
+             class E = Executor,
+             __AGENCY_REQUIRES(
+               has_require_member<E,Property>::value
+             )>
+    __AGENCY_ANNOTATION
+    constexpr auto require(const Property& p) const ->
+      decltype(std::declval<const E>().require(p))
+    {
+      return base_executor().require(p);
+    }
 
     __agency_exec_check_disable__
     template<class Function,
