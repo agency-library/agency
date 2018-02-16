@@ -273,8 +273,6 @@ struct always_blocking_t
     return true;
   }
 
-  // provide a forward declaration for require()
-  // it is defined out-of-line after detail::always_blocking_executor
   template<class Executor>
   __AGENCY_ANNOTATION
   friend detail::always_blocking_executor<Executor> require(Executor ex, always_blocking_t)
