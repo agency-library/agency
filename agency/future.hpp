@@ -405,7 +405,7 @@ struct has_cast_impl
   template<
     class FromFuture1,
     class Result = decltype(
-      *std::declval<FromFuture1*>.template cast<ToType>()
+      *std::declval<FromFuture1*>().template cast<ToType>()
     ),
     class = typename std::enable_if<
       std::is_same<Result,ToFuture>::value
