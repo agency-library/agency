@@ -1,4 +1,4 @@
-// Copyright (c) 2017, NVIDIA CORPORATION. All rights reserved.
+// Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -28,7 +28,10 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/executor_traits/detail/has_twoway_execute_member.hpp>
+#include <agency/execution/executor/executor_traits/detail/has_then_execute_member.hpp>
+#include <agency/execution/executor/executor_traits/detail/member_future_or.hpp>
+#include <future>
+
 
 namespace agency
 {
@@ -37,13 +40,15 @@ namespace detail
 
 
 template<class Executor>
-struct is_twoway_executor
+struct is_single_then_executor
 {
-  static const bool value = detail::conjunction<
+  static const bool value = conjunction<
     // XXX note that we omit P0443's additional condition, is_executor, because it is unimplemented
     //is_executor<Executor>,
 
-    detail::has_twoway_execute_member<Executor>
+    // to be safe, test with both future<void> and future<non-void>
+    detail::has_then_execute_member<Executor, member_future_or_t<Executor, void, std::future>>,
+    detail::has_then_execute_member<Executor, member_future_or_t<Executor, int, std::future>>
   >::value;
 };
 

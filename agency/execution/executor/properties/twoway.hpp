@@ -28,29 +28,70 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
+#include <agency/detail/type_traits.hpp>
+#include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
 #include <agency/execution/executor/executor_traits/detail/has_twoway_execute_member.hpp>
+#include <agency/execution/executor/detail/utility/twoway_execute.hpp>
+#include <utility>
 
 
 namespace agency
 {
-
-
-class twoway_t
+namespace detail
 {
-  public:
-    template<class Executor,
-             __AGENCY_REQUIRES(
-               detail::has_twoway_execute_member<Executor>::value
-            )>
-    __AGENCY_ANNOTATION
-    static constexpr bool query(const Executor&)
-    {
-      return true;
-    }
 
-    template<class Executor>
-    friend void prefer(const Executor&, const twoway_t&) = delete;
+
+template<class Executor>
+class twoway_executor : public basic_executor_adaptor<Executor>
+{
+  private:
+    using super_t = basic_executor_adaptor<Executor>;
+
+  public:
+    template<class T>
+    using future = typename super_t::template future<T>;
+
+    __AGENCY_ANNOTATION
+    twoway_executor(const Executor& ex) noexcept : super_t{ex} {}
+
+    template<class Function>
+    __AGENCY_ANNOTATION
+    future<result_of_t<decay_t<Function>()>>
+      twoway_execute(Function&& f) const
+    {
+      return detail::twoway_execute(super_t::base_executor(), std::forward<Function>(f));
+    }
 };
+
+
+} // end detail
+
+
+struct twoway_t
+{
+  constexpr static bool is_requirable = true;
+  constexpr static bool is_preferable = false;
+
+  // Agency is a C++11-compatible library,
+  // so we can't implement static_query_v as a variable template
+  // use a constexpr static function instead
+  template<class E>
+  __AGENCY_ANNOTATION
+  constexpr static bool static_query()
+  {
+    return detail::has_twoway_execute_member<E>::value;
+  }
+
+  template<class Executor>
+  __AGENCY_ANNOTATION
+  friend detail::twoway_executor<Executor> require(Executor ex, twoway_t)
+  {
+    return detail::twoway_executor<Executor>{ex};
+  }
+};
+
+
+constexpr twoway_t twoway{};
 
 
 } // end agency

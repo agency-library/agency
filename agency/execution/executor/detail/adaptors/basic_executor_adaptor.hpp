@@ -35,8 +35,8 @@
 #include <agency/execution/executor/executor_traits/detail/has_query_member.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_twoway_executor.hpp>
-#include <agency/execution/executor/executor_traits/detail/is_then_executor.hpp>
-#include <agency/execution/executor/executor_traits/detail/is_twoway_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_single_then_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_single_twoway_executor.hpp>
 #include <agency/execution/executor/customization_points/make_ready_future.hpp>
 #include <agency/future.hpp>
 #include <utility>
@@ -117,7 +117,7 @@ class basic_executor_adaptor
 
     __agency_exec_check_disable__
     template<class Function,
-             __AGENCY_REQUIRES(is_twoway_executor<base_executor_type>::value)
+             __AGENCY_REQUIRES(is_single_twoway_executor<base_executor_type>::value)
             >
     __AGENCY_ANNOTATION
     future<result_of_t<decay_t<Function>()>>
@@ -128,7 +128,7 @@ class basic_executor_adaptor
 
     __agency_exec_check_disable__
     template<class Function, class Future,
-             __AGENCY_REQUIRES(is_then_executor<base_executor_type>::value)
+             __AGENCY_REQUIRES(is_single_then_executor<base_executor_type>::value)
             >
     __AGENCY_ANNOTATION
     future<result_of_continuation_t<decay_t<Function>, Future>>

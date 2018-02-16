@@ -1,4 +1,4 @@
-// Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+// Copyright (c) 2017, NVIDIA CORPORATION. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -28,10 +28,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
-#include <agency/execution/executor/detail/utility/twoway_execute.hpp>
-#include <utility>
-
+#include <agency/execution/executor/executor_traits/detail/has_twoway_execute_member.hpp>
 
 namespace agency
 {
@@ -40,25 +37,14 @@ namespace detail
 
 
 template<class Executor>
-class twoway_executor : public basic_executor_adaptor<Executor>
+struct is_single_twoway_executor
 {
-  private:
-    using super_t = basic_executor_adaptor<Executor>;
+  static const bool value = detail::conjunction<
+    // XXX note that we omit P0443's additional condition, is_executor, because it is unimplemented
+    //is_executor<Executor>,
 
-  public:
-    template<class T>
-    using future = typename super_t::template future<T>;
-
-    __AGENCY_ANNOTATION
-    twoway_executor(const Executor& ex) noexcept : super_t{ex} {}
-
-    template<class Function>
-    __AGENCY_ANNOTATION
-    future<result_of_t<decay_t<Function>()>>
-      twoway_execute(Function&& f) const
-    {
-      return detail::twoway_execute(super_t::base_executor(), std::forward<Function>(f));
-    }
+    detail::has_twoway_execute_member<Executor>
+  >::value;
 };
 
 

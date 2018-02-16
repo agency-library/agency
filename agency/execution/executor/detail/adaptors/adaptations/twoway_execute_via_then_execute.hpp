@@ -30,7 +30,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
-#include <agency/execution/executor/executor_traits/detail/is_then_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_single_then_executor.hpp>
 #include <agency/future/future_traits.hpp>
 
 
@@ -43,7 +43,7 @@ namespace detail
 __agency_exec_check_disable__
 template<class ThenExecutor, class Function,
          __AGENCY_REQUIRES(
-           is_then_executor<ThenExecutor>::value
+           is_single_then_executor<ThenExecutor>::value
          )>
 __AGENCY_ANNOTATION
 executor_future_t<ThenExecutor, result_of_t<decay_t<Function>()>>

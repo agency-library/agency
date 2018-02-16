@@ -87,7 +87,7 @@ class always_blocking_executor : public basic_executor_adaptor<Executor>
     }
 
     template<class Function,
-             __AGENCY_REQUIRES(is_twoway_executor<Executor>::value)
+             __AGENCY_REQUIRES(is_single_twoway_executor<Executor>::value)
             >
     __AGENCY_ANNOTATION
     future<result_of_t<decay_t<Function>()>>
@@ -97,7 +97,7 @@ class always_blocking_executor : public basic_executor_adaptor<Executor>
     }
 
     template<class Function, class Future,
-             __AGENCY_REQUIRES(is_then_executor<Executor>::value)
+             __AGENCY_REQUIRES(is_single_then_executor<Executor>::value)
             >
     __AGENCY_ANNOTATION
     future<result_of_continuation_t<decay_t<Function>, Future>>
