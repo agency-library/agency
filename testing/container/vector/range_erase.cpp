@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
+#include <numeric>
 #include <agency/container/vector.hpp>
 
 void test_range_erase()

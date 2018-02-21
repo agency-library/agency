@@ -9,6 +9,7 @@
 #include <iostream>
 #include <atomic>
 #include <functional>
+#include <numeric>
 
 
 template<class... Args>
