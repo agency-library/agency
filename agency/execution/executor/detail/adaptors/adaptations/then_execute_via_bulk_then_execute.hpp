@@ -73,6 +73,7 @@ struct then_execute_functor
 } // end then_execute_via_bulk_then_execute_detail
 
 
+__agency_exec_check_disable__
 template<class BulkThenExecutor, class Function, class Future,
          __AGENCY_REQUIRES(
            is_bulk_then_executor<BulkThenExecutor>::value
