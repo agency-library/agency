@@ -28,21 +28,98 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/properties/detail/disjunction_property.hpp>
-#include <agency/execution/executor/properties/twoway.hpp>
-#include <agency/execution/executor/properties/then.hpp>
+#include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_twoway_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_then_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_single_executor.hpp>
+#include <agency/execution/executor/detail/utility/twoway_execute.hpp>
+#include <agency/execution/executor/detail/utility/then_execute.hpp>
 
 
 namespace agency
 {
-
-
-class single_t : public detail::disjunction_property<twoway_t, then_t>
+namespace detail
 {
+
+
+template<class Executor>
+class single_executor : public basic_executor_adaptor<Executor>
+{
+  private:
+    using super_t = basic_executor_adaptor<Executor>;
+
   public:
-    template<class Executor>
-    friend void prefer(const Executor&, const single_t&) = delete;
+    template<class T>
+    using future = typename super_t::template future<T>;
+
+    __AGENCY_ANNOTATION
+    single_executor(const Executor& ex) noexcept : super_t{ex} {}
+
+    template<class Function,
+             __AGENCY_REQUIRES(
+               is_twoway_executor<Executor>::value
+             )>
+    __AGENCY_ANNOTATION
+    future<result_of_t<decay_t<Function>()>>
+      twoway_execute(Function&& f) const
+    {
+      return detail::twoway_execute(super_t::base_executor(), std::forward<Function>(f));
+    }
+
+    template<class Function, class Future,
+             __AGENCY_REQUIRES(
+               is_then_executor<Executor>::value
+             )>
+    __AGENCY_ANNOTATION
+    executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
+      then_execute(Function&& f, Future& fut) const
+    {
+      return detail::then_execute(super_t::base_executor(), std::forward<Function>(f), fut);
+    }
 };
+
+
+} // end detail
+
+
+struct single_t
+{
+  constexpr static bool is_requirable = true;
+  constexpr static bool is_preferable = false;
+
+  // Agency is a C++11-compatible library,
+  // so we can't implement static_query_v as a variable template
+  // use a constexpr static function instead
+  template<class Executor>
+  __AGENCY_ANNOTATION
+  constexpr static bool static_query()
+  {
+    return detail::is_single_executor<Executor>::value;
+  }
+
+  __AGENCY_ANNOTATION
+  constexpr static bool value()
+  {
+    return true;
+  }
+
+  template<class Executor>
+  __AGENCY_ANNOTATION
+  friend detail::single_executor<Executor> require(Executor ex, single_t)
+  {
+    return detail::single_executor<Executor>{ex};
+  }
+};
+
+
+// define the property object
+
+#ifndef __CUDA_ARCH__
+constexpr single_t single{};
+#else
+// CUDA __device__ functions cannot access global variables so make single a __device__ variable in __device__ code
+const __device__ single_t single;
+#endif
 
 
 } // end agency

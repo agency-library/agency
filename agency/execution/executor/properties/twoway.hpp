@@ -30,7 +30,10 @@
 #include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
-#include <agency/execution/executor/executor_traits/detail/has_twoway_execute_member.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_twoway_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_single_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_bulk_executor.hpp>
+#include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
 #include <agency/execution/executor/detail/utility/twoway_execute.hpp>
 #include <utility>
 
@@ -54,12 +57,26 @@ class twoway_executor : public basic_executor_adaptor<Executor>
     __AGENCY_ANNOTATION
     twoway_executor(const Executor& ex) noexcept : super_t{ex} {}
 
-    template<class Function>
+    template<class Function,
+             __AGENCY_REQUIRES(
+               is_single_executor<Executor>::value
+             )>
     __AGENCY_ANNOTATION
     future<result_of_t<decay_t<Function>()>>
       twoway_execute(Function&& f) const
     {
       return detail::twoway_execute(super_t::base_executor(), std::forward<Function>(f));
+    }
+
+    template<class Function, class ResultFactory, class... Factories,
+             __AGENCY_REQUIRES(is_bulk_executor<Executor>::value),
+             __AGENCY_REQUIRES(executor_execution_depth<Executor>::value == sizeof...(Factories))
+            >
+    __AGENCY_ANNOTATION
+    executor_future_t<Executor, result_of_t<ResultFactory()>>
+      bulk_twoway_execute(Function f, executor_shape_t<Executor> shape, ResultFactory result_factory, Factories... shared_factories) const
+    {
+      return detail::bulk_twoway_execute(super_t::base_executor(), f, shape, result_factory, shared_factories...);
     }
 };
 
@@ -79,7 +96,7 @@ struct twoway_t
   __AGENCY_ANNOTATION
   constexpr static bool static_query()
   {
-    return detail::has_twoway_execute_member<E>::value;
+    return detail::is_twoway_executor<E>::value;
   }
 
   template<class Executor>
@@ -91,7 +108,14 @@ struct twoway_t
 };
 
 
+// define the property object
+
+#ifndef __CUDA_ARCH__
 constexpr twoway_t twoway{};
+#else
+// CUDA __device__ functions cannot access global variables so make twoway a __device__ variable in __device__ code
+const __device__ twoway_t twoway;
+#endif
 
 
 } // end agency

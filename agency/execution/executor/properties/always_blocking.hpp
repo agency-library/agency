@@ -275,14 +275,21 @@ struct always_blocking_t
 
   template<class Executor>
   __AGENCY_ANNOTATION
-  friend detail::always_blocking_executor<Executor> require(Executor ex, always_blocking_t)
+  constexpr friend detail::always_blocking_executor<Executor> require(Executor ex, always_blocking_t)
   {
     return detail::always_blocking_executor<Executor>{ex};
   }
 };
 
 
+// define the property object
+
+#ifndef __CUDA_ARCH__
 constexpr always_blocking_t always_blocking{};
+#else
+// CUDA __device__ functions cannot access global variables so make always_blocking a __device__ variable in __device__ code
+const __device__ always_blocking_t always_blocking;
+#endif
 
 
 } // end agency
