@@ -1,0 +1,8 @@
+Import('env')
+env = env.Clone()
+
+programs = env.RecursivelyCreateProgramsAndUnitTestAliases()
+
+# return the entire list of programs to the caller
+Return('programs')
+

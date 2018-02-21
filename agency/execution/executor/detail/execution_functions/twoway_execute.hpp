@@ -2,9 +2,9 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_bulk_then_execute.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_bulk_twoway_execute.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/twoway_execute_via_then_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/adaptations/twoway_execute_via_bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/adaptations/twoway_execute_via_bulk_twoway_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/adaptations/twoway_execute_via_then_execute.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_single_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_single_twoway_executor.hpp>

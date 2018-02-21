@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/customization_points/future_cast.hpp>
-#include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/bulk_twoway_execute.hpp>
 #include <agency/execution/executor/detail/utility/invoke_functors.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
@@ -28,6 +28,8 @@ executor_future_t<E,void> bulk_twoway_execute_with_void_result(const E& exec, Fu
   ignore_unit_result_parameter_and_invoke<Function> g{f};
 
   // just call bulk_twoway_execute() and use a result factory that creates a unit object which can be easily discarded
+  // XXX nomerge
+  // XXX use agency::require()
   executor_future_t<E,unit> intermediate_future = detail::bulk_twoway_execute(exec, g, shape, unit_factory(), factories...);
 
   // cast the intermediate_future to void

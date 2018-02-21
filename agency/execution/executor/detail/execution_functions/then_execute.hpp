@@ -3,8 +3,8 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/then_execute_via_bulk_then_execute.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/then_execute_via_bulk_twoway_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/adaptations/then_execute_via_bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/adaptations/then_execute_via_bulk_twoway_execute.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_single_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>

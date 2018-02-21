@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/detail/utility/bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/bulk_then_execute.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>

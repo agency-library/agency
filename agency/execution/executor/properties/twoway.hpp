@@ -33,8 +33,8 @@
 #include <agency/execution/executor/executor_traits/detail/is_twoway_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_single_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_executor.hpp>
-#include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
-#include <agency/execution/executor/detail/utility/twoway_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/bulk_twoway_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/twoway_execute.hpp>
 #include <utility>
 
 

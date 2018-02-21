@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/future.hpp>
-#include <agency/execution/executor/detail/utility/then_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/then_execute.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/is_executor.hpp>
 #include <utility>

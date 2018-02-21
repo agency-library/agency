@@ -30,7 +30,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/detail/adaptors/bulk_then_executor.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/then_execute_via_bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/adaptations/then_execute_via_bulk_then_execute.hpp>
 
 
 namespace agency

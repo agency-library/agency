@@ -4,7 +4,7 @@
 
 #include <agency/future.hpp>
 #include <agency/experimental/ndarray.hpp>
-#include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/bulk_twoway_execute.hpp>
 #include <agency/cuda.hpp>
 
 #include "../../test_executors.hpp"

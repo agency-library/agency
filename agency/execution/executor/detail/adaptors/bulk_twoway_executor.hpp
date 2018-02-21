@@ -32,7 +32,7 @@
 #include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
 #include <agency/execution/executor/executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
-#include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/bulk_twoway_execute.hpp>
 
 
 namespace agency

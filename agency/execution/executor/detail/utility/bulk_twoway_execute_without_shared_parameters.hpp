@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/bulk_twoway_execute.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
@@ -42,6 +42,8 @@ executor_future_t<E, result_of_t<ResultFactory()>>
                                                      const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory)
 {
   bulk_twoway_execute_without_shared_parameters_detail::ignore_shared_parameters_and_invoke<Function> execute_me{f};
+
+  // XXX nomerge use agency::require()
 
   return detail::bulk_twoway_execute(exec,
     execute_me,                                     // the functor to execute

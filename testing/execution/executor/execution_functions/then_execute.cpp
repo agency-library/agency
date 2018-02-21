@@ -4,7 +4,7 @@
 #include <cassert>
 
 #include <agency/future.hpp>
-#include <agency/execution/executor/detail/utility/then_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/then_execute.hpp>
 
 #include "../test_executors.hpp"
 

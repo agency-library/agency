@@ -5,7 +5,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
-#include <agency/execution/executor/detail/adaptors/adaptations/bulk_twoway_execute_via_bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/adaptations/bulk_twoway_execute_via_bulk_then_execute.hpp>
 
 
 namespace agency

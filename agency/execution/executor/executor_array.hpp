@@ -12,7 +12,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/executor_traits/detail/member_barrier_type_or.hpp>
 #include <agency/execution/executor/customization_points.hpp>
-#include <agency/execution/executor/detail/utility/bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/bulk_then_execute.hpp>
 #include <agency/detail/scoped_in_place_type.hpp>
 #include <agency/tuple.hpp>
 
@@ -251,6 +251,8 @@ class executor_array
 
       lazy_bulk_then_execute_functor<Function,InnerFactories...> execute_me{*this,outer_shape,inner_shape,f,agency::make_tuple(inner_factories...)};
 
+      // XXX nomerge
+      //     use agency::require()
       return detail::bulk_then_execute(outer_executor(), execute_me, outer_shape, predecessor, result_factory, outer_factory);
     }
 
