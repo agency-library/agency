@@ -8,7 +8,8 @@
 #include <agency/execution/executor/executor_traits/is_executor.hpp>
 #include <agency/execution/executor/detail/adaptors/executor_ref.hpp>
 #include <agency/execution/executor/properties/always_blocking.hpp>
-#include <agency/execution/executor/detail/utility/bulk_twoway_execute.hpp>
+#include <agency/execution/executor/properties/bulk.hpp>
+#include <agency/execution/executor/properties/twoway.hpp>
 #include <agency/execution/executor/require.hpp>
 
 
@@ -30,11 +31,7 @@ blocking_bulk_twoway_execute(const E& exec, Function f, executor_shape_t<E> shap
   // grab a reference to exec so that a copy is not created inside of always_blocking_executor
   detail::executor_ref<E> exec_ref(exec);
 
-  // adapt exec_ref into an always blocking executor
-  auto blocking_exec = agency::require(exec_ref, always_blocking);
-
-  // do a bulk_twoway_exec using the blocking_exec
-  return detail::bulk_twoway_execute(blocking_exec, f, shape, result_factory, shared_factories...).get();
+  return agency::require(exec_ref, always_blocking, bulk, twoway).bulk_twoway_execute(f, shape, result_factory, shared_factories...).get();
 }
 
 
