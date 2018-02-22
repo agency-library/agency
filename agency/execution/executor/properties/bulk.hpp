@@ -132,4 +132,3 @@ const __device__ bulk_t bulk;
 
 } // end agency
 
-
