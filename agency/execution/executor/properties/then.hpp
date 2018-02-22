@@ -29,40 +29,95 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/executor/executor_traits/detail/has_then_execute_member.hpp>
-#include <agency/execution/executor/executor_traits/detail/member_future_or.hpp>
-#include <future>
+#include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
+#include <agency/execution/executor/executor_traits/executor_execution_depth.hpp>
+#include <agency/execution/executor/executor_traits/executor_shape.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_then_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_single_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_bulk_executor.hpp>
+#include <agency/execution/executor/detail/execution_functions/bulk_then_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/then_execute.hpp>
+#include <utility>
 
 
 namespace agency
 {
+namespace detail
+{
 
 
-class then_t
+template<class Executor>
+class then_executor : public basic_executor_adaptor<Executor>
 {
   private:
-    template<class Executor>
-    using has_then_execute_member = detail::conjunction<
-      // to be safe, test with both future<void> and future<int>
-      // we test with Executor::future<T> if it exists. otherwise, we test with std::future<T>
-      detail::has_then_execute_member<Executor, detail::member_future_or_t<Executor, void, std::future>>,
-      detail::has_then_execute_member<Executor, detail::member_future_or_t<Executor, int, std::future>>
-    >;
+    using super_t = basic_executor_adaptor<Executor>;
 
   public:
-    template<class Executor,
-             __AGENCY_REQUIRES(
-               has_then_execute_member<Executor>::value
-            )>
     __AGENCY_ANNOTATION
-    static constexpr bool query(const Executor&)
+    then_executor() = default;
+
+    __AGENCY_ANNOTATION
+    then_executor(const Executor& ex) noexcept : super_t{ex} {}
+
+    template<class Function, class Future,
+             __AGENCY_REQUIRES(
+               is_single_executor<Executor>::value
+             )>
+    __AGENCY_ANNOTATION
+    executor_future_t<Executor, result_of_continuation_t<decay_t<Function>, Future>>
+      then_execute(Function&& f, Future& fut) const
     {
-      return true;
+      return detail::then_execute(super_t::base_executor(), std::forward<Function>(f), fut);
     }
-    
-    template<class Executor>
-    friend void prefer(const Executor&, const then_t&) = delete;
+
+    template<class Function, class Future, class ResultFactory, class... SharedFactories,
+             __AGENCY_REQUIRES(is_bulk_executor<Executor>::value),
+             __AGENCY_REQUIRES(executor_execution_depth<Executor>::value == sizeof...(SharedFactories))
+            >
+    __AGENCY_ANNOTATION
+    executor_future_t<Executor, result_of_t<ResultFactory()>>
+      bulk_then_execute(Function f, executor_shape_t<Executor> shape, Future& predecessor, ResultFactory result_factory, SharedFactories... shared_factories)
+    {
+      return detail::bulk_then_execute(super_t::base_executor(), f, shape, predecessor, result_factory, shared_factories...);
+    }
+}; // end then_executor
+
+
+} // end detail
+
+
+struct then_t
+{
+  constexpr static bool is_requirable = true;
+  constexpr static bool is_preferable = false;
+
+  // Agency is a C++11-compatible library,
+  // so we can't implement static_query_v as a variable template
+  // use a constexpr static function instead
+  template<class E>
+  __AGENCY_ANNOTATION
+  constexpr static bool static_query()
+  {
+    return detail::is_then_executor<E>::value;
+  }
+  
+  template<class Executor>
+  __AGENCY_ANNOTATION
+  friend detail::then_executor<Executor> require(Executor ex, then_t)
+  {
+    return detail::then_executor<Executor>{ex};
+  }
 };
+
+
+// define the property object
+
+#ifndef __CUDA_ARCH__
+constexpr then_t then{};
+#else
+// CUDA __device__ functions cannot access global variables so make then a __device__ variable in __device__ code
+const __device__ then_t then;
+#endif
 
 
 } // end agency
