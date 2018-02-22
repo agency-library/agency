@@ -10,9 +10,9 @@
 #include <agency/execution/execution_categories.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
-#include <agency/execution/executor/detail/execution_functions/bulk_twoway_execute.hpp>
-#include <agency/execution/executor/detail/execution_functions/twoway_execute.hpp>
-#include <agency/execution/executor/detail/execution_functions/then_execute.hpp>
+#include <agency/execution/executor/detail/adaptors/executor_ref.hpp>
+#include <agency/execution/executor/properties.hpp>
+#include <agency/execution/executor/require.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/tuple.hpp>
 
@@ -140,9 +140,8 @@ class variant_executor
       future<detail::result_of_t<detail::decay_t<FunctionRef>()>>
         operator()(E& exec) const
       {
-        // XXX nomerge
-        //     use agency::require()
-        return detail::twoway_execute(exec, std::forward<FunctionRef>(f));
+        detail::executor_ref<E> exec_ref{exec};
+        return agency::require(exec_ref, single, twoway).twoway_execute(std::forward<FunctionRef>(f));
       }
     };
 
@@ -174,9 +173,8 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        // XXX nomerge
-        //     use agency::require()
-        return agency::detail::bulk_twoway_execute(exec, f, casted_shape, result_factory, agency::get<Indices>(shared_factories)...);
+        detail::executor_ref<E> exec_ref{exec};
+        return agency::require(exec_ref, bulk, twoway).bulk_twoway_execute(f, casted_shape, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       __agency_exec_check_disable__
@@ -221,9 +219,8 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        // XXX nomerge
-        //     use agency::require()
-        return detail::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
+        detail::executor_ref<E> exec_ref{exec};
+        return agency::require(exec_ref, agency::bulk, agency::then).bulk_then_execute(f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       template<class E>
@@ -253,9 +250,9 @@ class variant_executor
         // cast from our shape type to E's shape type
         executor_shape_t<E> casted_shape = detail::shape_cast<executor_shape_t<E>>(shape);
 
-        // XXX nomerge
-        //     use agency::require()
-        return detail::bulk_then_execute(exec, f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
+        detail::executor_ref<E> exec_ref{exec};
+
+        return agency::require(exec_ref, bulk, then).bulk_then_execute(f, casted_shape, predecessor_future, result_factory, agency::get<Indices>(shared_factories)...);
       }
 
       __agency_exec_check_disable__
@@ -436,9 +433,8 @@ class variant_executor
       future<detail::result_of_continuation_t<detail::decay_t<FunctionRef>, Future>>
         operator()(const E& exec, Future& predecessor_future) const
       {
-        // XXX nomerge
-        //     use agency::require()
-        return detail::then_execute(exec, std::forward<FunctionRef>(f), predecessor_future);
+        detail::executor_ref<E> exec_ref{exec};
+        return agency::require(exec_ref, agency::single, agency::then).then_execute(std::forward<FunctionRef>(f), predecessor_future);
       }
     };
 
