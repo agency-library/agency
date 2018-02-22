@@ -2,7 +2,9 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/executor/detail/execution_functions/bulk_twoway_execute.hpp>
+#include <agency/execution/executor/detail/adaptors/executor_ref.hpp>
+#include <agency/execution/executor/properties/bulk.hpp>
+#include <agency/execution/executor/properties/twoway.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/detail/invoke.hpp>
@@ -43,9 +45,10 @@ executor_future_t<E, result_of_t<ResultFactory()>>
 {
   bulk_twoway_execute_with_one_shared_parameter_detail::ignore_trailing_shared_parameters_and_invoke<Function> execute_me{f};
 
-  // XXX nomerge use agency::require()
+  // grab a reference to the executor to avoid copies in require
+  executor_ref<E> exec_ref{exec};
 
-  return detail::bulk_twoway_execute(exec,
+  return agency::require(exec_ref, bulk, twoway).bulk_twoway_execute(
     execute_me,                                    // the functor to execute
     shape,                                         // the number of agents to create
     result_factory,                                // the factory to create the result

@@ -5,7 +5,9 @@
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/executor/detail/utility/invoke_functors.hpp>
-#include <agency/execution/executor/detail/execution_functions/bulk_then_execute.hpp>
+#include <agency/execution/executor/properties/bulk.hpp>
+#include <agency/execution/executor/properties/then.hpp>
+#include <agency/execution/executor/require.hpp>
 #include <agency/future.hpp>
 #include <type_traits>
 
@@ -27,10 +29,11 @@ executor_future_t<E,result_of_t<ResultFactory()>>
 {
   using predecessor_type = future_result_t<Future>;
 
+  // get a reference to exec to avoid copies in agency::require
+  executor_ref<E> exec_ref{exec};
+
   // wrap f in a functor that will collect f's result and call bulk_then_execute()
-  // XXX nomerge
-  //     use agency::require()
-  return detail::bulk_then_execute(exec, invoke_and_collect_result<Function,predecessor_type>{f}, shape, predecessor, result_factory, shared_factories...);
+  return agency::require(exec_ref, agency::bulk, agency::then).bulk_then_execute(invoke_and_collect_result<Function,predecessor_type>{f}, shape, predecessor, result_factory, shared_factories...);
 }
 
 
