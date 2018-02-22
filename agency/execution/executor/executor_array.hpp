@@ -251,8 +251,6 @@ class executor_array
 
       lazy_bulk_then_execute_functor<Function,InnerFactories...> execute_me{*this,outer_shape,inner_shape,f,agency::make_tuple(inner_factories...)};
 
-      // XXX nomerge
-      //     use agency::require()
       return detail::bulk_then_execute(outer_executor(), execute_me, outer_shape, predecessor, result_factory, outer_factory);
     }
 
