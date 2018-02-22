@@ -28,7 +28,7 @@ __AGENCY_ANNOTATION
 detail::result_of_t<ResultFactory()>
 blocking_bulk_twoway_execute(const E& exec, Function f, executor_shape_t<E> shape, ResultFactory result_factory, Factories... shared_factories)
 {
-  // grab a reference to exec so that a copy is not created inside of always_blocking_executor
+  // grab a reference to exec so that a copy is not created inside of require
   detail::executor_ref<E> exec_ref(exec);
 
   return agency::require(exec_ref, always_blocking, bulk, twoway).bulk_twoway_execute(f, shape, result_factory, shared_factories...).get();
