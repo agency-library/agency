@@ -9,6 +9,7 @@
 #include <iostream>
 #include <atomic>
 #include <functional>
+#include <numeric>
 
 
 template<class... Args>
@@ -30,9 +31,9 @@ int test_alternative(Executor alternative)
   }
 
   {
-    // test async_execute()
+    // test twoway_execute()
     bool executed = false;
-    auto void_future = exec.async_execute([&]
+    auto void_future = exec.twoway_execute([&]
     {
       executed = true;
     });
@@ -43,7 +44,7 @@ int test_alternative(Executor alternative)
 
     int reference = 13;
 
-    auto int_future = exec.async_execute([=]
+    auto int_future = exec.twoway_execute([=]
     {
       return reference;
     });
@@ -52,7 +53,7 @@ int test_alternative(Executor alternative)
   }
 
   {
-    // test bulk_async_execute()
+    // test bulk_twoway_execute()
     using int_container = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<VariantExecutor,int>>;
 
     size_t num_agents = 10;
@@ -64,7 +65,7 @@ int test_alternative(Executor alternative)
 
     std::atomic<size_t> counter{0};
 
-    auto future_results = exec.bulk_async_execute([](index_type idx, int_container& results, std::reference_wrapper<std::atomic<size_t>>& counter)
+    auto future_results = exec.bulk_twoway_execute([](index_type idx, int_container& results, std::reference_wrapper<std::atomic<size_t>>& counter)
     {
       results[idx] = detail::index_lexicographical_rank(idx, results.shape());
       counter.get()++;
@@ -75,36 +76,6 @@ int test_alternative(Executor alternative)
     );
 
     int_container results = future_results.get();
-
-    int_container reference(shape);
-    std::iota(reference.begin(), reference.end(), 0);
-
-    assert(num_agents == counter);
-    assert(reference == results);
-  }
-
-  {
-    // test bulk_sync_execute()
-    using int_container = agency::experimental::basic_ndarray<int, shape_type, agency::executor_allocator_t<VariantExecutor,int>>;
-
-    size_t num_agents = 10;
-
-    shape_type shape = detail::shape_cast<shape_type>(num_agents);
-
-    // create an allocator corresponding to the selected alternative
-    executor_allocator_t<Executor,int> alternative_alloc;
-
-    std::atomic<size_t> counter{0};
-
-    int_container results = exec.bulk_sync_execute([](index_type idx, int_container& results, std::reference_wrapper<std::atomic<size_t>>& counter)
-    {
-      results[idx] = detail::index_lexicographical_rank(idx, results.shape());
-      counter.get()++;
-    },
-    shape,
-    [=]{ return int_container(shape, alternative_alloc); }, // result factory
-    [&]{ return std::ref(counter); }                        // shared factory
-    );
 
     int_container reference(shape);
     std::iota(reference.begin(), reference.end(), 0);
@@ -169,26 +140,6 @@ int test_alternative(Executor alternative)
     auto result = exec.max_shape_dimensions();
 
     assert(reference == detail::shape_cast<decltype(reference)>(result));
-  }
-
-  {
-    // test sync_execute()
-    bool executed = false;
-    exec.sync_execute([&]
-    {
-      executed = true;
-    });
-
-    assert(executed);
-
-    int reference = 13;
-
-    int result = exec.sync_execute([=]
-    {
-      return reference;
-    });
-
-    assert(reference == result);
   }
 
   // XXX these tests are disabled because then_execute(sequenced_executor, ...) isn't implemented
@@ -277,8 +228,10 @@ void test(Executors... execs)
   using executor_type = variant_executor<Executors...>;
 
   static_assert(is_executor<executor_type>::value, "variant_executor is not an executor");
-  static_assert(is_bulk_asynchronous_executor<executor_type>::value, "variant_executor is not a bulk asynchronous executor");
-  static_assert(is_bulk_executor<executor_type>::value, "variant_executor is not a bulk executor");
+  static_assert(detail::is_single_twoway_executor<executor_type>::value, "variant_executor is not a single twoway executor");
+  static_assert(detail::is_single_then_executor<executor_type>::value, "variant_executor is not a single then executor");
+  static_assert(detail::is_bulk_twoway_executor<executor_type>::value, "variant_executor is not a bulk twoway executor");
+  static_assert(detail::is_bulk_then_executor<executor_type>::value, "variant_executor is not a bulk then executor");
 
   std::tuple<Executors...> executor_tuple(execs...);
 

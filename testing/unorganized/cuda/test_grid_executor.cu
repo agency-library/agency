@@ -36,7 +36,7 @@ void launch_nested_kernel()
 {
   agency::cuda::grid_executor ex;
 
-  agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(ex, hello_world(), agency::uint2{2,2});
+  agency::detail::blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters(ex, hello_world(), agency::uint2{2,2});
 }
 
 
@@ -90,11 +90,11 @@ int main()
   agency::cuda::grid_executor ex;
 
   std::cout << "Testing execute on host" << std::endl;
-  agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(ex, hello_world(), agency::uint2{2,2});
+  agency::detail::blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters(ex, hello_world(), agency::uint2{2,2});
   std::cout << std::endl;
 
   std::cout << "Testing execute with shared arg on host" << std::endl;
-  agency::detail::bulk_sync_execute_with_auto_result(ex, with_shared_arg(), agency::uint2{2,2}, [] __host__ __device__ { return 7; }, [] __host__ __device__ { return 13; });
+  agency::detail::blocking_bulk_twoway_execute_with_auto_result(ex, with_shared_arg(), agency::uint2{2,2}, [] __host__ __device__ { return 7; }, [] __host__ __device__ { return 13; });
   std::cout << std::endl;
 
 #if defined(__CUDACC_RDC__)

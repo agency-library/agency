@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
-#include <agency/execution/executor/detail/utility/bulk_sync_execute_with_auto_result_and_without_shared_parameters.hpp>
+#include <agency/execution/executor/detail/utility/blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters.hpp>
 #include <agency/execution/executor/detail/utility/executor_bulk_result.hpp>
 #include <agency/future.hpp>
 
@@ -48,12 +48,10 @@ class bulk_share_future_functor
 
 
 __agency_exec_check_disable__
-template<class E, class Future,
-         __AGENCY_REQUIRES(Executor<E>())
-        >
+template<class E, class Future, __AGENCY_REQUIRES(is_executor<E>::value)>
 __AGENCY_ANNOTATION
 executor_bulk_result_t<E, typename future_traits<Future>::shared_future_type>
-  bulk_share_future(E& exec, executor_shape_t<E> shape, Future& f)
+  bulk_share_future(const E& exec, executor_shape_t<E> shape, Future& f)
 {
   using shared_future_type = typename future_traits<Future>::shared_future_type;
 
@@ -61,7 +59,7 @@ executor_bulk_result_t<E, typename future_traits<Future>::shared_future_type>
   shared_future_type shared_f = future_traits<Future>::share(f);
 
   // bulk execute a function that returns copies of shared_f
-  return bulk_sync_execute_with_auto_result_and_without_shared_parameters(exec, bulk_share_future_functor<shared_future_type>(shared_f), shape);
+  return detail::blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters(exec, bulk_share_future_functor<shared_future_type>(shared_f), shape);
 }
 
 

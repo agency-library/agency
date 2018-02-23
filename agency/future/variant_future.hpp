@@ -20,7 +20,7 @@ class variant_future
     using variant_type = agency::experimental::variant<Future, Futures...>;
 
   public:
-    using value_type = future_value_t<Future>;
+    using result_type = future_result_t<Future>;
 
     template<class T>
     using rebind_value = variant_future<
@@ -29,7 +29,7 @@ class variant_future
     >;
 
     static_assert(detail::conjunction<is_future<Future>, is_future<Futures>...>::value, "All of variant_future's template parmeter types must be Futures.");
-    static_assert(detail::conjunction<std::is_same<value_type, future_value_t<Futures>>...>::value, "All Futures' value types must be the same.");
+    static_assert(detail::conjunction<std::is_same<result_type, future_result_t<Futures>>...>::value, "All Futures' result types must be the same.");
 
     __AGENCY_ANNOTATION
     variant_future() = default;
@@ -49,10 +49,10 @@ class variant_future
     __AGENCY_ANNOTATION
     variant_future& operator=(variant_future&& other) = default;
 
-    // this is the overload of make_ready() for non-void value_type
+    // this is the overload of make_ready() for non-void result_type
     template<class T,
              __AGENCY_REQUIRES(
-               std::is_constructible<value_type,T&&>::value
+               std::is_constructible<result_type,T&&>::value
             )>
     static variant_future make_ready(T&& value)
     {
@@ -60,10 +60,10 @@ class variant_future
       return future_traits<Future>::make_ready(std::forward<T>(value));
     }
 
-    // this is the overload of make_ready() for void value_type
+    // this is the overload of make_ready() for void result_type
     template<bool deduced = true,
              __AGENCY_REQUIRES(
-               deduced && std::is_void<value_type>::value
+               deduced && std::is_void<result_type>::value
             )>
     static variant_future make_ready()
     {
@@ -131,7 +131,7 @@ class variant_future
       __agency_exec_check_disable__
       template<class T>
       __AGENCY_ANNOTATION
-      value_type operator()(T& f) const
+      result_type operator()(T& f) const
       {
         return f.get();
       }
@@ -139,7 +139,7 @@ class variant_future
 
   public:
     __AGENCY_ANNOTATION
-    value_type get()
+    result_type get()
     {
       auto visitor = get_visitor();
       return agency::experimental::visit(visitor, variant_);

@@ -6,7 +6,10 @@
 #include <agency/tuple.hpp>
 #include <agency/detail/tuple/tuple_utility.hpp>
 #include <agency/future/future_traits/future_rebind_value.hpp>
+#include <agency/future/future_traits/future_result.hpp>
+#include <agency/future/detail/monadic_then.hpp>
 #include <agency/detail/has_member.hpp>
+#include <agency/detail/unit.hpp>
 
 #include <future>
 #include <utility>
@@ -131,50 +134,12 @@ std::future<detail::result_of_t<Function(std::future<T>&)>>
 }
 
 
-template<class T, class Function>
-std::future<detail::result_of_t<Function(T&)>>
-  monadic_then(std::future<T>& fut, std::launch policy, Function&& f)
-{
-  return std::async(policy, [](std::future<T>&& fut, Function&& f)
-  {
-    T arg = fut.get();
-    return std::forward<Function>(f)(arg);
-  },
-  std::move(fut),
-  std::forward<Function>(f)
-  );
-}
-
-
-template<class Function>
-std::future<detail::result_of_t<Function()>>
-  monadic_then(std::future<void>& fut, std::launch policy, Function&& f)
-{
-  return std::async(policy, [](std::future<void>&& fut, Function&& f)
-  {
-    fut.get();
-    return std::forward<Function>(f)();
-  },
-  std::move(fut),
-  std::forward<Function>(f)
-  );
-}
-
-
 // then() for std::future
 template<class T, class Function>
 std::future<detail::result_of_t<Function(std::future<T>&)>>
   then(std::future<T>& fut, Function&& f)
 {
   return detail::then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
-}
-
-
-template<class T, class Function>
-auto monadic_then(std::future<T>& fut, Function&& f) ->
-  decltype(detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f)))
-{
-  return detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
 }
 
 
@@ -201,65 +166,6 @@ std::future<detail::result_of_t<Function(std::shared_future<T>&)>>
 {
   return detail::then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
 }
-
-
-// monadic_then() for std::shared_future
-template<class T, class Function>
-std::future<detail::result_of_t<Function(T&)>>
-  monadic_then(std::shared_future<T>& fut, std::launch policy, Function&& f)
-{
-  return std::async(policy, [](std::shared_future<T>&& fut, Function&& f)
-  {
-    T& arg = const_cast<T&>(fut.get());
-    return std::forward<Function>(f)(arg);
-  },
-  std::move(fut),
-  std::forward<Function>(f)
-  );
-}
-
-
-template<class Function>
-std::future<detail::result_of_t<Function()>>
-  monadic_then(std::shared_future<void>& fut, std::launch policy, Function&& f)
-{
-  return std::async(policy, [](std::shared_future<void>&& fut, Function&& f)
-  {
-    fut.get();
-    return std::forward<Function>(f)();
-  },
-  std::move(fut),
-  std::forward<Function>(f)
-  );
-}
-
-
-template<class T, class Function>
-auto monadic_then(std::shared_future<T>& fut, Function&& f) ->
-  decltype(detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f)))
-{
-  return detail::monadic_then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
-}
-
-
-__DEFINE_HAS_MEMBER_TYPE(has_value_type, value_type);
-
-
-template<class Future>
-struct future_value
-{
-  // the decay removes the reference returned
-  // from futures like shared_future
-  // the idea is given Future<T>,
-  // future_value<Future<T>> returns T
-  using type = typename std::decay<
-    decltype(std::declval<Future>().get())
-  >::type;
-};
-
-
-template<class Future>
-using future_value_t = typename future_value<Future>::type;
 
 
 namespace is_future_detail
@@ -326,7 +232,7 @@ struct is_non_void_future_impl
              is_future<U>::value
            >::type,
            class = typename std::enable_if<
-             !std::is_void<future_value_t<U>>::value
+             !std::is_void<future_result_t<U>>::value
            >::type
           >
   static std::true_type test(int);
@@ -351,7 +257,7 @@ struct is_void_future_impl
              is_future<U>::value
            >::type,
            class = typename std::enable_if<
-             std::is_void<future_value_t<U>>::value
+             std::is_void<future_result_t<U>>::value
            >::type
           >
   static std::true_type test(int);
@@ -380,7 +286,7 @@ struct is_instance_of_future<T,Future,
 > : std::is_same<
   T,
   Future<
-    typename future_value<T>::type
+    typename future_result<T>::type
   >
 >
 {};
@@ -402,7 +308,7 @@ struct is_callable_continuation_impl
   struct map_futures_to_lvalue_reference_to_value_type
     : lazy_conditional<
         is_future<T>::value,
-        lazy_add_lvalue_reference<future_value<T>>,
+        lazy_add_lvalue_reference<future_result<T>>,
         identity<T>
       >
   {};
@@ -444,12 +350,12 @@ struct result_of_continuation
   struct map_futures_to_lvalue_reference_to_value_type
     : lazy_conditional<
         is_future<T>::value,
-        lazy_add_lvalue_reference<future_value<T>>,
+        lazy_add_lvalue_reference<future_result<T>>,
         identity<T>
       >
   {};
 
-  // turn futures into lvalue references to their values
+  // turn futures into lvalue references to their results
   using value_types = type_list_map<map_futures_to_lvalue_reference_to_value_type,types>;
 
   template<class T>
@@ -499,7 +405,7 @@ struct has_cast_impl
   template<
     class FromFuture1,
     class Result = decltype(
-      *std::declval<FromFuture1*>.template cast<ToType>()
+      *std::declval<FromFuture1*>().template cast<ToType>()
     ),
     class = typename std::enable_if<
       std::is_same<Result,ToFuture>::value
@@ -570,7 +476,7 @@ struct future_traits
   public:
     using future_type = Future;
 
-    using value_type = typename detail::future_value<future_type>::type;
+    using result_type = future_result_t<future_type>;
 
     template<class U>
     using rebind_value = future_rebind_value_t<future_type,U>;
@@ -596,10 +502,10 @@ struct future_traits
              class = typename std::enable_if<
                !std::is_copy_constructible<Future1>::value
              >::type>
-    static std::shared_future<value_type> share_impl2(Future1& fut)
+    static std::shared_future<result_type> share_impl2(Future1& fut)
     {
       // turn fut into a std::future
-      std::future<value_type> std_fut = std::async(std::launch::deferred, [](Future1&& fut)
+      std::future<result_type> std_fut = std::async(std::launch::deferred, [](Future1&& fut)
       {
         return fut.get();
       },
@@ -649,12 +555,14 @@ struct future_traits
       return share_impl(fut);
     }
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     static rebind_value<void> make_ready()
     {
       return rebind_value<void>::make_ready();
     }
 
+    __agency_exec_check_disable__
     template<class T, class... Args>
     __AGENCY_ANNOTATION
     static rebind_value<T> make_ready(Args&&... args)
@@ -669,6 +577,7 @@ struct future_traits
       return rebind_value<typename std::decay<T>::type>::make_ready(std::forward<T>(value));
     }
 
+    __agency_exec_check_disable__
     template<class Function,
              class = typename std::enable_if<
                detail::has_then<future_type,Function&&>::value
@@ -741,7 +650,7 @@ struct future_traits<std::future<T>>
   public:
     using future_type = std::future<T>;
 
-    using value_type = typename detail::future_value<future_type>::type;
+    using result_type = future_result_t<future_type>;
 
     template<class U>
     using rebind_value = std::future<U>;
@@ -816,7 +725,7 @@ struct future_traits<std::shared_future<T>>
   public:
     using future_type = std::shared_future<T>;
 
-    using value_type = typename detail::future_value<future_type>::type;
+    using result_type = future_result_t<future_type>;
 
     template<class U>
     using rebind_value = std::shared_future<U>;
@@ -960,48 +869,45 @@ template<class TypeList>
 using make_tuple_for = typename make_tuple_for_impl<TypeList>::type;
 
 
-struct void_value {};
+template<class T>
+struct is_not_unit : std::integral_constant<bool, !std::is_same<T,unit>::value> {};
 
 
 template<class T>
-struct is_not_void_value : std::integral_constant<bool, !std::is_same<T,void_value>::value> {};
-
-
-template<class T>
-struct void_to_void_value : std::conditional<std::is_void<T>::value, void_value, T> {};
+struct void_to_unit : std::conditional<std::is_void<T>::value, unit, T> {};
 
 
 template<class... Futures>
-struct tuple_of_future_values_impl
+struct tuple_of_future_results_impl
 {
-  using value_types = type_list<
-    typename future_traits<Futures>::value_type...
+  using result_types = type_list<
+    future_result_t<Futures>...
   >;
 
-  // map void to void_value
-  using mapped_value_types = type_list_map<void_to_void_value, value_types>;
+  // map void to unit
+  using mapped_result_types = type_list_map<void_to_unit, result_types>;
 
   // create a tuple from the list of types
-  using type = make_tuple_for<mapped_value_types>;
+  using type = make_tuple_for<mapped_result_types>;
 };
 
 template<class... Futures>
-using tuple_of_future_values = typename tuple_of_future_values_impl<Futures...>::type;
+using tuple_of_future_results = typename tuple_of_future_results_impl<Futures...>::type;
 
 
 __agency_exec_check_disable__
 template<class Future,
          class = typename std::enable_if<
            std::is_void<
-             typename future_traits<Future>::value_type
+             future_result_t<Future>
            >::value
          >::type
         >
 __AGENCY_ANNOTATION
-void_value get_value(Future& fut)
+unit get_result(Future& fut)
 {
   fut.get();
-  return void_value{};
+  return unit{};
 }
 
 
@@ -1009,12 +915,12 @@ __agency_exec_check_disable__
 template<class Future,
          class = typename std::enable_if<
            !std::is_void<
-             typename future_traits<Future>::value_type
+             future_result_t<Future>
            >::value
          >::type
         >
 __AGENCY_ANNOTATION
-typename future_traits<Future>::value_type
+future_result_t<Future>
   get_value(Future& fut)
 {
   return fut.get();
@@ -1024,10 +930,10 @@ typename future_traits<Future>::value_type
 __agency_exec_check_disable__
 template<class... Futures>
 __AGENCY_ANNOTATION
-tuple_of_future_values<Futures...>
-  get_tuple_of_future_values(Futures&... futures)
+tuple_of_future_results<Futures...>
+  get_tuple_of_future_results(Futures&... futures)
 {
-  return tuple_of_future_values<Futures...>(detail::get_value(futures)...);
+  return tuple_of_future_results<Futures...>(detail::get_result(futures)...);
 }
 
 
@@ -1039,9 +945,9 @@ struct when_all_and_select_result<index_sequence<Indices...>,Futures...>
 {
   using type = decltype(
     detail::unwrap_small_tuple(
-      detail::tuple_filter<is_not_void_value>(
+      detail::tuple_filter<is_not_unit>(
         detail::tuple_gather<Indices...>(
-          detail::get_tuple_of_future_values(
+          detail::get_tuple_of_future_results(
             *std::declval<Futures*>()...
           )
         )

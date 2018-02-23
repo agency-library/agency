@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/control_structures/bind.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
-#include <agency/execution/executor/customization_points/sync_execute.hpp>
+#include <agency/execution/executor/detail/utility/blocking_twoway_execute.hpp>
 #include <agency/execution/executor/sequenced_executor.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <utility>
@@ -21,7 +21,7 @@ detail::result_of_t<
 {
   auto g = detail::bind(std::forward<Function>(f), std::forward<Args>(args)...);
 
-  return agency::sync_execute(exec, std::move(g));
+  return detail::blocking_twoway_execute(exec, std::move(g));
 }
 
 

@@ -35,7 +35,7 @@ class event
 
       detail::throw_on_error(cudaEventCreateWithFlags(&e_, event_create_flags), "cudaEventCreateWithFlags in cuda::detail::event ctor");
 #else
-      detail::terminate_with_message("cuda::detail::event ctor requires CUDART");
+      agency::detail::terminate_with_message("cuda::detail::event ctor requires CUDART");
 #endif
     }
 
@@ -47,7 +47,7 @@ class event
 #if __cuda_lib_has_cudart
       detail::throw_on_error(cudaEventRecord(e_, stream().native_handle()), "cudaEventRecord in cuda::detail::event ctor");
 #else
-      detail::terminate_with_message("cuda::detail::event ctor requires CUDART");
+      agency::detail::terminate_with_message("cuda::detail::event ctor requires CUDART");
 #endif
     }
 
@@ -108,7 +108,7 @@ class event
 
         return result == cudaSuccess;
 #else
-        detail::terminate_with_message("cuda::detail::event::is_ready requires CUDART");
+        agency::detail::terminate_with_message("cuda::detail::event::is_ready requires CUDART");
 #endif
       }
 
@@ -302,7 +302,7 @@ class event
       // return a new event
       return event(std::move(new_stream));
 #else
-      detail::terminate_with_message("cuda::detail::event::then(): unimplemented function called.");
+      agency::detail::terminate_with_message("cuda::detail::event::then(): unimplemented function called.");
       return event();
       // launch a single-thread kernel
       //return then_on([=](uint3, uint3){ f(); }, dim3{1}, dim3{1}, 0, stream().device());

@@ -1,8 +1,7 @@
 #pragma once
 
-#include <exception>
-#include <stdexcept>
-#include <cstdio>
+#include <agency/detail/config.hpp>
+#include <agency/detail/terminate.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
 #include <thrust/system_error.h>
 #include <thrust/system/cuda/error.h>
@@ -14,26 +13,6 @@ namespace cuda
 {
 namespace detail
 {
-
-
-__host__ __device__
-inline void terminate()
-{
-#ifdef __CUDA_ARCH__
-  asm("trap;");
-#else
-  std::terminate();
-#endif
-}
-
-
-__host__ __device__
-inline void terminate_with_message(const char* message)
-{
-  printf("%s\n", message);
-
-  terminate();
-}
 
 
 __host__ __device__
@@ -64,7 +43,7 @@ inline void terminate_on_error(cudaError_t e, const char* message)
   {
     agency::cuda::detail::print_error_message(e, message);
 
-    terminate();
+    agency::detail::terminate();
   }
 }
 
@@ -79,20 +58,9 @@ void throw_on_error(cudaError_t e, const char* message)
 #else
     agency::cuda::detail::print_error_message(e, message);
 
-    terminate();
+    agency::detail::terminate();
 #endif
   }
-}
-
-
-inline __host__ __device__
-void throw_runtime_error(const char* message)
-{
-#ifndef __CUDA_ARCH__
-  throw std::runtime_error(message);
-#else
-  detail::terminate_with_message(message);
-#endif
 }
 
 

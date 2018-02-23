@@ -30,7 +30,7 @@ class stream
 
       detail::throw_on_error(cudaStreamCreateWithFlags(&s_, cudaStreamNonBlocking), "cudaStreamCreateWithFlags in cuda::detail::stream ctor");
 #else
-      detail::terminate_with_message("cuda::detail::stream ctor requires CUDART");
+      agency::detail::terminate_with_message("cuda::detail::stream ctor requires CUDART");
 #endif
     }
 
@@ -60,7 +60,7 @@ class stream
         detail::print_error_message_if(cudaStreamDestroy(release()), "cudaStreamDestroy in cuda::detail::stream dtor");
       }
 #else
-      detail::terminate_with_message("cuda::detail::stream dtor requires CUDART");
+      agency::detail::terminate_with_message("cuda::detail::stream dtor requires CUDART");
 #endif
     }
 

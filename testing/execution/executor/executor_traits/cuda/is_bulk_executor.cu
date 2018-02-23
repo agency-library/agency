@@ -1,4 +1,6 @@
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_bulk_twoway_executor.hpp>
 #include <agency/cuda.hpp>
 #include <type_traits>
 #include <iostream>
@@ -11,61 +13,32 @@ int main()
   using namespace agency;
 
   // test not_an_executor
-  static_assert(!is_bulk_executor<not_an_executor>::value, "not_an_executor is not supposed to be a bulk executor");
-  static_assert(!is_bulk_synchronous_executor<not_an_executor>::value, "not_an_executor is not supposed to be a bulk synchronous executor");
-  static_assert(!is_bulk_asynchronous_executor<not_an_executor>::value, "not_an_executor is not supposed to be a bulk asynchronous executor");
-  static_assert(!is_bulk_continuation_executor<not_an_executor>::value, "not_an_executor is not supposed to be a bulk continuation executor");
+  static_assert(!detail::is_bulk_twoway_executor<not_an_executor>::value, "not_an_executor is not supposed to be a bulk twoway executor");
+  static_assert(!detail::is_bulk_then_executor<not_an_executor>::value, "not_an_executor is not supposed to be a bulk then executor");
 
+  // test bulk_twoway_executor
+  static_assert(detail::is_bulk_twoway_executor<bulk_twoway_executor>::value, "bulk_twoway_executor is supposed to be a bulk twoway executor");
+  static_assert(!detail::is_bulk_then_executor<bulk_twoway_executor>::value, "bulk_twoway_executor is not supposed to be a bulk then executor");
 
-  // test bulk_synchronous_executor
-  static_assert(is_bulk_executor<bulk_synchronous_executor>::value, "bulk_synchronous_executor is supposed to be a bulk executor");
-  static_assert(is_bulk_synchronous_executor<bulk_synchronous_executor>::value, "bulk_synchronous_executor is supposed to be a bulk synchronous executor");
-  static_assert(!is_bulk_asynchronous_executor<bulk_synchronous_executor>::value, "bulk_synchronous_executor is not supposed to be a bulk asynchronous executor");
-  static_assert(!is_bulk_continuation_executor<bulk_synchronous_executor>::value, "bulk_synchronous_executor is not supposed to be a bulk continuation executor");
+  // test bulk_then_executor
+  static_assert(!detail::is_bulk_twoway_executor<bulk_then_executor>::value, "bulk_then_executor is not supposed to be a bulk twoway executor");
+  static_assert(detail::is_bulk_then_executor<bulk_then_executor>::value, "bulk_then_executor is supposed to be a bulk then executor");
 
-  // test bulk_asynchronous_executor
-  static_assert(is_bulk_executor<bulk_asynchronous_executor>::value, "bulk_asynchronous_executor is supposed to be a bulk executor");
-  static_assert(!is_bulk_synchronous_executor<bulk_asynchronous_executor>::value, "bulk_asynchronous_executor is not supposed to be a bulk synchronous executor");
-  static_assert(is_bulk_asynchronous_executor<bulk_asynchronous_executor>::value, "bulk_asynchronous_executor is supposed to be a bulk asynchronous executor");
-  static_assert(!is_bulk_continuation_executor<bulk_asynchronous_executor>::value, "bulk_asynchronous_executor is not supposed to be a bulk continuation executor");
+  // test not_a_bulk_twoway_executor
+  static_assert(!detail::is_bulk_twoway_executor<not_a_bulk_twoway_executor>::value, "not_a_bulk_twoway_executor is not supposed to be a bulk twoway executor");
+  static_assert(detail::is_bulk_then_executor<not_a_bulk_twoway_executor>::value,  "not_a_bulk_twoway_executor is supposed to be a bulk then executor");
 
-  // test bulk_continuation_executor
-  static_assert(is_bulk_executor<bulk_continuation_executor>::value, "bulk_continuation_executor is supposed to be a bulk executor");
-  static_assert(!is_bulk_synchronous_executor<bulk_continuation_executor>::value, "bulk_continuation_executor is not supposed to be a bulk synchronous executor");
-  static_assert(!is_bulk_asynchronous_executor<bulk_continuation_executor>::value, "bulk_continuation_executor is not supposed to be a bulk asynchronous executor");
-  static_assert(is_bulk_continuation_executor<bulk_continuation_executor>::value, "bulk_continuation_executor is supposed to be a bulk continuation executor");
+  // test not_a_bulk_then_executor
+  static_assert(detail::is_bulk_twoway_executor<not_a_bulk_then_executor>::value,  "not_a_bulk_then_executor is supposed to be a bulk twoway executor");
+  static_assert(!detail::is_bulk_then_executor<not_a_bulk_then_executor>::value, "not_a_bulk_then_executor is supposed to be a bulk then executor");
 
-
-  // test not_a_bulk_synchronous_executor
-  static_assert(is_bulk_executor<not_a_bulk_synchronous_executor>::value,              "not_a_bulk_synchronous_executor is supposed to be a bulk executor");
-  static_assert(!is_bulk_synchronous_executor<not_a_bulk_synchronous_executor>::value, "not_a_bulk_synchronous_executor is not supposed to be a bulk synchronous executor");
-  static_assert(is_bulk_asynchronous_executor<not_a_bulk_synchronous_executor>::value, "not_a_bulk_synchronous_executor is supposed to be a bulk asynchronous executor");
-  static_assert(is_bulk_continuation_executor<not_a_bulk_synchronous_executor>::value, "not_a_bulk_synchronous_executor is supposed to be a bulk continuation executor");
-
-  // test not_a_bulk_asynchronous_executor
-  static_assert(is_bulk_executor<not_a_bulk_asynchronous_executor>::value,               "not_a_bulk_asynchronous_executor is supposed to be a bulk executor");
-  static_assert(is_bulk_synchronous_executor<not_a_bulk_asynchronous_executor>::value,   "not_a_bulk_asynchronous_executor is supposed to be a bulk synchronous executor");
-  static_assert(!is_bulk_asynchronous_executor<not_a_bulk_asynchronous_executor>::value, "not_a_bulk_asynchronous_executor is not supposed to be a bulk asynchronous executor");
-  static_assert(is_bulk_continuation_executor<not_a_bulk_asynchronous_executor>::value,  "not_a_bulk_asynchronous_executor is supposed to be a bulk continuation executor");
-
-  // test not_a_bulk_continuation_executor
-  static_assert(is_bulk_executor<not_a_bulk_continuation_executor>::value,               "not_a_bulk_continuation_executor is supposed to be a bulk executor");
-  static_assert(is_bulk_synchronous_executor<not_a_bulk_continuation_executor>::value,   "not_a_bulk_continuation_executor is supposed to be a bulk synchronous executor");
-  static_assert(is_bulk_asynchronous_executor<not_a_bulk_continuation_executor>::value,  "not_a_bulk_continuation_executor is not supposed to be a bulk asynchronous executor");
-  static_assert(!is_bulk_continuation_executor<not_a_bulk_continuation_executor>::value, "not_a_bulk_continuation_executor is supposed to be a bulk continuation executor");
-
-
-  // test not_a_bulk_synchronous_executor
-  static_assert(is_bulk_executor<complete_bulk_executor>::value,              "complete_bulk_executor is supposed to be a bulk executor");
-  static_assert(is_bulk_synchronous_executor<complete_bulk_executor>::value,  "complete_bulk_executor is supposed to be a bulk synchronous executor");
-  static_assert(is_bulk_asynchronous_executor<complete_bulk_executor>::value, "complete_bulk_executor is supposed to be a bulk asynchronous executor");
-  static_assert(is_bulk_continuation_executor<complete_bulk_executor>::value, "complete_bulk_executor is supposed to be a bulk continuation executor");
+  // test complete_bulk_executor
+  static_assert(detail::is_bulk_twoway_executor<complete_bulk_executor>::value, "complete_bulk_executor is supposed to be a bulk twoway executor");
+  static_assert(detail::is_bulk_then_executor<complete_bulk_executor>::value, "complete_bulk_executor is supposed to be a bulk then executor");
 
   // test grid_executor
-  static_assert(is_bulk_executor<agency::cuda::grid_executor>::value,          "grid_executor is supposed to be a bulk executor");
-  static_assert(!is_bulk_synchronous_executor<agency::cuda::grid_executor>::value,  "grid_executor is not supposed to be a bulk synchronous executor");
-  static_assert(!is_bulk_asynchronous_executor<agency::cuda::grid_executor>::value, "grid_executor is not supposed to be a bulk asynchronous executor");
-  static_assert(is_bulk_continuation_executor<agency::cuda::grid_executor>::value,  "grid_executor is supposed to be a bulk continuation executor");
+  static_assert(!detail::is_bulk_twoway_executor<agency::cuda::grid_executor>::value, "grid_executor is not supposed to be a bulk twoway executor");
+  static_assert(detail::is_bulk_then_executor<agency::cuda::grid_executor>::value,  "grid_executor is supposed to be a bulk then executor");
   
   std::cout << "OK" << std::endl;
 

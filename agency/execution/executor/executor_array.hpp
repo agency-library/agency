@@ -12,6 +12,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/executor_traits/detail/member_barrier_type_or.hpp>
 #include <agency/execution/executor/customization_points.hpp>
+#include <agency/execution/executor/detail/execution_functions/bulk_then_execute.hpp>
 #include <agency/detail/scoped_in_place_type.hpp>
 #include <agency/tuple.hpp>
 
@@ -105,7 +106,7 @@ class executor_array
   private:
     template<class Futures, class UniquePtr1, class UniquePtr2>
     __AGENCY_ANNOTATION
-    wait_for_futures_and_move_result<typename std::decay<Futures>::type,UniquePtr1,UniquePtr2>
+    static wait_for_futures_and_move_result<typename std::decay<Futures>::type,UniquePtr1,UniquePtr2>
       make_wait_for_futures_and_move_result(Futures&& futures, UniquePtr1&& result_ptr, UniquePtr2&& shared_arg_ptr)
     {
       return wait_for_futures_and_move_result<typename std::decay<Futures>::type,UniquePtr1,UniquePtr2>{std::move(futures),std::move(result_ptr),std::move(shared_arg_ptr)};
@@ -192,10 +193,8 @@ class executor_array
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
         inner_executor_type& inner_exec = exec.inner_executor(inner_executor_idx);
 
-        detail::bulk_synchronous_executor_adaptor<inner_executor_type> adapted_exec(inner_exec);
-
         // XXX avoid lambdas to workaround nvcc limitations
-        //detail::bulk_sync_execute_with_void_result(adapted_exec, [=,&predecessor,&result,&outer_shared_arg](const inner_index_type& inner_idx, detail::result_of_t<InnerFactories()>&... inner_shared_args)
+        //detail::blocking_bulk_twoway_execute_with_void_result(adapted_exec, [=,&predecessor,&result,&outer_shared_arg](const inner_index_type& inner_idx, detail::result_of_t<InnerFactories()>&... inner_shared_args)
         //{
         //  index_type idx = make_index(outer_idx, inner_idx);
 
@@ -206,7 +205,7 @@ class executor_array
 
         inner_functor<OuterArgs...> execute_me{f, outer_idx, agency::forward_as_tuple(outer_args...)};
 
-        detail::bulk_sync_execute_with_void_result(adapted_exec, execute_me, inner_shape, agency::get<Indices>(inner_factories)...);
+        detail::blocking_bulk_twoway_execute_with_void_result(inner_exec, execute_me, inner_shape, agency::get<Indices>(inner_factories)...);
       }
 
       template<class... OuterArgs>
@@ -221,10 +220,10 @@ class executor_array
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      lazy_bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      lazy_bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       // this implementation of bulk_then_execute() is "lazy" in the sense that it
-      // immediately calls bulk_then_execute() on the outer executor, but bulk_sync_execute() is
+      // immediately calls bulk_then_execute() on the outer executor, but bulk_twoway_execute() is
       // called on the inner executors eventually at some point in the future
 
       // split shape into its outer and inner components
@@ -238,7 +237,7 @@ class executor_array
       //{
       //  auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
 
-      //  bulk_sync_execute_with_void_result(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx, auto&... inner_args)
+      //  blocking_bulk_twoway_execute_with_void_result(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx, auto&... inner_args)
       //  {
       //    index_type idx = make_index(outer_idx, inner_idx);
       //    f(idx, outer_args..., inner_args...); 
@@ -252,15 +251,13 @@ class executor_array
 
       lazy_bulk_then_execute_functor<Function,InnerFactories...> execute_me{*this,outer_shape,inner_shape,f,agency::make_tuple(inner_factories...)};
 
-      detail::bulk_continuation_executor_adaptor<outer_executor_type> adapted_exec(outer_executor());
-
-      return adapted_exec.bulk_then_execute(execute_me, outer_shape, predecessor, result_factory, outer_factory);
+      return detail::bulk_then_execute(outer_executor(), execute_me, outer_shape, predecessor, result_factory, outer_factory);
     }
 
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      bulk_then_execute_impl(lazy_strategy, Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      bulk_then_execute_impl(lazy_strategy, Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       return lazy_bulk_then_execute(f, shape, predecessor, result_factory, outer_factory, inner_factories...);
     }
@@ -271,7 +268,7 @@ class executor_array
     template<class Function, class Futures, class Result, class OuterShared, class... Factories>
     struct eager_bulk_then_execute_functor
     {
-      executor_array& exec;
+      const executor_array& exec;
       mutable Function f;
       Futures& predecessor_futures;
       Result* result_ptr;
@@ -331,10 +328,8 @@ class executor_array
       {
         auto inner_executor_idx = exec.select_inner_executor(outer_idx, outer_shape);
 
-        detail::bulk_continuation_executor_adaptor<inner_executor_type> adapted_inner_executor(exec.inner_executor(inner_executor_idx));
-
         return detail::bulk_then_execute_with_void_result(
-          adapted_inner_executor,
+          exec.inner_executor(inner_executor_idx),
           inner_functor{f,outer_idx,*result_ptr,*outer_shared_arg_ptr},
           inner_shape,
           predecessor_futures[outer_idx],
@@ -354,7 +349,7 @@ class executor_array
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      eager_bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      eager_bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       // this implementation legal when the outer_category is not sequenced
       // XXX and the inner executor's is concurrent with the launching agent
@@ -380,11 +375,11 @@ class executor_array
       using future_container = decltype(shared_predecessor_futures);
 
       // XXX avoid lambdas to workaround nvcc limitations as well as lack of polymorphic lambda
-      //auto inner_futures = bulk_sync_execute_with_auto_result_and_without_shared_parameters(outer_executor(), [=,&past_futures](const outer_index_type& outer_idx) mutable
+      //auto inner_futures = blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters(outer_executor(), [=,&past_futures](const outer_index_type& outer_idx) mutable
       //{
       //  auto inner_executor_idx = select_inner_executor(outer_idx, outer_shape);
       //
-      //  using past_arg_type = detail::future_value_t<Future>;
+      //  using past_arg_type = future_result_t<Future>;
       //
       //  return bulk_then_execute_with_void_result(inner_executor(inner_executor_idx), [=](const inner_index_type& inner_idx, past_arg_type& past_arg, decltype(inner_factories())&... inner_shared_args) mutable
       //  {
@@ -398,19 +393,19 @@ class executor_array
       //outer_shape);
 
       auto functor = eager_bulk_then_execute_functor<Function,future_container,result_type,outer_shared_arg_type,InnerFactories...>{*this, f, shared_predecessor_futures, results_raw_ptr, outer_shared_arg_raw_ptr, agency::make_tuple(inner_factories...), outer_shape, inner_shape};
-      auto inner_futures = detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(outer_executor(), functor, outer_shape);
+      auto inner_futures = detail::blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters(outer_executor(), functor, outer_shape);
 
       // create a continuation to synchronize the futures and return the result
       auto continuation = make_wait_for_futures_and_move_result(std::move(inner_futures), std::move(results_ptr), std::move(outer_shared_arg_ptr));
 
-      // async_execute() with the outer executor to launch the continuation
-      return agency::async_execute(outer_executor(), std::move(continuation));
+      // twoway_execute() with the outer executor to launch the continuation
+      return detail::twoway_execute(outer_executor(), std::move(continuation));
     }
 
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories>
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      bulk_then_execute_impl(eager_strategy, Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      bulk_then_execute_impl(eager_strategy, Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       return eager_bulk_then_execute(f, shape, predecessor, result_factory, outer_factory, inner_factories...);
     }
@@ -421,7 +416,7 @@ class executor_array
             >
     __AGENCY_ANNOTATION
     future<detail::result_of_t<ResultFactory()>>
-      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories)
+      bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
       // tag dispatch the appropriate implementation strategy for bulk_then_execute() using this first parameter
       return bulk_then_execute_impl(bulk_then_execute_implementation_strategy(), f, shape, predecessor, result_factory, outer_factory, inner_factories...);
@@ -435,7 +430,7 @@ class executor_array
     using bulk_then_execute_implementation_strategy = typename std::conditional<
       detail::disjunction<
         std::is_same<outer_execution_category, sequenced_execution_tag>,
-        std::is_same<inner_execution_category, sequenced_execution_tag> // XXX this should really check whether the inner executor's async_execute() method executes concurrently with the caller 
+        std::is_same<inner_execution_category, sequenced_execution_tag> // XXX this should really check whether the inner executor's twoway_execute() method executes concurrently with the caller 
       >::value,
       lazy_strategy,
       eager_strategy

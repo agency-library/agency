@@ -8,8 +8,8 @@ struct not_an_executor {};
 struct bulk_executor_without_index_type
 {
   template<class Function, class ResultFactory, class SharedFactory>
-  typename std::result_of<ResultFactory()>::type
-  bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
+  std::future<typename std::result_of<ResultFactory()>::type>
+  bulk_twoway_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const;
 };
 
 struct bulk_executor_with_shape_type_without_index_type
@@ -20,8 +20,8 @@ struct bulk_executor_with_shape_type_without_index_type
   };
 
   template<class Function, class ResultFactory, class SharedFactory>
-  typename std::result_of<ResultFactory()>::type
-  bulk_sync_execute(Function f, shape_type n, ResultFactory result_factory, SharedFactory shared_factory);
+  std::future<typename std::result_of<ResultFactory()>::type>
+  bulk_twoway_execute(Function f, shape_type n, ResultFactory result_factory, SharedFactory shared_factory) const;
 };
 
 struct bulk_executor_with_index_type
@@ -32,8 +32,8 @@ struct bulk_executor_with_index_type
   };
 
   template<class Function, class ResultFactory, class SharedFactory>
-  typename std::result_of<ResultFactory()>::type
-  bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
+  std::future<typename std::result_of<ResultFactory()>::type>
+  bulk_twoway_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const;
 };
 
 struct bulk_executor_with_shape_type_with_index_type
@@ -49,8 +49,8 @@ struct bulk_executor_with_shape_type_with_index_type
   };
 
   template<class Function, class ResultFactory, class SharedFactory>
-  typename std::result_of<ResultFactory()>::type
-  bulk_sync_execute(Function f, shape_type n, ResultFactory result_factory, SharedFactory shared_factory);
+  std::future<typename std::result_of<ResultFactory()>::type>
+  bulk_twoway_execute(Function f, shape_type n, ResultFactory result_factory, SharedFactory shared_factory) const;
 };
 
 int main()

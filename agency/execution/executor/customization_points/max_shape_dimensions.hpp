@@ -41,7 +41,7 @@ using has_max_shape_dimensions = typename has_max_shape_dimensions_impl<Executor
 // this overload handles the case when an Executor has .max_shape_dimensions()
 __agency_exec_check_disable__
 template<class E,
-         __AGENCY_REQUIRES(detail::Executor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(detail::has_max_shape_dimensions<E,executor_shape_t<E>>::value)
         >
 __AGENCY_ANNOTATION
@@ -53,7 +53,7 @@ executor_shape_t<E> max_shape_dimensions(const E& exec)
 
 // this overload handles the case when an Executor does not have .max_shape_dimensions()
 template<class E,
-         __AGENCY_REQUIRES(detail::Executor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(!detail::has_max_shape_dimensions<E,executor_shape_t<E>>::value)
         >
 __AGENCY_ANNOTATION

@@ -211,6 +211,7 @@ class optional : public detail::optional_base<T>
       return *this;
     }
 
+    __agency_exec_check_disable__
     template<class U,
              class = typename std::enable_if<
                std::is_same<typename std::decay<U>::type,T>::value
@@ -230,6 +231,7 @@ class optional : public detail::optional_base<T>
       return *this;
     }
 
+    __agency_exec_check_disable__
     template<class... Args>
     __AGENCY_ANNOTATION
     void emplace(Args&&... args)
@@ -388,6 +390,7 @@ class optional : public detail::optional_base<T>
       return *operator->();
     }
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     void reset()
     {

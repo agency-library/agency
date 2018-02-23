@@ -21,7 +21,7 @@ int main()
   agency::cuda::grid_executor_2d::shape_type shape = {num_blocks, num_threads};
 
   std::cout << "Testing execute on host" << std::endl;
-  agency::detail::bulk_sync_execute_with_auto_result_and_without_shared_parameters(ex, hello_world(), shape);
+  agency::detail::blocking_bulk_twoway_execute_with_auto_result_and_without_shared_parameters(ex, hello_world(), shape);
 
   return 0;
 }

@@ -136,39 +136,6 @@ class thread_pool_executor
   public:
     using execution_category = parallel_execution_tag;
 
-    template<class Function, class ResultFactory, class SharedFactory>
-    result_of_t<ResultFactory()>
-      bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
-    {
-      auto result = result_factory();
-      auto shared_arg = shared_factory();
-
-      // XXX we might prefer to unconditionally execute task 0 inline
-      if(n <= 1)
-      {
-        if(n == 1) f(0, result, shared_arg);
-      }
-      else
-      {
-        agency::detail::latch work_remaining(n);
-
-        for(size_t idx = 0; idx < n; ++idx)
-        {
-          system_thread_pool().submit([=,&result,&shared_arg,&work_remaining] () mutable
-          {
-            f(idx, result, shared_arg);
-
-            work_remaining.count_down(1);
-          });
-        }
-
-        // wait for all the work to complete
-        work_remaining.wait();
-      }
-
-      return std::move(result);
-    }
-
   private:
     // this deleter fulfills a promise just before
     // it deletes its argument
@@ -191,12 +158,12 @@ class thread_pool_executor
   public:
     // this is the overload of bulk_then_execute for non-void Future
     template<class Function, class Future, class ResultFactory, class SharedFactory,
-             __AGENCY_REQUIRES(!std::is_void<future_value_t<Future>>::value)
+             __AGENCY_REQUIRES(!std::is_void<future_result_t<Future>>::value)
             >
     std::future<
       result_of_t<ResultFactory()>
     >
-      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       using result_type = result_of_t<ResultFactory()>;
 
@@ -230,8 +197,8 @@ class thread_pool_executor
 // to emit warnings about a __host__ __device__ function calling __host__ functions 
 // this #ifndef works around this problem
 #ifndef __CUDA_ARCH__
-          // get the predecessor future's value
-          using predecessor_type = future_value_t<Future>;
+          // get the predecessor future's result
+          using predecessor_type = future_result_t<Future>;
           predecessor_type& predecessor_arg = const_cast<predecessor_type&>(shared_predecessor.get());
 
           // call the user's function
@@ -253,12 +220,12 @@ class thread_pool_executor
 
     // this is the overload of bulk_then_execute for void Future
     template<class Function, class Future, class ResultFactory, class SharedFactory,
-             __AGENCY_REQUIRES(std::is_void<future_value_t<Future>>::value)
+             __AGENCY_REQUIRES(std::is_void<future_result_t<Future>>::value)
             >
     std::future<
       result_of_t<ResultFactory()>
     >
-      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+      bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       using result_type = result_of_t<ResultFactory()>;
 

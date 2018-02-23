@@ -14,11 +14,8 @@ int main()
   static const size_t unroll_factor = 10;
   using executor_type = experimental::unrolling_executor<unroll_factor>;
 
-  static_assert(is_bulk_synchronous_executor<executor_type>::value,
-    "unrolling_executor should be a bulk synchronous executor");
-
-  static_assert(is_bulk_executor<executor_type>::value,
-    "unrolling_executor should be a bulk executor");
+  static_assert(detail::is_bulk_twoway_executor<executor_type>::value,
+    "unrolling_executor should be a bulk twoway executor");
 
   static_assert(detail::is_detected_exact<sequenced_execution_tag, executor_execution_category_t, executor_type>::value,
     "unrolling_executor should have sequenced_execution_tag execution_category");
@@ -29,8 +26,8 @@ int main()
   static_assert(detail::is_detected_exact<size_t, executor_index_t, executor_type>::value,
     "unrolling_executor should have size_t index_type");
 
-  static_assert(detail::is_detected_exact<std::future<int>, executor_future_t, executor_type, int>::value,
-    "unrolling_executor should have std::future furture");
+  static_assert(detail::is_detected_exact<always_ready_future<int>, executor_future_t, executor_type, int>::value,
+    "unrolling_executor should have agency::always_ready_future future");
 
   static_assert(executor_execution_depth<executor_type>::value == 1,
     "unrolling_executor should have execution_depth == 1");
@@ -41,7 +38,7 @@ int main()
   
   for(auto shape : shapes)
   {
-    auto result = exec.bulk_sync_execute(
+    auto result_future = exec.bulk_twoway_execute(
       [](size_t idx, std::vector<int>& results, std::vector<int>& shared_arg)
       {
         results[idx] = idx + shared_arg[idx];
@@ -50,6 +47,8 @@ int main()
       [=]{ return std::vector<int>(shape); },     // results
       [=]{ return std::vector<int>(shape, 13); }  // shared_arg
     );
+
+    auto result = result_future.get();
     
     std::vector<int> reference(shape);
     std::iota(reference.begin(), reference.end(), 13);

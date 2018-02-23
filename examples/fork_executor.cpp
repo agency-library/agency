@@ -64,9 +64,13 @@ class fork_executor
     // forked processes communicate through shared memory
     template<typename T> using allocator = shared_memory_allocator<T>;
 
+    // the futures returned by this executor are always ready
+    template<class T>
+    using future = agency::always_ready_future<T>;
+
     template<class Function, class ResultFactory, class SharedFactory>
-    typename std::result_of<ResultFactory()>::type
-    bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
+    agency::always_ready_future<typename std::result_of<ResultFactory()>::type>
+    bulk_twoway_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       // name the types of the objects returned by the factories
       using result_type = typename std::result_of<ResultFactory()>::type;
@@ -98,8 +102,8 @@ class fork_executor
         // spin wait until all forked children complete
       }
 
-      // return the result object by moving it for efficiency
-      return std::move(result[0]);
+      // return the result object via always_ready_future
+      return agency::make_always_ready_future(std::move(result[0]));
     }
 };
 

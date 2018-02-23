@@ -8,8 +8,8 @@
 struct bulk_executor_without_category
 {
   template<class Function, class ResultFactory, class SharedFactory>
-  typename std::result_of<ResultFactory()>::type
-  bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
+  std::future<typename std::result_of<ResultFactory()>::type>
+  bulk_twoway_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const;
 };
 
 struct bulk_executor_with_category
@@ -17,8 +17,8 @@ struct bulk_executor_with_category
   using execution_category = agency::sequenced_execution_tag;
 
   template<class Function, class ResultFactory, class SharedFactory>
-  typename std::result_of<ResultFactory()>::type
-  bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory);
+  std::future<typename std::result_of<ResultFactory()>::type>
+  bulk_twoway_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const;
 };
 
 

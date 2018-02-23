@@ -42,7 +42,7 @@ using has_unit_shape = typename has_unit_shape_impl<Executor,Shape>::type;
 // this overload handles the case when an Executor has .unit_shape()
 __agency_exec_check_disable__
 template<class E,
-         __AGENCY_REQUIRES(detail::Executor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(detail::has_unit_shape<E,executor_shape_t<E>>::value)
         >
 __AGENCY_ANNOTATION
@@ -55,7 +55,7 @@ executor_shape_t<E> unit_shape(const E& exec)
 // this overload handles the case when an Executor does not have .unit_shape()
 __agency_exec_check_disable__
 template<class E,
-         __AGENCY_REQUIRES(detail::Executor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(!detail::has_unit_shape<E,executor_shape_t<E>>::value)
         >
 __AGENCY_ANNOTATION

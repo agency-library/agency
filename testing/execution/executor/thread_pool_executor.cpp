@@ -5,17 +5,15 @@
 // XXX use parallel_executor.hpp instead of thread_pool.hpp due to circular #inclusion problems
 #include <agency/execution/executor/parallel_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 
 int main()
 {
   using namespace agency;
 
-  static_assert(is_bulk_continuation_executor<detail::thread_pool_executor>::value,
-    "thread_pool_executor should be a bulk continuation executor");
-
-  static_assert(is_bulk_executor<detail::thread_pool_executor>::value,
-    "thread_pool_executor should be a bulk executor");
+  static_assert(detail::is_bulk_then_executor<detail::thread_pool_executor>::value,
+    "thread_pool_executor should be a bulk then executor");
 
   static_assert(detail::is_detected_exact<parallel_execution_tag, executor_execution_category_t, detail::thread_pool_executor>::value,
     "thread_pool_executor should have parallel_execution_tag execution_category");
@@ -33,24 +31,6 @@ int main()
     "thread_pool_executor should have execution_depth == 1");
 
   detail::thread_pool_executor exec;
-
-
-  {
-    // bulk_sync_execute()
-    size_t shape = 10;
-
-    auto result = exec.bulk_sync_execute(
-      [](size_t idx, std::vector<int>& results, std::vector<int>& shared_arg)
-      {
-        results[idx] = shared_arg[idx] - 1;
-      },
-      shape,
-      [=]{ return std::vector<int>(shape); },     // results
-      [=]{ return std::vector<int>(shape, 13); }  // shared_arg
-    );
-
-    assert(std::vector<int>(10, 13 - 1) == result);
-  }
 
 
   {

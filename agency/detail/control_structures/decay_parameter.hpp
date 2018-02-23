@@ -32,7 +32,7 @@ struct decay_parameter
   // otherwise, we pass a copy of the decayed_type
   using type = typename detail::lazy_conditional<
     is_future<decayed_type>::value,
-    lazy_add_lvalue_reference<future_value<decayed_type>>,
+    lazy_add_lvalue_reference<future_result<decayed_type>>,
     identity<decayed_type>
   >::type;
 };

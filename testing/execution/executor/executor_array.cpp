@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include <agency/execution/executor/executor_array.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/tuple.hpp>
 #include "test_executors.hpp"
 
@@ -14,8 +15,8 @@ void test(OuterExecutor, InnerExecutor inner_exec)
 
   using executor_array_type = agency::executor_array<InnerExecutor,OuterExecutor>;
 
-  static_assert(is_bulk_continuation_executor<executor_array_type>::value,
-    "executor_array should be a bulk continuation executor");
+  static_assert(detail::is_bulk_then_executor<executor_array_type>::value,
+    "executor_array should be a bulk then executor");
 
   using expected_category = scoped_execution_tag<executor_execution_category_t<OuterExecutor>, executor_execution_category_t<InnerExecutor>>;
 
@@ -94,17 +95,11 @@ void test(OuterExecutor, InnerExecutor inner_exec)
 
 int main()
 {
-  test(bulk_continuation_executor(), bulk_continuation_executor());
-  test(bulk_continuation_executor(), bulk_synchronous_executor());
-  test(bulk_continuation_executor(), bulk_asynchronous_executor());
+  test(bulk_then_executor(), bulk_then_executor());
+  test(bulk_then_executor(), bulk_twoway_executor());
 
-  test(bulk_synchronous_executor(), bulk_continuation_executor());
-  test(bulk_synchronous_executor(), bulk_synchronous_executor());
-  test(bulk_synchronous_executor(), bulk_asynchronous_executor());
-
-  test(bulk_asynchronous_executor(), bulk_continuation_executor());
-  test(bulk_asynchronous_executor(), bulk_synchronous_executor());
-  test(bulk_asynchronous_executor(), bulk_asynchronous_executor());
+  test(bulk_twoway_executor(), bulk_then_executor());
+  test(bulk_twoway_executor(), bulk_twoway_executor());
 
   std::cout << "OK" << std::endl;
 

@@ -148,8 +148,8 @@ class basic_execution_policy
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_execution_policy(const param_type& param, const executor_type& executor = executor_type{})
-      : param_(param),
-        executor_(executor)
+      : executor_(executor),
+        param_(param)
     {}
 
     /// \brief Returns this execution policy's parameterization.
@@ -295,12 +295,12 @@ class basic_execution_policy
     }
 
   protected:
-    param_type param_;
-
     // executor_ needs to be mutable, because:
     // * the global execution policy objects are constexpr
     // * executor's member functions are not const
     mutable executor_type executor_;
+
+    param_type param_;
 };
 
 

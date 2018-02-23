@@ -17,13 +17,13 @@ namespace detail
 // this is the case for when Function returns void
 __agency_exec_check_disable__
 template<class E, class Function, class Future, class... Factories,
-         __AGENCY_REQUIRES(BulkExecutor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories)),
          __AGENCY_REQUIRES(std::is_void<result_of_continuation_t<Function, executor_index_t<E>, Future, result_of_t<Factories()>&...>>::value)
         >
 __AGENCY_ANNOTATION
 executor_future_t<E,void>
-  bulk_then_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
+  bulk_then_execute_with_auto_result(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
   return bulk_then_execute_with_void_result(exec, f, shape, predecessor, factories...);
 }
@@ -34,7 +34,7 @@ executor_future_t<E,void>
 // the results of each invocation into a container
 // this container is returned through a future
 template<class E, class Function, class Future, class... Factories,
-         __AGENCY_REQUIRES(BulkExecutor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(executor_execution_depth<E>::value == sizeof...(Factories)),
          __AGENCY_REQUIRES(!std::is_void<result_of_continuation_t<Function, executor_index_t<E>, Future, result_of_t<Factories()>&...>>::value)
         >
@@ -44,7 +44,7 @@ executor_future_t<E,
     result_of_continuation_t<Function,executor_index_t<E>,Future,result_of_t<Factories()>&...>
   >
 >
-  bulk_then_execute_with_auto_result(E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
+  bulk_then_execute_with_auto_result(const E& exec, Function f, executor_shape_t<E> shape, Future& predecessor, Factories... factories)
 {
   // compute the type of f's result
   using result_type = result_of_continuation_t<Function,executor_index_t<E>,Future,result_of_t<Factories()>&...>;

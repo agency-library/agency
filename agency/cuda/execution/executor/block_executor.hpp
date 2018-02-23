@@ -80,7 +80,7 @@ class block_executor : private grid_executor
              >
             >
     async_future<agency::detail::result_of_t<ResultFactory()>>
-      bulk_then_execute(Function f, shape_type shape, async_future<T>& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+      bulk_then_execute(Function f, shape_type shape, async_future<T>& predecessor, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       // wrap f with a functor which accepts indices which grid_executor produces
       auto wrapped_f = detail::block_executor_helper_functor<Function>{f};

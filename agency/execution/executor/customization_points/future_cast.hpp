@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/future.hpp>
-#include <agency/execution/executor/customization_points/then_execute.hpp>
+#include <agency/execution/executor/detail/execution_functions/then_execute.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/is_executor.hpp>
 #include <utility>
@@ -47,7 +47,7 @@ template<class T, class E, class Future,
          __AGENCY_REQUIRES(has_future_cast<T,E,Future>::value)
         >
 __AGENCY_ANNOTATION
-executor_future_t<E,T> future_cast_impl(E& exec, Future& fut)
+executor_future_t<E,T> future_cast_impl(const E& exec, Future& fut)
 {
   return exec.template future_cast<T>(fut);
 }
@@ -56,11 +56,11 @@ executor_future_t<E,T> future_cast_impl(E& exec, Future& fut)
 template<class FromFuture, class ToFuture>
 struct is_future_castable_impl
 {
-  using from_value_type = typename agency::future_traits<FromFuture>::value_type;
-  using to_value_type   = typename agency::future_traits<ToFuture>::value_type;
+  using from_result_type = future_result_t<FromFuture>;
+  using to_result_type   = future_result_t<ToFuture>;
 
   using cast_type = decltype(
-    agency::future_traits<FromFuture>::template cast<to_value_type>(std::declval<FromFuture&>())
+    agency::future_traits<FromFuture>::template cast<to_result_type>(std::declval<FromFuture&>())
   );
 
   using type = std::is_same<cast_type, ToFuture>;
@@ -74,12 +74,12 @@ using is_future_castable = typename is_future_castable_impl<FromFuture,ToFuture>
 // this overload handles executors which do not have .future_cast()
 // and when future_traits::cast() may be used
 template<class T, class E, class Future,
-         __AGENCY_REQUIRES(detail::Executor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(!has_future_cast<T,E,Future>::value),
          __AGENCY_REQUIRES(is_future_castable<Future, executor_future_t<E,T>>::value)
         >
 __AGENCY_ANNOTATION
-executor_future_t<E,T> future_cast_impl(E&, Future& fut)
+executor_future_t<E,T> future_cast_impl(const E&, Future& fut)
 {
   return future_traits<Future>::template cast<T>(fut);
 }
@@ -109,14 +109,14 @@ struct future_cast_functor
 // and when future_traits::cast() may not be used
 // in this case, we create a continuation to execute the conversion
 template<class T, class E, class Future,
-         __AGENCY_REQUIRES(detail::Executor<E>()),
+         __AGENCY_REQUIRES(is_executor<E>::value),
          __AGENCY_REQUIRES(!has_future_cast<T,E,Future>::value),
          __AGENCY_REQUIRES(!is_future_castable<Future, executor_future_t<E,T>>::value)
         >
 __AGENCY_ANNOTATION
-executor_future_t<E,T> future_cast_impl(E& exec, Future& fut)
+executor_future_t<E,T> future_cast_impl(const E& exec, Future& fut)
 {
-  return agency::then_execute(exec, future_cast_functor<T>(), fut);
+  return agency::detail::then_execute(exec, future_cast_functor<T>(), fut);
 }
 
 
@@ -126,7 +126,7 @@ executor_future_t<E,T> future_cast_impl(E& exec, Future& fut)
 __agency_exec_check_disable__
 template<class T, class E, class Future>
 __AGENCY_ANNOTATION
-executor_future_t<E,T> future_cast(E& exec, Future& fut)
+executor_future_t<E,T> future_cast(const E& exec, Future& fut)
 {
   return detail::future_cast_impl<T>(exec, fut);
 } // end future_cast()

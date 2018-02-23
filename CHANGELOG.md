@@ -7,7 +7,21 @@ TODO
 
 ### Breaking Changes
 
-TODO
+  * `bulk_sync_execute` has been eliminated
+  * `is_bulk_synchronous_executor` has been eliminated
+  * `bulk_async_execute` has been eliminated
+  * `is_bulk_asynchronous_executor` has been eliminated
+  * `async_execute` has been eliminated
+  * `is_asynchronous_executor` has been eliminated
+  * `sync_execute` has been eliminated
+  * `is_synchronous_executor` has been eliminated
+  * `bulk_then_execute` has been eliminated
+  * `is_bulk_continuation_executor` has been eliminated
+  * `then_execute` has been eliminated
+  * `is_continuation_executor` has been eliminated
+  * `is_bulk_executor` has been eliminated
+  * `is_simple_executor` has been eliminated
+  * `future_value` and `future_value_t` have been renamed `future_result` and `future_result_t`, respectively.
 
 ## New Features
 

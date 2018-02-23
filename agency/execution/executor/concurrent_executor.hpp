@@ -34,7 +34,7 @@ class concurrent_executor
     std::future<
       detail::result_of_t<ResultFactory()>
     >
-    bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory)
+    bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       return bulk_then_execute_impl(f, n, predecessor, result_factory, shared_factory);
     }
@@ -45,13 +45,13 @@ class concurrent_executor
       bulk_then_execute_impl(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory,
                              typename std::enable_if<
                                !std::is_void<
-                                 typename agency::future_traits<Future>::value_type
+                                 future_result_t<Future>
                                >::value
-                             >::type* = 0)
+                             >::type* = 0) const
     {
       if(n > 0)
       {
-        using predecessor_type = typename agency::future_traits<Future>::value_type;
+        using predecessor_type = future_result_t<Future>;
 
         return agency::detail::monadic_then(predecessor, std::launch::async, [=](predecessor_type& predecessor) mutable
         {
@@ -70,13 +70,13 @@ class concurrent_executor
           std::future<void> left = agency::detail::make_ready_future();
           if(0 < mid)
           {
-            left = this->async_execute(g, 0, mid);
+            left = this->twoway_execute(g, 0, mid);
           }
 
           std::future<void> right = agency::detail::make_ready_future();
           if(mid + 1 < n)
           {
-            right = this->async_execute(g, mid + 1, n);
+            right = this->twoway_execute(g, mid + 1, n);
           }
 
           g(mid);
@@ -96,9 +96,9 @@ class concurrent_executor
       bulk_then_execute_impl(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory,
                              typename std::enable_if<
                                std::is_void<
-                                 typename agency::future_traits<Future>::value_type
+                                 future_result_t<Future>
                                >::value
-                             >::type* = 0)
+                             >::type* = 0) const
     {
       if(n > 0)
       {
@@ -119,13 +119,13 @@ class concurrent_executor
           std::future<void> left = agency::detail::make_ready_future();
           if(0 < mid)
           {
-            left = this->async_execute(g, 0, mid);
+            left = this->twoway_execute(g, 0, mid);
           }
 
           std::future<void> right = agency::detail::make_ready_future();
           if(mid + 1 < n)
           {
-            right = this->async_execute(g, mid + 1, n);
+            right = this->twoway_execute(g, mid + 1, n);
           }
 
           g(mid);
@@ -142,7 +142,7 @@ class concurrent_executor
 
     // first must be less than last
     template<class Function>
-    std::future<void> async_execute(Function f, size_t first, size_t last)
+    std::future<void> twoway_execute(Function f, size_t first, size_t last) const
     {
       return std::async(std::launch::async, [=]() mutable
       {
@@ -151,13 +151,13 @@ class concurrent_executor
         std::future<void> left = detail::make_ready_future();
         if(first < mid)
         {
-          left = this->async_execute(f, first, mid);
+          left = this->twoway_execute(f, first, mid);
         }
 
         std::future<void> right = detail::make_ready_future();
         if(mid + 1 < last)
         {
-          right = this->async_execute(f, mid + 1, last);
+          right = this->twoway_execute(f, mid + 1, last);
         }
 
         agency::detail::invoke(f,mid);
