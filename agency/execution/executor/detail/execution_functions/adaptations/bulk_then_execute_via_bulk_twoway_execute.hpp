@@ -57,7 +57,6 @@ struct functor
   using predecessor_type = future_result_t<SharedFuture>;
 
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   ~functor() = default;
 
   __agency_exec_check_disable__
@@ -67,7 +66,6 @@ struct functor
   {}
 
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   functor(const functor&) = default;
 
   __agency_exec_check_disable__
@@ -91,7 +89,6 @@ struct functor<Function,SharedFuture,true>
   mutable SharedFuture fut_;
 
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   ~functor() = default;
 
   __agency_exec_check_disable__
@@ -101,7 +98,6 @@ struct functor<Function,SharedFuture,true>
   {}
 
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   functor(const functor&) = default;
 
   __agency_exec_check_disable__

@@ -72,10 +72,8 @@ class variant_executor
       executor_allocator_t<Executors,T>...
     >;
 
-    __AGENCY_ANNOTATION
     variant_executor() = default;
 
-    __AGENCY_ANNOTATION
     variant_executor(const variant_executor& other) = default;
 
     template<class OtherExecutor,

@@ -18,15 +18,12 @@ struct ignore_unit_result_parameter_and_invoke
   mutable Function f;
 
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   ignore_unit_result_parameter_and_invoke() = default;
 
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   ignore_unit_result_parameter_and_invoke(const ignore_unit_result_parameter_and_invoke&) = default;
 
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   ~ignore_unit_result_parameter_and_invoke() = default;
 
   template<class Index, class... SharedParameters>
@@ -44,15 +41,12 @@ struct ignore_unit_result_parameter_and_invoke<Function,void>
   mutable Function f;
 
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   ignore_unit_result_parameter_and_invoke() = default;
 
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   ignore_unit_result_parameter_and_invoke(const ignore_unit_result_parameter_and_invoke&) = default;
 
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   ~ignore_unit_result_parameter_and_invoke() = default;
 
   template<class Index, class... SharedParameters>

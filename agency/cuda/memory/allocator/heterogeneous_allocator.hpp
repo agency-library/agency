@@ -23,10 +23,8 @@ class heterogeneous_allocator : public agency::detail::allocator_adaptor<T,heter
     using super_t = agency::detail::allocator_adaptor<T,heterogeneous_resource<HostResource,DeviceResource>>;
 
   public:
-    __host__ __device__
     heterogeneous_allocator() = default;
 
-    __host__ __device__
     heterogeneous_allocator(const heterogeneous_allocator&) = default;
 
     template<class U>

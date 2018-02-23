@@ -85,7 +85,6 @@ template<class T>
 class moving_factory
 {
   public:
-    __AGENCY_ANNOTATION
     moving_factory(moving_factory&& other) = default;
 
     // this constructor moves other's value into value_

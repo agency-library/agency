@@ -33,10 +33,8 @@ class flatten_view
     using value_type = range_value_t<inner_range_type>;
     using reference = range_reference_t<inner_range_type>;
 
-    __AGENCY_ANNOTATION
     flatten_view() = default;
 
-    __AGENCY_ANNOTATION
     flatten_view(const flatten_view&) = default;
 
     template<class OtherRangeOfRanges,

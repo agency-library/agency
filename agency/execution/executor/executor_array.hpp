@@ -58,11 +58,9 @@ class executor_array
     }
 
     __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
     executor_array() = default;
 
     __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
     executor_array(const executor_array&) = default;
 
     __agency_exec_check_disable__

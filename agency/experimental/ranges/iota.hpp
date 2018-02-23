@@ -26,10 +26,8 @@ class counting_iterator
     //     otherwise it should defer to iterator_traits
     using iterator_category = std::random_access_iterator_tag;
 
-    __AGENCY_ANNOTATION
     counting_iterator() = default;
 
-    __AGENCY_ANNOTATION
     counting_iterator(const counting_iterator&) = default;
 
     __AGENCY_ANNOTATION

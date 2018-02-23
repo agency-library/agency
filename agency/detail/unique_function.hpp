@@ -53,7 +53,6 @@ class unique_function<Result(Args...)>
   public:
     using result_type = Result;
 
-    __AGENCY_ANNOTATION
     unique_function() = default;
 
     __AGENCY_ANNOTATION
@@ -61,7 +60,6 @@ class unique_function<Result(Args...)>
       : f_ptr_(nullptr)
     {}
 
-    __AGENCY_ANNOTATION
     unique_function(unique_function&& other) = default;
 
     template<class Function>
@@ -94,7 +92,6 @@ class unique_function<Result(Args...)>
       : f_ptr_(allocate_function_pointer(alloc, std::forward<Function>(f)))
     {}
 
-    __AGENCY_ANNOTATION
     unique_function& operator=(unique_function&& other) = default;
 
     __AGENCY_ANNOTATION
@@ -150,7 +147,6 @@ class unique_function<Result(Args...)>
       mutable Function f_;
 
       __agency_exec_check_disable__
-      __AGENCY_ANNOTATION
       ~callable() = default;
 
       __agency_exec_check_disable__
@@ -213,10 +209,8 @@ class unique_function<Result(Args...)>
     {
       using value_type = T;
 
-      __AGENCY_ANNOTATION
       default_allocator() = default;
 
-      __AGENCY_ANNOTATION
       default_allocator(const default_allocator&) = default;
 
       template<class U>

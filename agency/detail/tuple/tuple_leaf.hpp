@@ -56,7 +56,6 @@ class tuple_leaf_base
 {
   public:
     __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
     tuple_leaf_base() = default;
 
     __agency_exec_check_disable__
@@ -65,7 +64,6 @@ class tuple_leaf_base
     tuple_leaf_base(U&& arg) : val_(std::forward<U>(arg)) {}
 
     __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
     ~tuple_leaf_base() = default;
 
     __AGENCY_ANNOTATION
@@ -89,7 +87,6 @@ template<class T>
 class tuple_leaf_base<T,true> : public T
 {
   public:
-    __AGENCY_ANNOTATION
     tuple_leaf_base() = default;
 
     template<class U>
@@ -118,7 +115,6 @@ class tuple_leaf : public tuple_leaf_base<T>
 
 
   public:
-    __AGENCY_ANNOTATION
     tuple_leaf() = default;
 
 

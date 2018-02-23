@@ -53,7 +53,6 @@ class then_executor : public basic_executor_adaptor<Executor>
     using super_t = basic_executor_adaptor<Executor>;
 
   public:
-    __AGENCY_ANNOTATION
     then_executor() = default;
 
     __AGENCY_ANNOTATION

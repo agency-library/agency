@@ -64,7 +64,6 @@ class asynchronous_state
     using pointer = typename storage_type::pointer;
 
     // constructs an invalid state
-    __AGENCY_ANNOTATION
     asynchronous_state() = default;
 
     // constructs an immediately ready state
@@ -100,7 +99,6 @@ class asynchronous_state
       : asynchronous_state(construct_ready, allocator, T{})
     {}
 
-    __AGENCY_ANNOTATION
     asynchronous_state(asynchronous_state&& other) = default;
 
     template<class OtherT,
@@ -114,7 +112,6 @@ class asynchronous_state
       : storage_(std::move(other.storage_))
     {}
 
-    __AGENCY_ANNOTATION
     asynchronous_state& operator=(asynchronous_state&&) = default;
 
     __AGENCY_ANNOTATION
@@ -165,10 +162,8 @@ struct empty_type_ptr
 {
   using element_type = T;
   
-  __AGENCY_ANNOTATION
   empty_type_ptr() = default;
   
-  __AGENCY_ANNOTATION
   empty_type_ptr(const empty_type_ptr&) = default;
   
   template<class U,
@@ -207,10 +202,8 @@ struct empty_type_ptr
 template<>
 struct empty_type_ptr<void> : unit_ptr
 {
-  __AGENCY_ANNOTATION
   empty_type_ptr() = default;
 
-  __AGENCY_ANNOTATION
   empty_type_ptr(const empty_type_ptr&) = default;
 
   // allow copy construction from empty_type_ptr<T>

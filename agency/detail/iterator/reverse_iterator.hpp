@@ -21,7 +21,6 @@ class reverse_iterator
 
     using iterator_type = Iterator;
 
-    __AGENCY_ANNOTATION
     reverse_iterator() = default;
 
     __AGENCY_ANNOTATION

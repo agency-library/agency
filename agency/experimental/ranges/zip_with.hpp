@@ -358,10 +358,8 @@ class zip_with_view
       range_sentinel_t<Ranges>...
     >;
 
-    __AGENCY_ANNOTATION
     zip_with_view() = default;
 
-    __AGENCY_ANNOTATION
     zip_with_view(const zip_with_view& other) = default;
 
     template<class OtherRange, class... OtherRanges,

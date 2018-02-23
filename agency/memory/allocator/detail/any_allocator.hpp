@@ -61,11 +61,9 @@ template<class Allocator>
 struct concrete_allocator : abstract_allocator
 {
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   concrete_allocator(const concrete_allocator& other) = default;
 
   __agency_exec_check_disable__
-  __AGENCY_ANNOTATION
   ~concrete_allocator() = default;
 
   __agency_exec_check_disable__

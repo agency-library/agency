@@ -73,11 +73,9 @@ class point : public agency::detail::point_base_t<T,Rank>,
     using typename super_t::const_pointer;
 
 
-    __AGENCY_ANNOTATION
     point() = default;
 
 
-    __AGENCY_ANNOTATION
     point(const point &) = default;
 
 

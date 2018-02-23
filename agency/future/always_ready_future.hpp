@@ -53,7 +53,6 @@ class always_ready_future
   public:
     // Default constructor creates an invalid always_ready_future
     // Postcondition: !valid()
-    __AGENCY_ANNOTATION
     always_ready_future() = default;
 
     __AGENCY_ANNOTATION

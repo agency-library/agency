@@ -167,7 +167,6 @@ class chunk_view
   public:
     using difference_type = Difference;
 
-    __AGENCY_ANNOTATION
     chunk_view() = default;
 
     __AGENCY_ANNOTATION

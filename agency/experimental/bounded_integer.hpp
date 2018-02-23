@@ -25,10 +25,8 @@ class bounded_integer
 
     static const value_type static_bound = bound;
 
-    __AGENCY_ANNOTATION
     constexpr bounded_integer() = default;
 
-    __AGENCY_ANNOTATION
     constexpr bounded_integer(const bounded_integer&) = default;
 
     // if number > bound, the value of the bounded_integer is undefined
@@ -56,7 +54,6 @@ class bounded_integer
     }
 
     // operator members follow
-    __AGENCY_ANNOTATION
     bounded_integer& operator=(const bounded_integer&) = default;
 
     // assign

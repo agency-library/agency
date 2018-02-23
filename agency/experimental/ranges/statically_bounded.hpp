@@ -32,10 +32,8 @@ class statically_bounded_view
     // note the special size_type
     using size_type = bounded_size_t<bound>;
 
-    __AGENCY_ANNOTATION
     statically_bounded_view() = default;
 
-    __AGENCY_ANNOTATION
     statically_bounded_view(const statically_bounded_view&) = default;
 
     template<class OtherRange,

@@ -19,10 +19,8 @@ class constant_iterator
     using difference_type = std::ptrdiff_t;
     using iterator_category = std::random_access_iterator_tag;
 
-    __AGENCY_ANNOTATION
     constant_iterator() = default;
 
-    __AGENCY_ANNOTATION
     constant_iterator(const constant_iterator&) = default;
 
     __AGENCY_ANNOTATION

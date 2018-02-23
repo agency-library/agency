@@ -139,7 +139,6 @@ class basic_execution_policy
 
     /// \brief The default constructor default constructs this execution policy's associated executor and parameterization.
     __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
     basic_execution_policy() = default;
 
     /// \brief This constructor constructs a new basic_execution_policy given a parameterization and executor.
