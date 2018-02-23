@@ -38,7 +38,10 @@ class block_barrier
     void arrive_and_wait()
     {
 #ifdef __CUDA_ARCH__
-      __syncthreads();
+      // since we sometimes need to call .arrive_and_wait() from textually-unaligned code locations,
+      // use this barrier intrinsic instead of __syncthreads().
+      // unlike __syncthreads(), __barrier_sync(0) does not assume textual alignment.
+      __barrier_sync(0);
 #else
       assert(0);
 #endif
