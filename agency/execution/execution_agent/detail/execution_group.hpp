@@ -93,10 +93,8 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
         typename inner_traits::param_type inner_;
 
       public:
-        __AGENCY_ANNOTATION
         param_type() = default;
 
-        __AGENCY_ANNOTATION
         param_type(const param_type&) = default;
 
         __AGENCY_ANNOTATION

@@ -60,20 +60,26 @@ class shared_future
     friend agency::cuda::future<U>& detail::underlying_future(shared_future<U>& future);
 
   public:
+    __agency_exec_check_disable__
     shared_future() = default;
 
+    __agency_exec_check_disable__
     shared_future(const shared_future&) = default;
 
     shared_future(agency::cuda::future<T>&& other)
       : underlying_future_(std::make_shared<agency::cuda::future<T>>(std::move(other)))
     {}
 
+    __agency_exec_check_disable__
     shared_future(shared_future&& other) = default;
 
+    __agency_exec_check_disable__
     ~shared_future() = default;
 
+    __agency_exec_check_disable__
     shared_future& operator=(const shared_future& other) = default;
 
+    __agency_exec_check_disable__
     shared_future& operator=(shared_future&& other) = default;
 
     bool valid() const

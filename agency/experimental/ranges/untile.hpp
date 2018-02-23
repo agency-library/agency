@@ -37,10 +37,8 @@ class small_untiled_view
     using value_type = range_value_t<tile_type>;
     using reference = range_reference_t<tile_type>;
 
-    __AGENCY_ANNOTATION
     small_untiled_view() = default;
 
-    __AGENCY_ANNOTATION
     small_untiled_view(const small_untiled_view&) = default;
 
     template<class OtherRangeOfRanges,

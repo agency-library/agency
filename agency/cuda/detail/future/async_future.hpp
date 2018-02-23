@@ -97,7 +97,6 @@ class async_future
     detail::asynchronous_state<T> state_;
 
   public:
-    __host__ __device__
     async_future() = default;
 
     __host__ __device__

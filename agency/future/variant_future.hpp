@@ -31,10 +31,8 @@ class variant_future
     static_assert(detail::conjunction<is_future<Future>, is_future<Futures>...>::value, "All of variant_future's template parmeter types must be Futures.");
     static_assert(detail::conjunction<std::is_same<result_type, future_result_t<Futures>>...>::value, "All Futures' result types must be the same.");
 
-    __AGENCY_ANNOTATION
     variant_future() = default;
 
-    __AGENCY_ANNOTATION
     variant_future(variant_future&&) = default;
 
     template<class OtherFuture,
@@ -46,7 +44,6 @@ class variant_future
       : variant_(std::forward<OtherFuture>(other))
     {}
 
-    __AGENCY_ANNOTATION
     variant_future& operator=(variant_future&& other) = default;
 
     // this is the overload of make_ready() for non-void result_type

@@ -52,11 +52,9 @@ struct return_container
   {}
 
   __agency_exec_check_disable__
-  __host__ __device__
   return_container(const return_container&) = default;
 
   __agency_exec_check_disable__
-  __host__ __device__
   ~return_container() = default;
 
   __host__ __device__

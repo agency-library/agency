@@ -35,7 +35,6 @@ struct my_allocator
 
   agency::cuda::allocator<T> alloc;
 
-  __AGENCY_ANNOTATION
   my_allocator() = default;
 
   template<class U>

@@ -20,7 +20,6 @@ class forwarding_iterator
     using difference_type = typename std::iterator_traits<Iterator>::difference_type;
     using iterator_category = typename std::iterator_traits<Iterator>::iterator_category;
 
-    __AGENCY_ANNOTATION
     forwarding_iterator() = default;
 
     __AGENCY_ANNOTATION

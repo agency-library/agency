@@ -22,11 +22,9 @@ class allocator_adaptor : private MemoryResource
     using value_type = T;
 
     __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
     allocator_adaptor() = default;
 
     __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
     allocator_adaptor(const allocator_adaptor&) = default;
 
     __agency_exec_check_disable__

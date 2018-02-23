@@ -28,10 +28,8 @@ class variant_allocator
       >;
     };
 
-    __AGENCY_ANNOTATION
     variant_allocator() = default;
 
-    __AGENCY_ANNOTATION
     variant_allocator(const variant_allocator&) = default;
 
   public:

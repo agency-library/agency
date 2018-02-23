@@ -65,10 +65,8 @@ class basic_execution_agent
     class param_type
     {
       public:
-        __AGENCY_ANNOTATION
         param_type() = default;
 
-        __AGENCY_ANNOTATION
         param_type(const param_type& other) = default;
 
         __AGENCY_ANNOTATION

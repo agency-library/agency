@@ -99,11 +99,9 @@ class lattice
     using index_type = decltype(value_type{} - value_type{});
 
     // XXX should create a grid empty of points
-    __AGENCY_ANNOTATION
     lattice() = default;
 
     // copy from
-    __AGENCY_ANNOTATION
     lattice(const lattice&) = default;
 
     // creates a new lattice with min as the first lattice point

@@ -78,11 +78,9 @@ class basic_executor_adaptor
     // XXX need to publicize the other executor member typedefs such as execution_category, etc.
 
     __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
     basic_executor_adaptor() = default;
 
     __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
     basic_executor_adaptor(const basic_executor_adaptor&) = default;
 
     __agency_exec_check_disable__

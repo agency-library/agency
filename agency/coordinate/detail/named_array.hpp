@@ -19,10 +19,8 @@ struct named_array_element;
 template<class T>
 struct named_array_element<T,0>
 {
-  __AGENCY_ANNOTATION
   named_array_element() = default;
 
-  __AGENCY_ANNOTATION
   named_array_element(const named_array_element&) = default;
 
   __AGENCY_ANNOTATION
@@ -34,10 +32,8 @@ struct named_array_element<T,0>
 template<class T>
 struct named_array_element<T,1>
 {
-  __AGENCY_ANNOTATION
   named_array_element() = default;
 
-  __AGENCY_ANNOTATION
   named_array_element(const named_array_element&) = default;
 
   __AGENCY_ANNOTATION
@@ -49,10 +45,8 @@ struct named_array_element<T,1>
 template<class T>
 struct named_array_element<T,2>
 {
-  __AGENCY_ANNOTATION
   named_array_element() = default;
 
-  __AGENCY_ANNOTATION
   named_array_element(const named_array_element&) = default;
 
   __AGENCY_ANNOTATION
@@ -64,10 +58,8 @@ struct named_array_element<T,2>
 template<class T>
 struct named_array_element<T,3>
 {
-  __AGENCY_ANNOTATION
   named_array_element() = default;
 
-  __AGENCY_ANNOTATION
   named_array_element(const named_array_element&) = default;
 
   __AGENCY_ANNOTATION
@@ -83,10 +75,8 @@ struct named_array_base;
 template<class T, size_t... Indices>
 struct named_array_base<T, index_sequence<Indices...>> : named_array_element<T,Indices>...
 {
-  __AGENCY_ANNOTATION
   named_array_base() = default;
 
-  __AGENCY_ANNOTATION
   named_array_base(const named_array_base&) = default;
 
   __AGENCY_ANNOTATION
@@ -112,10 +102,8 @@ struct named_array : named_array_base<T,make_index_sequence<N>>
   using iterator = pointer;
   using const_iterator = const_pointer;
 
-  __AGENCY_ANNOTATION
   named_array() = default;
 
-  __AGENCY_ANNOTATION
   named_array(const named_array&) = default;
 
   __AGENCY_ANNOTATION

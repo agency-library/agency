@@ -47,7 +47,6 @@ class basic_ndarray_ref
     __AGENCY_ANNOTATION
     basic_ndarray_ref() : basic_ndarray_ref(nullptr) {}
 
-    __AGENCY_ANNOTATION
     basic_ndarray_ref(const basic_ndarray_ref&) = default;
 
     template<class OtherT,

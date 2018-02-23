@@ -32,10 +32,8 @@ struct allocator
   using propagate_on_container_move_assignment = std::true_type;
   using is_always_equal = std::true_type;
 
-  __AGENCY_ANNOTATION
   allocator() = default;
 
-  __AGENCY_ANNOTATION
   allocator(const allocator&) = default;
 
   template<class U>

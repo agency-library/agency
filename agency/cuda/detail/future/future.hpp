@@ -30,10 +30,8 @@ class future
     using variant_type = agency::experimental::variant<agency::cuda::async_future<T>, agency::cuda::deferred_future<T>, agency::always_ready_future<T>>;
 
   public:
-    __AGENCY_ANNOTATION
     future() = default;
 
-    __AGENCY_ANNOTATION
     future(future&&) = default;
 
     template<class Future,
@@ -87,7 +85,6 @@ class future
       : future(converting_move_construct(std::move(other)))
     {}
 
-    __AGENCY_ANNOTATION
     future& operator=(future&& other) = default;
 
     shared_future<T> share();

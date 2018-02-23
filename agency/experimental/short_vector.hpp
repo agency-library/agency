@@ -166,10 +166,8 @@ class short_vector
     {
     }
 
-    __AGENCY_ANNOTATION
     short_vector(const short_vector&) = default;
 
-    __AGENCY_ANNOTATION
     short_vector(short_vector&&) = default;
 
     template<class Range>

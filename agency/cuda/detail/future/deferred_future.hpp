@@ -86,13 +86,10 @@ class deferred_function<Result(Args...)>
     }
 
   public:
-    __AGENCY_ANNOTATION
     deferred_function() = default;
 
-    __AGENCY_ANNOTATION
     deferred_function(deferred_function&& other) = default;
 
-    __AGENCY_ANNOTATION
     deferred_function& operator=(deferred_function&& other) = default;
 
     template<class Function>
@@ -452,10 +449,8 @@ class deferred_state
     }
 
   public:
-    __AGENCY_ANNOTATION
     deferred_state() = default;
 
-    __AGENCY_ANNOTATION
     deferred_state(deferred_state&&) = default;
 
     template<class U,
@@ -496,7 +491,6 @@ class deferred_state
     {
     }
 
-    __AGENCY_ANNOTATION
     deferred_state& operator=(deferred_state&& other) = default;
 
     __AGENCY_ANNOTATION
@@ -619,13 +613,10 @@ template<class T>
 class deferred_future
 {
   public:
-    __AGENCY_ANNOTATION
     deferred_future() = default;
 
-    __AGENCY_ANNOTATION
     deferred_future(deferred_future&&) = default;
 
-    __AGENCY_ANNOTATION
     deferred_future& operator=(deferred_future&& other) = default;
 
     template<class U,

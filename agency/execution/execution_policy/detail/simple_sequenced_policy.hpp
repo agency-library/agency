@@ -28,7 +28,6 @@ class simple_sequenced_policy
     using param_type = typename execution_agent_traits<execution_agent_type>::param_type;
 
     __agency_exec_check_disable__
-    __AGENCY_ANNOTATION
     simple_sequenced_policy() = default;
 
     __agency_exec_check_disable__

@@ -97,7 +97,6 @@ class tuple_base<index_sequence<I...>, Types...>
   : public tuple_leaf<I,Types>...
 {
   public:
-    __AGENCY_ANNOTATION
     tuple_base() = default;
 
 

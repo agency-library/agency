@@ -25,6 +25,12 @@ TODO
 
 ## New Features
 
+  * `require` and properties:
+    * `bulk`
+    * `single`
+    * `then`
+    * `always_blocking`
+
 ### Control Structures
 
 TODO
@@ -67,9 +73,13 @@ TODO
 
 TODO
 
+  * [#437](../../issues/437) Nvcc emits warnings regarding standard library functions calling `__host__`-only functions
+
 ## Resolved Issues
 
 TODO
+
+  * [#428](../../issues/428) Warnings regarding ignored CUDA annotations have been eliminated
 
 ## Acknowledgments
 
