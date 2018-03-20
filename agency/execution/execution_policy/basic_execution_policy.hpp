@@ -115,6 +115,16 @@ class basic_execution_policy
       DerivedExecutionPolicy
     >::type;
 
+    derived_type& derived()
+    {
+      return static_cast<derived_type&>(*this);
+    }
+
+    const derived_type& derived() const
+    {
+      return static_cast<const derived_type&>(*this);
+    }
+
   public:
     /// \brief The type of this execution policy's parameterization.
     using param_type           = typename execution_agent_traits<execution_agent_type>::param_type;
@@ -186,15 +196,15 @@ class basic_execution_policy
     ///           * `Policy::executor_type` is `OtherExecutor`.
     /// \note The given executor's forward progress guarantees must not be weaker than this
     ///       execution policy's forward progress requirements.
-    /// \note on() is sugar for the expression `agency::replace_executor(*this, exec)`.
+    /// \note on() is sugar for the expression `agency::replace_executor(static_cast<const DerivedType>(*this), exec)`.
     /// \see replace_executor
     __agency_exec_check_disable__
     template<class OtherExecutor>
     __AGENCY_ANNOTATION
     auto on(const OtherExecutor& exec) const ->
-      decltype(agency::replace_executor(*this, exec))
+      decltype(agency::replace_executor(this->derived(), exec))
     {
-      return agency::replace_executor(*this, exec);
+      return agency::replace_executor(derived(), exec);
     }
 
     __agency_exec_check_disable__
