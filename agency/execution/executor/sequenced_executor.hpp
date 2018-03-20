@@ -43,6 +43,18 @@ class sequenced_executor
 
       return agency::make_always_ready_future(std::move(result));
     }
+
+    __AGENCY_ANNOTATION
+    friend constexpr bool operator==(const sequenced_executor&, const sequenced_executor&) noexcept
+    {
+      return true;
+    }
+
+    __AGENCY_ANNOTATION
+    friend constexpr bool operator!=(const sequenced_executor&, const sequenced_executor&) noexcept
+    {
+      return false;
+    }
 };
 
 

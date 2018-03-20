@@ -1,5 +1,6 @@
 #pragma once
 
+#include <agency/detail/config.hpp>
 #include <agency/future.hpp>
 #include <agency/execution/execution_categories.hpp>
 #include <agency/detail/invoke.hpp>
@@ -37,6 +38,18 @@ class concurrent_executor
     bulk_then_execute(Function f, size_t n, Future& predecessor, ResultFactory result_factory, SharedFactory shared_factory) const
     {
       return bulk_then_execute_impl(f, n, predecessor, result_factory, shared_factory);
+    }
+
+    __AGENCY_ANNOTATION
+    friend constexpr bool operator==(const concurrent_executor&, const concurrent_executor&) noexcept
+    {
+      return true;
+    }
+
+    __AGENCY_ANNOTATION
+    friend constexpr bool operator!=(const concurrent_executor& a, const concurrent_executor& b) noexcept
+    {
+      return !(a == b);
     }
 
   private:
