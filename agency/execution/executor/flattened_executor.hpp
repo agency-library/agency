@@ -288,6 +288,18 @@ class flattened_executor
       return detail::merge_front_shape_elements(agency::max_shape_dimensions(base_executor()));
     }
 
+    __AGENCY_ANNOTATION
+    friend bool operator==(const flattened_executor& a, const flattened_executor& b) noexcept
+    {
+      return a.base_executor() == b.base_executor();
+    }
+
+    __AGENCY_ANNOTATION
+    friend bool operator!=(const flattened_executor& a, const flattened_executor& b) noexcept
+    {
+      return !(a == b);
+    }
+
   private:
     using base_shape_type = executor_shape_t<base_executor_type>;
 

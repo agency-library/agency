@@ -80,6 +80,19 @@ class executor_array
     template<class T>
     using allocator = executor_allocator_t<outer_executor_type,T>;
 
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    friend constexpr bool operator==(const executor_array& a, const executor_array& b) noexcept
+    {
+      return a.outer_executor() == b.outer_executor() && a.inner_executors_ == b.inner_executors_;
+    }
+
+    __AGENCY_ANNOTATION
+    friend constexpr bool operator!=(const executor_array& a, const executor_array& b) noexcept
+    {
+      return !(a == b);
+    }
+
     // XXX this functor is public to allow nvcc to instantiate kernels with it
     template<class Futures, class UniquePtr1, class UniquePtr2>
     struct wait_for_futures_and_move_result

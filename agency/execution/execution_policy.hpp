@@ -103,6 +103,7 @@
 #include <agency/execution/execution_policy/concurrent_execution_policy.hpp>
 #include <agency/execution/execution_policy/execution_policy_traits.hpp>
 #include <agency/execution/execution_policy/parallel_execution_policy.hpp>
+#include <agency/execution/execution_policy/replace_executor.hpp>
 #include <agency/execution/execution_policy/sequenced_execution_policy.hpp>
 #include <agency/execution/execution_policy/unsequenced_execution_policy.hpp>
 

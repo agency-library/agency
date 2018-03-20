@@ -45,6 +45,8 @@ TODO
 
 ### Executors
 
+* Various executors now have equality operations.
+
 TODO
 
 ### Utilities

@@ -220,6 +220,20 @@ class basic_grid_executor
     }
 
 
+    __host__ __device__
+    friend bool operator==(const basic_grid_executor& a, const basic_grid_executor& b) noexcept
+    {
+      return a.device() == b.device();
+    }
+
+
+    __host__ __device__
+    friend bool operator!=(const basic_grid_executor& a, const basic_grid_executor& b) noexcept
+    {
+      return !(a == b);
+    }
+
+
   private:
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__

@@ -136,6 +136,18 @@ class thread_pool_executor
   public:
     using execution_category = parallel_execution_tag;
 
+    friend constexpr bool operator==(const thread_pool_executor&, const thread_pool_executor&) noexcept
+    {
+      // currently, all thread_pool_executors compare equal because they all refer to the
+      // system_thread_pool
+      return true;
+    }
+
+    friend constexpr bool operator!=(const thread_pool_executor& a, const thread_pool_executor& b) noexcept
+    {
+      return !(a == b);
+    }
+
   private:
     // this deleter fulfills a promise just before
     // it deletes its argument
