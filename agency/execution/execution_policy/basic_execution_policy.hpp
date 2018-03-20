@@ -8,6 +8,7 @@
 #include <agency/tuple.hpp>
 #include <agency/execution/execution_agent.hpp>
 #include <agency/execution/execution_policy/execution_policy_traits.hpp>
+#include <agency/execution/execution_policy/replace_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 
@@ -18,25 +19,6 @@
 
 namespace agency
 {
-
-
-// declare basic_execution_policy for replace_executor()'s signature below 
-template<class ExecutionAgent,
-         class BulkExecutor,
-         class DerivedExecutionPolicy = void>
-class basic_execution_policy;
-
-
-// declare replace_executor() so basic_execution_policy.on() can use it below
-template<class ExecutionPolicy, class Executor>
-__AGENCY_ANNOTATION
-typename std::enable_if<
-  is_executor<Executor>::value,
-  basic_execution_policy<typename ExecutionPolicy::execution_agent_type, Executor>
->::type
-replace_executor(const ExecutionPolicy& policy, const Executor& exec);
-
-
 namespace detail
 {
 
@@ -108,7 +90,7 @@ class scoped_execution_policy;
 ///         `void` indicates that no execution policy will be derived from this basic_execution_policy.
 template<class ExecutionAgent,
          class Executor,
-         class DerivedExecutionPolicy>
+         class DerivedExecutionPolicy = void>
 class basic_execution_policy
 {
   public:
@@ -204,16 +186,40 @@ class basic_execution_policy
     ///           * `Policy::executor_type` is `OtherExecutor`.
     /// \note The given executor's forward progress guarantees must not be weaker than this
     ///       execution policy's forward progress requirements.
-    /// \note on() is sugar for the expression `replace_executor(*this, exec)`.
+    /// \note on() is sugar for the expression `agency::replace_executor(*this, exec)`.
     /// \see replace_executor
     __agency_exec_check_disable__
     template<class OtherExecutor>
     __AGENCY_ANNOTATION
     auto on(const OtherExecutor& exec) const ->
-      decltype(replace_executor(*this, exec))
+      decltype(agency::replace_executor(*this, exec))
     {
-      // note the intentional use of ADL to call replace_executor()
-      return replace_executor(*this, exec);
+      return agency::replace_executor(*this, exec);
+    }
+
+    __agency_exec_check_disable__
+    template<class ReplacementExecutor,
+             __AGENCY_REQUIRES(
+               is_executor<ReplacementExecutor>::value
+             )>
+    __AGENCY_ANNOTATION
+    basic_execution_policy<
+      execution_agent_type,
+      ReplacementExecutor
+    >
+      replace_executor(const ReplacementExecutor& ex) const
+    {
+      using policy_category = typename execution_agent_traits<execution_agent_type>::execution_category;
+      using executor_category = executor_execution_category_t<Executor>;
+    
+      static_assert(detail::is_weaker_than<policy_category, executor_category>::value, "basic_execution_policy::replace_executor(): Execution policy's forward progress requirements cannot be satisfied by executor's guarantees.");
+    
+      using result_type = basic_execution_policy<
+        execution_agent_type,
+        ReplacementExecutor
+      >;
+    
+      return result_type(param(), ex);
     }
 
     /// \brief Reparameterizes this execution policy.
@@ -366,30 +372,5 @@ class scoped_execution_policy
 
 
 } // end detail
-
-
-__agency_exec_check_disable__
-template<class ExecutionPolicy, class Executor>
-__AGENCY_ANNOTATION
-typename std::enable_if<
-  is_executor<Executor>::value,
-  basic_execution_policy<typename ExecutionPolicy::execution_agent_type, Executor>
->::type
-  replace_executor(const ExecutionPolicy& policy, const Executor& exec)
-{
-  using policy_category = detail::execution_policy_execution_category_t<ExecutionPolicy>;
-  using executor_category = executor_execution_category_t<Executor>;
-
-  static_assert(detail::is_weaker_than<policy_category, executor_category>::value, "replace_executor(): Execution policy's forward progress requirements cannot be satisfied by executor's guarantees.");
-
-  using result_type = basic_execution_policy<
-    typename ExecutionPolicy::execution_agent_type,
-    Executor
-  >;
-
-  return result_type(policy.param(), exec);
-}
-
-
 } // end agency
 
