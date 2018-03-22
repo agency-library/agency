@@ -6,7 +6,6 @@
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/executor_execution_depth.hpp>
 #include <agency/execution/execution_agent.hpp>
-#include <agency/execution/execution_policy/execution_policy_traits.hpp>
 #include <utility>
 #include <type_traits>
 
