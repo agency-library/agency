@@ -9,6 +9,7 @@
 #include <agency/execution/execution_agent.hpp>
 #include <agency/execution/execution_policy/execution_policy_traits.hpp>
 #include <agency/execution/execution_policy/replace_executor.hpp>
+#include <agency/execution/executor/associated_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 
@@ -156,6 +157,33 @@ class basic_execution_policy
     {
       return executor_;
     }
+    
+    
+    /// \brief Returns a copy of this execution policy's executor with the copy's executor replaced with another.
+    __agency_exec_check_disable__
+    template<class ReplacementExecutor,
+             __AGENCY_REQUIRES(
+               is_executor<ReplacementExecutor>::value
+             )>
+    __AGENCY_ANNOTATION
+    friend basic_execution_policy<
+      ExecutionAgent,
+      ReplacementExecutor
+    >
+      replace_executor(const basic_execution_policy& policy, const ReplacementExecutor& ex)
+    {
+      using policy_category = typename execution_agent_traits<ExecutionAgent>::execution_category;
+      using executor_category = executor_execution_category_t<ReplacementExecutor>;
+    
+      static_assert(detail::is_weaker_than<policy_category, executor_category>::value, "agency::replace_executor(): Execution policy's forward progress requirements cannot be satisfied by executor's guarantees.");
+    
+      using result_type = basic_execution_policy<
+        ExecutionAgent,
+        ReplacementExecutor
+      >;
+    
+      return result_type(policy.param(), ex);
+    }
 
     /// \brief Replaces this execution policy's executor with another.
     ///
@@ -199,7 +227,9 @@ class basic_execution_policy
     /// \note on() is sugar for the expression `agency::replace_executor(static_cast<const DerivedType>(*this), exec)`.
     /// \see replace_executor
     __agency_exec_check_disable__
-    template<class OtherExecutor>
+    template<class OtherExecutor,
+             __AGENCY_REQUIRES(is_executor<OtherExecutor>::value)
+            >
     __AGENCY_ANNOTATION
     auto on(const OtherExecutor& exec) const ->
       decltype(agency::replace_executor(this->derived(), exec))
@@ -207,29 +237,16 @@ class basic_execution_policy
       return agency::replace_executor(derived(), exec);
     }
 
+    // XXX probably want to require that agency::associated_executor() is well-formed
     __agency_exec_check_disable__
-    template<class ReplacementExecutor,
-             __AGENCY_REQUIRES(
-               is_executor<ReplacementExecutor>::value
-             )>
+    template<class T,
+             __AGENCY_REQUIRES(!is_executor<detail::decay_t<T>>::value)
+            >
     __AGENCY_ANNOTATION
-    basic_execution_policy<
-      execution_agent_type,
-      ReplacementExecutor
-    >
-      replace_executor(const ReplacementExecutor& ex) const
+    auto on(T&& has_associated_executor) const ->
+      decltype(this->on(agency::associated_executor(std::forward<T>(has_associated_executor))))
     {
-      using policy_category = typename execution_agent_traits<execution_agent_type>::execution_category;
-      using executor_category = executor_execution_category_t<Executor>;
-    
-      static_assert(detail::is_weaker_than<policy_category, executor_category>::value, "basic_execution_policy::replace_executor(): Execution policy's forward progress requirements cannot be satisfied by executor's guarantees.");
-    
-      using result_type = basic_execution_policy<
-        execution_agent_type,
-        ReplacementExecutor
-      >;
-    
-      return result_type(param(), ex);
+      return this->on(agency::associated_executor(std::forward<T>(has_associated_executor)));
     }
 
     /// \brief Reparameterizes this execution policy.

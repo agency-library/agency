@@ -39,6 +39,14 @@ class grid_executor : public detail::basic_grid_executor<parallel_execution_tag,
 };
 
 
+// this function returns a grid_executor associated with the given device
+__AGENCY_ANNOTATION
+inline cuda::grid_executor associated_executor(device_id device)
+{
+  return cuda::grid_executor(device);
+}
+
+
 class grid_executor_2d : public detail::basic_grid_executor<parallel_execution_tag, point<agency::uint2,2>>
 {
   private:

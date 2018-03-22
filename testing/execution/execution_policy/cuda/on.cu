@@ -31,12 +31,15 @@ int main()
 
 
   {
-    // test CUDA-specific policies
+    // test CUDA-specific policies and executors
     using namespace agency;
 
     {
       // test par
       test(cuda::par, cuda::parallel_executor());
+
+      test(par, cuda::grid_executor());
+      test(cuda::grid(1,1), cuda::grid_executor());
     }
 
     {

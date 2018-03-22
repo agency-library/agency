@@ -10,7 +10,8 @@
 #include <numeric>
 #include <algorithm>
 #include <type_traits>
-#include <array>
+#include <vector>
+
 
 namespace agency
 {
@@ -74,6 +75,20 @@ class spanning_grid_executor : public flattened_executor<supergrid_executor>
 };
 
 static_assert(is_executor<spanning_grid_executor>::value, "spanning_grid_executor is not an executor!");
+
+
+// this function returns a spanning_grid_executor associated with a range of device_id
+// XXX we might prefer to return a supergrid_executor and allow replace_executor() to flatten that as necessary
+template<class Range,
+         __AGENCY_REQUIRES(
+           detail::is_range_of_device_id<Range>::value
+         )>
+spanning_grid_executor associated_executor(const Range& devices)
+{
+  // turn the range of device_id into a vector of grid_executors
+  std::vector<grid_executor> grid_executors = agency::cuda::detail::devices_to_grid_executors(devices);
+  return spanning_grid_executor(grid_executors);
+}
 
 
 class multidevice_executor : public flattened_executor<spanning_grid_executor>

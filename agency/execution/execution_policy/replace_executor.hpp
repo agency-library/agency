@@ -27,8 +27,8 @@ struct replace_executor_t
              has_replace_executor_member<decay_t<P>,decay_t<E>>::value
            )>
   __AGENCY_ANNOTATION
-  constexpr auto operator()(P&& policy, E&& ex) const ->
-    decltype(std::forward<P>(policy).replace_executor(std::forward<E>(ex)))
+  constexpr detail::replace_executor_member_t<decay_t<P>,decay_t<E>>
+    operator()(P&& policy, E&& ex) const
   {
     return std::forward<P>(policy).replace_executor(std::forward<E>(ex));
   }
@@ -39,8 +39,8 @@ struct replace_executor_t
              !has_replace_executor_member<decay_t<P>,decay_t<E>>::value and
              has_replace_executor_free_function<decay_t<P>,decay_t<E>>::value
            )>
-  constexpr auto operator()(P&& policy, E&& ex) const ->
-    decltype(replace_executor(std::forward<P>(policy), std::forward<E>(ex)))
+  constexpr detail::replace_executor_free_function_t<decay_t<P>,decay_t<E>>
+    operator()(P&& policy, E&& ex) const
   {
     return replace_executor(std::forward<P>(policy), std::forward<E>(ex));
   }
