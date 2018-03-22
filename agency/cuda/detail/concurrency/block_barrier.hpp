@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <cassert>
 
 
 namespace agency

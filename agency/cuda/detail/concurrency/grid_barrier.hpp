@@ -3,6 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/feature_test.hpp>
 #include <cstddef>
+#include <cassert>
 
 #if __has_include(<cooperative_groups.h>)
 #include <cooperative_groups.h>
