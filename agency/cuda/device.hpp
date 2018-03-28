@@ -338,29 +338,6 @@ size_t maximum_block_size_x(const device_id& d)
 }
 
 
-void ensure_context_is_initialized(const device_id& d)
-{
-  detail::scoped_current_device scope(d);
-  cudaFree(0);
-}
-
-
-template<class Container>
-void ensure_contexts_are_initialized(const Container& devices)
-{
-  for(auto& d : devices)
-  {
-    ensure_context_is_initialized(d);
-  }
-}
-
-
-void ensure_all_contexts_are_initialized()
-{
-  ensure_contexts_are_initialized(cuda::all_devices());
-}
-
-
 } // end detail
 } // end cuda
 } // end agency
