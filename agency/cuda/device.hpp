@@ -23,11 +23,11 @@ namespace detail
 
 
 __host__ __device__
-void set_current_device(const device_id& d);
+inline void set_current_device(const device_id& d);
 
 
 __host__ __device__
-device_id current_device();
+inline device_id current_device();
 
 
 // the CUDA Runtime's current device becomes the given device
@@ -163,7 +163,7 @@ class device_id
 // note that when an integer is passed as a parameter to device(d),
 // it will be automatically converted into a device_id
 __AGENCY_ANNOTATION
-device_id device(device_id d)
+inline device_id device(device_id d)
 {
   return d;
 }
@@ -196,7 +196,7 @@ vector<device_id> devices(const Range& integers_or_device_ids)
 
 
 __AGENCY_ANNOTATION
-vector<device_id> all_devices()
+inline vector<device_id> all_devices()
 {
   vector<device_id> result;
 
@@ -220,7 +220,7 @@ namespace detail
 
 
 __host__ __device__
-void set_current_device(const device_id& d)
+inline void set_current_device(const device_id& d)
 {
 #if __cuda_lib_has_cudart
 #ifndef __CUDA_ARCH__
@@ -236,7 +236,7 @@ void set_current_device(const device_id& d)
 
 
 __host__ __device__
-device_id current_device()
+inline device_id current_device()
 {
   int result = -1;
 
@@ -272,7 +272,7 @@ void wait(const Container& devices)
 }
 
 
-bool has_concurrent_managed_access(const device_id& device)
+inline bool has_concurrent_managed_access(const device_id& device)
 {
   int result = 0;
 
@@ -297,7 +297,7 @@ void wait_if_any_lack_concurrent_managed_access(const Container& devices)
 
 
 __host__ __device__
-size_t number_of_multiprocessors(const device_id& d)
+inline size_t number_of_multiprocessors(const device_id& d)
 {
 #if __cuda_lib_has_cudart
   int attr = 0;
@@ -311,7 +311,7 @@ size_t number_of_multiprocessors(const device_id& d)
 
 
 __host__ __device__
-size_t maximum_grid_size_x(const device_id& d)
+inline size_t maximum_grid_size_x(const device_id& d)
 {
 #if __cuda_lib_has_cudart
   int attr = 0;
@@ -325,7 +325,7 @@ size_t maximum_grid_size_x(const device_id& d)
 
 
 __host__ __device__
-size_t maximum_block_size_x(const device_id& d)
+inline size_t maximum_block_size_x(const device_id& d)
 {
 #if __cuda_lib_has_cudart
   int attr = 0;

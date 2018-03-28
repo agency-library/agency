@@ -37,7 +37,7 @@ inline void terminate_with_message(const char* message)
 
 
 __AGENCY_ANNOTATION
-void throw_runtime_error(const char* message)
+inline void throw_runtime_error(const char* message)
 {
 #ifndef __CUDA_ARCH__
   throw std::runtime_error(message);
