@@ -43,13 +43,21 @@ struct bulk_then_execute_closure
   template<size_t dimension = block_dimension, __AGENCY_REQUIRES(dimension == 1)>
   __device__ static inline bool is_first_thread_of_block()
   {
+#ifdef __CUDA_ARCH__
     return threadIdx.x == 0;
+#else
+    return false;
+#endif
   }
 
   template<size_t dimension = block_dimension, __AGENCY_REQUIRES(dimension > 1)>
   __device__ static inline bool is_first_thread_of_block()
   {
+#ifdef __CUDA_ARCH__
     agency::int3 idx{threadIdx.x, threadIdx.y, threadIdx.z};
+#else
+    agency::int3 idx{};
+#endif
 
     // XXX this is actually the correct comparison
     //     but this comparison explodes the kernel resource requirements of programs like

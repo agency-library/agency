@@ -25,6 +25,8 @@ namespace detail
 
 
 // these functions create an agent's outer_index_type & inner_index_type from blockIdx & threadIdx, respectively
+// use of CUDA built-in variables blockIdx and threadIdx is guarded by __CUDA_ARCH__ to allow non-CUDA compilers to
+// parse this header file
 
 template<class Index,
          class I = Index,
@@ -35,7 +37,11 @@ template<class Index,
 inline __device__
 Index make_outer_index()
 {
+#ifdef __CUDA_ARCH__
   return Index{blockIdx.x};
+#else
+  return Index{};
+#endif
 }
 
 template<class Index,
@@ -46,7 +52,11 @@ template<class Index,
 inline __device__
 Index make_outer_index()
 {
+#ifdef __CUDA_ARCH__
   return Index{blockIdx.x, blockIdx.y};
+#else
+  return Index{};
+#endif 
 }
 
 template<class Index,
@@ -57,7 +67,11 @@ template<class Index,
 inline __device__
 Index make_outer_index()
 {
+#ifdef __CUDA_ARCH__
   return Index{blockIdx.x, blockIdx.y, blockIdx.z};
+#else
+  return Index{};
+#endif
 }
 
 template<class Index,
@@ -68,7 +82,11 @@ template<class Index,
 inline __device__
 Index make_inner_index()
 {
+#ifdef __CUDA_ARCH__
   return Index{threadIdx.x};
+#else
+  return Index{};
+#endif
 }
 
 template<class Index,
@@ -79,7 +97,11 @@ template<class Index,
 inline __device__
 Index make_inner_index()
 {
+#ifdef __CUDA_ARCH__
   return Index{threadIdx.x, threadIdx.y};
+#else
+  return Index{};
+#endif
 }
 
 template<class Index,
@@ -90,7 +112,11 @@ template<class Index,
 inline __device__
 Index make_inner_index()
 {
+#ifdef __CUDA_ARCH__
   return Index{threadIdx.x, threadIdx.y, threadIdx.z};
+#else
+  return Index{};
+#endif
 }
 
 // this function uses make_outer_index & make_inner_index to make an agent's index_type

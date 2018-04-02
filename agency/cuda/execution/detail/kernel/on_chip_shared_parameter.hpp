@@ -39,7 +39,10 @@ struct on_chip_shared_parameter
     {
       inner_shared_param.construct(factory());
     }
+
+#ifdef __CUDA_ARCH__
     __syncthreads();
+#endif
 
     inner_shared_param_ = &inner_shared_param;
   }
@@ -50,7 +53,9 @@ struct on_chip_shared_parameter
   inline __device__
   ~on_chip_shared_parameter()
   {
+#ifdef __CUDA_ARCH__
     __syncthreads();
+#endif
 
     if(is_leader_)
     {
