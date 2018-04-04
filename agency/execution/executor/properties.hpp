@@ -26,7 +26,9 @@
 
 #pragma once
 
+#include <agency/execution/executor/properties/always_blocking.hpp>
 #include <agency/execution/executor/properties/bulk.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <agency/execution/executor/properties/single.hpp>
 #include <agency/execution/executor/properties/then.hpp>
 #include <agency/execution/executor/properties/twoway.hpp>
