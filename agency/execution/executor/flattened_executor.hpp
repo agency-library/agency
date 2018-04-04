@@ -45,37 +45,18 @@ struct flattened_execution_tag<scoped_execution_tag<OuterCategory, scoped_execut
   // OuterCategory and InnerCategory flatten as the outer category
   // while InnerInnerCategory is promoted to the inner category
   using type = scoped_execution_tag<
-    flattened_execution_tag_t<scoped_execution_tag<OuterCategory, InnerInnerCategory>>,
+    flattened_execution_tag_t<
+      scoped_execution_tag<OuterCategory, InnerInnerCategory>
+    >,
     InnerInnerCategory
   >;
 };
 
 
-__AGENCY_ANNOTATION
-constexpr bulk_guarantee_t::sequenced_t flatten_bulk_guarantee(bulk_guarantee_t::sequenced_t)
-{
-  return bulk_guarantee_t::sequenced_t{};
-}
-
-
-__AGENCY_ANNOTATION
-constexpr bulk_guarantee_t::parallel_t flatten_bulk_guarantee(bulk_guarantee_t::parallel_t)
-{
-  return bulk_guarantee_t::parallel_t{};
-}
-
-
-__AGENCY_ANNOTATION
-constexpr bulk_guarantee_t::unsequenced_t flatten_bulk_guarantee(bulk_guarantee_t::unsequenced_t)
-{
-  return bulk_guarantee_t::unsequenced_t{};
-}
-
-
 // XXX this should flatten to parallel_t only if neither OuterGuarantee nor InnerGuarantee are unsequenced
 template<class OuterGuarantee, class InnerGuarantee>
 __AGENCY_ANNOTATION
-constexpr bulk_guarantee_t::parallel_t flatten_bulk_guarantee(const bulk_guarantee_t::scoped_t<OuterGuarantee, InnerGuarantee>& guarantee)
+constexpr bulk_guarantee_t::parallel_t flatten_bulk_guarantee(bulk_guarantee_t::scoped_t<OuterGuarantee, InnerGuarantee> guarantee)
 {
   return bulk_guarantee_t::parallel_t{};
 }
@@ -83,19 +64,27 @@ constexpr bulk_guarantee_t::parallel_t flatten_bulk_guarantee(const bulk_guarant
 
 template<class OuterGuarantee, class InnerGuarantee, class InnerInnerGuarantee>
 __AGENCY_ANNOTATION
-constexpr auto flatten_bulk_guarantee(const bulk_guarantee_t::scoped_t<OuterGuarantee, bulk_guarantee_t::scoped_t<InnerGuarantee, InnerInnerGuarantee>>& guarantee) ->
+constexpr auto flatten_bulk_guarantee(bulk_guarantee_t::scoped_t<OuterGuarantee, bulk_guarantee_t::scoped_t<InnerGuarantee, InnerInnerGuarantee>> guarantee) ->
   decltype(
     bulk_guarantee_t::scoped(
-      detail::flatten_bulk_guarantee(guarantee.outer(), guarantee.inner().outer()),
+      detail::flatten_bulk_guarantee(
+        bulk_guarantee_t::scoped(
+          guarantee.outer(), guarantee.inner().outer()
+        )
+      ),
       guarantee.inner().inner()
     )
   )
 {
-  // OuterGuarantee and InnerGuarantee flatten as the outer guarantee
+  // OuterGuarantee and InnerGuarantee get scoped and flattened as the outer guarantee
   // while InnerInnerGuarantee is promoted to the inner guarantee
 
   return bulk_guarantee_t::scoped(
-    detail::flatten_bulk_guarantee(guarantee.outer(), guarantee.inner().outer()),
+    detail::flatten_bulk_guarantee(
+      bulk_guarantee_t::scoped(
+        guarantee.outer(), guarantee.inner().outer()
+      )
+    ),
     guarantee.inner().inner()
   );
 }
