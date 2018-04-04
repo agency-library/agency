@@ -6,6 +6,7 @@
 #include <agency/execution/executor/vector_executor.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/flattened_executor.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <agency/detail/concurrency/latch.hpp>
 #include <agency/detail/concurrency/concurrent_queue.hpp>
 #include <agency/detail/unique_function.hpp>
@@ -134,7 +135,13 @@ inline thread_pool& system_thread_pool()
 class thread_pool_executor
 {
   public:
+    // XXX eliminate execution_category
     using execution_category = parallel_execution_tag;
+
+    constexpr static bulk_guarantee_t::parallel_t query(bulk_guarantee_t)
+    {
+      return bulk_guarantee.parallel;
+    }
 
     friend constexpr bool operator==(const thread_pool_executor&, const thread_pool_executor&) noexcept
     {

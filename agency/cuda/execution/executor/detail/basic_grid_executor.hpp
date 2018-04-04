@@ -157,6 +157,23 @@ struct invoke_with_agent_index
 };
 
 
+// XXX eliminate this when we eliminate execution categories
+template<class OuterExecutionCategory>
+struct outer_execution_category_to_bulk_guarantee;
+
+template<>
+struct outer_execution_category_to_bulk_guarantee<concurrent_execution_tag>
+{
+  using type = bulk_guarantee_t::concurrent_t;
+};
+
+template<>
+struct outer_execution_category_to_bulk_guarantee<parallel_execution_tag>
+{
+  using type = bulk_guarantee_t::parallel_t;
+};
+
+
 template<class OuterExecutionCategory, class Shape, class Index = Shape>
 class basic_grid_executor
 {
@@ -189,6 +206,9 @@ class basic_grid_executor
   static_assert(agency::detail::shape_size<inner_index_type>::value == agency::detail::shape_size<inner_shape_type>::value,
                 "The dimensions of basic_grid_executor's Index type must match the dimensions of its Shape type.");
 
+  // XXX eliminate this when we eliminate execution categories
+  using outer_bulk_guarantee_type = typename detail::outer_execution_category_to_bulk_guarantee<outer_execution_category>::type;
+
 
   public:
     using execution_category =
@@ -220,9 +240,25 @@ class basic_grid_executor
     >;
 
     __host__ __device__
-    explicit basic_grid_executor(device_id device = device_id(0))
+    constexpr explicit basic_grid_executor(device_id device = device_id(0))
       : device_(device)
     {}
+
+
+    __host__ __device__
+    constexpr static bulk_guarantee_t::scoped_t<
+      outer_bulk_guarantee_type,
+      bulk_guarantee_t::concurrent_t
+    > query(const bulk_guarantee_t&)
+    {
+      return bulk_guarantee_t::scoped(
+        // CUDA thread blocks may be parallel or concurrent with respect to each other
+        outer_bulk_guarantee_type(),
+
+        // CUDA threads are always concurrent within a thread block
+        bulk_guarantee_t::concurrent_t()
+      );
+    }
 
 
     __host__ __device__

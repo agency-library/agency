@@ -3,6 +3,7 @@
 #include <agency/future/always_ready_future.hpp>
 #include <agency/execution/execution_categories.hpp>
 #include <agency/execution/executor/properties/always_blocking.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <functional>
 #include <utility>
 
@@ -13,6 +14,7 @@ namespace agency
 class sequenced_executor
 {
   public:
+    // XXX eliminate execution_category
     using execution_category = sequenced_execution_tag;
 
     template<class T>
@@ -26,6 +28,12 @@ class sequenced_executor
     constexpr static bool query(always_blocking_t)
     {
       return true;
+    }
+
+    __AGENCY_ANNOTATION
+    constexpr static bulk_guarantee_t::sequenced_t query(bulk_guarantee_t)
+    {
+      return bulk_guarantee_t::sequenced_t();
     }
 
     template<class Function, class ResultFactory, class SharedFactory>

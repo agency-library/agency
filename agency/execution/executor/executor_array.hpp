@@ -13,6 +13,8 @@
 #include <agency/execution/executor/executor_traits/detail/member_barrier_type_or.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/execution/executor/detail/execution_functions/bulk_then_execute.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
+#include <agency/execution/executor/query.hpp>
 #include <agency/detail/scoped_in_place_type.hpp>
 #include <agency/tuple.hpp>
 
@@ -539,6 +541,42 @@ class executor_array
     const inner_executor_type& operator[](size_t i) const
     {
       return inner_executors_[i];
+    }
+
+    __agency_exec_check_disable__
+    template<__AGENCY_REQUIRES(
+              detail::has_static_query<bulk_guarantee_t, OuterExecutor>::value and
+              detail::has_static_query<bulk_guarantee_t, InnerExecutor>::value
+            )>
+    __AGENCY_ANNOTATION
+    constexpr static auto query(const bulk_guarantee_t& p) ->
+      decltype(
+        bulk_guarantee_t::scoped(
+          bulk_guarantee_t::template static_query<OuterExecutor>(),
+          bulk_guarantee_t::template static_query<InnerExecutor>()
+        )
+      )
+    {
+      return bulk_guarantee_t::scoped(
+        bulk_guarantee_t::template static_query<OuterExecutor>(),
+        bulk_guarantee_t::template static_query<InnerExecutor>()
+      );
+    }
+
+    __agency_exec_check_disable__
+    template<__AGENCY_REQUIRES(
+              !detail::has_static_query<bulk_guarantee_t, OuterExecutor>::value or
+              !detail::has_static_query<bulk_guarantee_t, InnerExecutor>::value
+            )>
+    __AGENCY_ANNOTATION
+    constexpr bulk_guarantee_t::scoped_t<
+      bulk_guarantee_t::unsequenced_t,
+      bulk_guarantee_t::unsequenced_t
+    > query(const bulk_guarantee_t& p) const
+    {
+      // when guarantees cannot be statically determined,
+      // return scoped(unsequenced, unsequenced)
+      return {bulk_guarantee_t::unsequenced_t(), bulk_guarantee_t::unsequenced_t()};
     }
 };
 

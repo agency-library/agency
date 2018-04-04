@@ -64,6 +64,13 @@ class block_executor : private grid_executor
     using super_t::make_ready_future;
     using super_t::device;
 
+
+    __host__ __device__
+    constexpr static bulk_guarantee_t::concurrent_t query(const bulk_guarantee_t&)
+    {
+      return bulk_guarantee_t::concurrent_t();
+    }
+
     __host__ __device__
     shape_type max_shape_dimensions() const
     {

@@ -4,6 +4,7 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/execution/execution_categories.hpp>
 #include <agency/execution/execution_policy.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <agency/future/always_ready_future.hpp>
 
 
@@ -20,6 +21,11 @@ class parallel_for_executor
 
     template<class T>
     using future = always_ready_future<T>;
+
+    constexpr static bulk_guarantee_t::parallel_t query(const bulk_guarantee_t&)
+    {
+      return bulk_guarantee_t::parallel_t();
+    }
 
     template<class Function, class ResultFactory, class SharedFactory>
     future<agency::detail::result_of_t<ResultFactory()>>
