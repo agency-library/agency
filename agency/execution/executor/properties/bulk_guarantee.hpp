@@ -27,7 +27,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
+#include <agency/detail/requires.hpp>
 #include <agency/execution/executor/properties/detail/static_query.hpp>
 #include <agency/execution/executor/executor_traits/detail/can_query.hpp>
 
@@ -45,10 +45,10 @@ namespace detail
 
 
 template<class Executor, class BulkGuarantee>
-class executor_with_bulk_guarantee : public basic_executor_adaptor<Executor>
+class executor_with_bulk_guarantee : public Executor
 {
   private:
-    using super_t = basic_executor_adaptor<Executor>;
+    using super_t = Executor;
 
   public:
     __AGENCY_ANNOTATION
@@ -60,6 +60,37 @@ class executor_with_bulk_guarantee : public basic_executor_adaptor<Executor>
     constexpr static BulkGuarantee query(const bulk_guarantee_t&)
     {
       return BulkGuarantee();
+    }
+
+    // forward all other queries to the base class
+
+    // static query member function
+    __agency_exec_check_disable__
+    template<class Property,
+             class E = Executor,
+             __AGENCY_REQUIRES(
+               has_static_query<Property, E>::value
+             )>
+    __AGENCY_ANNOTATION
+    constexpr static auto query(const Property& p) ->
+      decltype(Property::template static_query<E>())
+    {
+      return Property::template static_query<E>();
+    }
+
+    // non-static query member function
+    __agency_exec_check_disable__
+    template<class Property,
+             class E = Executor,
+             __AGENCY_REQUIRES(
+               !has_static_query<Property, E>::value and
+               has_query_member<E,Property>::value
+             )>
+    __AGENCY_ANNOTATION
+    constexpr auto query(const Property& p) const ->
+      decltype(std::declval<const E>().query(p))
+    {
+      return super_t::query(p);
     }
 };
 
