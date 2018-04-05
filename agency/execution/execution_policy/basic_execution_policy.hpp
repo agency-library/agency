@@ -12,6 +12,8 @@
 #include <agency/execution/executor/associated_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
+#include <agency/execution/executor/properties/detail/bulk_guarantee_to_execution_category.hpp>
 
 #include <utility>
 #include <tuple>
@@ -98,7 +100,9 @@ class basic_execution_policy
     // validate that it makes sense to execute the agent's requirements using the executor's guarantees
     static_assert(detail::is_weaker_than<
                     typename execution_agent_traits<ExecutionAgent>::execution_category,
-                    executor_execution_category_t<Executor>
+                    detail::bulk_guarantee_to_execution_category_t<
+                      decltype(bulk_guarantee_t::static_query<Executor>())
+                    >
                   >::value,
                   "basic_execution_policy: ExecutionAgent's forward progress requirements cannot be satisfied by Executor's guarantees."
     );
@@ -173,7 +177,9 @@ class basic_execution_policy
       replace_executor(const basic_execution_policy& policy, const ReplacementExecutor& ex)
     {
       using policy_category = typename execution_agent_traits<ExecutionAgent>::execution_category;
-      using executor_category = executor_execution_category_t<ReplacementExecutor>;
+      using executor_category = detail::bulk_guarantee_to_execution_category_t<
+        decltype(bulk_guarantee_t::static_query<ReplacementExecutor>())
+      >;
     
       static_assert(detail::is_weaker_than<policy_category, executor_category>::value, "agency::replace_executor(): Execution policy's forward progress requirements cannot be satisfied by executor's guarantees.");
     
