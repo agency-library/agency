@@ -4,6 +4,7 @@
 #include <agency/execution/execution_agent/execution_agent_traits.hpp>
 #include <agency/execution/execution_categories.hpp>
 #include <agency/detail/tuple/tuple_utility.hpp>
+#include <agency/detail/make_tuple_if_not_scoped.hpp>
 #include <agency/detail/unwrap_tuple_if_not_scoped.hpp>
 #include <agency/detail/index_tuple.hpp>
 #include <agency/detail/index_lexicographical_rank.hpp>
