@@ -75,6 +75,9 @@ class always_blocking_executor : public basic_executor_adaptor<Executor>
     __AGENCY_ANNOTATION
     always_blocking_executor(const Executor& ex) noexcept : super_t{ex} {}
 
+    // inherit all of basic_executor_adaptor's query members
+    using super_t::query;
+
     __AGENCY_ANNOTATION
     constexpr static bool query(const always_blocking_t&)
     {
