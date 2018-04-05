@@ -180,6 +180,10 @@ struct require_t
 
 namespace
 {
+// XXX add another nested anonymous namespace
+//     to workaround nvbug 2098217
+namespace
+{
 
 
 // define the require customization point object
@@ -192,6 +196,7 @@ const __device__ detail::require_t require;
 #endif
 
 
+} // end anonymous namespace
 } // end anonymous namespace
 
 
