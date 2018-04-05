@@ -14,6 +14,7 @@
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/execution/executor/detail/execution_functions/bulk_then_execute.hpp>
 #include <agency/execution/executor/properties/bulk_guarantee.hpp>
+#include <agency/execution/executor/properties/detail/bulk_guarantee_to_execution_category.hpp>
 #include <agency/execution/executor/query.hpp>
 #include <agency/detail/scoped_in_place_type.hpp>
 #include <agency/tuple.hpp>
@@ -31,13 +32,16 @@ class executor_array
     using inner_executor_type = InnerExecutor;
 
   private:
-    using outer_execution_category = executor_execution_category_t<outer_executor_type>;
-    using inner_execution_category = executor_execution_category_t<inner_executor_type>;
+    using outer_bulk_guarantee = decltype(bulk_guarantee_t::template static_query<outer_executor_type>());
+    using inner_bulk_guarantee = decltype(bulk_guarantee_t::template static_query<inner_executor_type>());
 
+    constexpr static size_t outer_depth = executor_execution_depth<outer_executor_type>::value;
     constexpr static size_t inner_depth = executor_execution_depth<inner_executor_type>::value;
 
   public:
-    using execution_category = scoped_execution_tag<outer_execution_category,inner_execution_category>;
+    using execution_category = detail::bulk_guarantee_to_execution_category_t<
+      bulk_guarantee_t::scoped_t<outer_bulk_guarantee, inner_bulk_guarantee>
+    >;
 
     using outer_shape_type = executor_shape_t<outer_executor_type>;
     using inner_shape_type = executor_shape_t<inner_executor_type>;
@@ -45,8 +49,8 @@ class executor_array
     using outer_index_type = executor_index_t<outer_executor_type>;
     using inner_index_type = executor_index_t<inner_executor_type>;
 
-    using shape_type = detail::scoped_shape_t<outer_execution_category,inner_execution_category,outer_shape_type,inner_shape_type>;
-    using index_type = detail::scoped_index_t<outer_execution_category,inner_execution_category,outer_index_type,inner_index_type>;
+    using shape_type = detail::scoped_shape_t<outer_depth,inner_depth,outer_shape_type,inner_shape_type>;
+    using index_type = detail::scoped_index_t<outer_depth,inner_depth,outer_index_type,inner_index_type>;
 
     using barrier_type = detail::scoped_in_place_type_t_cat_t<
       detail::make_scoped_in_place_type_t<detail::member_barrier_type_or_t<outer_executor_type,void>>,
@@ -56,7 +60,7 @@ class executor_array
     __AGENCY_ANNOTATION
     static shape_type make_shape(const outer_shape_type& outer_shape, const inner_shape_type& inner_shape)
     {
-      return detail::make_scoped_shape<outer_execution_category,inner_execution_category>(outer_shape, inner_shape);
+      return detail::make_scoped_shape<outer_depth,inner_depth>(outer_shape, inner_shape);
     }
 
     __agency_exec_check_disable__
@@ -142,7 +146,7 @@ class executor_array
     __AGENCY_ANNOTATION
     static index_type make_index(const outer_index_type& outer_idx, const inner_index_type& inner_idx)
     {
-      return detail::make_scoped_index<outer_execution_category,inner_execution_category>(outer_idx, inner_idx);
+      return detail::make_scoped_index<outer_depth,inner_depth>(outer_idx, inner_idx);
     }
 
     __AGENCY_ANNOTATION
@@ -364,7 +368,7 @@ class executor_array
     future<detail::result_of_t<ResultFactory()>>
       eager_bulk_then_execute(Function f, shape_type shape, Future& predecessor, ResultFactory result_factory, OuterFactory outer_factory, InnerFactories... inner_factories) const
     {
-      // this implementation legal when the outer_category is not sequenced
+      // this implementation legal when the outer_bulk_guarantee is not sequenced
       // XXX and the inner executor's is concurrent with the launching agent
       //     i.e., we have to make sure that the inner call to bulk_then_execute() actually makes progress
       //     without having to call .get() on the returned futures
@@ -442,8 +446,8 @@ class executor_array
 
     using bulk_then_execute_implementation_strategy = typename std::conditional<
       detail::disjunction<
-        std::is_same<outer_execution_category, sequenced_execution_tag>,
-        std::is_same<inner_execution_category, sequenced_execution_tag> // XXX this should really check whether the inner executor's twoway_execute() method executes concurrently with the caller 
+        std::is_same<outer_bulk_guarantee, bulk_guarantee_t::sequenced_t>,
+        std::is_same<inner_bulk_guarantee, bulk_guarantee_t::sequenced_t> // XXX this should really check whether the inner executor's twoway_execute() method executes concurrently with the caller 
       >::value,
       lazy_strategy,
       eager_strategy
@@ -543,40 +547,11 @@ class executor_array
       return inner_executors_[i];
     }
 
-    __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(
-              detail::has_static_query<bulk_guarantee_t, OuterExecutor>::value and
-              detail::has_static_query<bulk_guarantee_t, InnerExecutor>::value
-            )>
     __AGENCY_ANNOTATION
-    constexpr static auto query(const bulk_guarantee_t& p) ->
-      decltype(
-        bulk_guarantee_t::scoped(
-          bulk_guarantee_t::template static_query<OuterExecutor>(),
-          bulk_guarantee_t::template static_query<InnerExecutor>()
-        )
-      )
+    constexpr static bulk_guarantee_t::scoped_t<outer_bulk_guarantee, inner_bulk_guarantee>
+      query(const bulk_guarantee_t& p)
     {
-      return bulk_guarantee_t::scoped(
-        bulk_guarantee_t::template static_query<OuterExecutor>(),
-        bulk_guarantee_t::template static_query<InnerExecutor>()
-      );
-    }
-
-    __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(
-              !detail::has_static_query<bulk_guarantee_t, OuterExecutor>::value or
-              !detail::has_static_query<bulk_guarantee_t, InnerExecutor>::value
-            )>
-    __AGENCY_ANNOTATION
-    constexpr bulk_guarantee_t::scoped_t<
-      bulk_guarantee_t::unsequenced_t,
-      bulk_guarantee_t::unsequenced_t
-    > query(const bulk_guarantee_t& p) const
-    {
-      // when guarantees cannot be statically determined,
-      // return scoped(unsequenced, unsequenced)
-      return {bulk_guarantee_t::unsequenced_t(), bulk_guarantee_t::unsequenced_t()};
+      return bulk_guarantee_t::scoped(outer_bulk_guarantee{}, inner_bulk_guarantee{});
     }
 };
 

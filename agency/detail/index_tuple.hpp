@@ -53,45 +53,45 @@ struct index_tuple_maker
 };
 
 
-template<class ExecutionCategory1,
-         class ExecutionCategory2,
-         class Index1,
-         class Index2>
+template<size_t OuterDepth,
+         size_t InnerDepth,
+         class OuterIndex,
+         class InnerIndex>
 struct scoped_index
 {
   using type = decltype(
     __tu::tuple_cat_apply(
       detail::index_tuple_maker{},
-      detail::make_tuple_if_not_scoped<ExecutionCategory1>(std::declval<Index1>()),
-      detail::make_tuple_if_not_scoped<ExecutionCategory2>(std::declval<Index2>())
+      detail::make_tuple_if<OuterDepth == 1>(std::declval<OuterIndex>()),
+      detail::make_tuple_if<InnerDepth == 1>(std::declval<InnerIndex>())
     )
   );
 };
 
 
-template<class ExecutionCategory1,
-         class ExecutionCategory2,
-         class Index1,
-         class Index2>
+template<size_t OuterDepth,
+         size_t InnerDepth,
+         class OuterIndex,
+         class InnerIndex>
 using scoped_index_t = typename scoped_index<
-  ExecutionCategory1,
-  ExecutionCategory2,
-  Index1,
-  Index2
+  OuterDepth,
+  InnerDepth,
+  OuterIndex,
+  InnerIndex
 >::type;
 
 
-template<class ExecutionCategory1,
-         class ExecutionCategory2,
-         class Index1,
-         class Index2>
+template<size_t OuterDepth,
+         size_t InnerDepth,
+         class OuterIndex,
+         class InnerIndex>
 __AGENCY_ANNOTATION
-scoped_index_t<ExecutionCategory1,ExecutionCategory2,Index1,Index2> make_scoped_index(const Index1& outer_idx, const Index2& inner_idx)
+scoped_index_t<OuterDepth,InnerDepth,OuterIndex,InnerIndex> make_scoped_index(const OuterIndex& outer_idx, const InnerIndex& inner_idx)
 {
   return __tu::tuple_cat_apply(
     detail::index_tuple_maker{},
-    detail::make_tuple_if_not_scoped<ExecutionCategory1>(outer_idx),
-    detail::make_tuple_if_not_scoped<ExecutionCategory2>(inner_idx)
+    detail::make_tuple_if<OuterDepth == 1>(outer_idx),
+    detail::make_tuple_if<InnerDepth == 1>(inner_idx)
   );
 }
 
