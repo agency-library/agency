@@ -31,7 +31,7 @@ class event
     {
 #if __cuda_lib_has_cudart
       // switch to the stream's device when creating the event
-      scoped_current_device scope(stream().device());
+      scoped_current_device scope(get_stream().device());
 
       detail::throw_on_error(cudaEventCreateWithFlags(&e_, event_create_flags), "cudaEventCreateWithFlags in cuda::detail::event ctor");
 #else
@@ -45,7 +45,7 @@ class event
     event(detail::stream&& s) : event(construct_ready, std::move(s))
     {
 #if __cuda_lib_has_cudart
-      detail::throw_on_error(cudaEventRecord(e_, stream().native_handle()), "cudaEventRecord in cuda::detail::event ctor");
+      detail::throw_on_error(cudaEventRecord(e_, get_stream().native_handle()), "cudaEventRecord in cuda::detail::event ctor");
 #else
       agency::detail::terminate_with_message("cuda::detail::event ctor requires CUDART");
 #endif
@@ -140,7 +140,7 @@ class event
     __host__ __device__
     void swap(event& other)
     {
-      stream().swap(other.stream());
+      get_stream().swap(other.get_stream());
 
       cudaEvent_t tmp = e_;
       e_ = other.e_;
@@ -171,7 +171,7 @@ class event
     __host__ __device__
     event then(Function f, dim3 grid_dim, dim3 block_dim, int shared_memory_size, const Args&... args)
     {
-      return then_on(f, grid_dim, block_dim, shared_memory_size, stream().device(), args...);
+      return then_on(f, grid_dim, block_dim, shared_memory_size, get_stream().device(), args...);
     }
 
     // XXX eliminate this -- it's redundant with then_launch_kernel()
@@ -187,10 +187,10 @@ class event
       auto kernel = then_kernel(f,args...);
 
       // launch the kernel on this event's stream
-      detail::try_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream().native_handle(), f, args...);
+      detail::try_launch_kernel(kernel, grid_dim, block_dim, shared_memory_size, get_stream().native_handle(), f, args...);
 
       // return a new event
-      return event(std::move(stream()));
+      return event(std::move(get_stream()));
     }
 
     // XXX eliminate this
@@ -228,16 +228,16 @@ class event
     __host__ __device__
     inline detail::stream make_dependent_stream() const
     {
-      return make_dependent_stream(stream().device());
+      return make_dependent_stream(get_stream().device());
     }
 
-    // Returns: std::move(stream()) if device is the device associated with this event
+    // Returns: std::move(get_stream()) if device is the device associated with this event
     //          otherwise, it returns the result of make_dependent_stream(device)
     // Post-condition: !valid()
     __host__ __device__
     detail::stream make_dependent_stream_and_invalidate(const device_id& device)
     {
-      detail::stream result = (device == stream().device()) ? std::move(stream()) : make_dependent_stream(device);
+      detail::stream result = (device == get_stream().device()) ? std::move(get_stream()) : make_dependent_stream(device);
 
       // invalidate this event
       *this = event();
@@ -305,7 +305,7 @@ class event
       agency::detail::terminate_with_message("cuda::detail::event::then(): unimplemented function called.");
       return event();
       // launch a single-thread kernel
-      //return then_on([=](uint3, uint3){ f(); }, dim3{1}, dim3{1}, 0, stream().device());
+      //return then_on([=](uint3, uint3){ f(); }, dim3{1}, dim3{1}, 0, get_stream().device());
 #endif
     }
 
@@ -316,7 +316,7 @@ class event
     }
 
     __host__ __device__
-    const stream& stream() const
+    const stream& get_stream() const
     {
       return stream_;
     }
@@ -342,7 +342,7 @@ class event
     }
 
     __host__ __device__
-    detail::stream& stream()
+    detail::stream& get_stream()
     {
       return stream_;
     }
@@ -380,7 +380,7 @@ class event
     __host__ __device__
     int stream_wait_and_invalidate()
     {
-      return stream_wait_and_invalidate(stream());
+      return stream_wait_and_invalidate(get_stream());
     }
 
     template<class... Args>
