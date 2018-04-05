@@ -364,5 +364,57 @@ const __device__ bulk_guarantee_t bulk_guarantee;
 } // end anonymous namespace
 
 
+namespace detail
+{
+// XXX nomerge
+// XXX eliminate this namespace
+//     once we've eliminated detail::is_weaker_than
+namespace bulk_guarantee_detail
+{
+
+
+// XXX maybe "weakness" is the wrong way to describe what we're really interested in here
+//     we just want some idea of substitutability
+
+//  "<" means "is weaker than"
+//  "<" is transitive
+// if guarantee A is weaker than guarantee B,
+// then agents with guarantee A can be executed with agents with guarantee B
+//
+// these relationships should be true
+//
+// parallel_t    < sequenced_t
+// parallel_t    < concurrent_t
+// unsequenced_t < parallel_t
+//
+// XXX figure out how scoped_t sorts
+
+// in general, one guarantee is not weaker than another
+template<class BulkGuarantee1, class BulkGuarantee2>
+struct is_weaker_than : std::false_type {};
+
+// all categories are weaker than themselves
+template<class BulkGuarantee>
+struct is_weaker_than<BulkGuarantee, BulkGuarantee> : std::true_type {};
+
+// unsequenced is weaker than everything else
+template<class BulkGuarantee>
+struct is_weaker_than<bulk_guarantee_t::unsequenced_t, BulkGuarantee> : std::true_type {};
+
+// introduce this specialization to disambiguate other specializations
+template<>
+struct is_weaker_than<bulk_guarantee_t::unsequenced_t, bulk_guarantee_t::unsequenced_t> : std::true_type {};
+
+// parallel is weaker than sequenced & concurrent
+template<>
+struct is_weaker_than<bulk_guarantee_t::parallel_t, bulk_guarantee_t::sequenced_t> : std::true_type {};
+
+template<>
+struct is_weaker_than<bulk_guarantee_t::parallel_t, bulk_guarantee_t::concurrent_t> : std::true_type {};
+
+} // end bulk_guarantee_detail
+} // end detail
+
+
 } // end agency
 
