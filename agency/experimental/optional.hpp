@@ -328,7 +328,7 @@ class optional : public detail::optional_base<T>
     __AGENCY_ANNOTATION
     void swap(optional& other)
     {
-      if(*other)
+      if(other)
       {
         if(*this)
         {
