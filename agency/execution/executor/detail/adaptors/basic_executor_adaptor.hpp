@@ -55,10 +55,11 @@ template<class Executor>
 class basic_executor_adaptor
 {
   private:
-    using base_executor_type = typename std::decay<Executor>::type;
-
-  private:
+    // use Executor here instead of base_executor_type because Executor is allowed to be a reference
     Executor base_executor_;
+
+    // decay the Executor type to strip off any reference for use in the __AGENCY_REQUIRES clauses below
+    using base_executor_type = typename std::decay<Executor>::type;
 
   protected:
     __AGENCY_ANNOTATION
@@ -89,7 +90,7 @@ class basic_executor_adaptor
 
     __agency_exec_check_disable__
     template<class Property,
-             class E = Executor,
+             class E = base_executor_type,
              __AGENCY_REQUIRES(
                has_query_member<E,Property>::value
              )>
@@ -102,7 +103,7 @@ class basic_executor_adaptor
 
     __agency_exec_check_disable__
     template<class Property,
-             class E = Executor,
+             class E = base_executor_type,
              __AGENCY_REQUIRES(
                has_require_member<E,Property>::value
              )>
