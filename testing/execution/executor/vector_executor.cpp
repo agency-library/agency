@@ -5,6 +5,7 @@
 
 #include <agency/execution/executor/vector_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 
 int main()
 {
@@ -13,8 +14,8 @@ int main()
   static_assert(detail::is_bulk_twoway_executor<vector_executor>::value,
     "vector_executor should be a bulk twoway executor");
 
-  static_assert(detail::is_detected_exact<unsequenced_execution_tag, executor_execution_category_t, vector_executor>::value,
-    "vector_executor should have unsequenced_execution_tag execution_category");
+  static_assert(bulk_guarantee_t::static_query<vector_executor>() == bulk_guarantee_t::unsequenced_t(),
+    "vector_executor should have unsequenced static bulk guarantee");
 
   static_assert(detail::is_detected_exact<size_t, executor_shape_t, vector_executor>::value,
     "vector_executor should have size_t shape_type");

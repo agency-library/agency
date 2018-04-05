@@ -14,6 +14,7 @@ namespace agency
 class sequenced_executor
 {
   public:
+    // XXX nomerge
     // XXX eliminate execution_category
     using execution_category = sequenced_execution_tag;
 

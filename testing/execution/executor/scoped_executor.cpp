@@ -7,6 +7,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/customization_points.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <agency/tuple.hpp>
 #include "test_executors.hpp"
 
@@ -20,10 +21,13 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
   static_assert(detail::is_bulk_then_executor<scoped_executor_type>::value,
     "scoped_executor should be a bulk then executor");
 
-  using expected_category = scoped_execution_tag<executor_execution_category_t<OuterExecutor>, executor_execution_category_t<InnerExecutor>>;
+  using expected_bulk_guarantee_type = bulk_guarantee_t::scoped_t<
+    decltype(bulk_guarantee_t::static_query<OuterExecutor>()),
+    decltype(bulk_guarantee_t::static_query<InnerExecutor>())
+  >;
 
-  static_assert(detail::is_detected_exact<expected_category, executor_execution_category_t, scoped_executor_type>::value,
-    "scoped_executor should have expected_category execution_category");
+  static_assert(bulk_guarantee_t::static_query<scoped_executor_type>() == expected_bulk_guarantee_type(),
+    "scoped_executor should have expected_bulk_guarantee_type");
 
   static_assert(detail::is_detected_exact<tuple<size_t,size_t>, executor_shape_t, scoped_executor_type>::value,
     "scoped_executor should have detail::tuple<size_t,size_t> shape_type");

@@ -28,6 +28,8 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/properties/bulk_guarantee.hpp>
+#include <agency/execution/executor/properties/detail/bulk_guarantee_depth.hpp>
+
 
 namespace agency
 {
@@ -69,10 +71,10 @@ struct common_bulk_guarantee2_impl<BulkGuarantee1,BulkGuarantee2,1,1>
   // if one of the two categories is weaker than the other, then return it
   // otherwise, return the weakest static guarantee: unsequenced
   using type = conditional_t<
-    bulk_guarantee_detail::is_weaker_than<BulkGuarantee1,BulkGuarantee2>::value,
+    is_weaker_guarantee_than<BulkGuarantee1,BulkGuarantee2>::value,
     BulkGuarantee1,
     conditional_t<
-      bulk_guarantee_detail::is_weaker_than<BulkGuarantee2,BulkGuarantee1>::value,
+      is_weaker_guarantee_than<BulkGuarantee2,BulkGuarantee1>::value,
       BulkGuarantee2,
       bulk_guarantee_t::unsequenced_t
     >
@@ -108,8 +110,8 @@ struct common_bulk_guarantee2
   using type = typename common_bulk_guarantee2_impl<
     BulkGuarantee1,
     BulkGuarantee2,
-    execution_depth<BulkGuarantee1>::value,
-    execution_depth<BulkGuarantee2>::value
+    bulk_guarantee_depth<BulkGuarantee1>::value,
+    bulk_guarantee_depth<BulkGuarantee2>::value
   >::type;
 };
 

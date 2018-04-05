@@ -14,7 +14,6 @@
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/execution/executor/detail/execution_functions/bulk_then_execute.hpp>
 #include <agency/execution/executor/properties/bulk_guarantee.hpp>
-#include <agency/execution/executor/properties/detail/bulk_guarantee_to_execution_category.hpp>
 #include <agency/execution/executor/query.hpp>
 #include <agency/detail/scoped_in_place_type.hpp>
 #include <agency/tuple.hpp>
@@ -39,10 +38,6 @@ class executor_array
     constexpr static size_t inner_depth = executor_execution_depth<inner_executor_type>::value;
 
   public:
-    using execution_category = detail::bulk_guarantee_to_execution_category_t<
-      bulk_guarantee_t::scoped_t<outer_bulk_guarantee, inner_bulk_guarantee>
-    >;
-
     using outer_shape_type = executor_shape_t<outer_executor_type>;
     using inner_shape_type = executor_shape_t<inner_executor_type>;
 

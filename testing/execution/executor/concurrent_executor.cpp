@@ -18,8 +18,8 @@ int main()
   static_assert(detail::is_bulk_then_executor<concurrent_executor>::value,
     "concurrent_executor should be a bulk then executor");
 
-  static_assert(detail::is_detected_exact<concurrent_execution_tag, executor_execution_category_t, concurrent_executor>::value,
-    "concurrent_executor should have concurrent_execution_tag execution_category");
+  static_assert(bulk_guarantee_t::static_query<concurrent_executor>() == bulk_guarantee_t::concurrent_t(),
+    "concurrent_executor should have concurrent static bulk guarantee");
 
   static_assert(detail::is_detected_exact<size_t, executor_shape_t, concurrent_executor>::value,
     "concurrent_executor should have size_t shape_type");

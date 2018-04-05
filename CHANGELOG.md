@@ -22,6 +22,7 @@ TODO
   * `is_bulk_executor` has been eliminated
   * `is_simple_executor` has been eliminated
   * `future_value` and `future_value_t` have been renamed `future_result` and `future_result_t`, respectively.
+  * `executor_execution_category` and `executor_execution_category_t` have been replaced with the `bulk_guarantee` executor property
 
 ## New Features
 
@@ -30,6 +31,7 @@ TODO
     * `single`
     * `then`
     * `always_blocking`
+    * `bulk_guarantee`
 
 ### Control Structures
 

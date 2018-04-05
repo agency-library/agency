@@ -1,7 +1,8 @@
 #pragma once
 
 #include <agency/future/always_ready_future.hpp>
-#include <agency/execution/execution_categories.hpp>
+#include <agency/execution/executor/properties/always_blocking.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <utility>
 
@@ -55,7 +56,21 @@ template<std::size_t unroll_factor_>
 class unrolling_executor
 {
   public:
-    using execution_category = sequenced_execution_tag;
+    __AGENCY_ANNOTATION
+    constexpr static bulk_guarantee_t::sequenced_t query(bulk_guarantee_t)
+    {
+      return bulk_guarantee_t::sequenced_t();
+    }
+
+    // XXX this overload shouldn't be necessary
+    // always_blocking_t::static_query_v should be smart enough to determine from
+    // the future type, and the absense of oneway functions,
+    // that this executor is always blocking
+    __AGENCY_ANNOTATION
+    constexpr static bool query(always_blocking_t)
+    {
+      return true;
+    }
 
     static constexpr std::size_t unroll_factor = unroll_factor_;
 

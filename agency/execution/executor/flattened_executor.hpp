@@ -10,6 +10,7 @@
 #include <agency/execution/execution_categories.hpp>
 #include <agency/detail/scoped_in_place_type.hpp>
 #include <agency/execution/executor/executor_traits/detail/member_barrier_type_or.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_scoped_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/customization_points.hpp>
@@ -23,34 +24,6 @@ namespace agency
 {
 namespace detail
 {
-
-
-template<class ExecutionCategory>
-struct flattened_execution_tag;
-
-template<class ExecutionCategory>
-using flattened_execution_tag_t = typename flattened_execution_tag<ExecutionCategory>::type;
-
-
-template<class OuterCategory, class InnerCategory>
-struct flattened_execution_tag<scoped_execution_tag<OuterCategory,InnerCategory>>
-{
-  using type = parallel_execution_tag;
-};
-
-
-template<class OuterCategory, class InnerCategory, class InnerInnerCategory>
-struct flattened_execution_tag<scoped_execution_tag<OuterCategory, scoped_execution_tag<InnerCategory,InnerInnerCategory>>>
-{
-  // OuterCategory and InnerCategory flatten as the outer category
-  // while InnerInnerCategory is promoted to the inner category
-  using type = scoped_execution_tag<
-    flattened_execution_tag_t<
-      scoped_execution_tag<OuterCategory, InnerInnerCategory>
-    >,
-    InnerInnerCategory
-  >;
-};
 
 
 // XXX this should flatten to parallel_t only if neither OuterGuarantee nor InnerGuarantee are unsequenced
@@ -256,17 +229,15 @@ class flattened_executor
 {
   // probably shouldn't insist on a scoped executor
   static_assert(
-    detail::is_scoped_execution_category<executor_execution_category_t<Executor>>::value,
-    "Execution category of Executor must be scoped."
+    detail::is_scoped_executor<Executor>::value,
+    "Executor must have a scoped bulk guarantee."
   );
 
   private:
-    using base_execution_category = executor_execution_category_t<Executor>;
     constexpr static auto execution_depth = executor_execution_depth<Executor>::value - 1;
 
   public:
     using base_executor_type = Executor;
-    using execution_category = detail::flattened_execution_tag_t<base_execution_category>;
     using shape_type = detail::flattened_shape_type_t<executor_shape_t<base_executor_type>>;
     using index_type = detail::flattened_index_type_t<executor_shape_t<base_executor_type>>;
 
