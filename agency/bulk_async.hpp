@@ -10,6 +10,8 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/control_structures/is_bulk_call_possible_via_execution_policy.hpp>
 #include <agency/execution/execution_agent.hpp>
+#include <agency/execution/executor/properties/detail/bulk_guarantee_depth.hpp>
+
 
 namespace agency
 {
@@ -110,7 +112,7 @@ see_below
   bulk_async(ExecutionPolicy&& policy, Function f, Args&&... args)
 {
   using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
-  const size_t num_shared_params = detail::execution_depth<typename agent_traits::execution_category>::value;
+  const size_t num_shared_params = detail::bulk_guarantee_depth<typename agent_traits::execution_requirement>::value;
 
   return detail::bulk_async_execution_policy(detail::index_sequence_for<Args...>(), detail::make_index_sequence<num_shared_params>(), policy, f, std::forward<Args>(args)...);
 }

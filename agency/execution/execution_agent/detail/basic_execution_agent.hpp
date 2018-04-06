@@ -4,6 +4,7 @@
 #include <agency/coordinate/lattice.hpp>
 #include <agency/detail/index_lexicographical_rank.hpp>
 #include <agency/execution/execution_agent/execution_agent_traits.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <utility>
 
 
@@ -13,11 +14,11 @@ namespace detail
 {
 
 
-template<class ExecutionCategory, class Index = size_t>
+template<class ExecutionRequirement, class Index = size_t>
 class basic_execution_agent
 {
   public:
-    using execution_category = ExecutionCategory;
+    using execution_requirement = ExecutionRequirement;
 
     using index_type = Index;
 

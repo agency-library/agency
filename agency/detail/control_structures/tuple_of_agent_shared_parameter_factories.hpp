@@ -1,8 +1,8 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/execution_categories.hpp>
 #include <agency/execution/execution_agent/execution_agent_traits.hpp>
+#include <agency/execution/executor/properties/detail/bulk_guarantee_depth.hpp>
 #include <agency/tuple.hpp>
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/control_structures/agent_shared_parameter_factory.hpp>
@@ -57,7 +57,7 @@ tuple_of_agent_shared_parameter_factories_t<ExecutionAgent, BarrierOrVoid>
 template<class ExecutionAgent,
          class BarrierOrVoid, class... BarriersOrVoids,
          __AGENCY_REQUIRES(
-           1 + sizeof...(BarriersOrVoids) == agency::detail::execution_depth<typename agency::execution_agent_traits<ExecutionAgent>::execution_category>::value
+           1 + sizeof...(BarriersOrVoids) == agency::detail::bulk_guarantee_depth<typename agency::execution_agent_traits<ExecutionAgent>::execution_requirement>::value
          ),
          __AGENCY_REQUIRES(
            agency::detail::has_inner_execution_agent_type<ExecutionAgent>::value
