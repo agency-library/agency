@@ -185,44 +185,44 @@ struct execution_policy_execution_depth
 
 
 template<class ExecutionPolicy>
-struct execution_policy_execution_category
+struct execution_policy_execution_requirement
 {
-  using type = typename execution_agent_traits<execution_policy_agent_t<ExecutionPolicy>>::execution_category;
+  using type = typename execution_agent_traits<execution_policy_agent_t<ExecutionPolicy>>::execution_requirement;
 };
 
 template<class ExecutionPolicy>
-using execution_policy_execution_category_t = typename execution_policy_execution_category<ExecutionPolicy>::type;
+using execution_policy_execution_requirement_t = typename execution_policy_execution_requirement<ExecutionPolicy>::type;
 
 
 template<class ExecutionPolicy>
-using policy_is_sequenced = std::is_same<sequenced_execution_tag, execution_policy_execution_category_t<ExecutionPolicy>>;
+using policy_is_sequenced = std::is_same<bulk_guarantee_t::sequenced_t, execution_policy_execution_requirement_t<ExecutionPolicy>>;
 
 
 template<class ExecutionPolicy>
-using policy_is_parallel = std::is_same<parallel_execution_tag, execution_policy_execution_category_t<ExecutionPolicy>>;
+using policy_is_parallel = std::is_same<bulk_guarantee_t::parallel_t, execution_policy_execution_requirement_t<ExecutionPolicy>>;
 
 
 template<class ExecutionPolicy>
-using policy_is_concurrent = std::is_same<concurrent_execution_tag, execution_policy_execution_category_t<ExecutionPolicy>>;
+using policy_is_concurrent = std::is_same<bulk_guarantee_t::concurrent_t, execution_policy_execution_requirement_t<ExecutionPolicy>>;
 
 
 template<class ExecutionPolicy>
 using policy_is_scoped_parallel_concurrent = std::is_same<
-  scoped_execution_tag<
-    parallel_execution_tag,
-    concurrent_execution_tag
+  bulk_guarantee_t::scoped_t<
+    bulk_guarantee_t::parallel_t,
+    bulk_guarantee_t::concurrent_t
   >,
-  execution_policy_execution_category_t<ExecutionPolicy>
+  execution_policy_execution_requirement_t<ExecutionPolicy>
 >;
 
 
 template<class ExecutionPolicy>
 using policy_is_scoped_concurrent_concurrent = std::is_same<
-  scoped_execution_tag<
-    concurrent_execution_tag,
-    concurrent_execution_tag
+  bulk_guarantee_t::scoped_t<
+    bulk_guarantee_t::concurrent_t,
+    bulk_guarantee_t::concurrent_t
   >,
-  execution_policy_execution_category_t<ExecutionPolicy>
+  execution_policy_execution_requirement_t<ExecutionPolicy>
 >;
 
 

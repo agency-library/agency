@@ -7,12 +7,13 @@
 #include <agency/future/detail/future_sum.hpp>
 #include <agency/coordinate/detail/shape/common_shape.hpp>
 #include <agency/memory/allocator/detail/allocator_sum.hpp>
-#include <agency/execution/execution_categories.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/customization_points.hpp>
 #include <agency/execution/executor/detail/adaptors/executor_ref.hpp>
 #include <agency/execution/executor/properties.hpp>
 #include <agency/execution/executor/require.hpp>
+#include <agency/execution/executor/properties/detail/common_bulk_guarantee.hpp>
+#include <agency/execution/executor/properties/detail/bulk_guarantee_depth.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/tuple.hpp>
 
@@ -30,21 +31,23 @@ class variant_executor
   private:
     using variant_type = experimental::variant<Executor,Executors...>;
 
-  public:
-    /// variant_executor's execution category provides the strongest guarantee
-    /// permitted by the union of the categories of the alternative executors
-    /// When no static guarantee may be provided, the category is dynamic_execution_tag.
-    using execution_category = detail::common_execution_category_t<
-      executor_execution_category_t<Executor>,
-      executor_execution_category_t<Executors>...
+    using bulk_guarantee_type = detail::common_bulk_guarantee_t<
+      decltype(bulk_guarantee_t::static_query<Executor>()),
+      decltype(bulk_guarantee_t::static_query<Executors>())...
     >;
 
-    // XXX consider providing a way to query the runtime value of the category through
-    //     a function member
-    //     it could return dynamic_execution_tag, and this category could have a runtime value
+  public:
+    /// variant_executor's bulk_guarantee_t provides the strongest guarantee
+    /// permitted by the union of the guarantees provided by the alternative executors
+    /// When no static guarantee may be provided, the guarantee is unsequenced_t.
+    __AGENCY_ANNOTATION
+    constexpr static bulk_guarantee_type query(bulk_guarantee_t)
+    {
+      return bulk_guarantee_type();
+    }
 
   private:
-    static constexpr size_t execution_depth = detail::execution_depth<execution_category>::value;
+    static constexpr size_t execution_depth = detail::bulk_guarantee_depth<bulk_guarantee_type>::value;
 
   public:
     /// variant_executor's associated future type is sum type for futures.

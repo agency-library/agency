@@ -32,6 +32,7 @@
 #include <agency/execution/executor/detail/adaptors/basic_executor_adaptor.hpp>
 #include <agency/execution/executor/executor_traits/detail/executor_has_static_property.hpp>
 #include <agency/execution/executor/executor_traits/executor_execution_depth.hpp>
+#include <agency/execution/executor/properties/detail/static_query.hpp>
 #include <utility>
 
 
@@ -73,6 +74,9 @@ class always_blocking_executor : public basic_executor_adaptor<Executor>
 
     __AGENCY_ANNOTATION
     always_blocking_executor(const Executor& ex) noexcept : super_t{ex} {}
+
+    // inherit all of basic_executor_adaptor's query members
+    using super_t::query;
 
     __AGENCY_ANNOTATION
     constexpr static bool query(const always_blocking_t&)
@@ -240,14 +244,6 @@ class always_blocking_executor : public basic_executor_adaptor<Executor>
 };
 
 
-template<class E, class P, bool = E::query(P())>
-__AGENCY_ANNOTATION
-constexpr static bool static_query_impl()
-{
-  return E::query(P());
-}
-
-
 } // end detail
 
 
@@ -262,9 +258,9 @@ struct always_blocking_t
   template<class E>
   __AGENCY_ANNOTATION
   constexpr static auto static_query() ->
-    decltype(detail::static_query_impl<E,always_blocking_t>())
+    decltype(detail::static_query<E,always_blocking_t>())
   {
-    return detail::static_query_impl<E,always_blocking_t>();
+    return detail::static_query<E,always_blocking_t>();
   }
 
   __AGENCY_ANNOTATION

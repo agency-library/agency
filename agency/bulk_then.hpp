@@ -9,6 +9,8 @@
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/execution/execution_agent.hpp>
+#include <agency/execution/executor/properties/detail/bulk_guarantee_depth.hpp>
+
 
 namespace agency
 {
@@ -116,7 +118,7 @@ see_below
   bulk_then(ExecutionPolicy&& policy, Function f, Future& predecessor, Args&&... args)
 {
   using agent_traits = execution_agent_traits<typename std::decay<ExecutionPolicy>::type::execution_agent_type>;
-  const size_t num_shared_params_for_agent = detail::execution_depth<typename agent_traits::execution_category>::value;
+  const size_t num_shared_params_for_agent = detail::bulk_guarantee_depth<typename agent_traits::execution_requirement>::value;
 
   return detail::bulk_then_execution_policy(
     detail::index_sequence_for<Args...>(),

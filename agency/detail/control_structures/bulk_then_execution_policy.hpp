@@ -31,7 +31,6 @@ struct then_execute_agent_functor
   using agent_param_type  = typename AgentTraits::param_type;
   using agent_domain_type = typename AgentTraits::domain_type;
   using agent_shape_type  = decltype(std::declval<agent_domain_type>().shape());
-  using agent_execution_category = typename AgentTraits::execution_category;
 
   using executor_shape_type = executor_shape_t<Executor>;
 

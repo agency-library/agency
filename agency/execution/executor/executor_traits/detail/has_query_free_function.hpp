@@ -26,10 +26,43 @@
 
 #pragma once
 
-#include <agency/execution/executor/properties/always_blocking.hpp>
-#include <agency/execution/executor/properties/bulk.hpp>
-#include <agency/execution/executor/properties/bulk_guarantee.hpp>
-#include <agency/execution/executor/properties/single.hpp>
-#include <agency/execution/executor/properties/then.hpp>
-#include <agency/execution/executor/properties/twoway.hpp>
+#include <agency/detail/config.hpp>
+#include <agency/detail/type_traits.hpp>
+#include <utility>
+#include <future>
+
+namespace agency
+{
+namespace detail
+{
+
+
+template<class Executor, class Property>
+using query_free_function_t = decltype(query(std::declval<const Executor>(), std::declval<Property>()));
+
+
+// XXX WAR nvcc issue with is_detected + query_free_function_t
+//template<class Executor, class Property>
+//using has_query_free_function = is_detected<query_free_function_t, Executor, Property>;
+
+template<class Executor, class Property>
+struct has_query_free_function_impl
+{
+  template<class E, class P,
+           class = query_free_function_t<E,P>
+          >
+  static std::true_type test(int);
+
+  template<class, class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Executor,Property>(0));
+};
+
+template<class Executor, class Property>
+using has_query_free_function = typename has_query_free_function_impl<Executor,Property>::type;
+
+
+} // end detail
+} // end agency
 

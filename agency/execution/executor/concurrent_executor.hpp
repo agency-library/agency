@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/future.hpp>
-#include <agency/execution/execution_categories.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/type_traits.hpp>
 
@@ -20,8 +20,6 @@ namespace agency
 class concurrent_executor
 {
   public:
-    using execution_category = concurrent_execution_tag;
-
     size_t unit_shape() const
     {
       constexpr size_t default_result = 1;
@@ -29,6 +27,12 @@ class concurrent_executor
 
       // hardware_concurency() is allowed to return 0, so guard against a 0 result
       return hw_concurrency ? hw_concurrency : default_result;
+    }
+
+    __AGENCY_ANNOTATION
+    constexpr static bulk_guarantee_t::concurrent_t query(const bulk_guarantee_t&)
+    {
+      return bulk_guarantee_t::concurrent_t();
     }
 
     template<class Function, class Future, class ResultFactory, class SharedFactory>

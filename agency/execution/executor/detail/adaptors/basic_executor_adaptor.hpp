@@ -30,9 +30,9 @@
 #include <agency/detail/requires.hpp>
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/executor_shape.hpp>
-#include <agency/execution/executor/executor_traits/executor_execution_category.hpp>
 #include <agency/execution/executor/executor_traits/detail/has_require_member.hpp>
 #include <agency/execution/executor/executor_traits/detail/has_query_member.hpp>
+#include <agency/execution/executor/executor_traits/detail/has_static_query.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_twoway_executor.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_single_then_executor.hpp>
@@ -74,9 +74,7 @@ class basic_executor_adaptor
 
     using shape_type = executor_shape_t<base_executor_type>;
 
-    using execution_category = executor_execution_category_t<base_executor_type>;
-
-    // XXX need to publicize the other executor member typedefs such as execution_category, etc.
+    // XXX need to publicize the other executor member typedefs such as index_type, etc.
 
     __agency_exec_check_disable__
     basic_executor_adaptor() = default;
@@ -88,10 +86,27 @@ class basic_executor_adaptor
     __AGENCY_ANNOTATION
     basic_executor_adaptor(const base_executor_type& base) noexcept : base_executor_{base} {}
 
+
+    // static query member function
     __agency_exec_check_disable__
     template<class Property,
              class E = base_executor_type,
              __AGENCY_REQUIRES(
+               has_static_query<Property, E>::value
+             )>
+    __AGENCY_ANNOTATION
+    constexpr static auto query(const Property& p) ->
+      decltype(Property::template static_query<E>())
+    {
+      return Property::template static_query<E>();
+    }
+
+    // non-static query member function
+    __agency_exec_check_disable__
+    template<class Property,
+             class E = base_executor_type,
+             __AGENCY_REQUIRES(
+               !has_static_query<Property, E>::value and
                has_query_member<E,Property>::value
              )>
     __AGENCY_ANNOTATION

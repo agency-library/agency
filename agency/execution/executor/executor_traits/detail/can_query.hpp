@@ -26,10 +26,27 @@
 
 #pragma once
 
-#include <agency/execution/executor/properties/always_blocking.hpp>
-#include <agency/execution/executor/properties/bulk.hpp>
-#include <agency/execution/executor/properties/bulk_guarantee.hpp>
-#include <agency/execution/executor/properties/single.hpp>
-#include <agency/execution/executor/properties/then.hpp>
-#include <agency/execution/executor/properties/twoway.hpp>
+#include <agency/detail/config.hpp>
+#include <agency/detail/type_traits.hpp>
+#include <agency/execution/executor/executor_traits/detail/has_static_query.hpp>
+#include <agency/execution/executor/executor_traits/detail/has_query_member.hpp>
+#include <agency/execution/executor/executor_traits/detail/has_query_free_function.hpp>
+
+namespace agency
+{
+namespace detail
+{
+
+
+template<class Executor, class Property>
+struct can_query : detail::conjunction<
+  has_static_query<Property, Executor>,
+  has_query_member<Executor, Property>,
+  has_query_free_function<Executor, Property>
+>
+{};
+
+
+} // end detail
+} // end agency
 

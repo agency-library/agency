@@ -26,10 +26,29 @@
 
 #pragma once
 
-#include <agency/execution/executor/properties/always_blocking.hpp>
-#include <agency/execution/executor/properties/bulk.hpp>
-#include <agency/execution/executor/properties/bulk_guarantee.hpp>
-#include <agency/execution/executor/properties/single.hpp>
-#include <agency/execution/executor/properties/then.hpp>
-#include <agency/execution/executor/properties/twoway.hpp>
+
+namespace agency
+{
+namespace detail
+{
+
+
+template<class Property, class Executor>
+struct has_static_query_impl
+{
+  template<class P, class E, class = decltype(P::template static_query<E>())>
+  static std::true_type test(int);
+
+  template<class...>
+  static std::false_type test(...);
+
+  using type = decltype(test<Property,Executor>(0));
+};
+
+template<class Property, class Executor>
+using has_static_query = typename has_static_query_impl<Property,Executor>::type;
+
+
+} // end detail
+} // end agency
 

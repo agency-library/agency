@@ -21,8 +21,6 @@ namespace this_thread
 class parallel_executor
 {
   public:
-    using execution_category = parallel_execution_tag;
-
     template<class T>
     using allocator = cuda::allocator<T, pinned_resource>;
 
@@ -33,6 +31,12 @@ class parallel_executor
     constexpr static bool query(always_blocking_t)
     {
       return true;
+    }
+
+    __host__ __device__
+    constexpr static bulk_guarantee_t::parallel_t query(const bulk_guarantee_t&)
+    {
+      return bulk_guarantee_t::parallel_t();
     }
 
     template<class Function, class ResultFactory, class SharedFactory>

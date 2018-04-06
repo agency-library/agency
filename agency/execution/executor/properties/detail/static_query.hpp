@@ -26,10 +26,25 @@
 
 #pragma once
 
-#include <agency/execution/executor/properties/always_blocking.hpp>
-#include <agency/execution/executor/properties/bulk.hpp>
-#include <agency/execution/executor/properties/bulk_guarantee.hpp>
-#include <agency/execution/executor/properties/single.hpp>
-#include <agency/execution/executor/properties/then.hpp>
-#include <agency/execution/executor/properties/twoway.hpp>
+#include <agency/detail/config.hpp>
+
+
+namespace agency
+{
+namespace detail
+{
+
+
+__agency_exec_check_disable__
+template<class E, class P, class = decltype(E::query(P()))>
+__AGENCY_ANNOTATION
+constexpr static auto static_query() ->
+  decltype(E::query(P()))
+{
+  return E::query(P());
+}
+
+
+} // end detail
+} // end agency
 

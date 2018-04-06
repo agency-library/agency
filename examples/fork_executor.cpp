@@ -59,7 +59,10 @@ class fork_executor
 {
   public:
     // forked processes execute in parallel
-    using execution_category = agency::parallel_execution_tag;
+    constexpr static agency::bulk_guarantee_t::parallel_t query(agency::bulk_guarantee_t)
+    {
+      return agency::bulk_guarantee_t::parallel_t();
+    }
 
     // forked processes communicate through shared memory
     template<typename T> using allocator = shared_memory_allocator<T>;

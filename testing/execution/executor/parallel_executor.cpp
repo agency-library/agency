@@ -6,6 +6,7 @@
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_then_executor.hpp>
 #include <agency/execution/executor/customization_points.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 
 int main()
 {
@@ -14,8 +15,8 @@ int main()
   static_assert(detail::is_bulk_then_executor<parallel_executor>::value,
     "parallel_executor should be a bulk then executor");
 
-  static_assert(detail::is_detected_exact<parallel_execution_tag, executor_execution_category_t, parallel_executor>::value,
-    "parallel_executor should have parallel_execution_tag execution_category");
+  static_assert(bulk_guarantee_t::static_query<parallel_executor>() == bulk_guarantee_t::parallel_t(),
+    "parallel_executor should have parallel static bulk guarantee");
 
   static_assert(detail::is_detected_exact<size_t, executor_shape_t, parallel_executor>::value,
     "parallel_executor should have size_t shape_type");

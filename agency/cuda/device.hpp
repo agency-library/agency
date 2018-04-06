@@ -86,13 +86,13 @@ class device_id
     typedef int native_handle_type;
 
     __host__ __device__
-    device_id(native_handle_type handle)
+    constexpr device_id(native_handle_type handle)
       : handle_(handle)
     {}
 
     // default constructor creates a device_id which represents no device
     __host__ __device__
-    device_id()
+    constexpr device_id()
       : device_id(-1)
     {}
 

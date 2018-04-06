@@ -7,12 +7,14 @@
 #include <agency/detail/shape.hpp>
 #include <agency/detail/index.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/execution_categories.hpp>
 #include <agency/detail/scoped_in_place_type.hpp>
 #include <agency/execution/executor/executor_traits/detail/member_barrier_type_or.hpp>
+#include <agency/execution/executor/executor_traits/detail/is_scoped_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
 #include <agency/execution/executor/customization_points.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
+#include <agency/execution/executor/query.hpp>
 #include <agency/detail/algorithm/min.hpp>
 #include <agency/detail/algorithm/max.hpp>
 
@@ -23,28 +25,41 @@ namespace detail
 {
 
 
-template<class ExecutionCategory>
-struct flattened_execution_tag;
-
-template<class OuterCategory, class InnerCategory>
-struct flattened_execution_tag<scoped_execution_tag<OuterCategory,InnerCategory>>
+// XXX this should flatten to parallel_t only if neither OuterGuarantee nor InnerGuarantee are unsequenced
+template<class OuterGuarantee, class InnerGuarantee>
+__AGENCY_ANNOTATION
+constexpr bulk_guarantee_t::parallel_t flatten_bulk_guarantee(bulk_guarantee_t::scoped_t<OuterGuarantee, InnerGuarantee> guarantee)
 {
-  using type = parallel_execution_tag;
-};
+  return bulk_guarantee_t::parallel_t{};
+}
 
-template<class OuterCategory, class InnerCategory, class InnerInnerCategory>
-struct flattened_execution_tag<scoped_execution_tag<OuterCategory, scoped_execution_tag<InnerCategory,InnerInnerCategory>>>
+
+template<class OuterGuarantee, class InnerGuarantee, class InnerInnerGuarantee>
+__AGENCY_ANNOTATION
+constexpr auto flatten_bulk_guarantee(bulk_guarantee_t::scoped_t<OuterGuarantee, bulk_guarantee_t::scoped_t<InnerGuarantee, InnerInnerGuarantee>> guarantee) ->
+  decltype(
+    bulk_guarantee_t::scoped(
+      detail::flatten_bulk_guarantee(
+        bulk_guarantee_t::scoped(
+          guarantee.outer(), guarantee.inner().outer()
+        )
+      ),
+      guarantee.inner().inner()
+    )
+  )
 {
-  // OuterCategory and InnerCategory merge into parallel as the outer category
-  // while InnerInnerCategory is promoted to the inner category
-  using type = scoped_execution_tag<
-    parallel_execution_tag,
-    InnerInnerCategory
-  >;
-};
+  // OuterGuarantee and InnerGuarantee get scoped and flattened as the outer guarantee
+  // while InnerInnerGuarantee is promoted to the inner guarantee
 
-template<class ExecutionCategory>
-using flattened_execution_tag_t = typename flattened_execution_tag<ExecutionCategory>::type;
+  return bulk_guarantee_t::scoped(
+    detail::flatten_bulk_guarantee(
+      bulk_guarantee_t::scoped(
+        guarantee.outer(), guarantee.inner().outer()
+      )
+    ),
+    guarantee.inner().inner()
+  );
+}
 
 
 template<class ShapeTuple>
@@ -213,17 +228,15 @@ class flattened_executor
 {
   // probably shouldn't insist on a scoped executor
   static_assert(
-    detail::is_scoped_execution_category<executor_execution_category_t<Executor>>::value,
-    "Execution category of Executor must be scoped."
+    detail::is_scoped_executor<Executor>::value,
+    "Executor must have a scoped bulk guarantee."
   );
 
   private:
-    using base_execution_category = executor_execution_category_t<Executor>;
     constexpr static auto execution_depth = executor_execution_depth<Executor>::value - 1;
 
   public:
     using base_executor_type = Executor;
-    using execution_category = detail::flattened_execution_tag_t<base_execution_category>;
     using shape_type = detail::flattened_shape_type_t<executor_shape_t<base_executor_type>>;
     using index_type = detail::flattened_index_type_t<executor_shape_t<base_executor_type>>;
 
@@ -242,9 +255,41 @@ class flattened_executor
     }
 
     __AGENCY_ANNOTATION
-    flattened_executor(const base_executor_type& base_executor = base_executor_type())
+    constexpr flattened_executor(const base_executor_type& base_executor = base_executor_type())
       : base_executor_(base_executor)
     {}
+
+    __AGENCY_ANNOTATION
+    const base_executor_type& base_executor() const
+    {
+      return base_executor_;
+    }
+
+    __AGENCY_ANNOTATION
+    base_executor_type& base_executor()
+    {
+      return base_executor_;
+    }
+
+    template<__AGENCY_REQUIRES(
+               detail::has_static_query<bulk_guarantee_t, base_executor_type>::value
+            )>
+    __AGENCY_ANNOTATION
+    constexpr static auto query(const bulk_guarantee_t& prop) ->
+      decltype(detail::flatten_bulk_guarantee(bulk_guarantee_t::template static_query<base_executor_type>()))
+    {
+      return detail::flatten_bulk_guarantee(bulk_guarantee_t::template static_query<base_executor_type>());
+    }
+
+    template<__AGENCY_REQUIRES(
+               !detail::has_static_query<bulk_guarantee_t, base_executor_type>::value
+            )>
+    __AGENCY_ANNOTATION
+    constexpr auto query(const bulk_guarantee_t& prop) const ->
+      decltype(detail::flatten_bulk_guarantee(agency::query(this->base_executor(), prop)))
+    {
+      return detail::flatten_bulk_guarantee(agency::query(base_executor(), prop));
+    }
 
     template<class Function, class Future, class ResultFactory, class OuterFactory, class... InnerFactories,
              __AGENCY_REQUIRES(sizeof...(InnerFactories) == execution_depth - 1)
@@ -260,18 +305,6 @@ class flattened_executor
       auto execute_me = detail::make_flatten_index_and_invoke<base_index_type,future_result_type>(f, base_shape, shape);
 
       return detail::bulk_then_execute(base_executor(), execute_me, base_shape, predecessor, result_factory, outer_factory, agency::detail::unit_factory(), inner_factories...);
-    }
-
-    __AGENCY_ANNOTATION
-    const base_executor_type& base_executor() const
-    {
-      return base_executor_;
-    }
-
-    __AGENCY_ANNOTATION
-    base_executor_type& base_executor()
-    {
-      return base_executor_;
     }
 
     __AGENCY_ANNOTATION

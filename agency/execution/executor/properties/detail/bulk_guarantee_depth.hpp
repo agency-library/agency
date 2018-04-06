@@ -26,10 +26,28 @@
 
 #pragma once
 
-#include <agency/execution/executor/properties/always_blocking.hpp>
-#include <agency/execution/executor/properties/bulk.hpp>
+#include <agency/detail/config.hpp>
 #include <agency/execution/executor/properties/bulk_guarantee.hpp>
-#include <agency/execution/executor/properties/single.hpp>
-#include <agency/execution/executor/properties/then.hpp>
-#include <agency/execution/executor/properties/twoway.hpp>
+
+
+namespace agency
+{
+namespace detail
+{
+
+
+template<class T>
+struct bulk_guarantee_depth : std::integral_constant<size_t, 1> {};
+
+template<class OuterGuarantee, class InnerGuarantee>
+struct bulk_guarantee_depth<bulk_guarantee_t::scoped_t<OuterGuarantee, InnerGuarantee>>
+  : std::integral_constant<
+      size_t,
+      1 + bulk_guarantee_depth<InnerGuarantee>::value
+    >
+{};
+
+
+} // end detail
+} // end agency
 

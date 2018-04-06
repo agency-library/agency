@@ -138,7 +138,7 @@ template<class ExecutionAgent>
 struct execution_agent_traits : detail::execution_agent_traits_base<ExecutionAgent>
 {
   using execution_agent_type = ExecutionAgent;
-  using execution_category = typename execution_agent_type::execution_category;
+  using execution_requirement = typename execution_agent_type::execution_requirement;
 
   // XXX we should probably use execution_agent_type::index_type if it exists,
   //     if not, use the type of the result of .index()

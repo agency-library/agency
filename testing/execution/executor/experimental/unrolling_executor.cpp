@@ -17,8 +17,8 @@ int main()
   static_assert(detail::is_bulk_twoway_executor<executor_type>::value,
     "unrolling_executor should be a bulk twoway executor");
 
-  static_assert(detail::is_detected_exact<sequenced_execution_tag, executor_execution_category_t, executor_type>::value,
-    "unrolling_executor should have sequenced_execution_tag execution_category");
+  static_assert(bulk_guarantee_t::static_query<executor_type>() == bulk_guarantee_t::sequenced_t(),
+    "unrolling should have sequenced static bulk guarantee");
 
   static_assert(detail::is_detected_exact<size_t, executor_shape_t, executor_type>::value,
     "unrolling_executor should have size_t shape_type");

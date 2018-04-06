@@ -4,7 +4,8 @@
 #include <agency/tuple.hpp>
 #include <agency/detail/tuple/arithmetic_tuple_facade.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/detail/make_tuple_if_not_scoped.hpp>
+#include <agency/detail/make_tuple_if.hpp>
+
 
 namespace agency
 {
@@ -23,45 +24,48 @@ class shape_tuple :
     using agency::tuple<Shapes...>::tuple;
 };
 
-template<class ExecutionCategory1,
-         class ExecutionCategory2,
-         class Shape1,
-         class Shape2>
+
+template<size_t OuterDepth,
+         size_t InnerDepth,
+         class OuterShape,
+         class InnerShape>
 struct scoped_shape
 {
   using type = decltype(
     agency::tuple_cat(
-      detail::make_tuple_if_not_scoped<ExecutionCategory1>(std::declval<Shape1>()),
-      detail::make_tuple_if_not_scoped<ExecutionCategory2>(std::declval<Shape2>())
+      detail::make_tuple_if<OuterDepth == 1>(std::declval<OuterShape>()),
+      detail::make_tuple_if<InnerDepth == 1>(std::declval<InnerShape>())
     )
   );
 };
 
 
-template<class ExecutionCategory1,
-         class ExecutionCategory2,
-         class Shape1,
-         class Shape2>
+
+template<size_t OuterDepth,
+         size_t InnerDepth,
+         class OuterShape,
+         class InnerShape>
 using scoped_shape_t = typename scoped_shape<
-  ExecutionCategory1,
-  ExecutionCategory2,
-  Shape1,
-  Shape2
+  OuterDepth,
+  InnerDepth,
+  OuterShape,
+  InnerShape
 >::type;
 
 
-template<class ExecutionCategory1,
-         class ExecutionCategory2,
-         class Shape1,
-         class Shape2>
+template<size_t OuterDepth,
+         size_t InnerDepth,
+         class OuterShape,
+         class InnerShape>
 __AGENCY_ANNOTATION
-scoped_shape_t<ExecutionCategory1,ExecutionCategory2,Shape1,Shape2> make_scoped_shape(const Shape1& outer_shape, const Shape2& inner_shape)
+scoped_shape_t<OuterDepth,InnerDepth,OuterShape,InnerShape> make_scoped_shape(const OuterShape& outer_shape, const InnerShape& inner_shape)
 {
   return agency::tuple_cat(
-    detail::make_tuple_if_not_scoped<ExecutionCategory1>(outer_shape),
-    detail::make_tuple_if_not_scoped<ExecutionCategory2>(inner_shape)
+    detail::make_tuple_if<OuterDepth == 1>(outer_shape),
+    detail::make_tuple_if<InnerDepth == 1>(inner_shape)
   );
 }
+
 
 } // end detail
 } // end agency

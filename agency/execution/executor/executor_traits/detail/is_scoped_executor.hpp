@@ -26,10 +26,50 @@
 
 #pragma once
 
-#include <agency/execution/executor/properties/always_blocking.hpp>
-#include <agency/execution/executor/properties/bulk.hpp>
+#include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
+#include <agency/detail/type_traits.hpp>
+#include <agency/execution/executor/executor_traits/is_executor.hpp>
 #include <agency/execution/executor/properties/bulk_guarantee.hpp>
-#include <agency/execution/executor/properties/single.hpp>
-#include <agency/execution/executor/properties/then.hpp>
-#include <agency/execution/executor/properties/twoway.hpp>
+
+
+namespace agency
+{
+namespace detail
+{
+
+
+template<class T>
+struct is_scoped_bulk_guarantee : std::false_type {};
+
+template<class OuterGuarantee, class InnerGuarantee>
+struct is_scoped_bulk_guarantee<bulk_guarantee_t::scoped_t<OuterGuarantee,InnerGuarantee>> : std::true_type {};
+
+
+template<class T>
+struct is_scoped_executor_impl
+{
+  template<class U = T,
+           __AGENCY_REQUIRES(is_executor<U>::value),
+           __AGENCY_REQUIRES(
+             is_scoped_bulk_guarantee<
+               // get the executor's bulk_guarantee
+               decltype(bulk_guarantee_t::template static_query<U>())
+             >::value
+           )
+          >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<T>(0));
+};
+
+template<class T>
+using is_scoped_executor = typename is_scoped_executor_impl<T>::type;
+
+
+} // end detail
+} // end agency
 

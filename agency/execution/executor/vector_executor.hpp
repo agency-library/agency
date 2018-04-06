@@ -1,6 +1,6 @@
 #pragma once
 
-#include <agency/execution/execution_categories.hpp>
+#include <agency/detail/config.hpp>
 #include <agency/future/always_ready_future.hpp>
 #include <utility>
 
@@ -14,8 +14,6 @@ namespace this_thread
 class vector_executor
 {
   public:
-    using execution_category = unsequenced_execution_tag;
-
     template<class T>
     using future = always_ready_future<T>;
 

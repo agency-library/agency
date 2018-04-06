@@ -2,8 +2,9 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/execution_categories.hpp>
-#include <agency/execution/executor/executor_traits/detail/member_execution_category_or.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
+#include <agency/execution/executor/properties/detail/bulk_guarantee_depth.hpp>
+
 
 namespace agency
 {
@@ -11,10 +12,11 @@ namespace detail
 {
 
 
+
 template<class T>
 struct executor_execution_depth_or
-  : agency::detail::execution_depth<
-      member_execution_category_or_t<T,unsequenced_execution_tag>
+  : bulk_guarantee_depth<
+      decltype(bulk_guarantee_t::template static_query<T>())
     >
 {};
 

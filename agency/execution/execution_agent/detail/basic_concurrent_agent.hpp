@@ -2,6 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <agency/execution/execution_agent/detail/basic_execution_agent.hpp>
 #include <agency/detail/concurrency/barrier.hpp>
 #include <agency/detail/concurrency/in_place_barrier.hpp>
@@ -18,10 +19,10 @@ namespace detail
 
 
 template<class Index, class Barrier, class MemoryResource>
-class basic_concurrent_agent : public detail::basic_execution_agent<concurrent_execution_tag, Index>
+class basic_concurrent_agent : public detail::basic_execution_agent<bulk_guarantee_t::concurrent_t, Index>
 {
   private:
-    using super_t = detail::basic_execution_agent<concurrent_execution_tag, Index>;
+    using super_t = detail::basic_execution_agent<bulk_guarantee_t::concurrent_t, Index>;
 
     // wrap the user's Barrier type with in_place_barrier so that we may use
     // in_place_type_t with its constructor
