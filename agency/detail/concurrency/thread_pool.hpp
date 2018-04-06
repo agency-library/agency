@@ -1,7 +1,6 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/execution_categories.hpp>
 #include <agency/execution/executor/parallel_executor.hpp>
 #include <agency/execution/executor/vector_executor.hpp>
 #include <agency/execution/executor/scoped_executor.hpp>
@@ -135,9 +134,6 @@ inline thread_pool& system_thread_pool()
 class thread_pool_executor
 {
   public:
-    // XXX eliminate execution_category
-    using execution_category = parallel_execution_tag;
-
     constexpr static bulk_guarantee_t::parallel_t query(bulk_guarantee_t)
     {
       return bulk_guarantee.parallel;

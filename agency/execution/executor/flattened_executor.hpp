@@ -7,7 +7,6 @@
 #include <agency/detail/shape.hpp>
 #include <agency/detail/index.hpp>
 #include <agency/detail/type_traits.hpp>
-#include <agency/execution/execution_categories.hpp>
 #include <agency/detail/scoped_in_place_type.hpp>
 #include <agency/execution/executor/executor_traits/detail/member_barrier_type_or.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_scoped_executor.hpp>

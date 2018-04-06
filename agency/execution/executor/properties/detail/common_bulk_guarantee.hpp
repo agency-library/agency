@@ -68,7 +68,7 @@ struct common_bulk_guarantee2_impl<BulkGuarantee1,BulkGuarantee2,1,1>
 {
   // both BulkGuarantee1 & BulkGuarantee2 have depth 1 -- they are "flat"
 
-  // if one of the two categories is weaker than the other, then return it
+  // if one of the two guarantees is weaker than the other, then return it
   // otherwise, return the weakest static guarantee: unsequenced
   using type = conditional_t<
     is_weaker_guarantee_than<BulkGuarantee1,BulkGuarantee2>::value,
@@ -90,10 +90,10 @@ struct common_bulk_guarantee2_impl<
   depth,depth
 >
 {
-  // both categories are scoped and they have the same depth
+  // both guarantees are scoped and they have the same depth
   // XXX it may not matter so much that the depth is the same.
   //     we may still be able to apply this recipe sensibly even
-  //     when the two input categories' depths differ
+  //     when the two input guarantees' depths differ
 
   // the result is scoped. apply common_bulk_guarantee to
   // the inputs' constituents to get the result's constituents
@@ -118,7 +118,7 @@ struct common_bulk_guarantee2
 } // end common_bulk_guarantee_detail
 
 
-// common_bulk_guarantee_category is a type trait which, given one or more possibly different bulk guarantee types,
+// common_bulk_guarantee is a type trait which, given one or more possibly different bulk guarantee types,
 // returns a type representing the strongest guarantees that can be made given the different input possibilities
 template<class BulkGuarantee, class... BulkGuarantees>
 struct common_bulk_guarantee;

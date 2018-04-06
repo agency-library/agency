@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/cuda/execution/executor/detail/basic_grid_executor.hpp>
-#include <agency/execution/execution_categories.hpp>
+#include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <agency/coordinate/point.hpp>
 
 
@@ -12,10 +12,10 @@ namespace cuda
 {
 
 
-class concurrent_grid_executor : public detail::basic_grid_executor<concurrent_execution_tag, agency::uint2>
+class concurrent_grid_executor : public detail::basic_grid_executor<bulk_guarantee_t::concurrent_t, agency::uint2>
 {
   private:
-    using super_t = detail::basic_grid_executor<concurrent_execution_tag, agency::uint2>;
+    using super_t = detail::basic_grid_executor<bulk_guarantee_t::concurrent_t, agency::uint2>;
 
   public:
     using super_t::super_t;

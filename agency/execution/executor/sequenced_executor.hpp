@@ -1,7 +1,6 @@
 #pragma once
 
 #include <agency/future/always_ready_future.hpp>
-#include <agency/execution/execution_categories.hpp>
 #include <agency/execution/executor/properties/always_blocking.hpp>
 #include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <functional>
@@ -14,10 +13,6 @@ namespace agency
 class sequenced_executor
 {
   public:
-    // XXX nomerge
-    // XXX eliminate execution_category
-    using execution_category = sequenced_execution_tag;
-
     template<class T>
     using future = always_ready_future<T>;
 

@@ -2,7 +2,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
-#include <agency/execution/execution_categories.hpp>
 #include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <agency/execution/execution_agent/detail/basic_execution_agent.hpp>
 #include <agency/detail/concurrency/barrier.hpp>

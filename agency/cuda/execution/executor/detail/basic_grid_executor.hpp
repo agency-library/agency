@@ -4,7 +4,6 @@
 #include <agency/detail/requires.hpp>
 #include <agency/coordinate/detail/shape/shape_size.hpp>
 #include <agency/tuple.hpp>
-#include <agency/execution/execution_categories.hpp>
 #include <agency/cuda/execution/detail/kernel/bulk_then_execute_concurrent_kernel.hpp>
 #include <agency/cuda/execution/detail/kernel/bulk_then_execute_kernel.hpp>
 #include <agency/cuda/memory/allocator.hpp>
@@ -157,30 +156,11 @@ struct invoke_with_agent_index
 };
 
 
-// XXX eliminate this when we eliminate execution categories
-template<class OuterExecutionCategory>
-struct outer_execution_category_to_bulk_guarantee;
-
-template<>
-struct outer_execution_category_to_bulk_guarantee<concurrent_execution_tag>
-{
-  using type = bulk_guarantee_t::concurrent_t;
-};
-
-template<>
-struct outer_execution_category_to_bulk_guarantee<parallel_execution_tag>
-{
-  using type = bulk_guarantee_t::parallel_t;
-};
-
-
-template<class OuterExecutionCategory, class Shape, class Index = Shape>
+template<class OuterBulkGuarantee, class Shape, class Index = Shape>
 class basic_grid_executor
 {
-  using outer_execution_category = OuterExecutionCategory;
-
-  static_assert(std::is_same<parallel_execution_tag, OuterExecutionCategory>::value or std::is_same<concurrent_execution_tag, OuterExecutionCategory>::value,
-                "basic_grid_executor's OuterExecutionCategory type must be parallel_execution_tag or concurrent_execution_tag.");
+  static_assert(std::is_same<bulk_guarantee_t::parallel_t, OuterBulkGuarantee>::value or std::is_same<bulk_guarantee_t::concurrent_t, OuterBulkGuarantee>::value,
+                "basic_grid_executor's OuterBulkGuarantee type must be bulk_guarantee_t::parallel_t or bulk_guarantee_t::concurrent_t.");
 
   using outer_shape_type = typename std::tuple_element<0,Shape>::type;
   using inner_shape_type = typename std::tuple_element<1,Shape>::type;
@@ -206,20 +186,8 @@ class basic_grid_executor
   static_assert(agency::detail::shape_size<inner_index_type>::value == agency::detail::shape_size<inner_shape_type>::value,
                 "The dimensions of basic_grid_executor's Index type must match the dimensions of its Shape type.");
 
-  // XXX eliminate this when we eliminate execution categories
-  using outer_bulk_guarantee_type = typename detail::outer_execution_category_to_bulk_guarantee<outer_execution_category>::type;
-
 
   public:
-    using execution_category =
-      scoped_execution_tag<
-        // CUDA thread blocks may be parallel or concurrent with respect to each other
-        outer_execution_category,
-
-        // CUDA threads are always concurrent within a thread block
-        concurrent_execution_tag
-      >;
-
     using shape_type = Shape;
 
     using index_type = Index;
@@ -232,7 +200,7 @@ class basic_grid_executor
 
     using barrier_type = agency::detail::scoped_in_place_type_t<
       typename std::conditional<
-        std::is_same<parallel_execution_tag, OuterExecutionCategory>::value,
+        std::is_same<bulk_guarantee_t::parallel_t, OuterBulkGuarantee>::value,
         void,                // parallel grid_executors have no outer barrier type
         detail::grid_barrier // concurrent grid_executors' outer barrier_type is grid_barrier
       >::type,
@@ -247,13 +215,13 @@ class basic_grid_executor
 
     __host__ __device__
     constexpr static bulk_guarantee_t::scoped_t<
-      outer_bulk_guarantee_type,
+      OuterBulkGuarantee,
       bulk_guarantee_t::concurrent_t
     > query(const bulk_guarantee_t&)
     {
       return bulk_guarantee_t::scoped(
         // CUDA thread blocks may be parallel or concurrent with respect to each other
-        outer_bulk_guarantee_type(),
+        OuterBulkGuarantee(),
 
         // CUDA threads are always concurrent within a thread block
         bulk_guarantee_t::concurrent_t()
@@ -300,7 +268,7 @@ class basic_grid_executor
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
     static async_future<agency::detail::result_of_t<ResultFactory()>>
-      launch_kernel_and_invalidate_predecessor(parallel_execution_tag, 
+      launch_kernel_and_invalidate_predecessor(bulk_guarantee_t::parallel_t, 
                                                device_id device,
                                                Function f,
                                                dim3 grid_dim,
@@ -316,7 +284,7 @@ class basic_grid_executor
 
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
     static async_future<agency::detail::result_of_t<ResultFactory()>>
-      launch_kernel_and_invalidate_predecessor(concurrent_execution_tag, 
+      launch_kernel_and_invalidate_predecessor(bulk_guarantee_t::concurrent_t, 
                                                device_id device,
                                                Function f,
                                                dim3 grid_dim,
@@ -349,7 +317,7 @@ class basic_grid_executor
       // create a closure wrapping f which will pass f the execution agent's index as its first parameter
       invoke_with_agent_index<Function,index_type> closure{f};
       
-      return launch_kernel_and_invalidate_predecessor(outer_execution_category(), device(), closure, grid_dim, agency::get<1>(shape), predecessor, result_factory, outer_factory, inner_factory);
+      return launch_kernel_and_invalidate_predecessor(OuterBulkGuarantee(), device(), closure, grid_dim, agency::get<1>(shape), predecessor, result_factory, outer_factory, inner_factory);
     }
 
 
@@ -357,7 +325,7 @@ class basic_grid_executor
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
     __host__ __device__
     static async_future<agency::detail::result_of_t<ResultFactory()>>
-      launch_kernel_and_leave_predecessor_valid(parallel_execution_tag, 
+      launch_kernel_and_leave_predecessor_valid(bulk_guarantee_t::parallel_t, 
                                                 device_id device,
                                                 Function f,
                                                 dim3 grid_dim,
@@ -373,7 +341,7 @@ class basic_grid_executor
 
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory>
     static async_future<agency::detail::result_of_t<ResultFactory()>>
-      launch_kernel_and_leave_predecessor_valid(concurrent_execution_tag, 
+      launch_kernel_and_leave_predecessor_valid(bulk_guarantee_t::concurrent_t, 
                                                 device_id device,
                                                 Function f,
                                                 dim3 grid_dim,
@@ -413,7 +381,7 @@ class basic_grid_executor
 
       // implement with lower-level kernel launch functionality
       using result_type = agency::detail::result_of_t<ResultFactory()>;
-      return launch_kernel_and_leave_predecessor_valid(outer_execution_category(), device(), closure, grid_dim, agency::get<1>(shape), async_predecessor, result_factory, outer_factory, inner_factory);
+      return launch_kernel_and_leave_predecessor_valid(OuterBulkGuarantee(), device(), closure, grid_dim, agency::get<1>(shape), async_predecessor, result_factory, outer_factory, inner_factory);
     }
 
 
@@ -453,9 +421,9 @@ class basic_grid_executor
   private:
     // returns the largest possible inner group size for the given function to execute
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory,
-             class ExecutionCategory = outer_execution_category,
+             class BulkGuarantee = OuterBulkGuarantee,
              __AGENCY_REQUIRES(
-               std::is_same<ExecutionCategory, parallel_execution_tag>::value
+               std::is_same<BulkGuarantee, bulk_guarantee_t::parallel_t>::value
              )>
     __host__ __device__
     std::size_t max_inner_size(Function f,
@@ -472,9 +440,9 @@ class basic_grid_executor
 
     // returns the largest possible inner group size for the given function to execute
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory,
-             class ExecutionCategory = outer_execution_category,
+             class BulkGuarantee = OuterBulkGuarantee,
              __AGENCY_REQUIRES(
-               std::is_same<ExecutionCategory, concurrent_execution_tag>::value
+               std::is_same<BulkGuarantee, bulk_guarantee_t::concurrent_t>::value
              )>
     __host__ __device__
     std::size_t max_inner_size(Function f,
@@ -490,9 +458,9 @@ class basic_grid_executor
 
     // returns the largest possible parallel outer group size for the given inner group size and function to execute
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory,
-             class ExecutionCategory = outer_execution_category,
+             class BulkGuarantee = OuterBulkGuarantee,
              __AGENCY_REQUIRES(
-               std::is_same<ExecutionCategory, parallel_execution_tag>::value
+               std::is_same<BulkGuarantee, bulk_guarantee_t::parallel_t>::value
              )>
     __host__ __device__
     std::size_t max_outer_size(Function f,
@@ -509,9 +477,9 @@ class basic_grid_executor
 
     // returns the largest possible concurrent outer group size for the given inner group size and function to execute
     template<class Function, class T, class ResultFactory, class OuterFactory, class InnerFactory,
-             class ExecutionCategory = outer_execution_category,
+             class BulkGuarantee = OuterBulkGuarantee,
              __AGENCY_REQUIRES(
-               std::is_same<ExecutionCategory, concurrent_execution_tag>::value
+               std::is_same<BulkGuarantee, bulk_guarantee_t::concurrent_t>::value
              )>
     __host__ __device__
     std::size_t max_outer_size(Function f,

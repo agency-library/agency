@@ -47,8 +47,6 @@ class block_executor : private grid_executor
     using super_t = grid_executor;
 
   public:
-    using execution_category = concurrent_execution_tag;
-
     using shape_type = std::tuple_element<1, executor_shape_t<super_t>>::type;
     using index_type = std::tuple_element<1, executor_index_t<super_t>>::type;
 

@@ -388,7 +388,7 @@ namespace detail
 template<class BulkGuarantee1, class BulkGuarantee2>
 struct is_weaker_guarantee_than : std::false_type {};
 
-// all categories are weaker than themselves
+// all guarantees are weaker than themselves
 template<class BulkGuarantee>
 struct is_weaker_guarantee_than<BulkGuarantee, BulkGuarantee> : std::true_type {};
 
