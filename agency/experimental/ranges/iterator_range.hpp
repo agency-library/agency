@@ -77,13 +77,21 @@ iterator_range<Iterator,Sentinel> all(iterator_range<Iterator,Sentinel> v)
 }
 
 
+template<class Iterator, class Sentinel>
+__AGENCY_ANNOTATION
+iterator_range<Iterator,Sentinel> make_iterator_range(Iterator first, Sentinel last)
+{
+  return iterator_range<Iterator,Sentinel>(first, last);
+}
+
+
 __agency_exec_check_disable__
 template<class Range>
 __AGENCY_ANNOTATION
 iterator_range<range_iterator_t<Range>, range_sentinel_t<Range>>
   make_iterator_range(Range&& rng)
 {
-  return iterator_range<range_iterator_t<Range>, range_sentinel_t<Range>>(rng.begin(), rng.end());
+  return experimental::make_iterator_range(rng.begin(), rng.end());
 }
 
 
