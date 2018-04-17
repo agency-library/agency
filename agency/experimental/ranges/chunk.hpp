@@ -242,12 +242,14 @@ chunk_view<Range,Difference> chunk(Range&& rng, Difference chunk_size)
 
 template<class Range, class Difference>
 __AGENCY_ANNOTATION
-auto chunk_evenly(Range&& rng, Difference number_of_chunks) ->
+auto chunk_evenly(Range&& rng, Difference desired_number_of_chunks) ->
   decltype(
     chunk(std::forward<Range>(rng), std::declval<Difference>())
   )
 {
-  Difference chunk_size = (rng.size() + number_of_chunks - 1) / number_of_chunks;
+  // note that this calculation will not necessarily result in the desired number of chunks
+  // in general, there is no way to partition a range into exactly N-1 equally-sized chunks plus a single odd-sized chunk
+  Difference chunk_size = (rng.size() + desired_number_of_chunks - 1) / desired_number_of_chunks;
   return chunk(std::forward<Range>(rng), chunk_size);
 }
 

@@ -27,13 +27,15 @@ auto tile(Range&& rng, Difference tile_size) ->
 // introduce this while we bikeshed the names
 template<class Range, class Difference>
 __AGENCY_ANNOTATION
-auto tile_evenly(Range&& rng, Difference number_of_chunks) ->
+auto tile_evenly(Range&& rng, Difference desired_number_of_tiles) ->
   decltype(
     agency::experimental::tile(std::forward<Range>(rng), std::declval<Difference>())
   )
 {
-  Difference chunk_size = (rng.size() + number_of_chunks - 1) / number_of_chunks;
-  return agency::experimental::tile(std::forward<Range>(rng), chunk_size);
+  // note that this calculation will not necessarily result in the desired number of tiles
+  // in general, there is no way to partition a range into exactly N-1 equally-sized tiles plus a single odd-sized tile
+  Difference tile_size = (rng.size() + desired_number_of_tiles - 1) / desired_number_of_tiles;
+  return agency::experimental::tile(std::forward<Range>(rng), tile_size);
 }
 
 
