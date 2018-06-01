@@ -10,6 +10,7 @@
 #include <agency/memory/detail/storage.hpp>
 #include <memory>
 #include <initializer_list>
+#include <iterator>
 
 namespace agency
 {
@@ -55,13 +56,14 @@ class vector
     using value_type      = typename detail::allocator_traits<allocator_type>::value_type;
     using size_type       = typename detail::allocator_traits<allocator_type>::size_type;
     using difference_type = typename detail::allocator_traits<allocator_type>::difference_type;
-    using reference       = value_type&;
-    using const_reference = const value_type&;
     using pointer         = typename detail::allocator_traits<allocator_type>::pointer;
     using const_pointer   = typename detail::allocator_traits<allocator_type>::const_pointer;
 
     using iterator = pointer;
     using const_iterator = const_pointer;
+
+    using reference       = typename std::iterator_traits<iterator>::reference;
+    using const_reference = typename std::iterator_traits<const_iterator>::reference;
 
     using reverse_iterator = detail::reverse_iterator<iterator>;
     using const_reverse_iterator = detail::reverse_iterator<const_iterator>;
