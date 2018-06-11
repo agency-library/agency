@@ -13,25 +13,25 @@ namespace detail
 {
 
 
-template<class ExecutionPolicy, class ForwardIterator, class OutputIterator,
+template<class ExecutionPolicy, class Allocator, class ForwardIterator, class OutputIterator,
          __AGENCY_REQUIRES(
            is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value
          )>
 __AGENCY_ANNOTATION
-OutputIterator uninitialized_move(ExecutionPolicy&& policy, ForwardIterator first, ForwardIterator last, OutputIterator result)
+OutputIterator uninitialized_move(ExecutionPolicy&& policy, Allocator& alloc, ForwardIterator first, ForwardIterator last, OutputIterator result)
 {
-  return detail::uninitialized_copy(std::forward<ExecutionPolicy>(policy), detail::make_move_iterator(first), detail::make_move_iterator(last), result);
+  return detail::uninitialized_copy(std::forward<ExecutionPolicy>(policy), alloc, detail::make_move_iterator(first), detail::make_move_iterator(last), result);
 }
 
 
-template<class ForwardIterator, class OutputIterator>
+template<class Allocator, class ForwardIterator, class OutputIterator>
 __AGENCY_ANNOTATION
-OutputIterator uninitialized_move(ForwardIterator first, ForwardIterator last, OutputIterator result)
+OutputIterator uninitialized_move(Allocator& alloc, ForwardIterator first, ForwardIterator last, OutputIterator result)
 {
   // pass this instead of agency::seq to work around the prohibition on
   // taking the address of a global constexpr object (i.e., agency::seq) from a CUDA __device__ function
   agency::sequenced_execution_policy seq;
-  return agency::detail::uninitialized_move(seq, first, last, result);
+  return agency::detail::uninitialized_move(seq, alloc, first, last, result);
 }
 
 
