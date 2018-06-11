@@ -18,7 +18,9 @@ template<class T, class Allocator, class Shape = std::size_t>
 class storage
 {
   public:
-    using value_type = T;
+    using value_type = typename std::allocator_traits<Allocator>::value_type;
+    using pointer = typename std::allocator_traits<Allocator>::pointer;
+    using const_pointer = typename std::allocator_traits<Allocator>::const_pointer;
     using shape_type = Shape;
 
     __agency_exec_check_disable__
@@ -129,13 +131,13 @@ class storage
     }
 
     __AGENCY_ANNOTATION
-    T* data()
+    pointer data()
     {
       return data_;
     }
 
     __AGENCY_ANNOTATION
-    const T* data() const
+    const_pointer data() const
     {
       return data_;
     }
@@ -173,7 +175,7 @@ class storage
     }
 
   private:
-    T* data_;
+    pointer data_;
     shape_type shape_;
     Allocator allocator_;
 };
