@@ -15,26 +15,28 @@ namespace allocator_traits_detail
 
 
 __agency_exec_check_disable__
-template<class Alloc, class T, class... Args>
+template<class Alloc, class Pointer, class... Args>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  has_construct<Alloc,T*,Args...>::value
+  has_construct<Alloc,Pointer,Args...>::value
 >::type
-  construct(Alloc& a, T* p, Args&&... args)
+  construct(Alloc& a, Pointer p, Args&&... args)
 {
   a.construct(p, std::forward<Args>(args)...);
 } // end construct()
 
 
 __agency_exec_check_disable__
-template<class Alloc, class T, class... Args>
+template<class Alloc, class Pointer, class... Args>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  !has_construct<Alloc,T*,Args...>::value
+  !has_construct<Alloc,Pointer,Args...>::value
 >::type
-  construct(Alloc&, T* p, Args&&... args)
+  construct(Alloc&, Pointer p, Args&&... args)
 {
-  ::new(p) T(std::forward<Args>(args)...);
+  using element_type = typename std::pointer_traits<Pointer>::element_type;
+
+  ::new(p) element_type(std::forward<Args>(args)...);
 } // end construct()
 
 
@@ -42,10 +44,10 @@ typename std::enable_if<
 
 
 template<class Alloc>
-  template<class T, class... Args>
+  template<class Pointer, class... Args>
 __AGENCY_ANNOTATION
 void allocator_traits<Alloc>
-  ::construct(Alloc& alloc, T* p, Args&&... args)
+  ::construct(Alloc& alloc, Pointer p, Args&&... args)
 {
   allocator_traits_detail::construct(alloc, p, std::forward<Args>(args)...);
 } // end allocator_traits::construct()

@@ -279,7 +279,7 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     void construct_elements(ExecutionPolicy&& policy, Iterators... iters)
     {
-      agency::detail::construct_n(std::forward<ExecutionPolicy>(policy), begin(), size(), iters...);
+      agency::detail::construct_n(std::forward<ExecutionPolicy>(policy), storage_.allocator(), begin(), size(), iters...);
     }
 
     template<class... Iterators>

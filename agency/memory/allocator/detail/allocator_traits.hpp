@@ -30,13 +30,13 @@ struct allocator_traits : std::allocator_traits<Alloc>
     a.deallocate(p, n);
   }
 
-  template<class T, class... Args>
+  template<class Pointer, class... Args>
   __AGENCY_ANNOTATION
-  static void construct(Alloc& alloc, T* p, Args&&... args);
+  static void construct(Alloc& alloc, Pointer p, Args&&... args);
 
-  template<class T>
+  template<class Pointer>
   __AGENCY_ANNOTATION
-  static void destroy(Alloc& a, T* p);
+  static void destroy(Alloc& a, Pointer p);
 
   __AGENCY_ANNOTATION
   static size_type max_size(const Alloc& a);
