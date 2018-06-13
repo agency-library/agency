@@ -7,6 +7,7 @@
 #include <agency/container/array.hpp>
 #include <agency/experimental/span.hpp>
 #include <agency/detail/static_const.hpp>
+#include <agency/experimental/ranges/iterator_range.hpp>
 #include <utility>
 
 
@@ -50,6 +51,7 @@ struct all_customization_point
   }
 
 
+  // contiguous container overload
   template<class Container,
            __AGENCY_REQUIRES(!has_all_member<Container>::value),
            __AGENCY_REQUIRES(!has_all_free_function<Container>::value),
@@ -61,6 +63,7 @@ struct all_customization_point
     return {c};
   }
 
+  // contiguous container overload
   template<class Container,
            __AGENCY_REQUIRES(!has_all_member<Container>::value),
            __AGENCY_REQUIRES(!has_all_free_function<Container>::value),
@@ -71,6 +74,34 @@ struct all_customization_point
   {
     return {c};
   }
+
+
+  // default: return an iterator_range
+  template<class Range,
+           __AGENCY_REQUIRES(!has_all_member<Range>::value),
+           __AGENCY_REQUIRES(!has_all_free_function<Range>::value),
+           __AGENCY_REQUIRES(!std::is_constructible<span<typename Range::value_type>, Range&>::value)
+          >
+  __AGENCY_ANNOTATION
+  constexpr iterator_range<range_iterator_t<Range>, range_sentinel_t<Range>>
+    operator()(Range& r) const
+  {
+    return {r.begin(), r.end()};
+  }
+
+  // default: return an iterator_range
+  template<class Range,
+           __AGENCY_REQUIRES(!has_all_member<const Range>::value),
+           __AGENCY_REQUIRES(!has_all_free_function<const Range>::value),
+           __AGENCY_REQUIRES(!std::is_constructible<span<const typename Range::value_type>, const Range&>::value)
+          >
+  __AGENCY_ANNOTATION
+  constexpr iterator_range<range_iterator_t<const Range>, range_sentinel_t<const Range>>
+    operator()(const Range& r) const
+  {
+    return {r.begin(), r.end()};
+  }
+
 
   // XXX maybe this should be a function in array.hpp
   template<class T, std::size_t N>
