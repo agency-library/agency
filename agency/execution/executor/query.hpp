@@ -71,7 +71,7 @@ struct query_t
   }
 
 
-  // free function quer(e,p) overload
+  // free function query(e,p) overload
   template<class E, class P,
            __AGENCY_REQUIRES(!has_static_query<decay_t<P>, decay_t<E>>::value),
            __AGENCY_REQUIRES(!has_query_member<decay_t<E>, decay_t<P>>::value),
