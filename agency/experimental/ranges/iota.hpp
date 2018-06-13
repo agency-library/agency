@@ -202,6 +202,12 @@ class iota_view
     }
 
     __AGENCY_ANNOTATION
+    iota_view all() const
+    {
+      return *this;
+    }
+
+    __AGENCY_ANNOTATION
     difference_type size() const
     {
       return end() - begin();
@@ -235,15 +241,6 @@ __AGENCY_ANNOTATION
 iota_view<Incrementable> iota(Incrementable begin, OtherIncrementable end)
 {
   return iota_view<Incrementable>(begin, end);
-}
-
-
-template<class Incrementable>
-__AGENCY_ANNOTATION
-iota_view<Incrementable> all(const iota_view<Incrementable>& v)
-{
-  // iota_view is already a view, so just return a copy of the parameter
-  return v;
 }
 
 

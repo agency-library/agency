@@ -392,6 +392,12 @@ class zip_with_view
     }
 
     __AGENCY_ANNOTATION
+    zip_with_view all() const
+    {
+      return *this;
+    }
+
+    __AGENCY_ANNOTATION
     typename iterator::reference
       operator[](typename iterator::difference_type i)
     {
@@ -409,15 +415,6 @@ class zip_with_view
     iterator begin_;
     sentinel end_;
 };
-
-
-// zip_with_views are already views, so don't wrap them
-template<class Function, class... Ranges>
-__AGENCY_ANNOTATION
-zip_with_view<Function,Ranges...> all(zip_with_view<Function,Ranges...> v)
-{
-  return v;
-}
 
 
 template<class Function, class... Ranges>

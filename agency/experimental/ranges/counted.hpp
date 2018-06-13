@@ -36,6 +36,12 @@ class counted_view
     }
 
     __AGENCY_ANNOTATION
+    counted_view all() const
+    {
+      return *this;
+    }
+
+    __AGENCY_ANNOTATION
     difference_type size() const
     {
       return size_;
@@ -57,14 +63,6 @@ class counted_view
     iterator begin_;
     difference_type size_;
 };
-
-
-template<class Iterator, class Difference>
-__AGENCY_ANNOTATION
-counted_view<Iterator,Difference> all(const counted_view<Iterator,Difference>& v)
-{
-  return v;
-}
 
 
 template<class Range>

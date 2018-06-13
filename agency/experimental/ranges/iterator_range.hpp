@@ -44,6 +44,12 @@ class iterator_range
       return end_;
     }
 
+    __AGENCY_ANNOTATION
+    iterator_range all() const
+    {
+      return *this;
+    }
+
     // "drops" the first n elements of the range by advancing the begin iterator n times
     __AGENCY_ANNOTATION
     void drop(typename std::iterator_traits<iterator>::difference_type n)
@@ -67,14 +73,6 @@ class iterator_range
     iterator begin_;
     sentinel end_;
 };
-
-// iterator_ranges are already views, so don't wrap them
-template<class Iterator, class Sentinel>
-__AGENCY_ANNOTATION
-iterator_range<Iterator,Sentinel> all(iterator_range<Iterator,Sentinel> v)
-{
-  return v;
-}
 
 
 template<class Iterator, class Sentinel>

@@ -23,7 +23,7 @@ class flatten_view
 {
   private:
     using inner_range_type = range_reference_t<RangeOfRanges>;
-    using all_t = agency::experimental::all_t<RangeOfRanges&>;
+    using segments_t = agency::experimental::all_t<RangeOfRanges&>;
 
     template<class> friend class flatten_view;
 
@@ -34,28 +34,33 @@ class flatten_view
     using reference = range_reference_t<inner_range_type>;
 
     flatten_view() = default;
-
     flatten_view(const flatten_view&) = default;
 
     template<class OtherRangeOfRanges,
              __AGENCY_REQUIRES(
+               !std::is_same<
+                 typename std::decay<OtherRangeOfRanges>::type,
+                 flatten_view
+               >::value
+             ),
+             __AGENCY_REQUIRES(
                std::is_convertible<
                  experimental::all_t<OtherRangeOfRanges>,
-                 all_t
+                 segments_t
                >::value
              )
             >
     __AGENCY_ANNOTATION
     flatten_view(OtherRangeOfRanges&& ranges)
-      : segments_(all(ranges))
+      : segments_(agency::experimental::all(std::forward<OtherRangeOfRanges>(ranges)))
     {}
 
     // converting copy constructor
     template<class OtherRangeOfRanges,
              __AGENCY_REQUIRES(
                std::is_constructible<
-                 all_t,
-                 typename flatten_view<OtherRangeOfRanges>::all_t
+                 segments_t,
+                 typename flatten_view<OtherRangeOfRanges>::segments_t
                >::value
              )>
     __AGENCY_ANNOTATION
@@ -246,19 +251,25 @@ class flatten_view
       return iterator(size(), *this);
     }
 
+    __AGENCY_ANNOTATION
+    flatten_view all() const
+    {
+      return *this;
+    }
+
   private:
-    all_t segments_;
+    segments_t segments_;
 
   public:
     __AGENCY_ANNOTATION
     auto segment(size_type i) const
-      -> decltype(all(this->segments_[i]))
+      -> decltype(agency::experimental::all(this->segments_[i]))
     {
-      return all(segments_[i]);
+      return agency::experimental::all(segments_[i]);
     }
 
     __AGENCY_ANNOTATION
-    const all_t& segments() const
+    const segments_t& segments() const
     {
       return segments_;
     }
