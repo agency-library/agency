@@ -33,10 +33,15 @@ class statically_bounded_view
     using size_type = bounded_size_t<bound>;
 
     statically_bounded_view() = default;
-
     statically_bounded_view(const statically_bounded_view&) = default;
 
     template<class OtherRange,
+             __AGENCY_REQUIRES(
+               !std::is_same<
+                 typename std::decay<OtherRange>::type,
+                 statically_bounded_view
+               >::value
+             ),
              __AGENCY_REQUIRES(
                std::is_constructible<
                  base_type,
@@ -45,7 +50,7 @@ class statically_bounded_view
              )>
     __AGENCY_ANNOTATION
     statically_bounded_view(OtherRange&& other)
-      : base_(all(std::forward<OtherRange>(other)))
+      : base_(agency::experimental::all(std::forward<OtherRange>(other)))
     {}
 
     static constexpr std::size_t static_bound = bound;
@@ -75,6 +80,12 @@ class statically_bounded_view
     }
 
     __AGENCY_ANNOTATION
+    statically_bounded_view all() const
+    {
+      return *this;
+    }
+
+    __AGENCY_ANNOTATION
     reference operator()(size_type n) const
     {
       return base_[n.value()];
@@ -83,13 +94,6 @@ class statically_bounded_view
   private:
     base_type base_;
 };
-
-
-template<class Range, std::size_t bound>
-statically_bounded_view<Range,bound> all(const statically_bounded_view<Range,bound>& rng)
-{
-  return rng;
-}
 
 
 // XXX in c++17, the type of bound should be auto

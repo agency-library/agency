@@ -245,6 +245,12 @@ class small_untiled_view
       return iterator(size(), *this);
     }
 
+    __AGENCY_ANNOTATION
+    small_untiled_view all() const
+    {
+      return *this;
+    }
+
   private:
     size_t tile_size_;
     mutable short_vector<tile_type,max_tile_count> tiles_;
@@ -252,9 +258,9 @@ class small_untiled_view
   public:
     __AGENCY_ANNOTATION
     auto tiles() const ->
-      decltype(all(this->tiles_))
+      decltype(agency::experimental::all(this->tiles_))
     {
-      return all(this->tiles_);
+      return agency::experimental::all(this->tiles_);
     }
 };
 

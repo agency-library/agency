@@ -1,9 +1,12 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
+#include <agency/experimental/ranges/detail/has_all_member.hpp>
+#include <agency/experimental/ranges/detail/has_all_free_function.hpp>
 #include <agency/container/array.hpp>
 #include <agency/experimental/span.hpp>
-#include <agency/detail/type_traits.hpp>
+#include <agency/detail/static_const.hpp>
 #include <utility>
 
 
@@ -11,56 +14,103 @@ namespace agency
 {
 namespace experimental
 {
-
-
-// XXX this is only valid for contiguous containers
-template<class Container>
-__AGENCY_ANNOTATION
-span<typename Container::value_type> all(Container& c)
+namespace detail
 {
-  return span<typename Container::value_type>(c);
-}
 
-// XXX this is only valid for contiguous containers
-template<class Container>
-__AGENCY_ANNOTATION
-span<const typename Container::value_type> all(const Container& c)
+
+// this is the type of agency::experimental::all
+struct all_customization_point
 {
-  return span<const typename Container::value_type>(c);
-}
+  // these overloads of operator() are listed in decreasing priority order
+
+  // member function r.all() overload
+  __agency_exec_check_disable__
+  template<class R,
+           __AGENCY_REQUIRES(has_all_member<R>::value)
+          >
+  __AGENCY_ANNOTATION
+  constexpr auto operator()(R&& r) const ->
+    decltype(std::forward<R>(r).all())
+  {
+    return std::forward<R>(r).all();
+  }
 
 
-// XXX maybe should put this in array.hpp
-template<class T, std::size_t N>
-__AGENCY_ANNOTATION
-span<T,N> all(array<T,N>& a)
+  // free function all(r) overload
+  __agency_exec_check_disable__
+  template<class R,
+           __AGENCY_REQUIRES(!has_all_member<R>::value),
+           __AGENCY_REQUIRES(has_all_free_function<R>::value)
+          >
+  __AGENCY_ANNOTATION
+  constexpr auto operator()(R&& r) const ->
+    decltype(all(std::forward<R>(r)))
+  {
+    return all(std::forward<R>(r));
+  }
+
+
+  template<class Container,
+           __AGENCY_REQUIRES(!has_all_member<Container>::value),
+           __AGENCY_REQUIRES(!has_all_free_function<Container>::value),
+           __AGENCY_REQUIRES(std::is_constructible<span<typename Container::value_type>, Container&>::value)
+          >
+  __AGENCY_ANNOTATION
+  constexpr span<typename Container::value_type> operator()(Container& c) const
+  {
+    return {c};
+  }
+
+  template<class Container,
+           __AGENCY_REQUIRES(!has_all_member<Container>::value),
+           __AGENCY_REQUIRES(!has_all_free_function<Container>::value),
+           __AGENCY_REQUIRES(std::is_constructible<span<const typename Container::value_type>, Container&>::value)
+          >
+  __AGENCY_ANNOTATION
+  constexpr span<const typename Container::value_type> operator()(const Container& c) const
+  {
+    return {c};
+  }
+
+  // XXX maybe this should be a function in array.hpp
+  template<class T, std::size_t N>
+  __AGENCY_ANNOTATION
+  constexpr span<T,N> operator()(array<T,N>& a) const
+  {
+    return {a};
+  }
+
+  // XXX maybe this should be a function in array.hpp
+  template<class T, std::size_t N>
+  __AGENCY_ANNOTATION
+  constexpr span<const T,N> operator()(const array<T,N>& a) const
+  {
+    return {a};
+  }
+}; // end all_customization_point
+
+
+} // end detail
+
+
+namespace
 {
-  return span<T,N>(a);
-}
 
 
-// XXX maybe should put this in array.hpp
-template<class T, std::size_t N>
-__AGENCY_ANNOTATION
-span<const T,N> all(const array<T,N>& a)
-{
-  return span<const T,N>(a);
-}
+// define the all customization point object
+#ifndef __CUDA_ARCH__
+constexpr auto const& all = agency::detail::static_const<detail::all_customization_point>::value;
+#else
+// CUDA __device__ functions cannot access global variables so make all a __device__ variable in __device__ code
+const __device__ detail::all_customization_point all;
+#endif
 
 
-// spans are already views, so don't wrap them
-// XXX maybe should put this in span.hpp
-template<class ElementType, std::ptrdiff_t Extent>
-__AGENCY_ANNOTATION
-span<ElementType,Extent> all(span<ElementType,Extent> s)
-{
-  return s;
-}
+} // end anonymous namespace
 
 
-// note the diliberate use of ADL when calling all() here
 template<class Range>
-using all_t = agency::detail::decay_t<decltype(all(std::declval<Range>()))>;
+using all_t = agency::detail::decay_t<decltype(agency::experimental::all(std::declval<Range>()))>;
 
 
 } // end experimental

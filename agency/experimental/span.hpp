@@ -148,6 +148,12 @@ class span : private detail::span_base<Extent>
     }
 
     __AGENCY_ANNOTATION
+    span all() const
+    {
+      return *this;
+    }
+
+    __AGENCY_ANNOTATION
     reference operator[](index_type idx) const
     {
       return begin()[idx];
