@@ -18,6 +18,9 @@ class iterator_range
     using iterator = Iterator;
     using sentinel = Sentinel;
 
+    iterator_range() = default;
+    iterator_range(const iterator_range&) = default;
+
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     iterator_range(iterator begin, sentinel end)

@@ -4,6 +4,7 @@
 #include <agency/detail/requires.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
 #include <agency/experimental/ranges/all.hpp>
+#include <agency/experimental/ranges/transformed.hpp>
 #include <agency/experimental/short_vector.hpp>
 #include <type_traits>
 #include <utility>
@@ -23,7 +24,7 @@ class small_untiled_view
     using inner_range_type = range_reference_t<RangeOfRanges>;
 
     // the type of types we store is the all() type of the inner range of the RangeOfRanges
-    using tile_type = all_t<inner_range_type>;
+    using tile_view_type = all_t<inner_range_type>;
 
     template<class,size_t> friend class small_untiled_view;
 
@@ -32,10 +33,10 @@ class small_untiled_view
     //     rather than size_t
     static constexpr size_t max_tile_count = max_tile_count_;
 
-    using difference_type = range_difference_t<tile_type>;
-    using size_type = range_size_t<tile_type>;
-    using value_type = range_value_t<tile_type>;
-    using reference = range_reference_t<tile_type>;
+    using difference_type = range_difference_t<tile_view_type>;
+    using size_type = range_size_t<tile_view_type>;
+    using value_type = range_value_t<tile_view_type>;
+    using reference = range_reference_t<tile_view_type>;
 
     small_untiled_view() = default;
 
@@ -45,7 +46,7 @@ class small_untiled_view
              __AGENCY_REQUIRES(
                std::is_convertible<
                  all_t<range_reference_t<OtherRangeOfRanges>>,
-                 tile_type
+                 tile_view_type
                >::value
              )>
     __AGENCY_ANNOTATION
@@ -57,16 +58,14 @@ class small_untiled_view
              __AGENCY_REQUIRES(
                 std::is_convertible<
                   all_t<range_reference_t<OtherRangeOfRanges>>,
-                  tile_type
+                  tile_view_type
                 >::value
              )>
     __AGENCY_ANNOTATION
     small_untiled_view(size_t tile_size, OtherRangeOfRanges&& tiles)
       : tile_size_(tile_size),
-        tiles_(std::forward<OtherRangeOfRanges>(tiles)) // XXX we actually need to call all() on each element of tiles for this to be correct
-                                                        //     it happens to work now because inner_range_type is convertible to tile_type for the ranges we're currently working with
-    {
-    }
+        tiles_(transformed(agency::experimental::all, std::forward<OtherRangeOfRanges>(tiles)))
+    {}
 
     __AGENCY_ANNOTATION
     reference bracket_operator(std::integral_constant<size_t,max_tile_count-1>, size_t i) const
@@ -253,7 +252,7 @@ class small_untiled_view
 
   private:
     size_t tile_size_;
-    mutable short_vector<tile_type,max_tile_count> tiles_;
+    mutable short_vector<tile_view_type,max_tile_count> tiles_;
 
   public:
     __AGENCY_ANNOTATION
