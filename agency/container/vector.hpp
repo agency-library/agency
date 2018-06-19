@@ -708,7 +708,7 @@ class vector
       else
       {
         // XXX this should probably call emplace_n(end(), new_size - size()) rather than call T() here
-        insert(std::forward<ExecutionPolicy>(policy), storage_.allocator(), end(), new_size - size(), T());
+        insert(std::forward<ExecutionPolicy>(policy), end(), new_size - size(), T());
       }
     }
 
