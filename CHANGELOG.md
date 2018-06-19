@@ -41,6 +41,8 @@ TODO
 
 ### Containers
 
+  * `cuda::vector`
+
 TODO
 
 ### Execution Policies
