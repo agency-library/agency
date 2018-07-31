@@ -365,13 +365,13 @@ class vector
     }
 
     __AGENCY_ANNOTATION
-    T* data()
+    pointer data()
     {
       return storage_.data();
     }
 
     __AGENCY_ANNOTATION
-    const T* data() const
+    const_pointer data() const
     {
       return storage_.data();
     }
