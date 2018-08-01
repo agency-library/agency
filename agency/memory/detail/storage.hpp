@@ -74,6 +74,11 @@ class storage
       : storage(shape_type{}, allocator)
     {}
 
+    __AGENCY_ANNOTATION
+    storage(Allocator&& allocator)
+      : storage(shape_type{}, std::move(allocator))
+    {}
+
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     storage()
