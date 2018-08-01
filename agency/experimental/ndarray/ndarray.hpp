@@ -26,20 +26,22 @@ class basic_ndarray
 {
   private:
     using storage_type = agency::detail::storage<T,Alloc,Shape>;
-    using all_t = basic_ndarray_ref<T,Shape,Index>;
 
   public:
     using value_type = T;
-
     using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<value_type>;
-
+    using size_type = typename std::allocator_traits<allocator_type>::size_type;
     using pointer = typename std::allocator_traits<allocator_type>::pointer;
-
     using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
 
     using shape_type = typename storage_type::shape_type;
+    using index_type = Index;
 
-    using index_type = typename all_t::index_type;
+    using iterator = pointer;
+    using const_iterator = const_pointer;
+
+    using reference = typename std::iterator_traits<iterator>::reference;
+    using const_reference = typename std::iterator_traits<const_iterator>::reference;
 
     // note that basic_ndarray's constructors have __agency_exec_check_disable__
     // because Alloc's constructors may not have __AGENCY_ANNOTATION
@@ -163,7 +165,13 @@ class basic_ndarray
     }
 
     __AGENCY_ANNOTATION
-    value_type& operator[](index_type idx)
+    reference operator[](index_type idx)
+    {
+      return all()[idx];
+    }
+
+    __AGENCY_ANNOTATION
+    const_reference operator[](index_type idx) const
     {
       return all()[idx];
     }
@@ -193,49 +201,49 @@ class basic_ndarray
     }
 
     __AGENCY_ANNOTATION
-    basic_ndarray_ref<const T,Shape,Index> all() const
+    basic_ndarray_ref<const T,shape_type,index_type,const_pointer> all() const
     {
-      return basic_ndarray_ref<const T,Shape,Index>(data(), shape());
+      return basic_ndarray_ref<const T,shape_type,index_type,const_pointer>(data(), shape());
     }
 
     __AGENCY_ANNOTATION
-    basic_ndarray_ref<T,Shape,Index> all()
+    basic_ndarray_ref<T,shape_type,index_type,pointer> all()
     {
-      return basic_ndarray_ref<T,Shape,Index>(data(), shape());
+      return basic_ndarray_ref<T,shape_type,index_type,pointer>(data(), shape());
     }
 
     __AGENCY_ANNOTATION
-    pointer begin()
+    iterator begin()
     {
       return all().data();
     }
 
     __AGENCY_ANNOTATION
-    pointer end()
+    iterator end()
     {
       return all().end();
     }
 
     __AGENCY_ANNOTATION
-    const_pointer begin() const
+    const_iterator begin() const
     {
       return all().begin();
     }
 
     __AGENCY_ANNOTATION
-    const_pointer cbegin() const
+    const_iterator cbegin() const
     {
       return begin();
     }
 
     __AGENCY_ANNOTATION
-    const_pointer end() const
+    const_iterator end() const
     {
       return all().end();
     }
 
     __AGENCY_ANNOTATION
-    const_pointer cend() const
+    const_iterator cend() const
     {
       return end();
     }
