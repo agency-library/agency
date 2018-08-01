@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 #include <utility>
 #include <memory>
 
