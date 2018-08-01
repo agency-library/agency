@@ -8,6 +8,8 @@
 #include <agency/coordinate.hpp>
 #include <cstddef>
 #include <tuple>
+#include <memory>
+
 
 namespace agency
 {
@@ -28,9 +30,10 @@ namespace experimental
 //     the type of their index and the type of the shape of their group
 //     Consistency is important here, but we ought to consider whether it's actually important for agents
 //     to make this distinction
-template<class T, class Shape, class Index = Shape>
+template<class T, class Shape, class Index = Shape, class Pointer = T*>
 class basic_ndarray_ref
 {
+  static_assert(std::is_same<T, typename std::pointer_traits<Pointer>::element_type>::value, "std::pointer_traits<Pointer>::element_type must be the same as T.");
   static_assert(agency::detail::index_size<Shape>::value == agency::detail::index_size<Index>::value, "Shape rank must equal Index rank.");
 
   public:
@@ -38,8 +41,8 @@ class basic_ndarray_ref
     using shape_type = Shape;
     using index_type = Index;
     using size_type = decltype(agency::detail::index_space_size(std::declval<shape_type>()));
-    using reference = element_type&;
-    using pointer = element_type*;
+    using pointer = Pointer;
+    using reference = typename std::iterator_traits<pointer>::reference;
 
     // this iterator traverses in row-major order
     using iterator = pointer;
@@ -52,12 +55,13 @@ class basic_ndarray_ref
     template<class OtherT,
              class OtherShape,
              class OtherIndex,
-             __AGENCY_REQUIRES(std::is_convertible<OtherT*,pointer>::value),
+             class OtherPointer,
+             __AGENCY_REQUIRES(std::is_convertible<OtherPointer,pointer>::value),
              __AGENCY_REQUIRES(std::is_convertible<OtherShape,shape_type>::value),
              __AGENCY_REQUIRES(agency::detail::shape_size<shape_type>::value == agency::detail::shape_size<OtherShape>::value)
             >
     __AGENCY_ANNOTATION
-    basic_ndarray_ref(const basic_ndarray_ref<OtherT,OtherShape,OtherIndex>& other)
+    basic_ndarray_ref(const basic_ndarray_ref<OtherT,OtherShape,OtherIndex,OtherPointer>& other)
       : basic_ndarray_ref(other.data(), other.shape())
     {}
 
@@ -125,7 +129,7 @@ class basic_ndarray_ref
     }
 
   private:
-    T* data_;
+    pointer data_;
     shape_type shape_;
 };
 
