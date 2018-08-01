@@ -253,7 +253,9 @@ class basic_ndarray
     void clear()
     {
       agency::detail::destroy(storage_.allocator(), begin(), end());
-      storage_ = storage_type{};
+
+      // reset the storage to empty
+      storage_ = storage_type(std::move(storage_.allocator()));
     }
 
     __agency_exec_check_disable__
