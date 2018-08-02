@@ -48,7 +48,11 @@ class basic_ndarray
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    basic_ndarray() : basic_ndarray(shape_type{}) {}
+    basic_ndarray() : basic_ndarray(allocator_type()) {}
+
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    explicit basic_ndarray(const allocator_type& alloc) : basic_ndarray(shape_type{}, alloc) {}
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
