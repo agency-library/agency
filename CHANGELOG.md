@@ -34,6 +34,7 @@ TODO
     * `then`
     * `always_blocking`
     * `bulk_guarantee`
+  * `basic_span`
 
 ### Control Structures
 
