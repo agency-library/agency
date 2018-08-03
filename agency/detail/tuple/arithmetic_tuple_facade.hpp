@@ -113,6 +113,16 @@ template<typename Derived>
       }
     };
 
+    struct modulus_assign
+    {
+      template<typename T1, typename T2>
+      __AGENCY_ANNOTATION
+      T1& operator()(T1 &lhs, const T2& rhs) const
+      {
+        return lhs %= rhs;
+      }
+    };
+
     struct make_derived
     {
       template<class... Args>
@@ -174,6 +184,16 @@ template<typename Derived>
   __AGENCY_ANNOTATION Derived& operator/=(const ArithmeticTuple& rhs)
   {
     __tu::tuple_for_each(divides_assign{}, derived(), rhs);
+    return derived();
+  }
+
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
+           >::type>
+  __AGENCY_ANNOTATION Derived& operator%=(const ArithmeticTuple& rhs)
+  {
+    __tu::tuple_for_each(modulus_assign{}, derived(), rhs);
     return derived();
   }
 
@@ -271,6 +291,18 @@ template<typename Derived>
   {
     Derived result = derived();
     static_cast<arithmetic_tuple_facade&>(result) /= rhs;
+    return result;
+  }
+
+  template<class ArithmeticTuple,
+           class = typename std::enable_if<
+             std::tuple_size<Derived>::value == std::tuple_size<ArithmeticTuple>::value
+           >::type>
+  __AGENCY_ANNOTATION
+  Derived operator%(const ArithmeticTuple& rhs) const
+  {
+    Derived result = derived();
+    static_cast<arithmetic_tuple_facade&>(result) %= rhs;
     return result;
   }
 
