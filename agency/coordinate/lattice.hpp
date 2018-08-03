@@ -29,7 +29,7 @@ struct index_size<T, typename std::enable_if<std::is_integral<T>::value>::type>
 };
 
 
-template<class T> class grid_iterator;
+template<class T> class lattice_iterator;
 
 
 template<typename Array, typename T>
@@ -51,7 +51,9 @@ using rebind_array_t = typename rebind_array<Array,T>::type;
 
 // this class is a lattice, the points of which take on values which are unit-spaced
 // T is any orderable (has strict weak <) type with
-// operators +, +=, -, -=, *, *=,  /, /= such that the rhs's type is regular_grid<T>::index_type
+// operators +, +=, -, -=, *, *=, /, /= such that the rhs's type is regular_grid<T>::index_type
+// XXX this type should share a similar interface with ndarray
+//     (i.e., these types should model the same Concept)
 template<class T>
 class lattice
 {
@@ -64,7 +66,7 @@ class lattice
     using value_type             = T;
     using reference              = value_type;
     using const_reference        = reference;
-    using const_iterator         = detail::grid_iterator<T>;
+    using const_iterator         = detail::lattice_iterator<T>;
     using iterator               = const_iterator;
 
     // returns the value of the smallest lattice point
@@ -206,13 +208,13 @@ class lattice
     __AGENCY_ANNOTATION
     const_iterator begin() const
     {
-      return detail::grid_iterator<value_type>(*this);
+      return detail::lattice_iterator<value_type>(*this);
     }
 
     __AGENCY_ANNOTATION
     const_iterator end() const
     {
-      return detail::grid_iterator<value_type>(*this, detail::grid_iterator<value_type>::past_the_end(*this));
+      return detail::lattice_iterator<value_type>(*this, detail::lattice_iterator<value_type>::past_the_end(*this));
     }
 
   private:
@@ -561,6 +563,7 @@ class lattice_iterator
     lattice<T> domain_;
     T current_;
 };
+
 
 } // end detail
 } // end agency
