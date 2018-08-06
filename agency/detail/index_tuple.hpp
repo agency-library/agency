@@ -4,6 +4,8 @@
 #include <agency/tuple.hpp>
 #include <agency/detail/tuple/arithmetic_tuple_facade.hpp>
 #include <agency/detail/type_traits.hpp>
+#include <agency/detail/make_tuple_if.hpp>
+
 
 namespace agency
 {
@@ -18,8 +20,19 @@ class index_tuple :
   public agency::tuple<Indices...>,
   public arithmetic_tuple_facade<index_tuple<Indices...>>
 {
+  using super_t = agency::tuple<Indices...>;
+
   public:
-    using agency::tuple<Indices...>::tuple;
+    // XXX workaround nvbug 2316472
+    //using super_t::super_t;
+    template<class... Args,
+             __AGENCY_REQUIRES(
+               std::is_constructible<super_t, Args&&...>::value
+             )>
+    __AGENCY_ANNOTATION
+    index_tuple(Args&&... args)
+      : super_t(std::forward<Args>(args)...)
+    {}
 };
 
 
