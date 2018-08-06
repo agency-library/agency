@@ -29,8 +29,8 @@ void test(OuterExecutor outer_exec, InnerExecutor inner_exec)
   static_assert(bulk_guarantee_t::static_query<scoped_executor_type>() == expected_bulk_guarantee_type(),
     "scoped_executor should have expected_bulk_guarantee_type");
 
-  static_assert(detail::is_detected_exact<tuple<size_t,size_t>, executor_shape_t, scoped_executor_type>::value,
-    "scoped_executor should have detail::tuple<size_t,size_t> shape_type");
+  static_assert(detail::is_detected_exact<detail::shape_tuple<size_t,size_t>, executor_shape_t, scoped_executor_type>::value,
+    "scoped_executor should have detail::shape_tuple<size_t,size_t> shape_type");
 
   static_assert(detail::is_detected_exact<detail::index_tuple<size_t,size_t>, executor_index_t, scoped_executor_type>::value,
     "scoped_executor should have detail::index_tuple<size_t,size_t> index_type");
