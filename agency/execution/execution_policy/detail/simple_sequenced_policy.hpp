@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/execution/execution_agent.hpp>
+#include <agency/execution/execution_agent/detail/basic_execution_agent.hpp>
 #include <agency/execution/execution_policy/execution_policy_traits.hpp>
 #include <agency/execution/executor/sequenced_executor.hpp>
 
@@ -20,10 +20,11 @@ namespace detail
 //
 // The functionality from sequenced_execution_policy missing from simple_sequenced_policy is .on() and operator().
 // Fortunately, the envisioned use cases for simple_sequenced_policy do not require that functionality.
+template<class Index = size_t>
 class simple_sequenced_policy
 {
   public:
-    using execution_agent_type = sequenced_agent;
+    using execution_agent_type = basic_execution_agent<bulk_guarantee_t::sequenced_t, Index>;
     using executor_type = sequenced_executor;
     using param_type = typename execution_agent_traits<execution_agent_type>::param_type;
 
@@ -47,6 +48,12 @@ class simple_sequenced_policy
     executor_type& executor() const
     {
       return executor_;
+    }
+
+    template<class... Args>
+    simple_sequenced_policy operator()(const Args&... args) const
+    {
+      return simple_sequenced_policy(param_type(args...));
     }
 
   private:
