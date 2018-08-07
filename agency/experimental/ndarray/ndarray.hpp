@@ -48,6 +48,17 @@ class basic_ndarray
     // note that basic_ndarray's constructors have __agency_exec_check_disable__
     // because Alloc's constructors may not have __AGENCY_ANNOTATION
 
+    // XXX we should reformulate all the other constructors such that they lower onto this
+    //     general purpose constructor
+    __agency_exec_check_disable__
+    template<class... Args, __AGENCY_REQUIRES(std::is_constructible<T, const Args&...>::value)>
+    __AGENCY_ANNOTATION
+    basic_ndarray(const shape_type& shape, const allocator_type& alloc, const Args&... constructor_args)
+      : storage_(shape, alloc)
+    {
+      construct_elements_from_arrays(constant_ndarray<Args,Shape>(shape, constructor_args)...);
+    }
+
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_ndarray() : basic_ndarray(allocator_type()) {}
