@@ -85,7 +85,7 @@ Iterator destroy(Allocator& alloc, Iterator first, Iterator last)
 {
   // use simple_sequenced_policy here to avoid circular dependencies
   // created by the use of sequenced_policy
-  simple_sequenced_policy seq;
+  simple_sequenced_policy<> seq;
   return detail::destroy(seq, alloc, first, last);
 }
 

@@ -115,6 +115,20 @@ using execution_policy_agent_or_t = lazy_conditional_t<
 >;
 
 
+template<class ExecutionPolicy>
+struct execution_policy_index
+{
+  using type = typename execution_agent_traits<
+    execution_policy_agent_t<
+      ExecutionPolicy
+    >
+  >::index_type;
+};
+
+template<class ExecutionPolicy>
+using execution_policy_index_t = typename execution_policy_index<ExecutionPolicy>::type;
+
+
 
 // XXX nvcc can't correctly compile this implementation of execution_policy_param in all cases
 template<class T>

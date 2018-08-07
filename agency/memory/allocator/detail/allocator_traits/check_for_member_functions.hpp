@@ -35,6 +35,32 @@ template<class Alloc, class Pointer, class... Args>
 using has_construct = typename has_construct_impl<Alloc,Pointer,Args...>::type;
 
 
+template<class Alloc, class Index, class Shape, class Pointer, class... Args>
+struct has_construct_array_element_impl
+{
+  template<
+    class Alloc1,
+    class = decltype(
+      std::declval<Alloc1*>()->construct_array_element(
+        std::declval<Index>(),
+        std::declval<Shape>(),
+        std::declval<Pointer>(),
+        std::declval<Args>()...
+      )
+    )
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Alloc>(0));
+};
+
+template<class Alloc, class Index, class Shape, class Pointer, class... Args>
+using has_construct_array_element = typename has_construct_impl<Alloc,Index,Shape,Pointer,Args...>::type;
+
+
 template<class Alloc, class Pointer>
 struct has_destroy_impl
 {
@@ -56,6 +82,31 @@ struct has_destroy_impl
 
 template<class Alloc, class Pointer>
 using has_destroy = typename has_destroy_impl<Alloc,Pointer>::type;
+
+
+template<class Alloc, class Index, class Shape, class Pointer>
+struct has_destroy_array_element_impl
+{
+  template<
+    class Alloc1,
+    class = decltype(
+      std::declval<Alloc1&>().destroy(
+        std::declval<Index>(),
+        std::declval<Shape>(),
+        std::declval<Pointer>()
+      )
+    )
+  >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<Alloc>(0));
+};
+
+template<class Alloc, class Index, class Shape, class Pointer>
+using has_destroy_array_element = typename has_destroy_array_element_impl<Alloc,Index,Shape,Pointer>::type;
 
 
 template<class Alloc>

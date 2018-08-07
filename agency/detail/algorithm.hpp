@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/detail/algorithm/construct_array.hpp>
 #include <agency/detail/algorithm/construct_n.hpp>
 #include <agency/detail/algorithm/copy.hpp>
 #include <agency/detail/algorithm/destroy.hpp>

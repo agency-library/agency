@@ -8,8 +8,10 @@
 #include <agency/detail/iterator/constant_iterator.hpp>
 #include <agency/execution/execution_policy/detail/simple_sequenced_policy.hpp>
 #include <agency/detail/algorithm/construct_n.hpp>
+#include <agency/detail/algorithm/construct_array.hpp>
 #include <agency/detail/algorithm/destroy.hpp>
 #include <agency/detail/algorithm/equal.hpp>
+#include <agency/experimental/ndarray/constant_ndarray.hpp>
 #include <utility>
 #include <memory>
 #include <iterator>
@@ -59,16 +61,28 @@ class basic_ndarray
     explicit basic_ndarray(const shape_type& shape, const allocator_type& alloc = allocator_type())
       : storage_(shape, alloc)
     {
-      construct_elements();
+      construct_elements_from_arrays();
     }
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
-    explicit basic_ndarray(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
-      : basic_ndarray(agency::detail::constant_iterator<T>(val,0),
-                      agency::detail::constant_iterator<T>(val, agency::detail::index_space_size(shape)),
-                      alloc)
+    basic_ndarray(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
+      : basic_ndarray(constant_ndarray<T,Shape>(shape, val), alloc)
     {}
+
+    __agency_exec_check_disable__
+    template<class ArrayView,
+             __AGENCY_REQUIRES(
+               std::is_constructible<
+                 storage_type, decltype(std::declval<ArrayView>().shape())
+               >::value
+             )>
+    __AGENCY_ANNOTATION
+    explicit basic_ndarray(const ArrayView& array, const allocator_type& alloc = allocator_type())
+      : storage_(array.shape(), alloc)
+    {
+      construct_elements_from_arrays(array);
+    }
 
     template<class ExecutionPolicy,
              class Iterator,
@@ -91,7 +105,7 @@ class basic_ndarray
                std::is_convertible<typename std::iterator_traits<Iterator>::value_type, value_type>::value
              )>
     basic_ndarray(Iterator first, shape_type shape, const allocator_type& alloc = allocator_type())
-      : basic_ndarray(agency::detail::simple_sequenced_policy(), first, shape, alloc)
+      : basic_ndarray(agency::detail::simple_sequenced_policy<>(), first, shape, alloc)
     {}
 
     __agency_exec_check_disable__
@@ -114,13 +128,13 @@ class basic_ndarray
     basic_ndarray(ExecutionPolicy&& policy, const basic_ndarray& other)
       : storage_(other.shape(), other.get_allocator())
     {
-      construct_elements(std::forward<ExecutionPolicy>(policy), other.begin());
+      construct_elements_from_arrays(std::forward<ExecutionPolicy>(policy), other.all());
     }
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_ndarray(const basic_ndarray& other)
-      : basic_ndarray(agency::detail::simple_sequenced_policy(), other)
+      : basic_ndarray(agency::detail::simple_sequenced_policy<index_type>(), other)
     {}
 
     __agency_exec_check_disable__
@@ -300,8 +314,27 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     void construct_elements(Iterators... iters)
     {
-      agency::detail::simple_sequenced_policy seq;
+      agency::detail::simple_sequenced_policy<> seq;
       construct_elements(seq, iters...);
+    }
+
+
+    template<class ExecutionPolicy, class... ArrayViews,
+             __AGENCY_REQUIRES(
+               is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value
+             )>
+    __AGENCY_ANNOTATION
+    void construct_elements_from_arrays(ExecutionPolicy&& policy, const ArrayViews&... arrays)
+    {
+      agency::detail::construct_array(std::forward<ExecutionPolicy>(policy), storage_.allocator(), all(), arrays...);
+    }
+
+    template<class... ArrayViews>
+    __AGENCY_ANNOTATION
+    void construct_elements_from_arrays(const ArrayViews&... arrays)
+    {
+      agency::detail::simple_sequenced_policy<index_type> seq;
+      construct_elements_from_arrays(seq, arrays...);
     }
 
     storage_type storage_;

@@ -105,7 +105,7 @@ Iterator construct_n(Allocator& alloc, Iterator first, Size n, Iterators... iter
 {
   // use simple_sequenced_policy here to avoid circular dependencies
   // created by the use of sequenced_policy
-  simple_sequenced_policy seq;
+  simple_sequenced_policy<> seq;
   return detail::construct_n(seq, alloc, first, n, iters...);
 }
 
