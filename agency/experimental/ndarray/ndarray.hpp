@@ -10,6 +10,7 @@
 #include <agency/detail/algorithm/construct_n.hpp>
 #include <agency/detail/algorithm/construct_array.hpp>
 #include <agency/detail/algorithm/destroy.hpp>
+#include <agency/detail/algorithm/destroy_array.hpp>
 #include <agency/detail/algorithm/equal.hpp>
 #include <agency/experimental/ndarray/constant_ndarray.hpp>
 #include <utility>
@@ -85,7 +86,7 @@ class basic_ndarray
     template<class ArrayView,
              __AGENCY_REQUIRES(
                std::is_constructible<
-                 storage_type, decltype(std::declval<ArrayView>().shape())
+                 storage_type, decltype(std::declval<ArrayView>().shape()), allocator_type
                >::value
              )>
     __AGENCY_ANNOTATION
@@ -281,7 +282,7 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     void clear()
     {
-      agency::detail::destroy(storage_.allocator(), begin(), end());
+      agency::detail::destroy_array(storage_.allocator(), all());
 
       // reset the storage to empty
       storage_ = storage_type(std::move(storage_.allocator()));
@@ -337,15 +338,14 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     void construct_elements_from_arrays(ExecutionPolicy&& policy, const ArrayViews&... arrays)
     {
-      agency::detail::construct_array(std::forward<ExecutionPolicy>(policy), storage_.allocator(), all(), arrays...);
+      agency::detail::construct_array(storage_.allocator(), std::forward<ExecutionPolicy>(policy), all(), arrays...);
     }
 
     template<class... ArrayViews>
     __AGENCY_ANNOTATION
     void construct_elements_from_arrays(const ArrayViews&... arrays)
     {
-      agency::detail::simple_sequenced_policy<index_type> seq;
-      construct_elements_from_arrays(seq, arrays...);
+      agency::detail::construct_array(storage_.allocator(), all(), arrays...);
     }
 
     storage_type storage_;
