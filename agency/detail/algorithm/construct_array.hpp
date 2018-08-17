@@ -18,7 +18,8 @@ namespace construct_array_detail
 template<class Allocator>
 struct construct_array_functor
 {
-  Allocator alloc_;
+  // mutable because allocator_traits::construct() requires a mutable allocator
+  mutable Allocator alloc_;
 
   __agency_exec_check_disable__
   __AGENCY_ANNOTATION
@@ -42,10 +43,7 @@ struct construct_array_functor
   {
     auto idx = self.index();
 
-    // make a copy of alloc because allocator_traits::construct_array_element() requires a mutable allocator
-    Allocator mutable_alloc = alloc_;
-
-    detail::allocator_traits<Allocator>::construct_array_element(mutable_alloc, idx, self.group_shape(), &array[idx], arrays[idx]...);
+    detail::allocator_traits<Allocator>::construct(alloc_, &array[idx], arrays[idx]...);
   }
 };
 
@@ -55,7 +53,7 @@ struct is_indexable
 {
   private:
     template<class U,
-             class = decltype(std::declval<T>()[std::declval<Index>()])
+             class = decltype(std::declval<U>()[std::declval<Index>()])
             >
     static constexpr bool test(int) { return true; }
 
@@ -74,23 +72,101 @@ using construct_array_requirements = detail::conjunction<
 >;
 
 
+template<class Alloc, class... Args>
+struct has_construct_array_member
+{
+  private:
+    template<class A,
+             class = decltype(std::declval<A>().construct_array(std::declval<Args>()...))
+            >
+    static constexpr bool test(int) { return true; }
+
+    template<class>
+    static constexpr bool test(...) { return false; }
+
+  public:
+    static constexpr bool value = test<Alloc>(0);
+};
+
+
 } // end construct_array_detail
 
 
 __agency_exec_check_disable__
-template<class ExecutionPolicy, class Allocator, class ArrayView, class... ArrayViews,
+template<class Allocator, class ExecutionPolicy, class ArrayView, class... ArrayViews,
+         __AGENCY_REQUIRES(
+           is_execution_policy<decay_t<ExecutionPolicy>>::value
+         ),
+         __AGENCY_REQUIRES(
+           construct_array_detail::has_construct_array_member<Allocator, ExecutionPolicy&&, ArrayView, ArrayViews...>::value
+         ),
          __AGENCY_REQUIRES(
            construct_array_detail::construct_array_requirements<decay_t<ExecutionPolicy>, ArrayView, ArrayViews...>::value
          )>
 __AGENCY_ANNOTATION
-void construct_array(ExecutionPolicy&& policy, Allocator& alloc, ArrayView array, ArrayViews... arrays)
+void construct_array(Allocator& alloc, ExecutionPolicy&& policy, ArrayView array, ArrayViews... arrays)
 {
+  // call the allocator's member function
+  alloc.construct_array(std::forward<ExecutionPolicy>(policy), array, arrays...);
+}
+
+
+__agency_exec_check_disable__
+template<class Allocator, class ExecutionPolicy, class ArrayView, class... ArrayViews,
+         __AGENCY_REQUIRES(
+           is_execution_policy<decay_t<ExecutionPolicy>>::value
+         ),
+         __AGENCY_REQUIRES(
+           !construct_array_detail::has_construct_array_member<Allocator, ExecutionPolicy&&, ArrayView, ArrayViews...>::value
+         ),
+         __AGENCY_REQUIRES(
+           construct_array_detail::construct_array_requirements<decay_t<ExecutionPolicy>, ArrayView, ArrayViews...>::value
+         )>
+__AGENCY_ANNOTATION
+void construct_array(Allocator& alloc, ExecutionPolicy&& policy, ArrayView array, ArrayViews... arrays)
+{
+  // generic implementation via bulk_invoke
   agency::bulk_invoke(
     policy(array.shape()),
     construct_array_detail::construct_array_functor<Allocator>{alloc},
     array,
     arrays...
   );
+}
+
+
+__agency_exec_check_disable__
+template<class Allocator, class ArrayView, class... ArrayViews,
+         __AGENCY_REQUIRES(
+           !is_execution_policy<ArrayView>::value
+         ),
+         __AGENCY_REQUIRES(
+           construct_array_detail::has_construct_array_member<Allocator, ArrayView, ArrayViews...>::value
+         )>
+__AGENCY_ANNOTATION
+void construct_array(Allocator& alloc, ArrayView array, ArrayViews... arrays)
+{
+  // call the allocator's member function
+  alloc.construct_array(array, arrays...);
+}
+
+
+__agency_exec_check_disable__
+template<class Allocator, class ArrayView, class... ArrayViews,
+         __AGENCY_REQUIRES(
+           !is_execution_policy<ArrayView>::value
+         ),
+         __AGENCY_REQUIRES(
+           !construct_array_detail::has_construct_array_member<Allocator, ArrayView, ArrayViews...>::value
+         )>
+__AGENCY_ANNOTATION
+void construct_array(Allocator& alloc, ArrayView array, ArrayViews... arrays)
+{
+  // call construct() in a loop
+  for(size_t i = 0; i < array.size(); ++i)
+  {
+    agency::detail::allocator_traits<Allocator>::construct(alloc, &array.begin()[i], arrays.begin()[i]...);
+  }
 }
 
 
