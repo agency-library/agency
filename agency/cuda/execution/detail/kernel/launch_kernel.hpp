@@ -27,18 +27,6 @@ size_t align_up(size_t offset)
 }
 
 
-inline void setup_kernel_arguments(size_t){}
-
-template<class Arg1, class... Args>
-void setup_kernel_arguments(size_t offset, const Arg1& arg1, const Args&... args)
-{
-  offset = align_up<Arg1>(offset);
-
-  cudaSetupArgument(arg1, offset);
-  setup_kernel_arguments(offset + sizeof(Arg1), args...);
-}
-
-
 template<class T1, class... Ts>
 struct first_type
 {
@@ -75,11 +63,11 @@ cudaError_t launch_kernel_impl(GlobalFunctionPointer kernel, ::dim3 grid_dim, ::
   }
 
 #  ifndef __CUDA_ARCH__
-  cudaConfigureCall(grid_dim, block_dim, shared_memory_size, stream);
-  detail::setup_kernel_arguments(0, args...);
+  // create an array of void*s which point to each argument
+  void* pointers_to_args[] = {reinterpret_cast<void*>(const_cast<Args*>(&args))...};
 
-  // XXX we should use cudaLaunchKernel
-  return cudaLaunch(kernel);
+  // launch the kernel
+  return cudaLaunchKernel(kernel, grid_dim, block_dim, pointers_to_args, shared_memory_size, stream);
 #  else
   // XXX generalize to multiple arguments
   if(sizeof...(Args) != 1)
