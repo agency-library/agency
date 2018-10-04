@@ -67,7 +67,7 @@ cudaError_t launch_kernel_impl(GlobalFunctionPointer kernel, ::dim3 grid_dim, ::
   void* pointers_to_args[] = {reinterpret_cast<void*>(const_cast<Args*>(&args))...};
 
   // launch the kernel
-  return cudaLaunchKernel(kernel, grid_dim, block_dim, pointers_to_args, shared_memory_size, stream);
+  return cudaLaunchKernel(reinterpret_cast<void*>(kernel), grid_dim, block_dim, pointers_to_args, shared_memory_size, stream);
 #  else
   // XXX generalize to multiple arguments
   if(sizeof...(Args) != 1)
