@@ -36,7 +36,7 @@ template<class ExecutionPolicy, class RandomAccessIterator1, class Size, class R
            // XXX eliminate this requirement when future_cast() (which would be used to cast the return) is fully functional
            and std::is_same<execution_policy_future_t<ExecutionPolicy,void>, async_future<void>>::value
          )>
-execution_policy_future_t<ExecutionPolicy,void> async_copy_n(ExecutionPolicy&& policy, RandomAccessIterator1 first, Size n, RandomAccessIterator2 result)
+execution_policy_future_t<ExecutionPolicy,void> async_copy_n(ExecutionPolicy&&, RandomAccessIterator1 first, Size n, RandomAccessIterator2 result)
 {
   // XXX we leak this stream if we throw an exception below
   cudaStream_t stream = experimental::make_dependent_stream(cuda::make_ready_async_future());
