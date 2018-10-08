@@ -231,15 +231,15 @@ class basic_ndarray
     }
 
     __AGENCY_ANNOTATION
-    basic_ndarray_ref<const T,shape_type,index_type,const_pointer> all() const
+    basic_ndarray_ref<const_pointer,shape_type,index_type> all() const
     {
-      return basic_ndarray_ref<const T,shape_type,index_type,const_pointer>(data(), shape());
+      return basic_ndarray_ref<const_pointer,shape_type,index_type>(data(), shape());
     }
 
     __AGENCY_ANNOTATION
-    basic_ndarray_ref<T,shape_type,index_type,pointer> all()
+    basic_ndarray_ref<pointer,shape_type,index_type> all()
     {
-      return basic_ndarray_ref<T,shape_type,index_type,pointer>(data(), shape());
+      return basic_ndarray_ref<pointer,shape_type,index_type>(data(), shape());
     }
 
     __AGENCY_ANNOTATION

@@ -29,7 +29,7 @@
 #endif
 
 
-#if (CUDART_VERSION >= 9000) && (__CUDACC_RDC__)
+#if (CUDART_VERSION >= 9000) && (__CUDACC_RDC__) && (__CUDA_ARCH__ >= 500)
 #  define __cuda_lib_has_cooperative_groups 1
 #else
 #  define __cuda_lib_has_cooperative_groups 0

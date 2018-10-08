@@ -30,14 +30,13 @@ namespace experimental
 //     the type of their index and the type of the shape of their group
 //     Consistency is important here, but we ought to consider whether it's actually important for agents
 //     to make this distinction
-template<class T, class Shape, class Index = Shape, class Pointer = T*>
+template<class Pointer, class Shape, class Index = Shape>
 class basic_ndarray_ref
 {
-  static_assert(std::is_same<T, typename std::pointer_traits<Pointer>::element_type>::value, "std::pointer_traits<Pointer>::element_type must be the same as T.");
   static_assert(agency::detail::index_size<Shape>::value == agency::detail::index_size<Index>::value, "Shape rank must equal Index rank.");
 
   public:
-    using element_type = T;
+    using element_type = typename std::pointer_traits<Pointer>::element_type;
     using shape_type = Shape;
     using index_type = Index;
     using size_type = decltype(agency::detail::index_space_size(std::declval<shape_type>()));
@@ -52,16 +51,15 @@ class basic_ndarray_ref
 
     basic_ndarray_ref(const basic_ndarray_ref&) = default;
 
-    template<class OtherT,
+    template<class OtherPointer,
              class OtherShape,
              class OtherIndex,
-             class OtherPointer,
              __AGENCY_REQUIRES(std::is_convertible<OtherPointer,pointer>::value),
              __AGENCY_REQUIRES(std::is_convertible<OtherShape,shape_type>::value),
              __AGENCY_REQUIRES(agency::detail::shape_size<shape_type>::value == agency::detail::shape_size<OtherShape>::value)
             >
     __AGENCY_ANNOTATION
-    basic_ndarray_ref(const basic_ndarray_ref<OtherT,OtherShape,OtherIndex,OtherPointer>& other)
+    basic_ndarray_ref(const basic_ndarray_ref<OtherPointer,OtherShape,OtherIndex>& other)
       : basic_ndarray_ref(other.data(), other.shape())
     {}
 
@@ -137,7 +135,7 @@ class basic_ndarray_ref
 // ndarray_ref is shorthand for a view of a simple n-dimensional array.
 // The Rank indicates which point to use for the basic_ndarray_ref's Shape parameter
 template<class T, size_t rank>
-using ndarray_ref = basic_ndarray_ref<T, point<std::size_t,rank>>;
+using ndarray_ref = basic_ndarray_ref<T*, point<std::size_t,rank>>;
 
 
 } // end experimental
