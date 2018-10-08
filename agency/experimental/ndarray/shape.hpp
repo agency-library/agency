@@ -41,7 +41,7 @@ struct shape_customization_point
           >
   __AGENCY_ANNOTATION
   constexpr auto operator()(A&& a) const ->
-    decltype(std::forward<A>(a).shape())
+    decltype(shape(std::forward<A>(a)))
   {
     return shape(std::forward<A>(a));
   }
