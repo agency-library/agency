@@ -11,30 +11,30 @@ namespace agency
 {
 namespace detail
 {
-namespace destroy_array_detail
+namespace bulk_destroy_detail
 {
 
 
 template<class Allocator>
-struct destroy_array_functor
+struct bulk_destroy_functor
 {
   // mutable because allocator_traits::destroy() requires a mutable allocator
   mutable Allocator alloc_;
 
   __agency_exec_check_disable__
   __AGENCY_ANNOTATION
-  destroy_array_functor(const Allocator& alloc)
+  bulk_destroy_functor(const Allocator& alloc)
     : alloc_(alloc)
   {}
 
   __AGENCY_ANNOTATION
-  destroy_array_functor(const destroy_array_functor& other)
-    : destroy_array_functor(other.alloc_)
+  bulk_destroy_functor(const bulk_destroy_functor& other)
+    : bulk_destroy_functor(other.alloc_)
   {}
 
   __agency_exec_check_disable__
   __AGENCY_ANNOTATION
-  ~destroy_array_functor() {}
+  ~bulk_destroy_functor() {}
 
   __agency_exec_check_disable__
   template<class Agent, class ArrayView>
@@ -66,17 +66,17 @@ struct is_indexable
 
 
 template<class ExecutionPolicy, class ArrayView>
-using destroy_array_requirements = detail::conjunction<
+using bulk_destroy_requirements = detail::conjunction<
   is_indexable<ArrayView, execution_policy_index_t<ExecutionPolicy>>
 >;
 
 
 template<class Alloc, class... Args>
-struct has_destroy_array_member
+struct has_bulk_destroy_member
 {
   private:
     template<class A,
-             class = decltype(std::declval<A>().destroy_array(std::declval<Args>()...))
+             class = decltype(std::declval<A>().bulk_destroy(std::declval<Args>()...))
             >
     static constexpr bool test(int) { return true; }
 
@@ -88,7 +88,7 @@ struct has_destroy_array_member
 };
 
 
-} // end construct_array_detail
+} // end bulk_destroy_detail
 
 
 __agency_exec_check_disable__
@@ -97,16 +97,16 @@ template<class Allocator, class ExecutionPolicy, class ArrayView,
            is_execution_policy<decay_t<ExecutionPolicy>>::value
          ),
          __AGENCY_REQUIRES(
-           destroy_array_detail::has_destroy_array_member<Allocator, ExecutionPolicy&&, ArrayView>::value
+           bulk_destroy_detail::has_bulk_destroy_member<Allocator, ExecutionPolicy&&, ArrayView>::value
          ),
          __AGENCY_REQUIRES(
-           destroy_array_detail::destroy_array_requirements<decay_t<ExecutionPolicy>, ArrayView>::value
+           bulk_destroy_detail::bulk_destroy_requirements<decay_t<ExecutionPolicy>, ArrayView>::value
          )>
 __AGENCY_ANNOTATION
-void destroy_array(Allocator& alloc, ExecutionPolicy&& policy, ArrayView array)
+void bulk_destroy(Allocator& alloc, ExecutionPolicy&& policy, ArrayView array)
 {
   // call the allocator's member function
-  alloc.destroy_array(std::forward<ExecutionPolicy>(policy), array);
+  alloc.bulk_destroy(std::forward<ExecutionPolicy>(policy), array);
 }
 
 
@@ -116,18 +116,18 @@ template<class Allocator, class ExecutionPolicy, class ArrayView,
            is_execution_policy<decay_t<ExecutionPolicy>>::value
          ),
          __AGENCY_REQUIRES(
-           !destroy_array_detail::has_destroy_array_member<Allocator, ExecutionPolicy&&, ArrayView>::value
+           !bulk_destroy_detail::has_bulk_destroy_member<Allocator, ExecutionPolicy&&, ArrayView>::value
          ),
          __AGENCY_REQUIRES(
-           destroy_array_detail::destroy_array_requirements<decay_t<ExecutionPolicy>, ArrayView>::value
+           bulk_destroy_detail::bulk_destroy_requirements<decay_t<ExecutionPolicy>, ArrayView>::value
          )>
 __AGENCY_ANNOTATION
-void destroy_array(Allocator& alloc, ExecutionPolicy&& policy, ArrayView array)
+void bulk_destroy(Allocator& alloc, ExecutionPolicy&& policy, ArrayView array)
 {
   // generic implementation via bulk_invoke
   agency::bulk_invoke(
     policy(array.shape()),
-    destroy_array_detail::destroy_array_functor<Allocator>{alloc},
+    bulk_destroy_detail::bulk_destroy_functor<Allocator>{alloc},
     array
   );
 }
@@ -139,13 +139,13 @@ template<class Allocator, class ArrayView,
            !is_execution_policy<ArrayView>::value
          ),
          __AGENCY_REQUIRES(
-           destroy_array_detail::has_destroy_array_member<Allocator, ArrayView>::value
+           bulk_destroy_detail::has_bulk_destroy_member<Allocator, ArrayView>::value
          )>
 __AGENCY_ANNOTATION
-void destroy_array(Allocator& alloc, ArrayView array)
+void bulk_destroy(Allocator& alloc, ArrayView array)
 {
   // call the allocator's member function
-  alloc.destroy_array(array);
+  alloc.bulk_destroy(array);
 }
 
 
@@ -155,10 +155,10 @@ template<class Allocator, class ArrayView,
            !is_execution_policy<ArrayView>::value
          ),
          __AGENCY_REQUIRES(
-           !destroy_array_detail::has_destroy_array_member<Allocator, ArrayView>::value
+           !bulk_destroy_detail::has_bulk_destroy_member<Allocator, ArrayView>::value
          )>
 __AGENCY_ANNOTATION
-void destroy_array(Allocator& alloc, ArrayView array)
+void bulk_destroy(Allocator& alloc, ArrayView array)
 {
   // call destroy() in a loop
   for(size_t i = 0; i < array.size(); ++i)

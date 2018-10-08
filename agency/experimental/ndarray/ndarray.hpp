@@ -8,9 +8,9 @@
 #include <agency/detail/iterator/constant_iterator.hpp>
 #include <agency/execution/execution_policy/detail/simple_sequenced_policy.hpp>
 #include <agency/detail/algorithm/construct_n.hpp>
-#include <agency/detail/algorithm/construct_array.hpp>
+#include <agency/detail/algorithm/bulk_construct.hpp>
 #include <agency/detail/algorithm/destroy.hpp>
-#include <agency/detail/algorithm/destroy_array.hpp>
+#include <agency/detail/algorithm/bulk_destroy.hpp>
 #include <agency/detail/algorithm/equal.hpp>
 #include <agency/experimental/ndarray/constant_ndarray.hpp>
 #include <utility>
@@ -284,7 +284,7 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     void clear()
     {
-      agency::detail::destroy_array(storage_.allocator(), all());
+      agency::detail::bulk_destroy(storage_.allocator(), all());
 
       // reset the storage to empty
       storage_ = storage_type(std::move(storage_.allocator()));
@@ -340,14 +340,14 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     void construct_elements_from_arrays(ExecutionPolicy&& policy, const ArrayViews&... arrays)
     {
-      agency::detail::construct_array(storage_.allocator(), std::forward<ExecutionPolicy>(policy), all(), arrays...);
+      agency::detail::bulk_construct(storage_.allocator(), std::forward<ExecutionPolicy>(policy), all(), arrays...);
     }
 
     template<class... ArrayViews>
     __AGENCY_ANNOTATION
     void construct_elements_from_arrays(const ArrayViews&... arrays)
     {
-      agency::detail::construct_array(storage_.allocator(), all(), arrays...);
+      agency::detail::bulk_construct(storage_.allocator(), all(), arrays...);
     }
 
     storage_type storage_;
