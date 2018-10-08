@@ -95,7 +95,7 @@ class basic_executor_adaptor
                has_static_query<Property, E>::value
              )>
     __AGENCY_ANNOTATION
-    constexpr static auto query(const Property& p) ->
+    constexpr static auto query(const Property&) ->
       decltype(Property::template static_query<E>())
     {
       return Property::template static_query<E>();

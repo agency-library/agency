@@ -10,6 +10,7 @@
 #include <agency/detail/algorithm/construct_n.hpp>
 #include <agency/detail/algorithm/construct_array.hpp>
 #include <agency/detail/algorithm/destroy.hpp>
+#include <agency/detail/algorithm/destroy_array.hpp>
 #include <agency/detail/algorithm/equal.hpp>
 #include <agency/experimental/ndarray/constant_ndarray.hpp>
 #include <utility>
@@ -48,6 +49,17 @@ class basic_ndarray
     // note that basic_ndarray's constructors have __agency_exec_check_disable__
     // because Alloc's constructors may not have __AGENCY_ANNOTATION
 
+    // XXX we should reformulate all the other constructors such that they lower onto this
+    //     general purpose constructor
+    __agency_exec_check_disable__
+    template<class... Args, __AGENCY_REQUIRES(std::is_constructible<T, const Args&...>::value)>
+    __AGENCY_ANNOTATION
+    basic_ndarray(const shape_type& shape, const allocator_type& alloc, const Args&... constructor_args)
+      : storage_(shape, alloc)
+    {
+      construct_elements_from_arrays(constant_ndarray<Args,Shape>(shape, constructor_args)...);
+    }
+
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_ndarray() : basic_ndarray(allocator_type()) {}
@@ -74,7 +86,7 @@ class basic_ndarray
     template<class ArrayView,
              __AGENCY_REQUIRES(
                std::is_constructible<
-                 storage_type, decltype(std::declval<ArrayView>().shape())
+                 storage_type, decltype(std::declval<ArrayView>().shape()), allocator_type
                >::value
              )>
     __AGENCY_ANNOTATION
@@ -270,7 +282,7 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     void clear()
     {
-      agency::detail::destroy(storage_.allocator(), begin(), end());
+      agency::detail::destroy_array(storage_.allocator(), all());
 
       // reset the storage to empty
       storage_ = storage_type(std::move(storage_.allocator()));
@@ -326,15 +338,14 @@ class basic_ndarray
     __AGENCY_ANNOTATION
     void construct_elements_from_arrays(ExecutionPolicy&& policy, const ArrayViews&... arrays)
     {
-      agency::detail::construct_array(std::forward<ExecutionPolicy>(policy), storage_.allocator(), all(), arrays...);
+      agency::detail::construct_array(storage_.allocator(), std::forward<ExecutionPolicy>(policy), all(), arrays...);
     }
 
     template<class... ArrayViews>
     __AGENCY_ANNOTATION
     void construct_elements_from_arrays(const ArrayViews&... arrays)
     {
-      agency::detail::simple_sequenced_policy<index_type> seq;
-      construct_elements_from_arrays(seq, arrays...);
+      agency::detail::construct_array(storage_.allocator(), all(), arrays...);
     }
 
     storage_type storage_;
