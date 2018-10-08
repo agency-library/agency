@@ -146,8 +146,10 @@ class basic_ndarray
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     basic_ndarray(const basic_ndarray& other)
-      : basic_ndarray(agency::detail::simple_sequenced_policy<index_type>(), other)
-    {}
+      : storage_(other.shape(), other.get_allocator())
+    {
+      construct_elements_from_arrays(other.all());
+    }
 
     __agency_exec_check_disable__
     __AGENCY_ANNOTATION
