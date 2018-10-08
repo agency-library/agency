@@ -8,6 +8,7 @@
 #include <agency/experimental/ranges/iota.hpp>
 #include <agency/experimental/ranges/iterator_range.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
+#include <agency/experimental/ranges/repeat.hpp>
 #include <agency/experimental/ranges/size.hpp>
 #include <agency/experimental/ranges/statically_bounded.hpp>
 #include <agency/experimental/ranges/stride.hpp>
