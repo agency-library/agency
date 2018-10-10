@@ -2,7 +2,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/memory/allocator/detail/any_allocator.hpp>
-#include <agency/cuda/memory/allocator/allocator.hpp>
 
 namespace agency
 {

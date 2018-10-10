@@ -1,7 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/cuda/memory/allocator.hpp>
+#include <agency/cuda/memory/allocator/allocator.hpp>
 #include <agency/detail/boxed_value.hpp>
 
 namespace agency

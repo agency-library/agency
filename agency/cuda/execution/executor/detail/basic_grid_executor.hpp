@@ -6,8 +6,9 @@
 #include <agency/tuple.hpp>
 #include <agency/cuda/execution/detail/kernel/bulk_then_execute_concurrent_kernel.hpp>
 #include <agency/cuda/execution/detail/kernel/bulk_then_execute_kernel.hpp>
-#include <agency/cuda/memory/allocator.hpp>
-#include <agency/cuda/future.hpp>
+#include <agency/cuda/memory/allocator/allocator.hpp>
+#include <agency/cuda/detail/future/async_future.hpp>
+#include <agency/cuda/detail/future/shared_future.hpp>
 #include <agency/cuda/device.hpp>
 #include <agency/detail/scoped_in_place_type.hpp>
 #include <agency/cuda/detail/concurrency/block_barrier.hpp>

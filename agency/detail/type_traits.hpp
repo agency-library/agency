@@ -214,6 +214,16 @@ template<class T1, class T2>
 using is_not_same = std::integral_constant<bool, !std::is_same<T1,T2>::value>;
 
 
+template<class T, class... Args>
+struct is_constructible_or_void
+  : std::integral_constant<
+      bool,
+      std::is_constructible<T,Args...>::value ||
+      (std::is_void<T>::value && (sizeof...(Args) == 0))
+    >
+{};
+
+
 } // end detail
 } // end agency
 

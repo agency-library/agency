@@ -105,7 +105,7 @@ class shared_future
 
     template<class... Args,
              class = typename std::enable_if<
-               agency::cuda::detail::is_constructible_or_void<T,Args...>::value
+               agency::detail::is_constructible_or_void<T,Args...>::value
              >::type>
     static shared_future make_ready(Args&&... args)
     {
