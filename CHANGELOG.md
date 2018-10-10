@@ -60,6 +60,8 @@ TODO
 
 TODO
 
+* `pointer_adaptor`
+
 ## New Experimental Features
 
 ### Containers
