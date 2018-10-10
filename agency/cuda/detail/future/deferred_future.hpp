@@ -4,9 +4,7 @@
 #include <agency/experimental/optional.hpp>
 #include <agency/cuda/detail/boxed_value.hpp>
 #include <agency/detail/unit.hpp>
-#include <agency/detail/factory.hpp>
 #include <agency/future.hpp>
-#include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/detail/invoke.hpp>
 #include <agency/detail/unique_function.hpp>
 #include <agency/memory/allocator/detail/malloc_allocator.hpp>
@@ -165,7 +163,7 @@ class deferred_result : detail::boxed_value<agency::experimental::optional<T>>
 
     template<class... Args,
              class = typename std::enable_if<
-               detail::is_constructible_or_void<
+               agency::detail::is_constructible_or_void<
                  T, Args&&...
                >::value
              >::type>
@@ -292,7 +290,7 @@ class deferred_result<T,false>
 
     template<class... Args,
              class = typename std::enable_if<
-               detail::is_constructible_or_void<
+               agency::detail::is_constructible_or_void<
                  T, Args&&...
                >::value
              >::type>
@@ -482,7 +480,7 @@ class deferred_state
 
     template<class... Args,
              class = typename std::enable_if<
-               detail::is_constructible_or_void<T,Args&&...>::value
+               agency::detail::is_constructible_or_void<T,Args&&...>::value
              >::type>
     __AGENCY_ANNOTATION
     deferred_state(ready_made_t, Args&&... args)
@@ -657,7 +655,7 @@ class deferred_future
 
     template<class... Args,
              class = typename std::enable_if<
-               detail::is_constructible_or_void<T,Args...>::value
+               agency::detail::is_constructible_or_void<T,Args...>::value
              >::type>
     __AGENCY_ANNOTATION
     static deferred_future make_ready(Args&&... args)
@@ -714,7 +712,7 @@ class deferred_future
 
     template<class... Args,
              class = typename std::enable_if<
-               detail::is_constructible_or_void<T,Args&&...>::value
+               agency::detail::is_constructible_or_void<T,Args&&...>::value
              >::type>
     __AGENCY_ANNOTATION
     deferred_future(detail::ready_made_t, Args&&... args)

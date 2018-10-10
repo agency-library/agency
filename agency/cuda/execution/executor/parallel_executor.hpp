@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/execution/executor/flattened_executor.hpp>
 #include <agency/cuda/execution/executor/grid_executor.hpp>
-#include <agency/cuda/memory/allocator.hpp>
+#include <agency/cuda/memory/allocator/allocator.hpp>
 #include <agency/cuda/memory/resource/pinned_resource.hpp>
 #include <agency/experimental/ndarray/ndarray.hpp>
 #include <agency/cuda/future.hpp>

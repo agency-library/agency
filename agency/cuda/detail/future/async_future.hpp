@@ -37,16 +37,6 @@ namespace detail
 {
 
 
-template<class T, class... Args>
-struct is_constructible_or_void
-  : std::integral_constant<
-      bool,
-      std::is_constructible<T,Args...>::value ||
-      (std::is_void<T>::value && (sizeof...(Args) == 0))
-    >
-{};
-
-
 template<class U>
 using element_type_is_not_unit = std::integral_constant<
   bool,
@@ -169,7 +159,7 @@ class async_future
 
     template<class... Args,
              class = typename std::enable_if<
-               detail::is_constructible_or_void<T,Args...>::value
+               agency::detail::is_constructible_or_void<T,Args...>::value
              >::type>
     __host__ __device__
     static async_future make_ready(Args&&... args)
@@ -326,7 +316,7 @@ class async_future
     // XXX this constructor should take an allocator argument and forward it to the asynchronous_state constructor
     template<class... Args,
              class = typename std::enable_if<
-               detail::is_constructible_or_void<T,Args...>::value
+               agency::detail::is_constructible_or_void<T,Args...>::value
              >::type>
     __host__ __device__
     async_future(detail::event&& e, Args&&... ready_args)

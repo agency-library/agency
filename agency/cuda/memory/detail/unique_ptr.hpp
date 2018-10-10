@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/memory/detail/allocation_deleter.hpp>
 #include <agency/memory/detail/unique_ptr.hpp>
-#include <agency/cuda/memory/allocator.hpp>
+#include <agency/cuda/memory/allocator/allocator.hpp>
 #include <agency/cuda/detail/future/event.hpp>
 #include <agency/cuda/detail/workaround_unused_variable_warning.hpp>
 #include <agency/async.hpp>
