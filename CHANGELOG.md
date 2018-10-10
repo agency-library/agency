@@ -61,6 +61,7 @@ TODO
 TODO
 
 * `pointer_adaptor`
+* `cuda::device_ptr`
 
 ## New Experimental Features
 
