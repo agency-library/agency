@@ -117,7 +117,7 @@ class device_allocator
     using const_reference = device_reference<const T>;
 
     __AGENCY_ANNOTATION
-    explicit device_allocator(agency::cuda::grid_executor executor = agency::cuda::grid_executor())
+    explicit device_allocator(const grid_executor& executor = grid_executor())
       : executor_(executor)
     {}
 
@@ -125,6 +125,18 @@ class device_allocator
     device_allocator(const device_allocator& other)
       : executor_(other.executor_)
     {}
+
+    template<class U>
+    __AGENCY_ANNOTATION
+    device_allocator(const device_allocator<U>& other)
+      : executor_(other.executor())
+    {}
+
+    __AGENCY_ANNOTATION
+    const grid_executor& executor() const
+    {
+      return executor_;
+    }
 
     __AGENCY_ANNOTATION
     pointer allocate(std::size_t n)
@@ -350,7 +362,7 @@ class device_allocator
       return agency::basic_execution_policy<agent_type, agency::cuda::parallel_executor>(param, agency::cuda::parallel_executor(executor_));
     }
 
-    agency::cuda::grid_executor executor_;
+    grid_executor executor_;
 };
 
 
