@@ -341,6 +341,8 @@ class pointer_adaptor : private Accessor
     using element_type = T;
     using accessor_type = Accessor;
     using handle_type = detail::detected_or_t<T*, member_handle_type, Accessor>;
+
+    // XXX if member difference_type doesn't exist, we should use the result of difference_to(), if it exists, otherwise we should use std::ptrdiff_t
     using difference_type = detail::detected_or_t<std::ptrdiff_t, member_difference_type, Accessor>;
 
     // additional iterator_traits member types
@@ -521,7 +523,7 @@ class pointer_adaptor : private Accessor
     __AGENCY_ANNOTATION
     difference_type operator-(const pointer_adaptor& other) const noexcept
     {
-      return get() - other.get();
+      return this->distance_to(accessor(), get(), other.get());
     }
 
     // equality
@@ -566,19 +568,19 @@ class pointer_adaptor : private Accessor
     __AGENCY_ANNOTATION
     bool operator<(const pointer_adaptor& other) const noexcept
     {
-      return handle_ < other.handle_;
+      return this->less(accessor(), handle_, other.handle_);
     }
 
     // lequal
     __AGENCY_ANNOTATION
     bool operator<=(const pointer_adaptor& other) const noexcept
     {
-      return handle_ <= other.handle_;
+      return this->lequal(accessor(), handle_, other.handle_);
     }
 
   private:
     template<class U>
-    using member_advance_t = decltype(std::declval<U>().advance(std::declval<handle_type>(), std::declval<difference_type>()));
+    using member_advance_t = decltype(std::declval<U>().advance(std::declval<handle_type&>(), std::declval<difference_type>()));
 
     // XXX workaround nvbug 2297457
     //template<class U>
@@ -612,6 +614,81 @@ class pointer_adaptor : private Accessor
     static void advance(accessor_type&, handle_type& handle, difference_type n)
     {
       handle += n;
+    }
+
+
+    template<class U>
+    using member_distance_to_t = decltype(std::declval<U>().distance_to(std::declval<handle_type>(), std::declval<handle_type>()));
+
+    // XXX workaround nvbug 2297457
+    //template<class U>
+    //using has_member_distance_to = detail::is_detected<member_distance_to, accessor_type>;
+
+    template<class U>
+    struct has_member_distance_to
+    {
+      template<class V,
+               class = member_distance_to_t<V>
+              >
+      static constexpr bool test(int) { return true; }
+
+      template<class>
+      static constexpr bool test(...) { return false; }
+
+      static constexpr bool value = test<U>(0);
+    };
+
+    // XXX we should first check if handle_type has operator-
+    __agency_exec_check_disable__
+    template<__AGENCY_REQUIRES(has_member_distance_to<accessor_type>::value)>
+    __AGENCY_ANNOTATION
+    static difference_type distance_to(const accessor_type& accessor, const handle_type& from, const handle_type& to)
+    {
+      return accessor.distance_to(from, to);
+    }
+
+    __agency_exec_check_disable__
+    template<__AGENCY_REQUIRES(!has_member_distance_to<accessor_type>::value && std::is_integral<handle_type>::value)>
+    __AGENCY_ANNOTATION
+    static difference_type distance_to(const accessor_type& accessor, const handle_type& from, const handle_type& to)
+    {
+      return to - from;
+    }
+
+
+    // XXX we should first check if handle_type has operator<
+    __agency_exec_check_disable__
+    template<__AGENCY_REQUIRES(std::is_integral<handle_type>::value)>
+    __AGENCY_ANNOTATION
+    static bool less(const accessor_type&, const handle_type& lhs, const handle_type& rhs)
+    {
+      return lhs < rhs;
+    }
+
+    __agency_exec_check_disable__
+    template<__AGENCY_REQUIRES(!std::is_integral<handle_type>::value)>
+    __AGENCY_ANNOTATION
+    static bool less(const accessor_type& accessor, const handle_type& lhs, const handle_type& rhs)
+    {
+      return 0 < distance_to(accessor, lhs, rhs);
+    }
+
+
+    // XXX we should first check if handle_type has operator<=
+    __agency_exec_check_disable__
+    template<__AGENCY_REQUIRES(std::is_integral<handle_type>::value)>
+    __AGENCY_ANNOTATION
+    static bool lequal(const accessor_type&, const handle_type& lhs, const handle_type& rhs)
+    {
+      return lhs <= rhs;
+    }
+
+    __agency_exec_check_disable__
+    template<__AGENCY_REQUIRES(!std::is_integral<handle_type>::value)>
+    __AGENCY_ANNOTATION
+    static bool lequal(const accessor_type& accessor, const handle_type& lhs, const handle_type& rhs)
+    {
+      return 0 <= distance_to(accessor, lhs, rhs);
     }
 
     handle_type handle_;
