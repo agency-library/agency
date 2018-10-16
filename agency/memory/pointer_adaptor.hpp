@@ -648,7 +648,7 @@ class pointer_adaptor : private Accessor
     }
 
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(!has_member_distance_to<accessor_type>::value && std::is_integral<handle_type>::value)>
+    template<__AGENCY_REQUIRES(!has_member_distance_to<accessor_type>::value && std::is_pointer<handle_type>::value)>
     __AGENCY_ANNOTATION
     static difference_type distance_to(const accessor_type& accessor, const handle_type& from, const handle_type& to)
     {
@@ -658,7 +658,7 @@ class pointer_adaptor : private Accessor
 
     // XXX we should first check if handle_type has operator<
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(std::is_integral<handle_type>::value)>
+    template<__AGENCY_REQUIRES(std::is_pointer<handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool less(const accessor_type&, const handle_type& lhs, const handle_type& rhs)
     {
@@ -666,7 +666,7 @@ class pointer_adaptor : private Accessor
     }
 
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(!std::is_integral<handle_type>::value)>
+    template<__AGENCY_REQUIRES(!std::is_pointer<handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool less(const accessor_type& accessor, const handle_type& lhs, const handle_type& rhs)
     {
@@ -676,7 +676,7 @@ class pointer_adaptor : private Accessor
 
     // XXX we should first check if handle_type has operator<=
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(std::is_integral<handle_type>::value)>
+    template<__AGENCY_REQUIRES(std::is_pointer<handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool lequal(const accessor_type&, const handle_type& lhs, const handle_type& rhs)
     {
@@ -684,7 +684,7 @@ class pointer_adaptor : private Accessor
     }
 
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(!std::is_integral<handle_type>::value)>
+    template<__AGENCY_REQUIRES(!std::is_pointer<handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool lequal(const accessor_type& accessor, const handle_type& lhs, const handle_type& rhs)
     {
@@ -692,7 +692,7 @@ class pointer_adaptor : private Accessor
     }
 
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(std::is_integral<handle_type>::value)>
+    template<__AGENCY_REQUIRES(std::is_pointer<handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool equal(const accessor_type&, const handle_type& lhs, const handle_type& rhs)
     {
@@ -700,7 +700,7 @@ class pointer_adaptor : private Accessor
     }
 
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(!std::is_integral<handle_type>::value)>
+    template<__AGENCY_REQUIRES(!std::is_pointer<handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool equal(const accessor_type& accessor, const handle_type& lhs, const handle_type& rhs)
     {
