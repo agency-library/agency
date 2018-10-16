@@ -434,7 +434,7 @@ class pointer_adaptor : private Accessor
     __AGENCY_ANNOTATION
     explicit operator bool() const noexcept
     {
-      return get() != null_handle(accessor());
+      return *this != nullptr;
     }
 
     // dereference
@@ -530,19 +530,19 @@ class pointer_adaptor : private Accessor
     __AGENCY_ANNOTATION
     bool operator==(const pointer_adaptor& other) const noexcept
     {
-      return handle_ == other.handle_;
+      return this->equal(accessor(), handle_, other.handle_);
     }
 
     __AGENCY_ANNOTATION
     friend bool operator==(const pointer_adaptor& self, std::nullptr_t) noexcept
     {
-      return self.handle_ == null_handle(self.accessor());
+      return self.equal(self.accessor(), self.handle_, null_handle(self.accessor()));
     }
 
     __AGENCY_ANNOTATION
     friend bool operator==(std::nullptr_t, const pointer_adaptor& self) noexcept
     {
-      return null_handle(self.accessor()) == self.handle_;
+      return self.equal(self.accessor(), null_handle(self.accessor(), self.handle_));
     }
 
     // inequality
@@ -689,6 +689,22 @@ class pointer_adaptor : private Accessor
     static bool lequal(const accessor_type& accessor, const handle_type& lhs, const handle_type& rhs)
     {
       return 0 <= distance_to(accessor, lhs, rhs);
+    }
+
+    __agency_exec_check_disable__
+    template<__AGENCY_REQUIRES(std::is_integral<handle_type>::value)>
+    __AGENCY_ANNOTATION
+    static bool equal(const accessor_type&, const handle_type& lhs, const handle_type& rhs)
+    {
+      return lhs == rhs;
+    }
+
+    __agency_exec_check_disable__
+    template<__AGENCY_REQUIRES(!std::is_integral<handle_type>::value)>
+    __AGENCY_ANNOTATION
+    static bool equal(const accessor_type& accessor, const handle_type& lhs, const handle_type& rhs)
+    {
+      return distance_to(accessor, lhs, rhs) == 0;
     }
 
     handle_type handle_;
