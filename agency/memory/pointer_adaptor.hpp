@@ -523,7 +523,6 @@ class pointer_adaptor : private Accessor
     __AGENCY_ANNOTATION
     difference_type operator-(const pointer_adaptor& other) const noexcept
     {
-      //return this->distance_to(accessor(), get(), other.get());
       return this->distance_to(accessor(), other.get(), get());
     }
 
