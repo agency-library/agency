@@ -43,10 +43,6 @@ template<class T, class Accessor>
 class pointer_adaptor;
 
 
-namespace detail
-{
-
-
 template<class T, class Accessor>
 class pointer_adaptor_reference : private Accessor
 {
@@ -305,25 +301,6 @@ class pointer_adaptor_reference : private Accessor
 
 
 template<class T, class Accessor>
-__AGENCY_ANNOTATION
-typename std::decay<T>::type decay_copy(const pointer_adaptor_reference<T,Accessor>& ref)
-{
-  return ref;
-}
-
-
-template<class T, class Accessor>
-__AGENCY_ANNOTATION
-typename std::decay<T>::type decay_copy(pointer_adaptor_reference<T,Accessor>&& ref)
-{
-  return ref;
-}
-
-
-} // end detail
-
-
-template<class T, class Accessor>
 class pointer_adaptor : private Accessor
 {
   private:
@@ -349,7 +326,7 @@ class pointer_adaptor : private Accessor
     using value_type = typename std::remove_cv<element_type>::type;
     using iterator_category = std::random_access_iterator_tag;
     using pointer = pointer_adaptor;
-    using reference = detail::pointer_adaptor_reference<T,Accessor>;
+    using reference = pointer_adaptor_reference<T,Accessor>;
 
     pointer_adaptor() = default;
 

@@ -99,7 +99,7 @@ using device_ptr = pointer_adaptor<T, detail::device_accessor>;
 
 
 template<class T>
-using device_reference = typename device_ptr<T>::reference;
+using device_reference = pointer_adaptor_reference<T, detail::device_accessor>;
 
 
 template<class T>

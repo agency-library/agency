@@ -34,16 +34,16 @@ constexpr T&& unwrap_device_reference(T&& r) noexcept
 }
 
 
-template<class T, class A>
+template<class T>
 __AGENCY_ANNOTATION
-constexpr T& unwrap_device_reference(const agency::detail::pointer_adaptor_reference<T,A>& r) noexcept
+constexpr T& unwrap_device_reference(const agency::cuda::device_reference<T>& r) noexcept
 {
   return *(&r).get();
 }
 
-template<class T, class A>
+template<class T>
 __AGENCY_ANNOTATION
-constexpr T& unwrap_device_reference(agency::detail::pointer_adaptor_reference<T,A>&& r) noexcept
+constexpr T& unwrap_device_reference(agency::cuda::device_reference<T>&& r) noexcept
 {
   return *(&r).get();
 }
