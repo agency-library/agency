@@ -38,9 +38,19 @@ class tuple
     __AGENCY_ANNOTATION
     tuple() : base_{} {};
 
+    template<class... UTypes,
+             __AGENCY_REQUIRES(
+               (sizeof...(Types) == sizeof...(UTypes)) &&
+               detail::conjunction<
+                 std::is_constructible<Types,UTypes&&>...
+               >::value &&
+               detail::conjunction<
+                 std::is_convertible<UTypes&&,Types>...
+               >::value
+             )>
     __AGENCY_ANNOTATION
-    explicit tuple(const Types&... args)
-      : base_{args...}
+    tuple(UTypes&&... args)
+      : base_{std::forward<UTypes>(args)...}
     {}
 
     template<class... UTypes,
@@ -48,6 +58,10 @@ class tuple
                (sizeof...(Types) == sizeof...(UTypes)) &&
                detail::conjunction<
                  std::is_constructible<Types,UTypes&&>...
+               >::value &&
+               not
+               detail::disjunction<
+                 std::is_convertible<UTypes&&,Types>...
                >::value
              )>
     __AGENCY_ANNOTATION
