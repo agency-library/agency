@@ -37,8 +37,46 @@
 
 namespace agency
 {
+namespace detail
+{
 
 
+// has_binary_minus is used in the implementation of pointer_adaptor below
+// XXX the reason it is defined outside of pointer_adaptor is because the GCC workaround
+//     used below requires explicit specialization
+template<class T1, class T2>
+using binary_minus_t = decltype(std::declval<T1>() - std::declval<T2>());
+
+// XXX workaround nvbug 2297457
+//template<class T1,T2>
+//using has_binary_minus = detail::is_detected<binary_minus_t, T1, T2>;
+
+template<class T1, class T2>
+struct has_binary_minus
+{
+  template<class U1, class U2,
+           class = binary_minus_t<U1,U2>
+          >
+  static constexpr bool test(int) { return true; }
+
+  template<class,class>
+  static constexpr bool test(...) { return false; }
+
+  static constexpr bool value = test<T1,T2>(0);
+};
+
+// XXX workaround GCC bug 87282
+template<>
+struct has_binary_minus<void*,void*>
+{
+  static constexpr bool value = false;
+};
+
+
+} // end detail
+
+
+// this declaration of pointer_adaptor is for pointer_adaptor_reference's benefit
 template<class T, class Accessor>
 class pointer_adaptor;
 
@@ -615,27 +653,47 @@ class pointer_adaptor : private Accessor
       static constexpr bool value = test<U>(0);
     };
 
-    // XXX we should first check if handle_type has operator-
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(has_member_distance_to<accessor_type>::value)>
-    __AGENCY_ANNOTATION
-    static difference_type distance_to(const accessor_type& accessor, const handle_type& from, const handle_type& to)
-    {
-      return accessor.distance_to(from, to);
-    }
-
-    __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(!has_member_distance_to<accessor_type>::value && std::is_pointer<handle_type>::value)>
+    template<__AGENCY_REQUIRES(detail::has_binary_minus<handle_type,handle_type>::value)>
     __AGENCY_ANNOTATION
     static difference_type distance_to(const accessor_type& accessor, const handle_type& from, const handle_type& to)
     {
       return to - from;
     }
 
-
-    // XXX we should first check if handle_type has operator<
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(std::is_pointer<handle_type>::value)>
+    template<__AGENCY_REQUIRES(!detail::has_binary_minus<handle_type,handle_type>::value and has_member_distance_to<accessor_type>::value)>
+    __AGENCY_ANNOTATION
+    static difference_type distance_to(const accessor_type& accessor, const handle_type& from, const handle_type& to)
+    {
+      return accessor.distance_to(from, to);
+    }
+
+
+    template<class T1, class T2>
+    using less_t = decltype(std::declval<T1>() < std::declval<T2>());
+
+    // XXX workaround nvbug 2297457
+    //template<class T1,class T2>
+    //using has_less = detail::is_detected<less_t, T1, T2>;
+
+    template<class T1, class T2>
+    struct has_less
+    {
+      template<class U1, class U2,
+               class = less_t<U1,U2>
+              >
+      static constexpr bool test(int) { return true; }
+
+      template<class,class>
+      static constexpr bool test(...) { return false; }
+
+      static constexpr bool value = test<T1,T2>(0);
+    };
+
+
+    __agency_exec_check_disable__
+    template<__AGENCY_REQUIRES(has_less<handle_type,handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool less(const accessor_type&, const handle_type& lhs, const handle_type& rhs)
     {
@@ -643,7 +701,7 @@ class pointer_adaptor : private Accessor
     }
 
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(!std::is_pointer<handle_type>::value)>
+    template<__AGENCY_REQUIRES(!has_less<handle_type,handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool less(const accessor_type& accessor, const handle_type& lhs, const handle_type& rhs)
     {
@@ -651,9 +709,30 @@ class pointer_adaptor : private Accessor
     }
 
 
-    // XXX we should first check if handle_type has operator<=
+    template<class T1, class T2>
+    using lequal_t = decltype(std::declval<T1>() <= std::declval<T2>());
+
+    // XXX workaround nvbug 2297457
+    //template<class T1, class T2>
+    //using has_lequal = detail::is_detected<lequal_t, T1, T2>;
+
+    template<class T1, class T2>
+    struct has_lequal
+    {
+      template<class U1, class U2,
+               class = lequal_t<U1,U2>
+              >
+      static constexpr bool test(int) { return true; }
+
+      template<class,class>
+      static constexpr bool test(...) { return false; }
+
+      static constexpr bool value = test<T1,T2>(0);
+    };
+
+
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(std::is_pointer<handle_type>::value)>
+    template<__AGENCY_REQUIRES(has_lequal<handle_type, handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool lequal(const accessor_type&, const handle_type& lhs, const handle_type& rhs)
     {
@@ -661,15 +740,38 @@ class pointer_adaptor : private Accessor
     }
 
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(!std::is_pointer<handle_type>::value)>
+    template<__AGENCY_REQUIRES(!has_lequal<handle_type, handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool lequal(const accessor_type& accessor, const handle_type& lhs, const handle_type& rhs)
     {
       return 0 <= distance_to(accessor, lhs, rhs);
     }
 
+
+    template<class T1, class T2>
+    using equal_t = decltype(std::declval<T1>() == std::declval<T2>());
+
+    // XXX workaround nvbug 2297457
+    //template<class T1, class T2>
+    //using has_equal = detail::is_detected<equal_t, T1, T2>;
+
+    template<class T1, class T2>
+    struct has_equal
+    {
+      template<class U1, class U2,
+               class = equal_t<U1,U2>
+              >
+      static constexpr bool test(int) { return true; }
+
+      template<class,class>
+      static constexpr bool test(...) { return false; }
+
+      static constexpr bool value = test<T1,T2>(0);
+    };
+
+
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(std::is_pointer<handle_type>::value)>
+    template<__AGENCY_REQUIRES(has_equal<handle_type, handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool equal(const accessor_type&, const handle_type& lhs, const handle_type& rhs)
     {
@@ -677,7 +779,7 @@ class pointer_adaptor : private Accessor
     }
 
     __agency_exec_check_disable__
-    template<__AGENCY_REQUIRES(!std::is_pointer<handle_type>::value)>
+    template<__AGENCY_REQUIRES(!has_equal<handle_type, handle_type>::value)>
     __AGENCY_ANNOTATION
     static bool equal(const accessor_type& accessor, const handle_type& lhs, const handle_type& rhs)
     {
