@@ -82,7 +82,6 @@ class basic_ndarray
       : basic_ndarray(constant_ndarray<T,Shape>(shape, val), alloc)
     {}
 
-    __agency_exec_check_disable__
     template<class ArrayView,
              __AGENCY_REQUIRES(
                std::is_constructible<
@@ -90,11 +89,26 @@ class basic_ndarray
                >::value
              )>
     __AGENCY_ANNOTATION
-    explicit basic_ndarray(const ArrayView& array, const allocator_type& alloc = allocator_type())
+    explicit basic_ndarray(const ArrayView& array, const allocator_type& alloc)
       : storage_(array.shape(), alloc)
     {
       construct_elements_from_arrays(array);
     }
+
+    __agency_exec_check_disable__
+    template<class ArrayView,
+             __AGENCY_REQUIRES(
+               std::is_constructible<
+                 storage_type, decltype(std::declval<ArrayView>().shape()), allocator_type
+               >::value and
+               std::is_default_constructible<
+                 allocator_type
+               >::value
+             )>
+    __AGENCY_ANNOTATION
+    explicit basic_ndarray(const ArrayView& array)
+      : basic_ndarray(array, allocator_type())
+    {}
 
     template<class ExecutionPolicy,
              class Iterator,
@@ -218,6 +232,12 @@ class basic_ndarray
     std::size_t size() const
     {
       return storage_.size();
+    }
+
+    __AGENCY_ANNOTATION
+    bool empty() const
+    {
+      return size() == 0;
     }
 
     __AGENCY_ANNOTATION
