@@ -329,13 +329,13 @@ size_t index_space_size_of_shape_head(const Shape& s)
 
 
 template<size_t n, class Shape>
-using shape_take_t = decltype(
-  detail::decay_copy(
+using shape_take_t = detail::decay_t<
+  decltype(
     detail::unwrap_single_element_tuple_if(
       detail::tuple_take_if<n>(std::declval<Shape>())
     )
   )
-);
+>;
 
 
 // note that shape_take() unwraps single element tuples which result from tuple_take_if

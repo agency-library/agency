@@ -76,14 +76,6 @@ void adl_swap(T& a, T& b)
 }
 
 
-template<class T>
-__AGENCY_ANNOTATION
-typename std::decay<T>::type decay_copy(T&& arg)
-{
-  return std::forward<T>(arg);
-}
-
-
 } // end detail
 } // end agency
 
