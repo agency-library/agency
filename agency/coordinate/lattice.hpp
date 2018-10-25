@@ -244,6 +244,14 @@ class lattice
 };
 
 
+template<class T>
+__AGENCY_ANNOTATION
+lattice<T> make_lattice(const T& max)
+{
+  return {max};
+}
+
+
 namespace detail
 {
 
