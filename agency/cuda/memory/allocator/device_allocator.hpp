@@ -11,6 +11,7 @@
 #include <agency/cuda/execution/executor/grid_executor.hpp>
 #include <agency/cuda/execution/executor/parallel_executor.hpp>
 #include <agency/experimental/ndarray/shape.hpp>
+#include <agency/experimental/ndarray/domain.hpp>
 
 #include <cstdlib>
 #include <utility>
@@ -235,13 +236,8 @@ class device_allocator
         __device__
         static void device_path(device_allocator& self, ArrayView array, ArrayViews... arrays)
         {
-          auto shape = agency::experimental::shape(array);
-
-          // create an iteration space
-          agency::lattice<decltype(shape)> domain(shape);
-
-          // iterate through the space and call construct
-          for(auto idx : domain)
+          // iterate through array's domain and call construct
+          for(auto idx : agency::experimental::domain(array))
           {
             self.construct(&array[idx], detail::device_allocator_detail::unwrap_device_reference(arrays[idx])...);
           }
@@ -314,13 +310,8 @@ class device_allocator
         __device__
         static void device_path(device_allocator& self, ArrayView array)
         {
-          auto shape = agency::experimental::shape(array);
-
-          // create an iteration space
-          agency::lattice<decltype(shape)> domain(shape);
-
-          // iterate through the space and call destroy
-          for(auto idx : domain)
+          // destroy each array element
+          for(auto idx : agency::experimental::domain(array))
           {
             self.destroy(&array[idx]);
           }
