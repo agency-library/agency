@@ -156,7 +156,7 @@ class device_allocator
       raw_ptr = static_cast<T*>(malloc(n * sizeof(T)));
 #endif // __cuda_lib_has_cudart
 
-      return {raw_ptr};
+      return pointer{raw_ptr};
     }
 
     __AGENCY_ANNOTATION

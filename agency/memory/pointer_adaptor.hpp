@@ -399,7 +399,7 @@ class pointer_adaptor : private Accessor
     pointer_adaptor& operator=(const pointer_adaptor&) = default;
 
     __AGENCY_ANNOTATION
-    pointer_adaptor(const handle_type& h) noexcept
+    explicit pointer_adaptor(const handle_type& h) noexcept
       : pointer_adaptor(h, accessor_type())
     {}
 
