@@ -145,38 +145,21 @@ using variant_alternative_reference_t = typename variant_alternative_reference<i
 } // end detail
 
 
-template<typename Visitor, typename Variant>
+template<class Visitor, class Variant>
 __AGENCY_ANNOTATION
 typename std::result_of<
-  Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant&&>)
+  Visitor&&(detail::variant_detail::variant_alternative_reference_t<0,Variant&&>)
 >::type
-  visit(Visitor& visitor, Variant&& var);
-
-
-template<typename Visitor, typename Variant>
-__AGENCY_ANNOTATION
-typename std::result_of<
-  const Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant&&>)
->::type
-  visit(const Visitor& visitor, Variant&& var);
+  visit(Visitor&& visitor, Variant&& var);
 
 
 template<typename Visitor, typename Variant1, typename Variant2>
 __AGENCY_ANNOTATION
 typename std::result_of<
-  Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant1&&>,
-           detail::variant_detail::variant_alternative_reference_t<0,Variant2&&>)
+  Visitor&&(detail::variant_detail::variant_alternative_reference_t<0,Variant1&&>,
+            detail::variant_detail::variant_alternative_reference_t<0,Variant2&&>)
 >::type
-  visit(Visitor& visitor, Variant1&& var1, Variant2&& var2);
-
-
-template<typename Visitor, typename Variant1, typename Variant2>
-__AGENCY_ANNOTATION
-typename std::result_of<
-  const Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant1&&>,
-                 detail::variant_detail::variant_alternative_reference_t<0,Variant2&&>)
->::type
-  visit(const Visitor& visitor, Variant1&& var1, Variant2&& var2);
+  visit(Visitor&& visitor, Variant1&& var1, Variant2&& var2);
 
 
 namespace detail
@@ -825,7 +808,7 @@ struct apply_visitor_impl : apply_visitor_impl<VisitorReference,Result,Types...>
       return visitor(*reinterpret_cast<T*>(ptr));
     }
 
-    return super_t::do_it(visitor, ptr, --index);
+    return super_t::do_it(std::forward<VisitorReference>(visitor), ptr, --index);
   }
 
 
@@ -838,7 +821,7 @@ struct apply_visitor_impl : apply_visitor_impl<VisitorReference,Result,Types...>
       return visitor(*reinterpret_cast<const T*>(ptr));
     }
 
-    return super_t::do_it(visitor, ptr, --index);
+    return super_t::do_it(std::forward<VisitorReference>(visitor), ptr, --index);
   }
 };
 
@@ -876,37 +859,20 @@ struct apply_visitor<VisitorReference,Result,variant<Types...>>
 } // end detail
 
 
-template<typename Visitor, typename Variant>
+template<class Visitor, class Variant>
 __AGENCY_ANNOTATION
 typename std::result_of<
-  Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant&&>)
+  Visitor&&(detail::variant_detail::variant_alternative_reference_t<0,Variant&&>)
 >::type
-  visit(Visitor& visitor, Variant&& var)
+  visit(Visitor&& visitor, Variant&& var)
 {
   using result_type = typename std::result_of<
-    Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant&&>)
+    Visitor&&(detail::variant_detail::variant_alternative_reference_t<0,Variant&&>)
   >::type;
 
-  using impl = detail::variant_detail::apply_visitor<Visitor&,result_type,typename std::decay<Variant>::type>;
+  using impl = detail::variant_detail::apply_visitor<Visitor&&,result_type,typename std::decay<Variant>::type>;
 
-  return impl::do_it(visitor, &var, var.index());
-}
-
-
-template<typename Visitor, typename Variant>
-__AGENCY_ANNOTATION
-typename std::result_of<
-  const Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant&&>)
->::type
-  visit(const Visitor& visitor, Variant&& var)
-{
-  using result_type = typename std::result_of<
-    const Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant&&>)
-  >::type;
- 
-  using impl = detail::variant_detail::apply_visitor<const Visitor&,result_type,typename std::decay<Variant>::type>;
-
-  return impl::do_it(visitor, &var, var.index());
+  return impl::do_it(std::forward<Visitor>(visitor), &var, var.index());
 }
 
 
@@ -977,36 +943,17 @@ struct binary_visitor_binder
 template<typename Visitor, typename Variant1, typename Variant2>
 __AGENCY_ANNOTATION
 typename std::result_of<
-  Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant1&&>,
-           detail::variant_detail::variant_alternative_reference_t<0,Variant2&&>)
+  Visitor&&(detail::variant_detail::variant_alternative_reference_t<0,Variant1&&>,
+            detail::variant_detail::variant_alternative_reference_t<0,Variant2&&>)
 >::type
-  visit(Visitor& visitor, Variant1&& var1, Variant2&& var2)
+  visit(Visitor&& visitor, Variant1&& var1, Variant2&& var2)
 {
   using result_type = typename std::result_of<
-    Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant1&&>,
-             detail::variant_detail::variant_alternative_reference_t<0,Variant2&&>)
+    Visitor&&(detail::variant_detail::variant_alternative_reference_t<0,Variant1&&>,
+              detail::variant_detail::variant_alternative_reference_t<0,Variant2&&>)
   >::type;
 
-  auto visitor_wrapper = detail::variant_detail::binary_visitor_binder<Visitor&,result_type,decltype(var2)>(visitor, std::forward<Variant2>(var2));
-
-  return experimental::visit(visitor_wrapper, std::forward<Variant1>(var1));
-}
-
-
-template<typename Visitor, typename Variant1, typename Variant2>
-__AGENCY_ANNOTATION
-typename std::result_of<
-  const Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant1&&>,
-                 detail::variant_detail::variant_alternative_reference_t<0,Variant2&&>)
->::type
-  visit(const Visitor& visitor, Variant1&& var1, Variant2&& var2)
-{
-  using result_type = typename std::result_of<
-    const Visitor&(detail::variant_detail::variant_alternative_reference_t<0,Variant1&&>,
-                   detail::variant_detail::variant_alternative_reference_t<0,Variant2&&>)
-  >::type;
-
-  auto visitor_wrapper = detail::variant_detail::binary_visitor_binder<const Visitor&,result_type,decltype(var2)>(visitor, std::forward<Variant2>(var2));
+  auto visitor_wrapper = detail::variant_detail::binary_visitor_binder<Visitor&&,result_type,decltype(var2)>(std::forward<Visitor>(visitor), std::forward<Variant2>(var2));
 
   return experimental::visit(visitor_wrapper, std::forward<Variant1>(var1));
 }
