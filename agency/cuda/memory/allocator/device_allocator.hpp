@@ -5,7 +5,7 @@
 #include <agency/cuda/memory/device_ptr.hpp>
 #include <agency/execution/execution_policy/basic_execution_policy.hpp>
 #include <agency/bulk_invoke.hpp>
-#include <agency/invoke.hpp>
+#include <agency/functional/invoke.hpp>
 #include <agency/cuda/device.hpp>
 #include <agency/cuda/detail/terminate.hpp>
 #include <agency/cuda/execution/executor/grid_executor.hpp>

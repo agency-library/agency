@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/bulk_invoke.hpp>
-#include <agency/invoke.hpp>
+#include <agency/functional/invoke.hpp>
 #include <agency/execution/execution_policy.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/detail/iterator/iterator_traits.hpp>
