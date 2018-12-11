@@ -23,8 +23,10 @@ class bulk_result : private detail::storage<T, Allocator, Shape>
     using shape_type = Shape;
     using index_type = Shape;
     using allocator_type = Allocator;
-    using iterator = T*;
-    using const_iterator = const T*;
+    using pointer = T*;
+    using const_pointer = const T*;
+    using iterator = pointer;
+    using const_iterator = const_pointer;
 
     // XXX this should be eliminated
     //     it should not really be possible to create these things except via bulk_invoke et al.
@@ -127,15 +129,27 @@ class bulk_result : private detail::storage<T, Allocator, Shape>
     }
 
     __AGENCY_ANNOTATION
-    iterator begin()
+    pointer data()
     {
       return super_t::data();
     }
 
     __AGENCY_ANNOTATION
-    const_iterator begin() const
+    const_pointer data() const
     {
       return super_t::data();
+    }
+
+    __AGENCY_ANNOTATION
+    iterator begin()
+    {
+      return data();
+    }
+
+    __AGENCY_ANNOTATION
+    const_iterator begin() const
+    {
+      return data();
     }
 
     __AGENCY_ANNOTATION

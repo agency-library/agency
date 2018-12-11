@@ -3,6 +3,8 @@
 #include <agency/detail/config.hpp>
 #include <agency/container/array.hpp>
 #include <agency/experimental/ranges/range_traits.hpp>
+#include <agency/detail/iterator/data.hpp>
+#include <agency/experimental/ranges/size.hpp>
 #include <cstddef>
 
 namespace agency
@@ -107,16 +109,15 @@ class basic_span : private detail::basic_span_base<Extent>
     // XXX should require iterator contiguity, but that requires contiguous_iterator_tag
     __agency_exec_check_disable__
     template<class Container,
-             class BeginPointer = decltype(&*std::declval<Container>().begin()),
-             class EndPointer = decltype(&*std::declval<Container>().end()),
+             class Data = decltype(agency::detail::data(std::declval<Container>())),
+             class Size = decltype(agency::experimental::size(std::declval<Container>())),
              class = typename std::enable_if<
-               std::is_convertible<BeginPointer,pointer>::value &&
-               std::is_convertible<EndPointer, pointer>::value
+               std::is_constructible<basic_span,Data,Size>::value
              >::type
             >
     __AGENCY_ANNOTATION
     basic_span(Container&& c)
-      : basic_span(&*c.begin(), &*c.end())
+      : basic_span(agency::detail::data(c), agency::experimental::size(c))
     {}
 
     __AGENCY_ANNOTATION
