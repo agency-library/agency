@@ -33,6 +33,12 @@ class constant_ndarray
     {}
 
     __AGENCY_ANNOTATION
+    const T& value() const
+    {
+      return value_;
+    }
+
+    __AGENCY_ANNOTATION
     constexpr std::size_t rank() const
     {
       return std::tuple_size<Shape>::value;
