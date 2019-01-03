@@ -122,7 +122,7 @@ def apply_compiler_flags(env):
     cxx_warning_flags.append(this_compilers_flags['warnings_as_errors'])
 
   # first, general C++ flags
-  env.MergeFlags(['-O3', '-std=c++11', '-lstdc++', '-lpthread'] + cxx_warning_flags)
+  env.MergeFlags(['-O3', '-std=c++11', '-lstdc++', '-lpthread', '-fPIC'] + cxx_warning_flags)
   
   # next, flags for nvcc
   env.MergeFlags(['--expt-extended-lambda', '-arch=' + str(env['arch'])])
