@@ -54,7 +54,7 @@ int main()
 
     try
     {
-      auto f3 = f2.then([](int& arg)
+      auto f3 = f2.then([] __host__ __device__ (int& arg)
       {
         return arg + 7;
       });
@@ -65,7 +65,7 @@ int main()
       assert(f2.valid()); // f2 is a shared_future and should still be valid after a .then()
       assert(f3.valid()); // f3 is a future and should be valid
 
-      auto f4 = f3.then([](int& arg)
+      auto f4 = f3.then([] __host__ __device__ (int& arg)
       {
         return arg + 42;
       });

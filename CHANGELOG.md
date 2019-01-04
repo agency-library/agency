@@ -25,6 +25,7 @@ TODO
   * `executor_execution_category` and `executor_execution_category_t` have been replaced with the `bulk_guarantee` executor property
   * `execution_categories.hpp` and the functional therein has been eliminated
   * `execution_agent_traits<A>::execution_category` has been replaced with `execution_agent_traits<A>::execution_requirement`
+  * `cuda::deferred_future` has been eliminated
 
 ## New Features
 

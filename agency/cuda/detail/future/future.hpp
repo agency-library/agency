@@ -2,7 +2,6 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/cuda/detail/future/async_future.hpp>
-#include <agency/cuda/detail/future/deferred_future.hpp>
 #include <agency/future/always_ready_future.hpp>
 #include <agency/experimental/variant.hpp>
 #include <agency/detail/type_traits.hpp>
@@ -27,7 +26,7 @@ class future
   private:
     template<class U> friend class future;
 
-    using variant_type = agency::experimental::variant<agency::cuda::async_future<T>, agency::cuda::deferred_future<T>, agency::always_ready_future<T>>;
+    using variant_type = agency::experimental::variant<agency::cuda::async_future<T>, agency::always_ready_future<T>>;
 
   public:
     future() = default;
@@ -53,12 +52,6 @@ class future
       {
         return async_future<T>(std::move(other));
       }
-
-      __AGENCY_ANNOTATION
-      future operator()(deferred_future<U>& other) const
-      {
-        return deferred_future<T>(std::move(other));
-      }
     };
 
     template<class U>
@@ -75,9 +68,6 @@ class future
              class = typename std::enable_if<
                std::is_constructible<
                  async_future<T>,async_future<U>&&
-               >::value
-               && std::is_constructible<
-                 deferred_future<T>,deferred_future<U>&&
                >::value
              >::type>
     __AGENCY_ANNOTATION
@@ -221,84 +211,6 @@ class future
         return fut.then(std::move(f));
       }
 
-      template<class Function1>
-      static __AGENCY_ANNOTATION
-      future<
-        agency::detail::result_of_continuation_t<
-          Function,
-          agency::cuda::async_future<T>
-        >
-      >
-        async_future_impl(agency::cuda::async_future<T>& fut, Function1& f,
-                          typename std::enable_if<
-                            !std::is_move_constructible<Function1>::value
-                          >::type* = 0)
-      {
-        return fut.then(f);
-      }
-
-      // XXX all this functor should really do is return fut_.fmap(f_)
-      //     but cuda::async_future::fmap() doesn't exist at the time of writing
-      struct get_and_invoke_functor
-      {
-        agency::cuda::async_future<T> fut_;
-        Function f_;
-
-        using result_type = agency::detail::result_of_continuation_t<
-          Function,
-          agency::cuda::async_future<T>
-        >;
-
-        __AGENCY_ANNOTATION
-        result_type impl(agency::cuda::async_future<void>&)
-        {
-          return agency::detail::invoke(f_); 
-        }
-
-        template<class U>
-        __AGENCY_ANNOTATION
-        result_type impl(agency::cuda::async_future<U>& fut)
-        {
-          U arg = fut.get();
-          return agency::detail::invoke(f_, arg);
-        }
-
-        __AGENCY_ANNOTATION
-        result_type operator()()
-        {
-          return impl(fut_);
-        }
-      };
-
-      template<class Function1>
-      static __AGENCY_ANNOTATION
-      future<
-        agency::detail::result_of_continuation_t<
-          Function,
-          agency::cuda::async_future<T>
-        >
-      >
-        async_future_impl(agency::cuda::async_future<T>& fut, Function1& f,
-                          typename std::enable_if<
-                            std::is_move_constructible<Function1>::value
-                          >::type* = 0)
-      {
-        // we can't move f into a CUDA kernel parameter at the time of writing
-        // implement the following workaround:
-        // "cast" fut to a deferred_future by calling .then()
-        // on a ready deferred_future which waits on fut
-        auto ready = agency::cuda::deferred_future<void>::make_ready();
-
-        get_and_invoke_functor continuation{std::move(fut), std::move(f)};
-        return ready.then(std::move(continuation));
-
-        // XXX the implementation above is not efficient because these
-        //     dependencies are hidden from the CUDA runtime
-        //     we should investigate a way to hack CUDA stream callbacks to implement
-        //     this form of .then() in cuda::async_future<T>
-        //return fut.then(std::move(f));
-      }
-
       __AGENCY_ANNOTATION
       future<
         agency::detail::result_of_continuation_t<
@@ -308,7 +220,7 @@ class future
       >
         operator()(agency::cuda::async_future<T>& fut) const
       {
-        return async_future_impl(fut, f);
+        return fut.then(f);
       }
     };
 
@@ -392,8 +304,6 @@ class future
         >;
 
         return future<result_type>();
-
-        // XXX TODO: implement a similar workaround as used in the then_future via casting to deferred_future
       }
 
       __AGENCY_ANNOTATION

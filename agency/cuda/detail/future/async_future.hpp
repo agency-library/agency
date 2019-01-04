@@ -217,6 +217,33 @@ class async_future
     }
 
   private:
+    template<class U> friend class async_future;
+    template<class U> friend class agency::cuda::future;
+
+    // friend detail::make_async_future() to give it access to the private constructor
+    template<class U> friend async_future<U> detail::make_async_future(detail::event&& e, detail::asynchronous_state<U>&& state);
+
+    // friend detail::async_future_event() to give it access to .event()
+    template<class U>
+    friend detail::event& detail::async_future_event(async_future<U>& future);
+
+    template<class U>
+    friend const detail::event& detail::async_future_event(const async_future<U>& future);
+
+    // friend detail::async_future_state() to give it access to .state()
+    template<class U>
+    friend detail::asynchronous_state<U>& detail::async_future_state(async_future<U>& future);
+
+    template<class... Types>
+    friend __host__ __device__
+    async_future<
+      agency::detail::when_all_result_t<
+        async_future<Types>...
+      >
+    >
+    when_all(async_future<Types>&... futures);
+
+
     __host__ __device__
     detail::event& event()
     {
@@ -290,24 +317,6 @@ class async_future
       return async_future<result_type>(std::move(next_event), std::move(result_state));
     }
 
-
-    template<class U> friend class async_future;
-    template<class U> friend class agency::cuda::future;
-
-    // friend detail::make_async_future() to give it access to the private constructor
-    template<class U> friend async_future<U> detail::make_async_future(detail::event&& e, detail::asynchronous_state<U>&& state);
-
-    // friend detail::async_future_event() to give it access to .event()
-    template<class U>
-    friend detail::event& detail::async_future_event(async_future<U>& future);
-
-    template<class U>
-    friend const detail::event& detail::async_future_event(const async_future<U>& future);
-
-    // friend detail::async_future_state() to give it access to .state()
-    template<class U>
-    friend detail::asynchronous_state<U>& detail::async_future_state(async_future<U>& future);
-
     __host__ __device__
     async_future(detail::event&& e, detail::asynchronous_state<T>&& state)
       : event_(std::move(e)), state_(std::move(state))
@@ -322,15 +331,6 @@ class async_future
     async_future(detail::event&& e, Args&&... ready_args)
       : async_future(std::move(e), detail::asynchronous_state<T>(agency::detail::construct_ready, cuda::allocator<T>(), std::forward<Args>(ready_args)...))
     {}
-
-    template<class... Types>
-    friend __host__ __device__
-    async_future<
-      agency::detail::when_all_result_t<
-        async_future<Types>...
-      >
-    >
-    when_all(async_future<Types>&... futures);
 };
 
 
