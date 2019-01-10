@@ -69,6 +69,21 @@ class basic_ndarray_ref
     __AGENCY_ANNOTATION
     basic_ndarray_ref(pointer ptr, shape_type shape) : data_(ptr), shape_(shape) {}
 
+    template<class OtherPointer,
+             class OtherShape,
+             class OtherIndex,
+             __AGENCY_REQUIRES(std::is_convertible<OtherPointer,pointer>::value),
+             __AGENCY_REQUIRES(std::is_convertible<OtherShape,shape_type>::value),
+             __AGENCY_REQUIRES(agency::detail::shape_size<shape_type>::value == agency::detail::shape_size<OtherShape>::value)
+            >
+    __AGENCY_ANNOTATION
+    basic_ndarray_ref& operator=(const basic_ndarray_ref<OtherPointer,OtherShape,OtherIndex>& other)
+    {
+      data_ = other.data();
+      shape_ = other.shape();
+      return *this;
+    }
+
     __AGENCY_ANNOTATION
     constexpr std::size_t rank() const
     {
