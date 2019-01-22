@@ -26,7 +26,7 @@ class stream
     {
 #if __cuda_lib_has_cudart
       // temporarily switch to our device while creating the stream
-      scoped_current_device scope(device());
+      scoped_device scope(device());
 
       detail::throw_on_error(cudaStreamCreateWithFlags(&s_, cudaStreamNonBlocking), "cudaStreamCreateWithFlags in cuda::detail::stream ctor");
 #else

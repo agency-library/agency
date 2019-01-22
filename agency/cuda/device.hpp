@@ -18,6 +18,22 @@ namespace cuda
 class device_id;
 
 
+// the CUDA Runtime's current device becomes the given device
+// for as long as this object is in scope
+class scoped_device
+{
+  public:
+    __host__ __device__
+    scoped_device(const device_id& new_device);
+
+    __host__ __device__
+    ~scoped_device();
+
+  private:
+    int old_device;
+};
+
+
 namespace detail
 {
 
@@ -28,22 +44,6 @@ inline void set_current_device(const device_id& d);
 
 __host__ __device__
 inline device_id current_device();
-
-
-// the CUDA Runtime's current device becomes the given device
-// for as long as this object is in scope
-class scoped_current_device
-{
-  public:
-    __host__ __device__
-    scoped_current_device(const device_id& new_device);
-
-    __host__ __device__
-    ~scoped_current_device();
-
-  private:
-    int old_device;
-};
 
 
 template<class T>
@@ -105,7 +105,7 @@ class device_id
 
     void wait() const
     {
-      detail::scoped_current_device temporary_device(*this);
+      scoped_device temporary_device(*this);
 
 #if __cuda_lib_has_cudart
       detail::throw_on_error(cudaDeviceSynchronize(), "cuda::device_id::wait(): cudaDeviceSynchronize()");
@@ -246,10 +246,13 @@ inline device_id current_device()
 
   return device_id(result);
 }
+
+
+} // end detail
     
 
 __host__ __device__
-scoped_current_device::scoped_current_device(const device_id& new_device)
+scoped_device::scoped_device(const device_id& new_device)
   : old_device(detail::current_device().native_handle())
 {
   detail::set_current_device(new_device);
@@ -257,10 +260,15 @@ scoped_current_device::scoped_current_device(const device_id& new_device)
 
 
 __host__ __device__
-scoped_current_device::~scoped_current_device()
+scoped_device::~scoped_device()
 {
   detail::set_current_device(device_id(old_device));
 }
+
+
+namespace detail
+{
+
 
 template<class Container>
 void wait(const Container& devices)

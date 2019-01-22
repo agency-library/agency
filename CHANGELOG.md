@@ -63,6 +63,7 @@ TODO
 
 * `pointer_adaptor`
 * `cuda::device_ptr`
+* `cuda::scoped_device`
 
 ## New Experimental Features
 

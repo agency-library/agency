@@ -210,7 +210,7 @@ __host__ __device__
 int max_block_size_of_bulk_then_execute_kernel(const device_id& device, const Function& f, const async_future<T>& predecessor, const ResultFactory& result_factory, const OuterFactory& outer_factory, const InnerFactory& inner_factory)
 {
   // temporarily switch the CUDA runtime's current device to the given device
-  detail::scoped_current_device scope(device);
+  scoped_device scope(device);
 
   // get a pointer to the kernel launched by launch_bulk_then_execute_kernel()
   constexpr auto kernel = bulk_then_execute_kernel<block_dimension,Function,T,ResultFactory,OuterFactory,InnerFactory>::value;

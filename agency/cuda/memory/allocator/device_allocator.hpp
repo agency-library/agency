@@ -144,7 +144,7 @@ class device_allocator
     {
 #ifndef __CUDA_ARCH__
       // switch to our executor's device
-      agency::cuda::detail::scoped_current_device set_current_device(executor_.device());
+      scoped_device set_current_device(executor_.device());
 #endif // __CUDA_ARCH__
 
       T* raw_ptr = nullptr;
@@ -164,7 +164,7 @@ class device_allocator
     {
 #ifndef __CUDA_ARCH__
       // switch to our executor's device
-      agency::cuda::detail::scoped_current_device set_current_device(executor_.device());
+      scoped_device set_current_device(executor_.device());
 #endif // __CUDA_ARCH__
 
       // deallocate

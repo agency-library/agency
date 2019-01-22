@@ -94,7 +94,7 @@ __host__ __device__
 int max_block_size_of_bulk_then_execute_concurrent_kernel(const agency::cuda::device_id& device, const Function&, const agency::cuda::async_future<T>&, const ResultFactory&, const OuterFactory&, const InnerFactory&)
 {
   // temporarily switch the CUDA runtime's current device to the given device
-  detail::scoped_current_device scope(device);
+  scoped_device scope(device);
 
   // get a pointer to the kernel which bulk_then_execute_concurent_grid() would launch
   auto kernel = detail::bulk_then_execute_kernel<block_dimension,Function,T,ResultFactory,OuterFactory,InnerFactory>::value;

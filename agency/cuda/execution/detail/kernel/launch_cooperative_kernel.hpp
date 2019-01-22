@@ -56,7 +56,7 @@ template<class GlobalFunctionPointer, class... Args,
          )>
 void try_launch_cooperative_kernel_on_device(GlobalFunctionPointer kernel, ::dim3 grid_dim, ::dim3 block_dim, size_t shared_memory_size, cudaStream_t stream, int device, const Args&... args)
 {
-  agency::cuda::detail::scoped_current_device scope(device);
+  scoped_device scope(device);
 
   try_launch_cooperative_kernel(kernel, grid_dim, block_dim, shared_memory_size, stream, args...);
 }

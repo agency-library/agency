@@ -31,7 +31,7 @@ class event
     {
 #if __cuda_lib_has_cudart
       // switch to the stream's device when creating the event
-      scoped_current_device scope(get_stream().device());
+      scoped_device scope(get_stream().device());
 
       detail::throw_on_error(cudaEventCreateWithFlags(&e_, event_create_flags), "cudaEventCreateWithFlags in cuda::detail::event ctor");
 #else

@@ -36,7 +36,7 @@ class managed_resource
     inline void* allocate(size_t num_bytes)
     {
       // switch to our device
-      detail::scoped_current_device set_current_device(device());
+      scoped_device set_current_device(device());
 
       void* result = nullptr;
   
@@ -53,7 +53,7 @@ class managed_resource
     inline void deallocate(void* ptr, size_t)
     {
       // switch to our device
-      detail::scoped_current_device set_current_device(device());
+      scoped_device set_current_device(device());
 
       cudaError_t error = cudaFree(ptr);
   
