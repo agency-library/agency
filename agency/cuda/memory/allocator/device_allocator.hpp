@@ -123,6 +123,11 @@ class device_allocator
     {}
 
     __AGENCY_ANNOTATION
+    explicit device_allocator(const device_id& device)
+      : device_allocator(grid_executor(device))
+    {}
+
+    __AGENCY_ANNOTATION
     device_allocator(const device_allocator& other)
       : executor_(other.executor_)
     {}
