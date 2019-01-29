@@ -424,6 +424,10 @@ class pointer_adaptor : private Accessor
       : pointer_adaptor(other.get(), other.accessor())
     {}
 
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    ~pointer_adaptor() {}
+
     // returns the underlying handle
     __AGENCY_ANNOTATION
     const handle_type& get() const noexcept
