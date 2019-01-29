@@ -390,24 +390,33 @@ class pointer_adaptor : private Accessor
     }
 
   public:
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     pointer_adaptor(std::nullptr_t) noexcept
       : pointer_adaptor(null_handle(accessor_type()))
     {}
 
-    pointer_adaptor(const pointer_adaptor&) = default;
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    pointer_adaptor(const pointer_adaptor& other)
+      : pointer_adaptor(other.get(), other.accessor())
+    {}
+
     pointer_adaptor& operator=(const pointer_adaptor&) = default;
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     explicit pointer_adaptor(const handle_type& h) noexcept
       : pointer_adaptor(h, accessor_type())
     {}
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     pointer_adaptor(const handle_type& h, const accessor_type& a) noexcept
       : super_t(a), handle_(h)
     {}
 
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     pointer_adaptor(const handle_type& h, accessor_type&& a) noexcept
       : super_t(std::move(a)), handle_(h)
