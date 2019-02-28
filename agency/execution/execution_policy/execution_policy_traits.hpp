@@ -240,6 +240,10 @@ using policy_is_scoped_concurrent_concurrent = std::is_same<
 >;
 
 
+template<class ExecutionPolicy>
+using execution_policy_dimensionality = point_size<execution_policy_index_t<ExecutionPolicy>>;
+
+
 } // end detail
 
 
