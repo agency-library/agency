@@ -40,10 +40,10 @@ class parallel_execution_policy_2d : public basic_execution_policy<parallel_agen
 const parallel_execution_policy_2d par2d{};
 
 
-// XXX this function needs to account for the dimensionality of ParallelPolicy's agents
 template<class ParallelPolicy,
          __AGENCY_REQUIRES(
-           agency::detail::policy_is_parallel<ParallelPolicy>::value
+           agency::detail::policy_is_parallel<ParallelPolicy>::value and
+           agency::detail::execution_policy_dimensionality<ParallelPolicy>::value == 1
          )>
 __AGENCY_ANNOTATION
 cuda::parallel_execution_policy replace_executor(const ParallelPolicy& policy, const parallel_executor& exec)
@@ -52,13 +52,41 @@ cuda::parallel_execution_policy replace_executor(const ParallelPolicy& policy, c
 }
 
 
-// XXX this function needs to account for the dimensionality of ParallelPolicy's agents
 template<class ParallelPolicy,
          __AGENCY_REQUIRES(
-           agency::detail::policy_is_parallel<ParallelPolicy>::value
+           agency::detail::policy_is_parallel<ParallelPolicy>::value and
+           agency::detail::execution_policy_dimensionality<ParallelPolicy>::value == 2
+         )>
+__AGENCY_ANNOTATION
+cuda::parallel_execution_policy_2d replace_executor(const ParallelPolicy& policy, const parallel_executor& exec)
+{
+  return cuda::parallel_execution_policy_2d(policy.param(), exec);
+}
+
+
+template<class ParallelPolicy,
+         __AGENCY_REQUIRES(
+           agency::detail::policy_is_parallel<ParallelPolicy>::value and
+           agency::detail::execution_policy_dimensionality<ParallelPolicy>::value == 1
          )>
 __AGENCY_ANNOTATION
 cuda::parallel_execution_policy replace_executor(const ParallelPolicy& policy, const grid_executor& exec)
+{
+  // "flatten" the grid_executor into a parallel_executor
+  cuda::parallel_executor parallel_exec(exec);
+
+  // call a lower-level version of replace_executor()
+  return cuda::replace_executor(policy, parallel_exec);
+}
+
+
+template<class ParallelPolicy,
+         __AGENCY_REQUIRES(
+           agency::detail::policy_is_parallel<ParallelPolicy>::value and
+           agency::detail::execution_policy_dimensionality<ParallelPolicy>::value == 2
+         )>
+__AGENCY_ANNOTATION
+cuda::parallel_execution_policy_2d replace_executor(const ParallelPolicy& policy, const grid_executor& exec)
 {
   // "flatten" the grid_executor into a parallel_executor
   cuda::parallel_executor parallel_exec(exec);
