@@ -74,6 +74,12 @@ class constant_ndarray
       return agency::detail::constant_iterator<T>(value_, size());
     }
 
+    __AGENCY_ANNOTATION
+    constant_ndarray all() const
+    {
+      return *this;
+    }
+
   private:
     shape_type shape_;
     T value_;

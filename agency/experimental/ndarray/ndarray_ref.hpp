@@ -141,6 +141,12 @@ class basic_ndarray_ref
       return begin() + size();
     }
 
+    __AGENCY_ANNOTATION
+    basic_ndarray_ref all() const
+    {
+      return *this;
+    }
+
   private:
     pointer data_;
     shape_type shape_;
