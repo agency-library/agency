@@ -13,6 +13,7 @@
 #include <agency/detail/algorithm/bulk_destroy.hpp>
 #include <agency/detail/algorithm/equal.hpp>
 #include <agency/experimental/ndarray/constant_ndarray.hpp>
+#include <agency/experimental/ranges/all.hpp>
 #include <utility>
 #include <memory>
 #include <iterator>
@@ -84,32 +85,32 @@ class basic_ndarray
       : basic_ndarray(constant_ndarray<T,Shape>(shape, val), alloc)
     {}
 
-    template<class ArrayView,
+    template<class Array,
              __AGENCY_REQUIRES(
                std::is_constructible<
-                 storage_type, decltype(std::declval<ArrayView>().shape()), allocator_type
+                 storage_type, decltype(std::declval<Array&&>().shape()), allocator_type
                >::value
              )>
     __AGENCY_ANNOTATION
-    explicit basic_ndarray(const ArrayView& array, const allocator_type& alloc)
+    explicit basic_ndarray(Array&& array, const allocator_type& alloc)
       : storage_(array.shape(), alloc)
     {
-      construct_elements_from_arrays(array);
+      construct_elements_from_arrays(std::forward<Array>(array));
     }
 
     __agency_exec_check_disable__
-    template<class ArrayView,
+    template<class Array,
              __AGENCY_REQUIRES(
                std::is_constructible<
-                 storage_type, decltype(std::declval<ArrayView>().shape()), allocator_type
+                 storage_type, decltype(std::declval<Array&>().shape()), allocator_type
                >::value and
                std::is_default_constructible<
                  allocator_type
                >::value
              )>
     __AGENCY_ANNOTATION
-    explicit basic_ndarray(const ArrayView& array)
-      : basic_ndarray(array, allocator_type())
+    explicit basic_ndarray(Array&& array)
+      : basic_ndarray(std::forward<Array>(array), allocator_type())
     {}
 
     template<class ExecutionPolicy,
@@ -353,21 +354,21 @@ class basic_ndarray
     }
 
 
-    template<class ExecutionPolicy, class... ArrayViews,
+    template<class ExecutionPolicy, class... Arrays,
              __AGENCY_REQUIRES(
                is_execution_policy<typename std::decay<ExecutionPolicy>::type>::value
              )>
     __AGENCY_ANNOTATION
-    void construct_elements_from_arrays(ExecutionPolicy&& policy, const ArrayViews&... arrays)
+    void construct_elements_from_arrays(ExecutionPolicy&& policy, Arrays&&... arrays)
     {
-      agency::detail::bulk_construct(storage_.allocator(), std::forward<ExecutionPolicy>(policy), all(), arrays...);
+      agency::detail::bulk_construct(storage_.allocator(), std::forward<ExecutionPolicy>(policy), all(), experimental::all(std::forward<Arrays>(arrays))...);
     }
 
-    template<class... ArrayViews>
+    template<class... Arrays>
     __AGENCY_ANNOTATION
-    void construct_elements_from_arrays(const ArrayViews&... arrays)
+    void construct_elements_from_arrays(Arrays&&... arrays)
     {
-      agency::detail::bulk_construct(storage_.allocator(), all(), arrays...);
+      agency::detail::bulk_construct(storage_.allocator(), all(), experimental::all(std::forward<Arrays>(arrays))...);
     }
 
     storage_type storage_;
