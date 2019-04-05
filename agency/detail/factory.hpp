@@ -94,25 +94,14 @@ class moving_factory
       : value_(std::move(other.value_))
     {}
 
-    // XXX this code causes nvcc 8.0 to produce an error message
-    //     
-    //__agency_exec_check_disable__
-    //template<class U,
-    //         class = typename std::enable_if<
-    //           std::is_constructible<T,U&&>::value
-    //         >::type>
-    //__AGENCY_ANNOTATION
-    //moving_factory(U&& value)
-    //  : value_(std::forward<U>(value))
-    //{}
-    
-    // XXX in order to WAR the nvcc 8.0 error above,
-    //     instead of perfectly forwarding the value in,
-    //     move construct it into value_ instead.
     __agency_exec_check_disable__
+    template<class U,
+             class = typename std::enable_if<
+               std::is_constructible<T,U&&>::value
+             >::type>
     __AGENCY_ANNOTATION
-    moving_factory(T&& value)
-      : value_(std::move(value))
+    moving_factory(U&& value)
+      : value_(std::forward<U>(value))
     {}
 
     __AGENCY_ANNOTATION
