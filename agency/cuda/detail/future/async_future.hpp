@@ -494,12 +494,14 @@ inline async_future<void> make_async_future(cudaEvent_t e)
 }
 
 
-// returns an async_future<T> whose readiness depends on the completion of the given event
-template<class T, class Allocator>
-async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Allocator& allocator)
+namespace detail
 {
-  static_assert(agency::detail::is_allocator<Allocator>::value, "allocator parameter is not an Allocator.");
 
+
+// returns an async_future<T> whose readiness depends on the completion of the given event
+template<class T>
+async_future<T> make_async_future(cudaEvent_t e, agency::cuda::detail::asynchronous_state<T>&& state)
+{
   // create a new stream on device 0
   device_id device(0);
   cuda::detail::stream s{device};
@@ -512,11 +514,24 @@ async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Allocator& alloca
   cuda::detail::event event(std::move(s));
   assert(event.valid());
 
+  return make_async_future(std::move(event), std::move(state));
+}
+
+
+} // end detail
+
+
+// returns an async_future<T> whose readiness depends on the completion of the given event
+template<class T, class Allocator>
+async_future<T> make_async_future(cudaEvent_t e, T* ptr, const Allocator& allocator)
+{
+  static_assert(agency::detail::is_allocator<Allocator>::value, "allocator parameter is not an Allocator.");
+
   // create a new, not ready asynchronous state
   cuda::detail::asynchronous_state<T> state(agency::detail::construct_not_ready, ptr, allocator);
   assert(state.valid());
 
-  return make_async_future(std::move(event), std::move(state));
+  return detail::make_async_future(e, std::move(state));
 }
 
 

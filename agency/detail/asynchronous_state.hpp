@@ -1,9 +1,9 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/unit.hpp>
 #include <agency/memory/detail/unique_ptr.hpp>
 #include <agency/memory/allocator/detail/allocator_traits/is_allocator.hpp>
+#include <agency/memory/allocator/detail/empty_type_allocator.hpp>
 #include <agency/detail/tuple/tuple_utility.hpp>
 #include <type_traits>
 
@@ -11,24 +11,6 @@ namespace agency
 {
 namespace detail
 {
-
-
-struct unit_ptr : unit
-{
-  using element_type = unit;
-
-  __AGENCY_ANNOTATION
-  unit& operator*()
-  {
-    return *this;
-  }
-
-  __AGENCY_ANNOTATION
-  const unit& operator*() const
-  {
-    return *this;
-  }
-};
 
 
 template<class T>
@@ -60,6 +42,7 @@ class asynchronous_state
     static_assert(is_allocator<Allocator>::value, "Allocator is not an allocator.");
 
     using value_type = T;
+    using allocator_type = Allocator;
     using storage_type = unique_ptr<T,allocation_deleter<Allocator>>;
     using pointer = typename storage_type::pointer;
 
@@ -97,6 +80,12 @@ class asynchronous_state
     __AGENCY_ANNOTATION
     asynchronous_state(construct_not_ready_t, const Allocator& allocator)
       : asynchronous_state(construct_ready, allocator, T{})
+    {}
+
+    // constructs a not ready state
+    __AGENCY_ANNOTATION
+    asynchronous_state(construct_not_ready_t)
+      : asynchronous_state(construct_not_ready_t(), Allocator())
     {}
 
     asynchronous_state(asynchronous_state&& other) = default;
@@ -156,72 +145,6 @@ class asynchronous_state
 };
 
 
-// when a type is empty, we can create instances on the fly upon dereference
-template<class T>
-struct empty_type_ptr
-{
-  using element_type = T;
-  
-  empty_type_ptr() = default;
-  
-  empty_type_ptr(const empty_type_ptr&) = default;
-  
-  template<class U,
-           __AGENCY_REQUIRES(
-             std::is_constructible<T,U&&>::value
-           )>
-  __AGENCY_ANNOTATION
-  empty_type_ptr(U&& value)
-  {
-    // this evaluates T's copy constructor's effects, but nothing is stored
-    // because both T and empty_type_ptr are empty types
-    new (this) T(std::forward<U>(value));
-  }
-  
-  __AGENCY_ANNOTATION
-  T& operator*()
-  {
-    return *reinterpret_cast<T*>(this);
-  }
-  
-  __AGENCY_ANNOTATION
-  const T& operator*() const
-  {
-    return *reinterpret_cast<const T*>(this);
-  }
-  
-  // even though T is empty and there is nothing to swap,
-  // swap(T,T) may have effects, so call it
-  __AGENCY_ANNOTATION
-  void swap(empty_type_ptr& other)
-  {
-    detail::adl_swap(**this, *other);
-  }
-};
-
-template<>
-struct empty_type_ptr<void> : unit_ptr
-{
-  empty_type_ptr() = default;
-
-  empty_type_ptr(const empty_type_ptr&) = default;
-
-  // allow copy construction from empty_type_ptr<T>
-  // this is analogous to casting a T to void
-  template<class T>
-  __AGENCY_ANNOTATION
-  empty_type_ptr(const empty_type_ptr<T>&)
-    : empty_type_ptr()
-  {}
-
-  __AGENCY_ANNOTATION
-  void swap(empty_type_ptr&) const
-  {
-    // swapping a void has no effect
-  }
-};
-
-
 // zero storage optimization
 template<class T, class Allocator>
 class asynchronous_state<T,Allocator,true> : private empty_type_ptr<T>
@@ -233,7 +156,10 @@ class asynchronous_state<T,Allocator,true> : private empty_type_ptr<T>
     static_assert(is_allocator<Allocator>::value, "Allocator is not an allocator.");
 
     using value_type = T;
+    using allocator_type = empty_type_allocator<T>;
     using pointer = empty_type_ptr<T>;
+    // XXX if this was unique_ptr<T, allocation_deleter<empty_type_allocator<T>>>
+    //     we could probably eliminate this specialization of asynchronous_state
     using storage_type = void;
 
     // constructs an invalid state
@@ -261,11 +187,19 @@ class asynchronous_state<T,Allocator,true> : private empty_type_ptr<T>
     asynchronous_state(construct_ready_t, const OtherAllocator&) : super_t(), valid_(true) {}
 
     // constructs a not ready state
+    __AGENCY_ANNOTATION
+    asynchronous_state(construct_not_ready_t)
+      : super_t(), valid_(true)
+    {}
+
+    // constructs a not ready state
     // the allocator is ignored because this state requires no storage
     template<class OtherAllocator,
              __AGENCY_REQUIRES(std::is_constructible<Allocator,OtherAllocator>::value)>
     __AGENCY_ANNOTATION
-    asynchronous_state(construct_not_ready_t, const OtherAllocator&) : super_t(), valid_(true) {}
+    asynchronous_state(construct_not_ready_t, const OtherAllocator&)
+      : asynchronous_state(construct_not_ready_t())
+    {}
 
     __AGENCY_ANNOTATION
     asynchronous_state(asynchronous_state&& other) : super_t(std::move(other)), valid_(other.valid_)
