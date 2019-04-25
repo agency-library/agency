@@ -18,8 +18,6 @@ template<class Allocator, class Iterator1, class Iterator2>
 __AGENCY_ANNOTATION
 Iterator2 uninitialized_move_backward(Allocator& alloc, Iterator1 first, Iterator1 last, Iterator2 result)
 {
-  using value_type = typename std::iterator_traits<Iterator2>::value_type;
-
   // yes, we preincrement
   // the ranges are open on the right, i.e. [first, last)
   while(first != last)

@@ -84,8 +84,6 @@ template<class ExecutionPolicy, class Allocator, class Iterator, class Size, cla
 __AGENCY_ANNOTATION
 Iterator construct_n(ExecutionPolicy&&, Allocator& alloc, Iterator first, Size n, Iterators... iters)
 {
-  using value_type = typename std::iterator_traits<Iterator>::value_type;
-
   for(Size i = 0; i < n; ++i, ++first, construct_n_detail::swallow(++iters...))
   {
     detail::allocator_traits<Allocator>::construct(alloc, &*first, *iters...);
