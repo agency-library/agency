@@ -14,10 +14,28 @@ namespace point_size_detail
 
 template<class T, size_t N, class Enable = void> struct rebind_point_size_impl;
 
-template<template<class,size_t> class point, class T, size_t N, size_t M>
-struct rebind_point_size_impl<point<T,N>, M>
+template<template<class,size_t> class Point, class T, size_t N, size_t M>
+struct rebind_point_size_impl<Point<T,N>, M>
 {
-  using type = point<T,M>;
+  using type = Point<T,M>;
+};
+
+template<template<class,int> class Point, class T, int N, size_t M>
+struct rebind_point_size_impl<Point<T,N>, M>
+{
+  using type = Point<T,M>;
+};
+
+template<template<size_t,class> class Point, size_t N, class T, size_t M>
+struct rebind_point_size_impl<Point<N,T>, M>
+{
+  using type = Point<M,T>;
+};
+
+template<template<int,class> class Point, int N, class T, size_t M>
+struct rebind_point_size_impl<Point<N,T>, M>
+{
+  using type = Point<M,T>;
 };
 
 

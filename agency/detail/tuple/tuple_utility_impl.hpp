@@ -131,6 +131,25 @@ template<class T, std::size_t i>
 using __has_std_get_free_function = typename __has_std_get_free_function_impl<T,i>::type;
 
 
+template<class Reference>
+struct __has_operator_bracket_impl
+{
+  // XXX consider requiring that Result matches the expected result,
+  //     i.e. propagate_reference_t<Reference, std::tuple_element_t<i,T>>
+  template<class T = Reference,
+           class Result = decltype(std::declval<T>()[0])
+          >
+  static std::true_type test(int);
+
+  static std::false_type test(...);
+
+  using type = decltype(test(0));
+};
+
+template<class T>
+using __has_operator_bracket = typename __has_operator_bracket_impl<T>::type;
+
+
 template<class T>
 struct tuple_traits
 {
@@ -141,6 +160,7 @@ struct tuple_traits
   template<size_t i>
   using element_type = typename std::tuple_element<i,tuple_type>::type;
 
+  // these overloads of get use member t.template get<i>()
   template<size_t i,
            TUPLE_UTILITY_REQUIRES(
              __has_get_member_function<tuple_type&, i>::value
@@ -171,6 +191,8 @@ struct tuple_traits
     return std::move(t).template get<i>();
   }
 
+
+  // these overloads of get use std::get<i>(t)
   template<size_t i,
            TUPLE_UTILITY_REQUIRES(
              !__has_get_member_function<tuple_type&, i>::value and
@@ -202,6 +224,44 @@ struct tuple_traits
   static element_type<i>&& get(tuple_type&& t)
   {
     return std::get<i>(std::move(t));
+  }
+
+
+  // these overloads of get use t[i] (operator bracket)
+  template<size_t i,
+           TUPLE_UTILITY_REQUIRES(
+             !__has_get_member_function<tuple_type&, i>::value and
+             !__has_std_get_free_function<tuple_type&, i>::value and
+             __has_operator_bracket<tuple_type&>::value
+           )>
+  TUPLE_UTILITY_ANNOTATION
+  static element_type<i>& get(tuple_type& t)
+  {
+    return t[i];
+  }
+
+  template<size_t i,
+           TUPLE_UTILITY_REQUIRES(
+             !__has_get_member_function<tuple_type&, i>::value and
+             !__has_std_get_free_function<tuple_type&, i>::value and
+             __has_operator_bracket<tuple_type&>::value
+           )>
+  TUPLE_UTILITY_ANNOTATION
+  static const element_type<i>& get(const tuple_type& t)
+  {
+    return t[i];
+  }
+
+  template<size_t i,
+           TUPLE_UTILITY_REQUIRES(
+             !__has_get_member_function<tuple_type&, i>::value and
+             !__has_std_get_free_function<tuple_type&, i>::value and
+             __has_operator_bracket<tuple_type&>::value
+           )>
+  TUPLE_UTILITY_ANNOTATION
+  static element_type<i>&& get(tuple_type&& t)
+  {
+    return std::move(std::move(t)[i]);
   }
 };
 

@@ -79,5 +79,41 @@ class sequenced_execution_policy_2d : public basic_execution_policy<sequenced_ag
 constexpr sequenced_execution_policy_2d seq2d{};
 
 
+/// \brief The function template `seqnd` creates an n-dimensional sequenced
+///        execution policy that induces execution agents over the given domain.
+/// \ingroup execution_policies
+template<class Index>
+__AGENCY_ANNOTATION
+basic_execution_policy<
+  agency::detail::basic_execution_agent<agency::bulk_guarantee_t::sequenced_t,Index>,
+  agency::sequenced_executor
+>
+  seqnd(const agency::lattice<Index>& domain)
+{
+  using policy_type = agency::basic_execution_policy<
+    agency::detail::basic_execution_agent<agency::bulk_guarantee_t::sequenced_t,Index>,
+    agency::sequenced_executor
+  >;
+
+  typename policy_type::param_type param(domain);
+  return policy_type{param};
+}
+
+
+/// \brief The function template `seqnd` creates an n-dimensional sequenced
+///         execution policy that creates agent groups of the given shape.
+/// \ingroup execution_policies
+template<class Shape>
+__AGENCY_ANNOTATION
+basic_execution_policy<
+  agency::detail::basic_execution_agent<agency::bulk_guarantee_t::sequenced_t,Shape>,
+  agency::sequenced_executor
+>
+  seqnd(const Shape& shape)
+{
+  return agency::seqnd(agency::make_lattice(shape));
+}
+
+
 } // end agency
 

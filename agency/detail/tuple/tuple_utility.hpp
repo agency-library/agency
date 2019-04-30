@@ -42,7 +42,7 @@ template<size_t i, class Tuple, class T,
          )>
 __AGENCY_ANNOTATION
 auto get_if(Tuple&& t, T&&)
-  -> decltype(get<i>(std::forward<Tuple>(t)))
+  -> decltype(agency::get<i>(std::forward<Tuple>(t)))
 {
   return agency::get<i>(std::forward<Tuple>(t));
 }
@@ -94,15 +94,34 @@ T&& tuple_head_if(T&& t)
 }
 
 
+template<class Tuple>
+__AGENCY_ANNOTATION
+auto tuple_last(Tuple&& t)
+  -> decltype(
+       agency::get<
+         std::tuple_size<
+           typename std::decay<Tuple>::type
+         >::value - 1
+       >(std::forward<Tuple>(t))
+     )
+{
+  constexpr size_t N = std::tuple_size<
+    typename std::decay<Tuple>::type
+  >::value;
+
+  return agency::get<N - 1>(std::forward<Tuple>(t));
+}
+
+
 template<class T,
          class = typename std::enable_if<
            is_tuple<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
 auto tuple_last_if(T&& t) ->
-  decltype(__tu::tuple_last(std::forward<T>(t)))
+  decltype(agency::detail::tuple_last(std::forward<T>(t)))
 {
-  return __tu::tuple_last(std::forward<T>(t));
+  return agency::detail::tuple_last(std::forward<T>(t));
 }
 
 

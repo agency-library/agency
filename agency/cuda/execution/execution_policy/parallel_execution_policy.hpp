@@ -40,6 +40,36 @@ class parallel_execution_policy_2d : public basic_execution_policy<parallel_agen
 const parallel_execution_policy_2d par2d{};
 
 
+template<class Index>
+__AGENCY_ANNOTATION
+basic_execution_policy<
+  agency::detail::basic_execution_agent<agency::bulk_guarantee_t::parallel_t,Index>,
+  agency::cuda::parallel_executor
+>
+  parnd(const agency::lattice<Index>& domain)
+{
+  using policy_type = agency::basic_execution_policy<
+    agency::detail::basic_execution_agent<agency::bulk_guarantee_t::parallel_t,Index>,
+    agency::cuda::parallel_executor
+  >;
+
+  typename policy_type::param_type param(domain);
+  return policy_type{param};
+}
+
+
+template<class Shape>
+__AGENCY_ANNOTATION
+basic_execution_policy<
+  agency::detail::basic_execution_agent<agency::bulk_guarantee_t::parallel_t,Shape>,
+  agency::cuda::parallel_executor
+>
+  parnd(const Shape& shape)
+{
+  return cuda::parnd(agency::make_lattice(shape));
+}
+
+
 template<class ParallelPolicy,
          __AGENCY_REQUIRES(
            agency::detail::policy_is_parallel<ParallelPolicy>::value

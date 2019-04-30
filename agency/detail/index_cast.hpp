@@ -63,10 +63,10 @@ auto project_index_helper(const IndexTuple& idx, Size size_of_lowest_dimension)
   auto result_idx = detail::tuple_drop_last(idx);
 
   // multiply the new lowest dimension of the resulting index by the size of the lowest dimension
-  __tu::tuple_last(result_idx) *= size_of_lowest_dimension;
+  detail::tuple_last(result_idx) *= size_of_lowest_dimension;
 
   // and add in the old lowest dimension
-  __tu::tuple_last(result_idx) += __tu::tuple_last(idx);
+  detail::tuple_last(result_idx) += detail::tuple_last(idx);
 
   // to understand why the above works, consider the order of iterations of a nested for loop
   // for(int i = 0; i < m; ++i)
@@ -91,11 +91,11 @@ template<class IndexTuple, class ShapeTuple>
 __AGENCY_ANNOTATION
 auto project_index(const IndexTuple& idx, const ShapeTuple& shape)
   -> decltype(
-       project_index_helper(idx, __tu::tuple_last(detail::tuple_drop_last(shape)))
+       project_index_helper(idx, detail::tuple_last(detail::tuple_drop_last(shape)))
      )
 {
   // the size of the lowest dimension is simply the last element of shape
-  auto size_of_lowest_dimension = __tu::tuple_last(shape);
+  auto size_of_lowest_dimension = detail::tuple_last(shape);
 
   return detail::project_index_helper(idx, size_of_lowest_dimension);
 }
@@ -154,11 +154,11 @@ agency::tuple<lift_t<Index>, lift_t<FromShape>>
   auto idx_tuple = wrap_scalar(idx);
 
   auto intermediate_result = idx_tuple;
-  __tu::tuple_last(intermediate_result) %= agency::get<i>(to_shape);
+  detail::tuple_last(intermediate_result) %= agency::get<i>(to_shape);
 
   auto index_maker = index_cast_detail::make<lift_t<Index>>{};
 
-  auto lifted_index = __tu::tuple_append_invoke(intermediate_result, __tu::tuple_last(idx_tuple) / agency::get<i>(to_shape), index_maker);
+  auto lifted_index = __tu::tuple_append_invoke(intermediate_result, detail::tuple_last(idx_tuple) / agency::get<i>(to_shape), index_maker);
 
   // to lift from_shape, simply append the element of to_shape we just divided by
   auto shape_maker = index_cast_detail::make<lift_t<FromShape>>{};
