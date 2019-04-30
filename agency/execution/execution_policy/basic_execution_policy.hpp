@@ -300,7 +300,7 @@ class basic_execution_policy
       auto outer = agency::apply(*this, outer_args);
 
       // get the inner execution policy
-      auto inner = __tu::tuple_last(arg_tuple);
+      auto inner = detail::tuple_last(arg_tuple);
 
       // return the composition of the two policies
       return detail::scoped_execution_policy<derived_type,decltype(inner)>(outer, inner);
