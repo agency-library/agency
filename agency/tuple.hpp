@@ -616,11 +616,13 @@ std::ostream& operator<<(std::ostream& os, const tuple<Types...>& t)
 // either have
 //
 //   1. A .get<i>() member function or
-//   2. An overloaded std::get<i>() function
+//   2. An overloaded std::get<i>() function or
+//   3. operator[]
 template<std::size_t i, class Tuple,
          __AGENCY_REQUIRES(
            detail::tuple_detail::has_get_member_function<Tuple&&,i>::value or
-           detail::tuple_detail::has_std_get_free_function<Tuple&&,i>::value
+           detail::tuple_detail::has_std_get_free_function<Tuple&&,i>::value or
+           detail::tuple_detail::has_operator_bracket<Tuple&&>::value
         )>
 __AGENCY_ANNOTATION
 auto get(Tuple&& t) ->
