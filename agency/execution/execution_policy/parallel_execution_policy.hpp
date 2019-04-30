@@ -9,6 +9,7 @@
 #include <agency/execution/execution_agent.hpp>
 #include <agency/execution/execution_policy/basic_execution_policy.hpp>
 
+
 namespace agency
 {
 
@@ -73,6 +74,42 @@ class parallel_execution_policy_2d : public basic_execution_policy<parallel_agen
 /// \brief The global variable `par2d` is the default `parallel_execution_policy_2d`.
 /// \ingroup execution_policies
 const parallel_execution_policy_2d par2d{};
+
+
+/// \brief The function template `parnd` creates an n-dimensional parallel
+///        execution policy that induces execution agents over the given domain.
+/// \ingroup execution_policies
+template<class Index>
+__AGENCY_ANNOTATION
+basic_execution_policy<
+  agency::detail::basic_execution_agent<agency::bulk_guarantee_t::parallel_t,Index>,
+  agency::parallel_executor
+>
+  parnd(const agency::lattice<Index>& domain)
+{
+  using policy_type = agency::basic_execution_policy<
+    agency::detail::basic_execution_agent<agency::bulk_guarantee_t::parallel_t,Index>,
+    agency::parallel_executor
+  >;
+
+  typename policy_type::param_type param(domain);
+  return policy_type{param};
+}
+
+
+/// \brief The function template `parnd` creates an n-dimensional parallel
+///         execution policy that creates agent groups of the given shape.
+/// \ingroup execution_policies
+template<class Shape>
+__AGENCY_ANNOTATION
+basic_execution_policy<
+  agency::detail::basic_execution_agent<agency::bulk_guarantee_t::parallel_t,Shape>,
+  agency::parallel_executor
+>
+  parnd(const Shape& shape)
+{
+  return agency::parnd(agency::make_lattice(shape));
+}
 
 
 } // end agency

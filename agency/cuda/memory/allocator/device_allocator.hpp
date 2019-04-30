@@ -3,7 +3,9 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/cuda/memory/device_ptr.hpp>
-#include <agency/execution/execution_policy/basic_execution_policy.hpp>
+//#include <agency/execution/execution_policy/basic_execution_policy.hpp>
+//#include <agency/execution/execution_policy/parallel_execution_policy.hpp>
+#include <agency/cuda/execution/execution_policy/parallel_execution_policy.hpp>
 #include <agency/bulk_invoke.hpp>
 #include <agency/functional/invoke.hpp>
 #include <agency/cuda/device.hpp>
@@ -118,13 +120,13 @@ class device_allocator
     using const_reference = device_reference<const T>;
 
     __AGENCY_ANNOTATION
-    explicit device_allocator(const grid_executor& executor = grid_executor())
+    explicit device_allocator(const parallel_executor& executor = parallel_executor())
       : executor_(executor)
     {}
 
     __AGENCY_ANNOTATION
     explicit device_allocator(const device_id& device)
-      : device_allocator(grid_executor(device))
+      : device_allocator(parallel_executor(grid_executor(device)))
     {}
 
     __AGENCY_ANNOTATION
@@ -139,7 +141,7 @@ class device_allocator
     {}
 
     __AGENCY_ANNOTATION
-    const grid_executor& executor() const
+    const parallel_executor& executor() const
     {
       return executor_;
     }
@@ -148,8 +150,8 @@ class device_allocator
     pointer allocate(std::size_t n)
     {
 #ifndef __CUDA_ARCH__
-      // switch to our executor's device
-      scoped_device set_current_device(executor_.device());
+      // switch to our device
+      scoped_device set_current_device(device());
 #endif // __CUDA_ARCH__
 
       T* raw_ptr = nullptr;
@@ -168,8 +170,8 @@ class device_allocator
     void deallocate(pointer ptr, std::size_t)
     {
 #ifndef __CUDA_ARCH__
-      // switch to our executor's device
-      scoped_device set_current_device(executor_.device());
+      // switch to our device
+      scoped_device set_current_device(device());
 #endif // __CUDA_ARCH__
 
       // deallocate
@@ -230,7 +232,7 @@ class device_allocator
 
           // when called from the host, bulk_invoke constructors on the device using our execution policy
           agency::bulk_invoke(
-            self.execution_policy(shape),
+            cuda::parnd(shape).on(self.executor()),
             detail::device_allocator_detail::bulk_construct_functor{},
             self,
             array,
@@ -305,7 +307,7 @@ class device_allocator
 
           // when called from the host, bulk_invoke destructors on the device using our execution policy
           agency::bulk_invoke(
-            self.execution_policy(shape),
+            cuda::parnd(shape).on(self.executor()),
             detail::device_allocator_detail::bulk_destroy_functor{},
             self,
             array
@@ -343,22 +345,13 @@ class device_allocator
     }
 
   private:
-    // XXX this sort of function should go in agency, but it's not immediately clear what the parameters should be
-    template<class Shape>
     __AGENCY_ANNOTATION
-    agency::basic_execution_policy<
-      agency::detail::basic_execution_agent<agency::bulk_guarantee_t::parallel_t, Shape>,
-      agency::cuda::parallel_executor
-    >
-      execution_policy(Shape shape) const
+    device_id device() const
     {
-      // create a policy on the fly with the appropriate shape and executor
-      using agent_type = agency::detail::basic_execution_agent<agency::bulk_guarantee_t::parallel_t, Shape>;
-      typename agent_type::param_type param(shape); 
-      return agency::basic_execution_policy<agent_type, agency::cuda::parallel_executor>(param, agency::cuda::parallel_executor(executor_));
+      return executor_.base_executor().device();
     }
 
-    grid_executor executor_;
+    parallel_executor executor_;
 };
 
 
