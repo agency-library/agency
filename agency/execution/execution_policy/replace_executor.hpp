@@ -39,6 +39,7 @@ struct replace_executor_t
              !has_replace_executor_member<decay_t<P>,decay_t<E>>::value and
              has_replace_executor_free_function<decay_t<P>,decay_t<E>>::value
            )>
+  __AGENCY_ANNOTATION
   constexpr detail::replace_executor_free_function_t<decay_t<P>,decay_t<E>>
     operator()(P&& policy, E&& ex) const
   {
