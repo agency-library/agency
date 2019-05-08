@@ -24,10 +24,10 @@ class scoped_device
 {
   public:
     __host__ __device__
-    scoped_device(const device_id& new_device);
+    inline scoped_device(const device_id& new_device);
 
     __host__ __device__
-    ~scoped_device();
+    inline ~scoped_device();
 
   private:
     int old_device;
