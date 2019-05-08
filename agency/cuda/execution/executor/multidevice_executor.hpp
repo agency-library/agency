@@ -34,7 +34,7 @@ std::vector<grid_executor> devices_to_grid_executors(const Range& devices)
 }
 
 
-std::vector<grid_executor> all_devices_as_grid_executors()
+inline std::vector<grid_executor> all_devices_as_grid_executors()
 {
   return detail::devices_to_grid_executors(all_devices());
 }
