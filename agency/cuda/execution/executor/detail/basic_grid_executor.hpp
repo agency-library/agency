@@ -381,7 +381,6 @@ class basic_grid_executor
       async_future<T>& async_predecessor = underlying_predecessor.template get<async_future<T>>();
 
       // implement with lower-level kernel launch functionality
-      using result_type = agency::detail::result_of_t<ResultFactory()>;
       return launch_kernel_and_leave_predecessor_valid(OuterBulkGuarantee(), device(), closure, grid_dim, agency::get<1>(shape), async_predecessor, result_factory, outer_factory, inner_factory);
     }
 
