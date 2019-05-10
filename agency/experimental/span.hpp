@@ -165,6 +165,8 @@ class basic_span : private detail::basic_span_base<Extent>
     __AGENCY_ANNOTATION
     basic_span<element_type, dynamic_extent> subspan(index_type offset, index_type count = dynamic_extent) const
     {
+      if(count == dynamic_extent) count = size() - offset;
+
       return basic_span<element_type, dynamic_extent>(data() + offset, count);
     }
 
@@ -244,9 +246,11 @@ class span
     __AGENCY_ANNOTATION
     span<element_type, dynamic_extent> subspan(index_type offset, index_type count = dynamic_extent) const
     {
-      // define a separate function instead of a using super_t::subspan
+      // define a separate function instead of using super_t::subspan
       // so that we can return span instead of basic_span,
       // which is the result of super_t::subspan()
+      if(count == dynamic_extent) count = size() - offset;
+
       return span<element_type, dynamic_extent>(data() + offset, count);
     }
 };
