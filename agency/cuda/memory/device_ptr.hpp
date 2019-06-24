@@ -84,7 +84,7 @@ class device_accessor
     }
 
     __AGENCY_ANNOTATION
-    bool operator!=(const device_accessor& other) const noexcept
+    bool operator!=(const device_accessor&) const noexcept
     {
       return false;
     }

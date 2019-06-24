@@ -28,7 +28,7 @@ namespace detail
 // XXX this should flatten to parallel_t only if neither OuterGuarantee nor InnerGuarantee are unsequenced
 template<class OuterGuarantee, class InnerGuarantee>
 __AGENCY_ANNOTATION
-constexpr bulk_guarantee_t::parallel_t flatten_bulk_guarantee(bulk_guarantee_t::scoped_t<OuterGuarantee, InnerGuarantee> guarantee)
+constexpr bulk_guarantee_t::parallel_t flatten_bulk_guarantee(bulk_guarantee_t::scoped_t<OuterGuarantee, InnerGuarantee>)
 {
   return bulk_guarantee_t::parallel_t{};
 }

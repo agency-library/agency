@@ -544,7 +544,7 @@ class executor_array
 
     __AGENCY_ANNOTATION
     constexpr static bulk_guarantee_t::scoped_t<outer_bulk_guarantee, inner_bulk_guarantee>
-      query(const bulk_guarantee_t& p)
+      query(const bulk_guarantee_t&)
     {
       return bulk_guarantee_t::scoped(outer_bulk_guarantee{}, inner_bulk_guarantee{});
     }
