@@ -76,7 +76,8 @@ struct execute_agent_functor
     auto agent_shared_args = detail::tuple_drop_view<sizeof...(UserArgIndices)>(args_tuple);
 
     // turn the executor index into an agent index
-    auto agent_idx = detail::index_cast<agent_index_type>(executor_idx, executor_shape_, agent_shape_);
+    // XXX ideally, bulk_invoke et al should require() an executor which produces the right type of indices over the right domain
+    auto agent_idx = AgentTraits::domain(agent_param_).min() + detail::index_cast<agent_index_type>(executor_idx, executor_shape_, agent_shape_);
 
     // AgentTraits::execute expects a function whose only parameter is agent_type
     // so we have to wrap f_ into a function of one parameter
