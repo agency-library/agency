@@ -233,8 +233,6 @@ void test(Executors... execs)
   static_assert(detail::is_bulk_twoway_executor<executor_type>::value, "variant_executor is not a bulk twoway executor");
   static_assert(detail::is_bulk_then_executor<executor_type>::value, "variant_executor is not a bulk then executor");
 
-  std::tuple<Executors...> executor_tuple(execs...);
-
   // test with each type of alternative executor
   swallow(test_alternative<executor_type>(execs)...);
 }
