@@ -53,7 +53,7 @@ struct has_associated_executor_member_impl
           >
   static std::true_type test(int);
 
-  template<class, class>
+  template<class>
   static std::false_type test(...);
 
   using type = decltype(test<T>(0));
