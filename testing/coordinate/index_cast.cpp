@@ -4,64 +4,186 @@
 
 void test()
 {
-  using namespace agency;
-
-  std::default_random_engine rng(13);
-
   {
-    int shape0 = rng() % 10;
+    // 1D -> 2D
+    
+    agency::uint2 to_shape{8,2};
+    unsigned int from_shape = 16;
 
-    int reference_rank = 0; 
-    for(int i = 0; i < shape0; ++i)
+    size_t reference_rank = 0;
+    for(unsigned int from_idx = 0; from_idx < from_shape; ++from_idx)
     {
-      int index = i;
-      int shape = shape0;
+      agency::uint2 to_idx = agency::detail::index_cast<agency::uint2>(from_idx, from_shape, to_shape);
+      size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
 
-      int rank = agency::detail::index_cast<int>(index, shape, shape);
-
-      assert(rank == reference_rank);
+      assert(reference_rank == rank);
       ++reference_rank;
     }
   }
 
   {
-    int shape0 = rng() % 10;
-    int shape1 = rng() % 10;
+    // 2D -> 1D
 
-    int reference_rank = 0; 
-    for(int i = 0; i < shape0; ++i)
+    unsigned int to_shape{16};
+    agency::uint2 from_shape{2,8};
+
+    size_t reference_rank = 0;
+    for(unsigned int i = 0; i < from_shape[0]; ++i)
     {
-      for(int j = 0; j < shape1; ++j)
+      for(unsigned int j = 0; j < from_shape[1]; ++j)
       {
-        int2 index{i,j};
-        int2 shape{shape0,shape1};
+        agency::uint2 from_idx{i,j};
 
-        int rank = agency::detail::index_cast<int>(index, shape, shape[0] * shape[1]);
+        unsigned int to_idx = agency::detail::index_cast<unsigned int>(from_idx, from_shape, to_shape);
+        size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
 
-        assert(rank == reference_rank);
+        assert(reference_rank == rank);
+        ++reference_rank;
+      }
+    }
+  }
+
+
+  {
+    // 2D -> 3D
+
+    using namespace agency;
+    uint2 from_shape{4,2};
+    uint3 to_shape{4,1,2};
+
+    size_t reference_rank = 0;
+    for(unsigned int i = 0; i < from_shape[0]; ++i)
+    {
+      for(unsigned int j = 0; j < from_shape[1]; ++j)
+      {
+        agency::uint2 from_idx{i,j};
+
+        agency::uint3 to_idx = agency::detail::index_cast<agency::uint3>(from_idx, from_shape, to_shape);
+        size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+
+        assert(reference_rank == rank);
+        ++reference_rank;
+      }
+    }
+  }
+
+
+  {
+    // 3D -> 2D
+
+    using namespace agency;
+    uint2 to_shape{2,4};
+    uint3 from_shape{2,4,1};
+
+    size_t reference_rank = 0;
+    for(unsigned int i = 0; i < from_shape[0]; ++i)
+    {
+      for(unsigned int j = 0; j < from_shape[1]; ++j)
+      {
+        for(unsigned int k = 0; k < from_shape[2]; ++k)
+        {
+          agency::uint3 from_idx{i,j,k};
+
+          agency::uint2 to_idx = agency::detail::index_cast<agency::uint2>(from_idx, from_shape, to_shape);
+          size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+
+          assert(reference_rank == rank);
+          ++reference_rank;
+        }
+      }
+    }
+  }
+
+
+  {
+    // 3D -> 1D (with random inputs)
+    using namespace agency;
+    std::default_random_engine rng;
+
+    uint3 from_shape(rng()%10, rng()%10, rng()%10);
+    unsigned int to_shape = from_shape[0] * from_shape[1] * from_shape[2];
+
+    size_t reference_rank = 0; 
+    for(unsigned int i = 0; i < from_shape[0]; ++i)
+    {
+      for(unsigned int j = 0; j < from_shape[1]; ++j)
+      {
+        for(unsigned int k = 0; k < from_shape[2]; ++k)
+        {
+          uint3 from_idx{i,j,k};
+          unsigned int to_idx = agency::detail::index_cast<unsigned int>(from_idx, from_shape, to_shape);
+          size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+
+          assert(reference_rank == rank);
+          ++reference_rank;
+        }
+      }
+    }
+  }
+
+
+  {
+    // 1D -> 1D
+    std::default_random_engine rng;
+
+    unsigned int from_shape = rng() % 10; 
+    int to_shape = from_shape;
+
+    size_t reference_rank = 0; 
+    for(unsigned int from_idx = 0; from_idx < from_shape; ++from_idx)
+    {
+      int to_idx = agency::detail::index_cast<int>(from_idx, from_shape, to_shape);
+      size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+
+      assert(reference_rank == rank);
+      ++reference_rank;
+    }
+  }
+
+
+  {
+    // 2D -> 1D
+    std::default_random_engine rng;
+
+    agency::int2 from_shape(rng() % 10, rng() % 10);
+    int to_shape = from_shape[0] * from_shape[1];
+
+    size_t reference_rank = 0; 
+    for(int i = 0; i < from_shape[0]; ++i)
+    {
+      for(int j = 0; j < from_shape[1]; ++j)
+      {
+        agency::int2 from_idx{i,j};
+
+        int to_idx = agency::detail::index_cast<int>(from_idx, from_shape, to_shape);
+        size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+
+        assert(reference_rank == rank);
         ++reference_rank;
       }
     }
   }
 
   {
-    int shape0 = rng() % 10;
-    int shape1 = rng() % 10;
-    int shape2 = rng() % 10;
+    // 3D -> 1D
+    std::default_random_engine rng;
 
-    int reference_rank = 0; 
-    for(int i = 0; i < shape0; ++i)
+    agency::int3 from_shape(rng() % 10, rng() % 10, rng() % 10);
+    int to_shape = from_shape[0] * from_shape[1] * from_shape[2];
+
+    size_t reference_rank = 0; 
+    for(int i = 0; i < from_shape[0]; ++i)
     {
-      for(int j = 0; j < shape1; ++j)
+      for(int j = 0; j < from_shape[1]; ++j)
       {
-        for(int k = 0; k < shape2; ++k)
+        for(int k = 0; k < from_shape[2]; ++k)
         {
-          int3 index{i,j,k};
-          int3 shape{shape0,shape1,shape2};
+          agency::int3 from_idx{i,j,k};
 
-          int rank = agency::detail::index_cast<int>(index, shape, shape[0] * shape[1] * shape[2]);
+          int to_idx = agency::detail::index_cast<int>(from_idx, from_shape, to_shape);
+          size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
 
-          assert(rank == reference_rank);
+          assert(reference_rank == rank);
           ++reference_rank;
         }
       }
@@ -69,26 +191,27 @@ void test()
   }
 
   {
-    int shape0 = rng() % 10;
-    int shape1 = rng() % 10;
-    int shape2 = rng() % 10;
-    int shape3 = rng() % 10;
+    // 4D -> 1D
+    std::default_random_engine rng;
 
-    int reference_rank = 0; 
-    for(int i = 0; i < shape0; ++i)
+    agency::int4 from_shape(rng() % 10, rng() % 10, rng() % 10, rng() % 10);
+    int to_shape = from_shape[0] * from_shape[1] * from_shape[2] * from_shape[3];
+
+    size_t reference_rank = 0; 
+    for(int i = 0; i < from_shape[0]; ++i)
     {
-      for(int j = 0; j < shape1; ++j)
+      for(int j = 0; j < from_shape[1]; ++j)
       {
-        for(int k = 0; k < shape2; ++k)
+        for(int k = 0; k < from_shape[2]; ++k)
         {
-          for(int l = 0; l < shape3; ++l)
+          for(int l = 0; l < from_shape[3]; ++l)
           {
-            int4 index{i,j,k,l};
-            int4 shape{shape0,shape1,shape2,shape3};
+            agency::int4 from_idx{i,j,k,l};
 
-            int rank = agency::detail::index_cast<int>(index, shape, shape[0] * shape[1] * shape[2] * shape[3]);
+            int to_idx = agency::detail::index_cast<int>(from_idx, from_shape, to_shape);
+            size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
 
-            assert(rank == reference_rank);
+            assert(reference_rank == rank);
             ++reference_rank;
           }
         }
