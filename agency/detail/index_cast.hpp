@@ -2,6 +2,8 @@
 
 #include <type_traits>
 #include <tuple>
+#include <agency/detail/config.hpp>
+#include <agency/detail/requires.hpp>
 #include <agency/tuple.hpp>
 #include <agency/detail/shape_cast.hpp>
 #include <agency/coordinate.hpp>
@@ -50,54 +52,73 @@ auto wrap_scalar(T&& x)
 }
 
 
-template<class IndexTuple, class Size>
+template<int Dimension, class IndexTuple, class ShapeTuple, class Size,
+         __AGENCY_REQUIRES(
+           Dimension == 0
+         )>
 __AGENCY_ANNOTATION
-auto project_index_helper(const IndexTuple& idx, Size size_of_lowest_dimension)
-  -> typename std::decay<
-       decltype(
-         unwrap_single_element_tuple(detail::tuple_drop_last(idx))
-       )
-     >::type
+void increment_index(IndexTuple& idx, const ShapeTuple&, Size sz)
 {
-  // drop the lowest dimension of the index to initialize the result
-  auto result_idx = detail::tuple_drop_last(idx);
-
-  // multiply the new lowest dimension of the resulting index by the size of the lowest dimension
-  detail::tuple_last(result_idx) *= size_of_lowest_dimension;
-
-  // and add in the old lowest dimension
-  detail::tuple_last(result_idx) += detail::tuple_last(idx);
-
-  // to understand why the above works, consider the order of iterations of a nested for loop
-  // for(int i = 0; i < m; ++i)
-  // {
-  //   for(int j = 0; j < n; ++j)
-  //   {
-  //     // to project (i, j) into 1D:
-  //     // multiply the new lowest dimension (i) by the size of the lowest dimension (n)
-  //     // and add in the old lowest dimension (j)
-  //     int rank = i * n + j;
-  //
-  //     // m isn't used at all
-  //     // only the size of the lowest dimension is used
-  //   }
-  // }
-
-  return unwrap_single_element_tuple(result_idx);
+  agency::get<Dimension>(idx) += sz;
 }
 
 
+template<int Dimension, class IndexTuple, class ShapeTuple, class Size,
+         __AGENCY_REQUIRES(
+           Dimension > 0
+         )>
+__AGENCY_ANNOTATION
+void increment_index(IndexTuple& idx, const ShapeTuple& shape, Size sz)
+{
+  Size size_of_current_dimension = agency::get<Dimension>(shape);
+
+  while(agency::get<Dimension>(idx) + sz >= size_of_current_dimension)
+  {
+    // handle a carry: increment the dimension to the left
+    increment_index<Dimension-1>(idx, shape, 1);
+
+    // decrement by the size of the current dimension
+    sz -= size_of_current_dimension;
+  }
+
+  agency::get<Dimension>(idx) += sz;
+}
+
+
+// project_index drops the highest dimension from idx & shape
+// while preserving the number of points in the lower-dimensional shape
+// and also preserving the rank of the index within the index space
 template<class IndexTuple, class ShapeTuple>
 __AGENCY_ANNOTATION
 auto project_index(const IndexTuple& idx, const ShapeTuple& shape)
-  -> decltype(
-       project_index_helper(idx, detail::tuple_last(detail::tuple_drop_last(shape)))
-     )
+  -> typename std::decay<
+       decltype(
+         detail::unwrap_single_element_tuple(detail::tuple_drop_last(idx))
+    )>::type
 {
-  // the size of the lowest dimension is simply the last element of shape
-  auto size_of_lowest_dimension = detail::tuple_last(shape);
+  // find the size of the dimension we'll be dropping
+  auto size_of_last_dimension = detail::index_space_size(detail::tuple_last(shape));
 
-  return detail::project_index_helper(idx, size_of_lowest_dimension);
+  // lower the dimension of the shape
+  auto lower_dimensional_shape = detail::project_shape(shape);
+
+  // drop the last dimension of the index
+  auto lower_dimensional_idx = detail::tuple_drop_last(idx);
+
+  // we will increment the lower dimensional index by the amount we dropped
+  auto remainder = detail::tuple_last(idx);
+
+  // count the number of dimensions in the result
+  constexpr size_t num_dimensions = std::tuple_size<decltype(lower_dimensional_idx)>::value;
+
+  // multiply the last dimension in the output by the size of the dimension we dropped from the input
+  detail::tuple_last(lower_dimensional_idx) *= size_of_last_dimension;
+
+  // increment the output by the remainder
+  detail::increment_index<num_dimensions - 1>(lower_dimensional_idx, lower_dimensional_shape, remainder);
+
+  // if we resulted in a single-element tuple, then unwrap it before returning
+  return detail::unwrap_single_element_tuple(lower_dimensional_idx);
 }
 
 
@@ -113,12 +134,11 @@ struct lift_t_impl
 };
 
 
-// to lift a heterogeneous Tuple-like type, repeat the type of the last element
+// to lift a heterogeneous Tuple-like type, prepend the type of the first element
 template<template<class...> class tuple, class T, class... Types>
 struct lift_t_impl<tuple<T,Types...>>
 {
-  using last_type = typename std::tuple_element<sizeof...(Types)-1, std::tuple<Types...>>::type;
-  using type = tuple<T,Types...,last_type>;
+  using type = tuple<T,T,Types...>;
 };
 
 
@@ -146,23 +166,23 @@ __AGENCY_ANNOTATION
 agency::tuple<lift_t<Index>, lift_t<FromShape>>
   lift_index(const Index& idx, const FromShape& from_shape, const ToShape& to_shape)
 {
-  // to lift idx into to_shape,
-  // take the last element of idx and divide by the corresponding element of to_shape
-  // replace the last element of idx with the remainder and append the quotient
-  const auto i = index_size<Index>::value - 1;
-
+  // ensure that the input is a tuple so that we can use agency::get
   auto idx_tuple = wrap_scalar(idx);
 
   auto intermediate_result = idx_tuple;
-  detail::tuple_last(intermediate_result) %= agency::get<i>(to_shape);
+
+  // mod the leading dimension of the input by the corresponding dimension in the target index space
+  constexpr size_t corresponding_dim_in_to_shape = std::tuple_size<ToShape>::value - std::tuple_size<decltype(intermediate_result)>::value;
+
+  agency::get<0>(intermediate_result) %= agency::get<corresponding_dim_in_to_shape>(to_shape);
 
   auto index_maker = index_cast_detail::make<lift_t<Index>>{};
 
-  auto lifted_index = __tu::tuple_append_invoke(intermediate_result, detail::tuple_last(idx_tuple) / agency::get<i>(to_shape), index_maker);
+  auto lifted_index = __tu::tuple_prepend_invoke(intermediate_result, agency::get<0>(idx_tuple) / agency::get<corresponding_dim_in_to_shape>(to_shape), index_maker);
 
   // to lift from_shape, simply append the element of to_shape we just divided by
   auto shape_maker = index_cast_detail::make<lift_t<FromShape>>{};
-  auto lifted_shape = __tu::tuple_append_invoke(wrap_scalar(from_shape), agency::get<i>(to_shape), shape_maker);
+  auto lifted_shape = __tu::tuple_prepend_invoke(wrap_scalar(from_shape), agency::get<corresponding_dim_in_to_shape>(to_shape), shape_maker);
 
   return agency::make_tuple(lifted_index, lifted_shape);
 }
@@ -298,6 +318,13 @@ typename std::enable_if<
 {
   return index_cast<ToIndex>(detail::project_index(from_idx, from_shape), detail::project_shape(from_shape), to_shape);
 }
+
+
+// XXX this code is too confusing -- the stuff involved in lifting & projecting from/to arbitrary dimensions seems to be the problem
+//     it seems like a simpler algorithm for index_cast would go something like the following:
+//
+//     1. find the lexicographic rank of from_idx in from_shape
+//     2. return the index with corresponding lexicographic rank in to_shape
 
                      
 } // end detail
