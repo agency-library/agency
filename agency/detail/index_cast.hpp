@@ -323,8 +323,8 @@ typename std::enable_if<
 // XXX this code is too confusing -- the stuff involved in lifting & projecting from/to arbitrary dimensions seems to be the problem
 //     it seems like a simpler algorithm for index_cast would go something like the following:
 //
-//     1. find the colexicographic rank of from_idx in from_shape
-//     2. return the index with corresponding colexicographic rank in to_shape
+//     1. find the lexicographic rank of from_idx in from_shape
+//     2. return the index with corresponding lexicographic rank in to_shape
 
                      
 } // end detail
