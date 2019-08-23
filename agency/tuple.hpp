@@ -845,6 +845,33 @@ auto apply(F&& f, Tuple&& t)
 }
 
 
+namespace detail
+{
+
+
+template<class T>
+struct invoke_constructor
+{
+  template<class... Args>
+  __AGENCY_ANNOTATION
+  T operator()(Args&&... args) const
+  {
+    return T(std::forward<Args>(args)...);
+  }
+};
+
+
+} // end detail
+
+
+template<class T, class Tuple>
+__AGENCY_ANNOTATION
+T make_from_tuple(Tuple&& t)
+{
+  return agency::apply(detail::invoke_constructor<T>{}, std::forward<Tuple>(t));
+}
+
+
 } // end agency
 
 
