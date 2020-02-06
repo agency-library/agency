@@ -272,6 +272,32 @@ struct tuple_traits
 };
 
 
+template<class T>
+struct is_tuple_like
+{
+  // XXX this should also check for the existence of std::tuple_element<T,I>::type
+  //     for all of T's elements
+  template<class U = T,
+           std::size_t = std::tuple_size<U>::value
+          >
+  static constexpr bool test(int)
+  {
+    return true;
+  }
+
+  template<class>
+  static constexpr bool test(...)
+  {
+    return false;
+  }
+
+  static constexpr bool value = test<T>(0);
+};
+
+
+static_assert(is_tuple_like<std::tuple<int,int>>::value, "std::tuple should be tuple-like.");
+
+
 namespace detail
 {
 
