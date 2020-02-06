@@ -55,6 +55,9 @@ namespace TUPLE_UTILITY_NAMESPACE
 #  define TUPLE_UTILITY_NAMESPACE_NEEDS_UNDEF
 #endif // TUPLE_UTILITY_NAMESPACE
 
+namespace detail
+{
+
 
 template<class T>
 using __decay_t = typename std::decay<T>::type;
@@ -150,6 +153,9 @@ template<class T>
 using __has_operator_bracket = typename __has_operator_bracket_impl<T>::type;
 
 
+} // end detail
+
+
 template<class T>
 struct tuple_traits
 {
@@ -163,7 +169,7 @@ struct tuple_traits
   // these overloads of get use member t.template get<i>()
   template<size_t i,
            TUPLE_UTILITY_REQUIRES(
-             __has_get_member_function<tuple_type&, i>::value
+             detail::__has_get_member_function<tuple_type&, i>::value
            )>
   TUPLE_UTILITY_ANNOTATION
   static element_type<i>& get(tuple_type& t)
@@ -173,7 +179,7 @@ struct tuple_traits
 
   template<size_t i,
            TUPLE_UTILITY_REQUIRES(
-             __has_get_member_function<const tuple_type&, i>::value
+             detail::__has_get_member_function<const tuple_type&, i>::value
            )>
   TUPLE_UTILITY_ANNOTATION
   static const element_type<i>& get(const tuple_type& t)
@@ -183,7 +189,7 @@ struct tuple_traits
 
   template<size_t i,
            TUPLE_UTILITY_REQUIRES(
-             __has_get_member_function<tuple_type&&, i>::value
+             detail::__has_get_member_function<tuple_type&&, i>::value
            )>
   TUPLE_UTILITY_ANNOTATION
   static element_type<i>&& get(tuple_type&& t)
@@ -195,8 +201,8 @@ struct tuple_traits
   // these overloads of get use std::get<i>(t)
   template<size_t i,
            TUPLE_UTILITY_REQUIRES(
-             !__has_get_member_function<tuple_type&, i>::value and
-             __has_std_get_free_function<tuple_type&, i>::value
+             !detail::__has_get_member_function<tuple_type&, i>::value and
+             detail::__has_std_get_free_function<tuple_type&, i>::value
            )>
   TUPLE_UTILITY_ANNOTATION
   static element_type<i>& get(tuple_type& t)
@@ -206,8 +212,8 @@ struct tuple_traits
 
   template<size_t i,
            TUPLE_UTILITY_REQUIRES(
-             !__has_get_member_function<const tuple_type&, i>::value and
-             __has_std_get_free_function<const tuple_type&, i>::value
+             !detail::__has_get_member_function<const tuple_type&, i>::value and
+             detail::__has_std_get_free_function<const tuple_type&, i>::value
            )>
   TUPLE_UTILITY_ANNOTATION
   static const element_type<i>& get(const tuple_type& t)
@@ -217,8 +223,8 @@ struct tuple_traits
 
   template<size_t i,
            TUPLE_UTILITY_REQUIRES(
-             !__has_get_member_function<tuple_type&&, i>::value and
-             __has_std_get_free_function<tuple_type&&, i>::value
+             !detail::__has_get_member_function<tuple_type&&, i>::value and
+             detail::__has_std_get_free_function<tuple_type&&, i>::value
            )>
   TUPLE_UTILITY_ANNOTATION
   static element_type<i>&& get(tuple_type&& t)
@@ -230,9 +236,9 @@ struct tuple_traits
   // these overloads of get use t[i] (operator bracket)
   template<size_t i,
            TUPLE_UTILITY_REQUIRES(
-             !__has_get_member_function<tuple_type&, i>::value and
-             !__has_std_get_free_function<tuple_type&, i>::value and
-             __has_operator_bracket<tuple_type&>::value
+             !detail::__has_get_member_function<tuple_type&, i>::value and
+             !detail::__has_std_get_free_function<tuple_type&, i>::value and
+             detail::__has_operator_bracket<tuple_type&>::value
            )>
   TUPLE_UTILITY_ANNOTATION
   static element_type<i>& get(tuple_type& t)
@@ -242,9 +248,9 @@ struct tuple_traits
 
   template<size_t i,
            TUPLE_UTILITY_REQUIRES(
-             !__has_get_member_function<tuple_type&, i>::value and
-             !__has_std_get_free_function<tuple_type&, i>::value and
-             __has_operator_bracket<tuple_type&>::value
+             !detail::__has_get_member_function<tuple_type&, i>::value and
+             !detail::__has_std_get_free_function<tuple_type&, i>::value and
+             detail::__has_operator_bracket<tuple_type&>::value
            )>
   TUPLE_UTILITY_ANNOTATION
   static const element_type<i>& get(const tuple_type& t)
@@ -254,9 +260,9 @@ struct tuple_traits
 
   template<size_t i,
            TUPLE_UTILITY_REQUIRES(
-             !__has_get_member_function<tuple_type&, i>::value and
-             !__has_std_get_free_function<tuple_type&, i>::value and
-             __has_operator_bracket<tuple_type&>::value
+             !detail::__has_get_member_function<tuple_type&, i>::value and
+             !detail::__has_std_get_free_function<tuple_type&, i>::value and
+             detail::__has_operator_bracket<tuple_type&>::value
            )>
   TUPLE_UTILITY_ANNOTATION
   static element_type<i>&& get(tuple_type&& t)
@@ -264,6 +270,10 @@ struct tuple_traits
     return std::move(std::move(t)[i]);
   }
 };
+
+
+namespace detail
+{
 
 
 template<size_t i, class Tuple>
@@ -277,15 +287,22 @@ auto __get(Tuple&& t)
 }
 
 
+} // end detail
+
+
 template<class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_head(Tuple&& t)
   -> decltype(
-       __get<0>(std::forward<Tuple>(t))
+       detail::__get<0>(std::forward<Tuple>(t))
      )
 {
-  return __get<0>(std::forward<Tuple>(t));
+  return detail::__get<0>(std::forward<Tuple>(t));
 }
+
+
+namespace detail
+{
 
 
 template<class Tuple, class Function, size_t... I>
@@ -301,14 +318,17 @@ auto __tuple_tail_invoke_impl(Tuple&& t, Function f, __index_sequence<I...>)
 }
 
 
+} // end detail
+
+
 template<class Tuple, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_tail_invoke(Tuple&& t, Function f)
   -> decltype(
-       __tuple_tail_invoke_impl(
+       detail::__tuple_tail_invoke_impl(
          std::forward<Tuple>(t),
          f,
-         __make_index_sequence<
+         detail::__make_index_sequence<
            std::tuple_size<
              typename std::decay<Tuple>::type
            >::value - 1
@@ -319,13 +339,17 @@ auto tuple_tail_invoke(Tuple&& t, Function f)
   return __tuple_tail_invoke_impl(
     std::forward<Tuple>(t),
     f,
-    __make_index_sequence<
+    detail::__make_index_sequence<
       std::tuple_size<
         typename std::decay<Tuple>::type
       >::value - 1
     >()
   );
 }
+
+
+namespace detail
+{
 
 
 template<class Tuple, class Function, size_t... I>
@@ -341,14 +365,17 @@ auto __tuple_prefix_invoke_impl(Tuple&& t, Function f, __index_sequence<I...>)
 }
 
 
+} // end detail
+
+
 template<class Tuple, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_prefix_invoke(Tuple&& t, Function f)
   -> decltype(
-       __tuple_prefix_invoke_impl(
+       detail::__tuple_prefix_invoke_impl(
          std::forward<Tuple>(t),
          f,
-         __make_index_sequence<
+         detail::__make_index_sequence<
            std::tuple_size<
              typename std::decay<Tuple>::type
            >::value - 1
@@ -356,16 +383,20 @@ auto tuple_prefix_invoke(Tuple&& t, Function f)
        )
      )
 {
-  return __tuple_prefix_invoke_impl(
+  return detail::__tuple_prefix_invoke_impl(
     std::forward<Tuple>(t),
     f,
-    __make_index_sequence<
+    detail::__make_index_sequence<
       std::tuple_size<
         typename std::decay<Tuple>::type
       >::value - 1
     >()
   );
 }
+
+
+namespace detail
+{
 
 
 struct __tuple_forwarder
@@ -382,16 +413,23 @@ struct __tuple_forwarder
 };
 
 
+} // end detail
+
+
 // forward_tuple_tail() returns t's tail as a tuple of references
 template<class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto forward_tuple_tail(typename std::remove_reference<Tuple>::type& t)
   -> decltype(
-       tuple_tail_invoke(std::forward<Tuple>(t), __tuple_forwarder{})
+       tuple_tail_invoke(std::forward<Tuple>(t), detail::__tuple_forwarder{})
      )
 {
-  return tuple_tail_invoke(std::forward<Tuple>(t), __tuple_forwarder{});
+  return tuple_tail_invoke(std::forward<Tuple>(t), detail::__tuple_forwarder{});
 }
+
+
+namespace detail
+{
 
 
 template<class... Args>
@@ -408,11 +446,14 @@ template<class Tuple, size_t... I>
 TUPLE_UTILITY_ANNOTATION
 auto __tuple_tail_impl(Tuple&& t, __index_sequence<I...>)
   -> decltype(
-       __tuple_tail_impl_impl(__get<I+1>(std::forward<Tuple>(t))...)
+       detail::__tuple_tail_impl_impl(detail::__get<I+1>(std::forward<Tuple>(t))...)
      )
 {
-  return __tuple_tail_impl_impl(__get<I+1>(std::forward<Tuple>(t))...);
+  return detail::__tuple_tail_impl_impl(detail::__get<I+1>(std::forward<Tuple>(t))...);
 }
+
+
+} // end detail
 
 
 // tuple_tail() returns t's tail as a tuple of values
@@ -421,9 +462,9 @@ template<class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_tail(Tuple&& t)
   -> decltype(
-       __tuple_tail_impl(
+       detail::__tuple_tail_impl(
          std::forward<Tuple>(t),
-         __make_index_sequence<
+         detail::__make_index_sequence<
            std::tuple_size<
              typename std::decay<Tuple>::type
            >::value - 1
@@ -431,13 +472,17 @@ auto tuple_tail(Tuple&& t)
        )
      )
 {
-  using indices = __make_index_sequence<
+  using indices = detail::__make_index_sequence<
     std::tuple_size<
       typename std::decay<Tuple>::type
     >::value - 1
   >;
-  return __tuple_tail_impl(std::forward<Tuple>(t), indices());
+  return detail::__tuple_tail_impl(std::forward<Tuple>(t), indices());
 }
+
+
+namespace detail
+{
 
 
 template<class Tuple, class Function, size_t... I>
@@ -445,23 +490,30 @@ TUPLE_UTILITY_ANNOTATION
 auto __tuple_take_invoke_impl(Tuple&& t, Function f, __index_sequence<I...>)
   -> decltype(
        f(
-         __get<I>(std::forward<Tuple>(t))...
+         detail::__get<I>(std::forward<Tuple>(t))...
        )
      )
 {
-  return f(__get<I>(std::forward<Tuple>(t))...);
+  return f(detail::__get<I>(std::forward<Tuple>(t))...);
 }
+
+
+} // end detail
 
 
 template<size_t N, class Tuple, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_take_invoke(Tuple&& t, Function f)
   -> decltype(
-       __tuple_take_invoke_impl(std::forward<Tuple>(t), f, __make_index_sequence<N>())
+       detail::__tuple_take_invoke_impl(std::forward<Tuple>(t), f, detail::__make_index_sequence<N>())
      )
 {
-  return __tuple_take_invoke_impl(std::forward<Tuple>(t), f, __make_index_sequence<N>());
+  return detail::__tuple_take_invoke_impl(std::forward<Tuple>(t), f, detail::__make_index_sequence<N>());
 }
+
+
+namespace detail
+{
 
 
 struct __std_tuple_maker
@@ -478,43 +530,53 @@ struct __std_tuple_maker
 };
 
 
+} // end detail
+
+
 template<size_t N, class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_take(Tuple&& t)
   -> decltype(
-       tuple_take_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker())
+       tuple_take_invoke<N>(std::forward<Tuple>(t), detail::__std_tuple_maker())
      )
 {
-  return tuple_take_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker());
+  return tuple_take_invoke<N>(std::forward<Tuple>(t), detail::__std_tuple_maker());
 }
+
+
+namespace detail
+{
 
 
 template<size_t N, size_t... I, class Tuple, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto __tuple_drop_invoke_impl(Tuple&& t, Function f, __index_sequence<I...>)
   -> decltype(
-       f(__get<N + I>(std::forward<Tuple>(t))...)
+       f(detail::__get<N + I>(std::forward<Tuple>(t))...)
      )
 {
-  return f(__get<N + I>(std::forward<Tuple>(t))...);
+  return f(detail::__get<N + I>(std::forward<Tuple>(t))...);
 }
+
+
+} // end detail
 
 
 template<size_t N, class Tuple, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_drop_invoke(Tuple&& t, Function f)
   -> decltype(
-       __tuple_drop_invoke_impl<N>(
+       detail::__tuple_drop_invoke_impl<N>(
          std::forward<Tuple>(t),
          f,
-         __make_index_sequence<std::tuple_size<typename std::decay<Tuple>::type>::value - N>()
+         detail::__make_index_sequence<std::tuple_size<typename std::decay<Tuple>::type>::value - N>()
        )
      )
 {
-  return __tuple_drop_invoke_impl<N>(
+  return detail::__tuple_drop_invoke_impl<N>(
     std::forward<Tuple>(t),
     f,
-    __make_index_sequence<std::tuple_size<typename std::decay<Tuple>::type>::value - N>()
+    detail::__make_index_sequence<std::tuple_size<typename std::decay<Tuple>::type>::value - N>()
   );
 }
 
@@ -523,10 +585,10 @@ template<size_t N, class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_drop(Tuple&& t)
   -> decltype(
-       tuple_drop_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker())
+       tuple_drop_invoke<N>(std::forward<Tuple>(t), detail::__std_tuple_maker())
      )
 {
-  return tuple_drop_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker());
+  return TUPLE_UTILITY_NAMESPACE::tuple_drop_invoke<N>(std::forward<Tuple>(t), detail::__std_tuple_maker());
 }
 
 
@@ -545,10 +607,10 @@ template<size_t N, class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_drop_back(Tuple&& t)
   -> decltype(
-       tuple_drop_back_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker())
+       tuple_drop_back_invoke<N>(std::forward<Tuple>(t), detail::__std_tuple_maker())
      )
 {
-  return tuple_drop_back_invoke<N>(std::forward<Tuple>(t), __std_tuple_maker());
+  return tuple_drop_back_invoke<N>(std::forward<Tuple>(t), detail::__std_tuple_maker());
 }
 
 
@@ -567,7 +629,7 @@ template<class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_last(Tuple&& t)
   -> decltype(
-       __get<
+       detail::__get<
          std::tuple_size<
            typename std::decay<Tuple>::type
          >::value - 1
@@ -575,8 +637,12 @@ auto tuple_last(Tuple&& t)
      )
 {
   const size_t i = std::tuple_size<typename std::decay<Tuple>::type>::value - 1;
-  return __get<i>(std::forward<Tuple>(t));
+  return detail::__get<i>(std::forward<Tuple>(t));
 }
+
+
+namespace detail
+{
 
 
 template<class Tuple, class T, class Function, size_t... I>
@@ -590,15 +656,18 @@ auto __tuple_append_invoke_impl(Tuple&& t, T&& x, Function f, __index_sequence<I
 }
 
 
+} // end detail
+
+
 template<class Tuple, class T, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_append_invoke(Tuple&& t, T&& x, Function f)
   -> decltype(
-       __tuple_append_invoke_impl(
+       detail::__tuple_append_invoke_impl(
          std::forward<Tuple>(t),
          std::forward<T>(x),
          f,
-         __make_index_sequence<
+         detail::__make_index_sequence<
            std::tuple_size<
              typename std::decay<Tuple>::type
            >::value
@@ -606,11 +675,15 @@ auto tuple_append_invoke(Tuple&& t, T&& x, Function f)
        )
      )
 {
-  using indices = __make_index_sequence<
+  using indices = detail::__make_index_sequence<
     std::tuple_size<typename std::decay<Tuple>::type>::value
   >;
-  return __tuple_append_invoke_impl(std::forward<Tuple>(t), std::forward<T>(x), f, indices());
+  return detail::__tuple_append_invoke_impl(std::forward<Tuple>(t), std::forward<T>(x), f, indices());
 }
+
+
+namespace detail
+{
 
 
 template<class Tuple, class T, class Function, size_t... I>
@@ -624,15 +697,18 @@ auto __tuple_prepend_invoke_impl(Tuple&& t, T&& x, Function f, __index_sequence<
 }
 
 
+} // end detail
+
+
 template<class Tuple, class T, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_prepend_invoke(Tuple&& t, T&& x, Function f)
   -> decltype(
-       __tuple_prepend_invoke_impl(
+       detail::__tuple_prepend_invoke_impl(
          std::forward<Tuple>(t),
          std::forward<T>(x),
          f,
-         __make_index_sequence<
+         detail::__make_index_sequence<
            std::tuple_size<
              typename std::decay<Tuple>::type
            >::value
@@ -640,10 +716,10 @@ auto tuple_prepend_invoke(Tuple&& t, T&& x, Function f)
        )
      )
 {
-  using indices = __make_index_sequence<
+  using indices = detail::__make_index_sequence<
     std::tuple_size<typename std::decay<Tuple>::type>::value
   >;
-  return __tuple_prepend_invoke_impl(std::forward<Tuple>(t), std::forward<T>(x), f, indices());
+  return detail::__tuple_prepend_invoke_impl(std::forward<Tuple>(t), std::forward<T>(x), f, indices());
 }
 
 
@@ -651,10 +727,10 @@ template<class Tuple, class T>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_append(Tuple&& t, T&& x)
   -> decltype(
-       tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(x), __std_tuple_maker())
+       tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(x), detail::__std_tuple_maker())
      )
 {
-  return tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(x), __std_tuple_maker());
+  return tuple_append_invoke(std::forward<Tuple>(t), std::forward<T>(x), detail::__std_tuple_maker());
 }
 
 
@@ -662,22 +738,25 @@ template<class Tuple, class T>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_prepend(Tuple&& t, T&& x)
   -> decltype(
-       tuple_prepend_invoke(std::forward<Tuple>(t), std::forward<T>(x), __std_tuple_maker())
+       tuple_prepend_invoke(std::forward<Tuple>(t), std::forward<T>(x), detail::__std_tuple_maker())
      )
 {
-  return tuple_prepend_invoke(std::forward<Tuple>(t), std::forward<T>(x), __std_tuple_maker());
+  return tuple_prepend_invoke(std::forward<Tuple>(t), std::forward<T>(x), detail::__std_tuple_maker());
 }
 
+
+namespace detail
+{
 
 
 template<size_t I, typename Function, typename... Tuples>
 TUPLE_UTILITY_ANNOTATION
 auto __tuple_map_invoke(Function f, Tuples&&... ts)
   -> decltype(
-       f(__get<I>(std::forward<Tuples>(ts))...)
+       f(detail::__get<I>(std::forward<Tuples>(ts))...)
      )
 {
-  return f(__get<I>(std::forward<Tuples>(ts))...);
+  return f(detail::__get<I>(std::forward<Tuples>(ts))...);
 }
 
 
@@ -696,13 +775,16 @@ auto __tuple_map_with_make_impl(__index_sequence<I...>, Function1 f, Function2 m
 }
 
 
+} // end detail
+
+
 template<typename Function1, typename Function2, typename Tuple, typename... Tuples>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_map_with_make(Function1 f, Function2 make, Tuple&& t, Tuples&&... ts)
   -> decltype(
-       __tuple_map_with_make_impl(
-         __make_index_sequence<
-           std::tuple_size<__decay_t<Tuple>>::value
+       detail::__tuple_map_with_make_impl(
+         detail::__make_index_sequence<
+           std::tuple_size<detail::__decay_t<Tuple>>::value
          >(),
          f,
          make,
@@ -711,9 +793,9 @@ auto tuple_map_with_make(Function1 f, Function2 make, Tuple&& t, Tuples&&... ts)
        )
      )
 {
-  return __tuple_map_with_make_impl(
-    __make_index_sequence<
-      std::tuple_size<__decay_t<Tuple>>::value
+  return detail::__tuple_map_with_make_impl(
+    detail::__make_index_sequence<
+      std::tuple_size<detail::__decay_t<Tuple>>::value
     >(),
     f,
     make,
@@ -727,11 +809,15 @@ template<typename Function, typename Tuple, typename... Tuples>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_map(Function f, Tuple&& t, Tuples&&... ts)
   -> decltype(
-       tuple_map_with_make(f, __std_tuple_maker(), std::forward<Tuple>(t), std::forward<Tuples>(ts)...)
+       tuple_map_with_make(f, detail::__std_tuple_maker(), std::forward<Tuple>(t), std::forward<Tuples>(ts)...)
      )
 {
-  return tuple_map_with_make(f, __std_tuple_maker(), std::forward<Tuple>(t), std::forward<Tuples>(ts)...);
+  return tuple_map_with_make(f, detail::__std_tuple_maker(), std::forward<Tuple>(t), std::forward<Tuples>(ts)...);
 }
+
+
+namespace detail
+{
 
 
 template<class T, class Tuple, size_t... I>
@@ -743,12 +829,19 @@ T make_from_tuple_impl(const Tuple& t, __index_sequence<I...>)
 }
 
 
+} // end detail
+
+
 template<class T, class Tuple>
 TUPLE_UTILITY_ANNOTATION
 T make_from_tuple(const Tuple& t)
 {
-  return make_from_tuple_impl<T>(t, __make_index_sequence<std::tuple_size<Tuple>::value>());
+  return detail::make_from_tuple_impl<T>(t, detail::__make_index_sequence<std::tuple_size<Tuple>::value>());
 }
+
+
+namespace detail
+{
 
 
 template<class Function>
@@ -787,7 +880,7 @@ void __tuple_for_each_impl(__index_sequence<Indices...>, Function f, Tuples&&...
   auto g = __tuple_for_each_functor<Function>{f};
 
   // XXX swallow g to WAR nvcc 7.0 unused variable warning
-  __swallow(g);
+  detail::__swallow(g);
 
   // unpacking into a init lists preserves the order given by Indices
   using ints = int[];
@@ -795,11 +888,14 @@ void __tuple_for_each_impl(__index_sequence<Indices...>, Function f, Tuples&&...
 }
 
 
+} // end detail
+
+
 template<size_t N, class Function, class Tuple1, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
 void tuple_for_each_n(Function f, Tuple1&& t1, Tuples&&... ts)
 {
-  __tuple_for_each_impl(__make_index_sequence<N>(), f, std::forward<Tuple1>(t1), std::forward<Tuples>(ts)...);
+  detail::__tuple_for_each_impl(detail::__make_index_sequence<N>(), f, std::forward<Tuple1>(t1), std::forward<Tuples>(ts)...);
 }
 
 
@@ -807,8 +903,12 @@ template<class Function, class Tuple1, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
 void tuple_for_each(Function f, Tuple1&& t1, Tuples&&... ts)
 {
-  tuple_for_each_n<std::tuple_size<__decay_t<Tuple1>>::value>(f, std::forward<Tuple1>(t1), std::forward<Tuples>(ts)...);
+  tuple_for_each_n<std::tuple_size<detail::__decay_t<Tuple1>>::value>(f, std::forward<Tuple1>(t1), std::forward<Tuples>(ts)...);
 }
+
+
+namespace detail
+{
 
 
 template<class T, class Function>
@@ -826,16 +926,21 @@ struct __tuple_reduce_functor
 };
 
 
+} // end detail
+
+
 template<class Tuple, class T, class Function>
 TUPLE_UTILITY_ANNOTATION
 T tuple_reduce(Tuple&& t, T init, Function f)
 {
-  auto g = __tuple_reduce_functor<T,Function>{init, f};
-  tuple_for_each(g, std::forward<Tuple>(t));
+  auto g = detail::__tuple_reduce_functor<T,Function>{init, f};
+  TUPLE_UTILITY_NAMESPACE::tuple_for_each(g, std::forward<Tuple>(t));
   return g.init;
 }
 
 
+namespace detail
+{
 
 
 template<class T>
@@ -866,21 +971,29 @@ typename std::enable_if<
   tuple_for_each_n<n>(__print_element_and_delimiter<T>{os,delimiter}, t);
 
   // finally print the last element sans delimiter
-  os << tuple_last(t);
+  os << TUPLE_UTILITY_NAMESPACE::tuple_last(t);
 }
+
+
+} // end detail
 
 
 template<class Tuple, class T>
 void tuple_print(const Tuple& t, std::ostream& os, const T& delimiter)
 {
-  __tuple_print_impl(t, os, delimiter);
+  detail::__tuple_print_impl(t, os, delimiter);
 }
+
 
 template<class Tuple>
 void tuple_print(const Tuple& t, std::ostream& os = std::cout)
 {
-  tuple_print(t, os, ", ");
+  TUPLE_UTILITY_NAMESPACE::tuple_print(t, os, ", ");
 }
+
+
+namespace detail
+{
 
 
 // terminal case: Tuple1 is exhausted
@@ -925,12 +1038,19 @@ typename std::enable_if<
 }
 
 
+} // end detail
+
+
 template<class Tuple1, class Tuple2>
 TUPLE_UTILITY_ANNOTATION
 bool tuple_equal(const Tuple1& t1, const Tuple2& t2)
 {
-  return __tuple_equal_impl<0>(t1,t2);
+  return detail::__tuple_equal_impl<0>(t1,t2);
 }
+
+
+namespace detail
+{
 
 
 template<size_t i, class Tuple1, class Tuple2>
@@ -971,12 +1091,19 @@ typename std::enable_if<
 }
 
 
+} // end detail
+
+
 template<class Tuple1, class Tuple2>
 TUPLE_UTILITY_ANNOTATION
 bool tuple_lexicographical_compare(const Tuple1& t1, const Tuple2& t2)
 {
-  return __tuple_lexicographical_compare_impl<0>(t1,t2);
+  return detail::__tuple_lexicographical_compare_impl<0>(t1,t2);
 }
+
+
+namespace detail
+{
 
 
 template<bool b, class True, class False>
@@ -1133,13 +1260,16 @@ struct __sum
 template<size_t Size> struct __sum<Size> : std::integral_constant<size_t, Size> {};
 
 
+} // end detail
+
+
 template<class Function, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_cat_apply(Function&& f, Tuples&&... ts)
   -> decltype(
-       __tuple_cat_apply_impl(
-         __make_index_sequence<
-           __sum<
+       detail::__tuple_cat_apply_impl(
+         detail::__make_index_sequence<
+           detail::__sum<
              0u,
              std::tuple_size<typename std::decay<Tuples>::type>::value...
            >::value
@@ -1149,9 +1279,13 @@ auto tuple_cat_apply(Function&& f, Tuples&&... ts)
        )
      )
 {
-  const size_t N = __sum<0u, std::tuple_size<typename std::decay<Tuples>::type>::value...>::value;
-  return __tuple_cat_apply_impl(__make_index_sequence<N>(), std::forward<Function>(f), std::forward<Tuples>(ts)...);
+  const size_t N = detail::__sum<0u, std::tuple_size<typename std::decay<Tuples>::type>::value...>::value;
+  return detail::__tuple_cat_apply_impl(detail::__make_index_sequence<N>(), std::forward<Function>(f), std::forward<Tuples>(ts)...);
 }
+
+
+namespace detail
+{
 
 
 template<class Function, class Tuple, size_t... I>
@@ -1165,6 +1299,8 @@ auto __tuple_apply_impl(Function f, Tuple&& t, __index_sequence<I...>)
 }
 
 
+} // end detail
+
 
 template<class Function, class Tuple>
 TUPLE_UTILITY_ANNOTATION
@@ -1173,7 +1309,7 @@ auto tuple_apply(Function&& f, Tuple&& t)
        tuple_cat_apply(std::forward<Function>(f), std::forward<Tuple>(t))
      )
 {
-  return tuple_cat_apply(std::forward<Function>(f), std::forward<Tuple>(t));
+  return TUPLE_UTILITY_NAMESPACE::tuple_cat_apply(std::forward<Function>(f), std::forward<Tuple>(t));
 }
 
 
@@ -1181,11 +1317,15 @@ template<class... Tuples>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_zip(Tuples&&... tuples)
   -> decltype(
-       tuple_map(__std_tuple_maker{}, std::forward<Tuples>(tuples)...)
+       TUPLE_UTILITY_NAMESPACE::tuple_map(detail::__std_tuple_maker{}, std::forward<Tuples>(tuples)...)
      )
 {
-  return tuple_map(__std_tuple_maker{}, std::forward<Tuples>(tuples)...);
+  return TUPLE_UTILITY_NAMESPACE::tuple_map(detail::__std_tuple_maker{}, std::forward<Tuples>(tuples)...);
 }
+
+
+namespace detail
+{
 
 
 // concatenate two index_sequences
@@ -1254,34 +1394,37 @@ using __make_filtered_indices_for_tuple =
   >;
 
 
+} // end detail
+
+
 // XXX nvcc 7.0 has trouble with this template template parameter
 //template<template<class> class MetaFunction, class Tuple, class Function>
 //TUPLE_UTILITY_ANNOTATION
 //auto tuple_filter_invoke(Tuple&& t, Function f)
 //  -> decltype(
-//       __tuple_apply_impl(
+//       detail::__tuple_apply_impl(
 //         f,
 //         std::forward<Tuple>(t),
-//         __make_filtered_indices_for_tuple<MetaFunction, typename std::decay<Tuple>::type>{}
+//         detail::__make_filtered_indices_for_tuple<MetaFunction, typename std::decay<Tuple>::type>{}
 //       )
 //     )
 //{
-//  using filtered_indices = __make_filtered_indices_for_tuple<MetaFunction, typename std::decay<Tuple>::type>;
+//  using filtered_indices = detail::__make_filtered_indices_for_tuple<MetaFunction, typename std::decay<Tuple>::type>;
 //
-//  return __tuple_apply_impl(f, std::forward<Tuple>(t), filtered_indices{});
+//  return detail::__tuple_apply_impl(f, std::forward<Tuple>(t), filtered_indices{});
 //}
-template<template<class> class MetaFunction, class Tuple, class Function, class Indices = __make_filtered_indices_for_tuple<MetaFunction, typename std::decay<Tuple>::type>>
+template<template<class> class MetaFunction, class Tuple, class Function, class Indices = detail::__make_filtered_indices_for_tuple<MetaFunction, typename std::decay<Tuple>::type>>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_filter_invoke(Tuple&& t, Function f)
   -> decltype(
-       __tuple_apply_impl(
+       detail::__tuple_apply_impl(
          f,
          std::forward<Tuple>(t),
          Indices{}
        )
      )
 {
-  return __tuple_apply_impl(f, std::forward<Tuple>(t), Indices{});
+  return detail::__tuple_apply_impl(f, std::forward<Tuple>(t), Indices{});
 }
 
 
@@ -1289,11 +1432,15 @@ template<template<class> class MetaFunction, class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_filter(Tuple&& t)
   -> decltype(
-       tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), __std_tuple_maker{})
+       tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), detail::__std_tuple_maker{})
      )
 {
-  return tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), __std_tuple_maker{});
+  return tuple_filter_invoke<MetaFunction>(std::forward<Tuple>(t), detail::__std_tuple_maker{});
 }
+
+
+namespace detail
+{
 
 
 template<size_t, class T>
@@ -1315,15 +1462,17 @@ auto __tuple_repeat_invoke_impl(T&& x, Function f, __index_sequence<Indices...>)
 }
 
 
+} // end detail
+
 
 template<size_t N, class T, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_repeat_invoke(T&& x, Function f)
   -> decltype(
-       __tuple_repeat_invoke_impl(std::forward<T>(x), f, __make_index_sequence<N>())
+       detail::__tuple_repeat_invoke_impl(std::forward<T>(x), f, detail::__make_index_sequence<N>())
      )
 {
-  return __tuple_repeat_invoke_impl(std::forward<T>(x), f, __make_index_sequence<N>());
+  return detail::__tuple_repeat_invoke_impl(std::forward<T>(x), f, detail::__make_index_sequence<N>());
 }
 
 
@@ -1331,11 +1480,15 @@ template<size_t N, class T>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_repeat(const T& x)
   -> decltype(
-       tuple_repeat_invoke<N>(x, __std_tuple_maker{})
+       tuple_repeat_invoke<N>(x, detail::__std_tuple_maker{})
      )
 {
-  return tuple_repeat_invoke<N>(x, __std_tuple_maker{});
+  return tuple_repeat_invoke<N>(x, detail::__std_tuple_maker{});
 }
+
+
+namespace detail
+{
 
 
 template<size_t... Indices, class Tuple, class Function>
@@ -1349,14 +1502,17 @@ auto __tuple_gather_invoke_impl(Tuple&& t, Function f)
 }
 
 
+} // end detail
+
+
 template<size_t... Indices, class Tuple, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_gather_invoke(Tuple&& t, Function f)
   -> decltype(
-       __tuple_gather_invoke_impl<Indices...>(std::forward<Tuple>(t), f)
+       detail::__tuple_gather_invoke_impl<Indices...>(std::forward<Tuple>(t), f)
      )
 {
-  return __tuple_gather_invoke_impl<Indices...>(std::forward<Tuple>(t), f);
+  return detail::__tuple_gather_invoke_impl<Indices...>(std::forward<Tuple>(t), f);
 }
 
 
@@ -1364,10 +1520,10 @@ template<size_t... Indices, class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_gather(Tuple&& t)
   -> decltype(
-       tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), __std_tuple_maker{})
+       tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), detail::__std_tuple_maker{})
      )
 {
-  return tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), __std_tuple_maker{});
+  return tuple_gather_invoke<Indices...>(std::forward<Tuple>(t), detail::__std_tuple_maker{});
 }
 
 
