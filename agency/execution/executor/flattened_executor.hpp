@@ -336,7 +336,7 @@ class flattened_executor
   private:
     using base_shape_type = executor_shape_t<base_executor_type>;
 
-    static_assert(detail::is_tuple<base_shape_type>::value, "The shape_type of flattened_executor's base_executor must be a tuple.");
+    static_assert(detail::is_tuple_like<base_shape_type>::value, "The shape_type of flattened_executor's base_executor must be tuple-like.");
 
     using shape_head_type = detail::shape_head_t<shape_type>;
 

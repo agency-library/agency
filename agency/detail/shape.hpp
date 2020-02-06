@@ -27,7 +27,7 @@ namespace detail
 template<class Integral>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  !detail::is_tuple<Integral>::value,
+  !detail::is_tuple_like<Integral>::value,
   Integral
 >::type
   max_shape_dimensions()
@@ -44,7 +44,7 @@ typename std::enable_if<
 template<class ShapeTuple>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  detail::is_tuple<ShapeTuple>::value,
+  detail::is_tuple_like<ShapeTuple>::value,
   ShapeTuple
 >::type
   max_shape_dimensions();
@@ -64,7 +64,7 @@ struct max_shape_dimensions_functor
 template<class ShapeTuple>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  detail::is_tuple<ShapeTuple>::value,
+  detail::is_tuple_like<ShapeTuple>::value,
   ShapeTuple
 >::type
   max_shape_dimensions()
@@ -76,7 +76,7 @@ typename std::enable_if<
 template<class Integral>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  !detail::is_tuple<Integral>::value,
+  !detail::is_tuple_like<Integral>::value,
   Integral
 >::type
   max_sizes(const Integral& max_size)
@@ -99,7 +99,7 @@ struct max_sizes_functor
   template<class Integral>
   __AGENCY_ANNOTATION
   typename std::enable_if<
-    !detail::is_tuple<Integral>::value,
+    !detail::is_tuple_like<Integral>::value,
     Integral
   >::type
     operator()(const Integral& max_size)
@@ -110,7 +110,7 @@ struct max_sizes_functor
   template<class Tuple>
   __AGENCY_ANNOTATION
   typename std::enable_if<
-    detail::is_tuple<Tuple>::value,
+    detail::is_tuple_like<Tuple>::value,
     size_t
   >::type
     operator()(const Tuple& max_shape_dimensions)
@@ -130,7 +130,7 @@ struct max_sizes_functor
 template<class ShapeTuple>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  detail::is_tuple<ShapeTuple>::value,
+  detail::is_tuple_like<ShapeTuple>::value,
   ShapeTuple
 >::type
   max_sizes(const ShapeTuple& max_dimensions)
@@ -142,7 +142,7 @@ typename std::enable_if<
 template<class Integral>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  !detail::is_tuple<Integral>::value,
+  !detail::is_tuple_like<Integral>::value,
   Integral
 >::type
   shape_product(const Integral& x)
@@ -154,7 +154,7 @@ typename std::enable_if<
 template<class Shape>
 __AGENCY_ANNOTATION
 typename std::enable_if<
-  detail::is_tuple<Shape>::value,
+  detail::is_tuple_like<Shape>::value,
   size_t
 >::type
   shape_product(const Shape& shape)
@@ -275,7 +275,7 @@ merge_front_shape_elements_t<Shape>
 
 template<class Shape,
          class = typename std::enable_if<
-           detail::is_tuple<Shape>::value
+           detail::is_tuple_like<Shape>::value
          >::type,
          class = typename std::enable_if<
            (std::tuple_size<Shape>::value > 1)

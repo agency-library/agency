@@ -15,7 +15,6 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/host_device_cast.hpp>
-#include <agency/detail/has_member.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <utility>
 #include <type_traits>
@@ -27,18 +26,15 @@ namespace detail
 {
 
 
-__DEFINE_HAS_MEMBER(has_value, value);
-
-
 template<class T>
-struct is_tuple : has_value<std::tuple_size<T>> {};
+struct is_tuple_like : __tu::is_tuple_like<T> {};
 
 
 // get_if returns the ith element of an object when that object is a Tuple-like type
 // otherwise, it returns its second parameter
 template<size_t i, class Tuple, class T,
          __AGENCY_REQUIRES(
-           is_tuple<typename std::decay<Tuple>::type>::value
+           is_tuple_like<typename std::decay<Tuple>::type>::value
          )>
 __AGENCY_ANNOTATION
 auto get_if(Tuple&& t, T&&)
@@ -50,7 +46,7 @@ auto get_if(Tuple&& t, T&&)
 
 template<size_t, class NotATuple, class T,
          __AGENCY_REQUIRES(
-           !is_tuple<typename std::decay<NotATuple>::type>::value
+           !is_tuple_like<typename std::decay<NotATuple>::type>::value
          )>
 __AGENCY_ANNOTATION
 T&& get_if(NotATuple&&, T&& otherwise_if_not_tuple)
@@ -73,7 +69,7 @@ using pack_element_t = typename pack_element<i,Types...>::type;
 
 template<class T,
          class = typename std::enable_if<
-           is_tuple<typename std::decay<T>::type>::value
+           is_tuple_like<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
 auto tuple_head_if(T&& t) ->
@@ -85,7 +81,7 @@ auto tuple_head_if(T&& t) ->
 
 template<class T,
          class = typename std::enable_if<
-           !is_tuple<typename std::decay<T>::type>::value
+           !is_tuple_like<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
 T&& tuple_head_if(T&& t)
@@ -115,7 +111,7 @@ auto tuple_last(Tuple&& t)
 
 template<class T,
          class = typename std::enable_if<
-           is_tuple<typename std::decay<T>::type>::value
+           is_tuple_like<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
 auto tuple_last_if(T&& t) ->
@@ -127,7 +123,7 @@ auto tuple_last_if(T&& t) ->
 
 template<class T,
          class = typename std::enable_if<
-           !is_tuple<typename std::decay<T>::type>::value
+           !is_tuple_like<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
 T&& tuple_last_if(T&& t)
@@ -231,7 +227,7 @@ auto unwrap_single_element_tuple(Tuple&& t)
 // if the argument is not a tuple, it returns the argument
 template<class Tuple,
          class = typename std::enable_if<
-           is_tuple<typename std::decay<Tuple>::type>::value
+           is_tuple_like<typename std::decay<Tuple>::type>::value
          >::type>
 __AGENCY_ANNOTATION
 auto unwrap_single_element_tuple_if(Tuple&& t)
@@ -244,7 +240,7 @@ auto unwrap_single_element_tuple_if(Tuple&& t)
 
 template<class T,
          class = typename std::enable_if<
-           !is_tuple<typename std::decay<T>::type>::value
+           !is_tuple_like<typename std::decay<T>::type>::value
          >::type>
 T&& unwrap_single_element_tuple_if(T&& arg)
 {
@@ -269,7 +265,7 @@ struct tuple_type_list;
 
 
 template<class Tuple>
-struct tuple_type_list<Tuple, typename std::enable_if<is_tuple<Tuple>::value>::type>
+struct tuple_type_list<Tuple, typename std::enable_if<is_tuple_like<Tuple>::value>::type>
 {
   using type = typename tuple_type_list_impl<
     make_index_sequence<std::tuple_size<Tuple>::value>,
@@ -303,7 +299,7 @@ struct is_empty_tuple_impl : std::false_type {};
 
 
 template<class Tuple>
-struct is_empty_tuple_impl<Tuple, typename std::enable_if<is_tuple<Tuple>::value>::type>
+struct is_empty_tuple_impl<Tuple, typename std::enable_if<is_tuple_like<Tuple>::value>::type>
 {
   using type = typename is_empty_tuple_impl_impl<
     typename tuple_type_list<Tuple>::type
@@ -347,16 +343,16 @@ using tuple_rebind_t = typename tuple_rebind<Tuple,Types...>::type;
 // a Tuple-like type is rebindable for a list of types if tuple_rebind<Tuple,Types...>::type is detected to exist
 // XXX WAR nvbug 1965139
 //template<class Tuple, class... Types>
-//using is_tuple_rebindable = is_detected<tuple_rebind_t, Tuple, Types...>;
+//using is_tuple_like_rebindable = is_detected<tuple_rebind_t, Tuple, Types...>;
 template<class Tuple, class... Types>
-struct is_tuple_rebindable : is_detected<tuple_rebind_t, Tuple, Types...> {};
+struct is_tuple_like_rebindable : is_detected<tuple_rebind_t, Tuple, Types...> {};
 
 
 // some types aren't tuple_rebindable given a list of Types
 // in such cases, we default to using the given TupleLike template as the result of the rebind
 template<class T, template<class...> class TupleLike, class... Types>
 using tuple_rebind_if = lazy_conditional<
-  is_tuple_rebindable<T,Types...>::value, // if Tuple is rebindable...
+  is_tuple_like_rebindable<T,Types...>::value, // if Tuple is rebindable...
   tuple_rebind<T,Types...>,               // then tuple_rebind it
   identity<TupleLike<Types...>>           // otherwise, default to TupleLike<Types...>
 >;
@@ -442,7 +438,7 @@ auto tuple_tail(Tuple&& t)
 
 template<class T,
          class = typename std::enable_if<
-           is_tuple<typename std::decay<T>::type>::value
+           is_tuple_like<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
 auto tuple_tail_if(T&& t) ->
@@ -454,7 +450,7 @@ auto tuple_tail_if(T&& t) ->
 
 template<class T,
          class = typename std::enable_if<
-           !is_tuple<typename std::decay<T>::type>::value
+           !is_tuple_like<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
 agency::tuple<> tuple_tail_if(T&&)
@@ -476,7 +472,7 @@ auto tuple_prefix(Tuple&& t)
 
 template<class T,
          class = typename std::enable_if<
-           is_tuple<typename std::decay<T>::type>::value
+           is_tuple_like<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
 auto tuple_prefix_if(T&& t) ->
@@ -488,7 +484,7 @@ auto tuple_prefix_if(T&& t) ->
 
 template<class T,
          class = typename std::enable_if<
-           !is_tuple<typename std::decay<T>::type>::value
+           !is_tuple_like<typename std::decay<T>::type>::value
          >::type>
 __AGENCY_ANNOTATION
 agency::tuple<> tuple_prefix_if(T&&)
@@ -511,7 +507,7 @@ auto tuple_take(Tuple&& t)
 template<size_t n,
          class T,
          class = typename std::enable_if<
-           is_tuple<typename std::decay<T>::type>::value
+           is_tuple_like<typename std::decay<T>::type>::value
          >::type,
          class = typename std::enable_if<
            (n <= std::tuple_size<typename std::decay<T>::type>::value)
@@ -538,7 +534,7 @@ auto tuple_take_view(Tuple&& t)
 template<size_t n,
          class T,
          class = typename std::enable_if<
-           !is_tuple<typename std::decay<T>::type>::value
+           !is_tuple_like<typename std::decay<T>::type>::value
          >::type,
          class = typename std::enable_if<
            n == 1

@@ -32,7 +32,7 @@ merge_front_index_elements_t<Index>
 //     because that is the only element the implementation actually uses
 template<class Index, class Shape,
          class = typename std::enable_if<
-           detail::is_tuple<Index>::value && detail::is_tuple<Shape>::value
+           detail::is_tuple_like<Index>::value && detail::is_tuple_like<Shape>::value
          >::type,
          class = typename std::enable_if<
            (std::tuple_size<Index>::value == std::tuple_size<Shape>::value)
@@ -63,7 +63,7 @@ bool is_bounded_by(const Integral1& x, const Integral2& bound)
 // the axis-aligned bounding box from the origin to the bound
 template<class Index1, class Index2,
          class = typename std::enable_if<
-           is_tuple<Index1>::value && is_tuple<Index2>::value
+           is_tuple_like<Index1>::value && is_tuple_like<Index2>::value
          >::type,
          class = typename std::enable_if<
            std::tuple_size<Index1>::value == std::tuple_size<Index2>::value
