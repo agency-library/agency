@@ -25,7 +25,7 @@ struct functor
   __device__
   void operator()(cuda_thread& self, int* outer_result, int& outer_shared, int& inner_shared)
   {
-    printf("idx: {%d, %d}\n", self.outer().index(), self.inner().index());
+    printf("idx: {%zu, %zu}\n", self.outer().index(), self.inner().index());
     printf("outer_shared: %d\n", outer_shared);
     printf("inner_shared: %d\n", inner_shared);
 
