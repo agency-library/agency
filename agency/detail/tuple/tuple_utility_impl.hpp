@@ -45,15 +45,28 @@
 
 #define TUPLE_UTILITY_REQUIRES(...) typename std::enable_if<(__VA_ARGS__)>::type* = nullptr
 
-// allow the user to define a namespace for these functions
-#ifdef TUPLE_UTILITY_NAMESPACE
-namespace TUPLE_UTILITY_NAMESPACE
-{
-#  else 
-   // define TUPLE_UTILITY_NAMESPACE to be the empty string
-#  define TUPLE_UTILITY_NAMESPACE
-#  define TUPLE_UTILITY_NAMESPACE_NEEDS_UNDEF
-#endif // TUPLE_UTILITY_NAMESPACE
+
+// figure out what namespace to put everything in
+#if !defined(TUPLE_UTILITY_NAMESPACE)
+#  if defined(TUPLE_UTILITY_NAMESPACE_OPEN_BRACE) or defined(TUPLE_UTILITY_NAMESPACE_CLOSE_BRACE)
+#    error "Either all of TUPLE_UTILITY_NAMESPACE, TUPLE_UTILITY_NAMESPACE_OPEN_BRACE, and TUPLE_UTILITY_NAMESPACE_CLOSE_BRACE must be defined, or none of them."
+#  endif
+
+// by default, there is no namespace
+# define TUPLE_UTILITY_NAMESPACE
+# define TUPLE_UTILITY_NAMESPACE_OPEN_BRACE
+# define TUPLE_UTILITY_NAMESPACE_CLOSE_BRACE
+# define TUPLE_UTILITY_NAMESPACE_NEEDS_UNDEF
+
+#elif defined(TUPLE_UTILITY_NAMESPACE) or defined(TUPLE_UTILITY_NAMESPACE_OPEN_BRACE) or defined(TUPLE_UTILITY_NAMESPACE_CLOSE_BRACE)
+#  if !defined(TUPLE_UTILITY_NAMESPACE) or !defined(TUPLE_UTILITY_NAMESPACE_OPEN_BRACE) or !defined(TUPLE_UTILITY_NAMESPACE_CLOSE_BRACE)
+#    error "Either all of TUPLE_UTILITY_NAMESPACE, TUPLE_UTILITY_NAMESPACE_OPEN_BRACE, and TUPLE_UTILITY_NAMESPACE_CLOSE_BRACE must be defined, or none of them."
+#  endif
+#endif
+
+
+TUPLE_UTILITY_NAMESPACE_OPEN_BRACE
+
 
 namespace detail
 {
@@ -1553,10 +1566,7 @@ auto tuple_gather(Tuple&& t)
 }
 
 
-#ifndef TUPLE_UTILITY_NAMESPACE_NEEDS_UNDEF
-// if the user defined TUPLE_UTILITY_NAMESPACE, then we need to close the namespace
-} // close namespace
-#endif // TUPLE_UTILITY_NAMESPACE_NEEDS_UNDEF
+TUPLE_UTILITY_NAMESPACE_CLOSE_BRACE
 
 
 #ifdef TUPLE_UTILITY_ANNOTATION_NEEDS_UNDEF
@@ -1566,6 +1576,8 @@ auto tuple_gather(Tuple&& t)
 
 #ifdef TUPLE_UTILITY_NAMESPACE_NEEDS_UNDEF
 #undef TUPLE_UTILITY_NAMESPACE
+#undef TUPLE_UTILITY_NAMESPACE_OPEN_BRACE
+#undef TUPLE_UTILITY_NAMESPACE_CLOSE_BRACE
 #undef TUPLE_UTILITY_NAMESPACE_NEEDS_UNDEF
 #endif
 

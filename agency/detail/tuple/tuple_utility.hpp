@@ -5,9 +5,13 @@
 // XXX this #include should be eliminated from this file
 #define TUPLE_UTILITY_ANNOTATION __AGENCY_ANNOTATION
 #define TUPLE_UTILITY_NAMESPACE __tu
+#define TUPLE_UTILITY_NAMESPACE_OPEN_BRACE namespace __tu {
+#define TUPLE_UTILITY_NAMESPACE_CLOSE_BRACE }
 #include <agency/detail/tuple/tuple_utility_impl.hpp>
 #undef TUPLE_UTILITY_ANNOTATION
 #undef TUPLE_UTILITY_NAMESPACE
+#undef TUPLE_UTILITY_NAMESPACE_OPEN_BRACE
+#undef TUPLE_UTILITY_NAMESPACE_CLOSE_BRACE
 
 
 #include <agency/detail/requires.hpp>
