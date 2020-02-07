@@ -34,6 +34,14 @@ template<class T>
 struct is_tuple_like : __tu::is_tuple_like<T> {};
 
 
+template<class Tuple, class... Types>
+struct tuple_rebind : __tu::tuple_rebind<Tuple, Types...> {};
+
+
+template<class Tuple, class... Types>
+using tuple_rebind_t = typename tuple_rebind<Tuple,Types...>::type;
+
+
 // get_if returns the ith element of an object when that object is a Tuple-like type
 // otherwise, it returns its second parameter
 template<size_t i, class Tuple, class T,
@@ -313,35 +321,6 @@ struct is_empty_tuple_impl<Tuple, typename std::enable_if<is_tuple_like<Tuple>::
 
 template<class Tuple>
 struct is_empty_tuple : is_empty_tuple_impl<Tuple>::type {};
-
-
-// tuple_rebind takes a Tuple-like type and reinstantiates it with a different list of types
-template<class Tuple, class... Types>
-struct tuple_rebind;
-
-
-// we can tuple_rebind a Tuple-like type simply by reinstantiating the template from which it came
-template<template<class...> class TupleLike, class... OriginalTypes, class... Types>
-struct tuple_rebind<TupleLike<OriginalTypes...>, Types...>
-{
-  using type = TupleLike<Types...>;
-};
-
-
-
-// we can tuple_rebind an Array-like type only when the list of Types are all the same type
-template<template<class,size_t> class ArrayLike, class OriginalType, size_t n, class Type, class... Types>
-struct tuple_rebind<ArrayLike<OriginalType,n>, Type, Types...>
-  : std::conditional<
-      conjunction<std::is_same<Type,Types>...>::value,  // if all of Types are the same as Type
-      ArrayLike<Type, 1 + sizeof...(Types)>,            // then reinstantiate the Array-like template using Type
-      std::enable_if<false>                             // otherwise, do not define a member named ::type
-    >::type
-{};
-
-
-template<class Tuple, class... Types>
-using tuple_rebind_t = typename tuple_rebind<Tuple,Types...>::type;
 
 
 // a Tuple-like type is rebindable for a list of types if tuple_rebind<Tuple,Types...>::type is detected to exist

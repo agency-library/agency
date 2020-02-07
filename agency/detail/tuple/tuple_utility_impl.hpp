@@ -76,6 +76,21 @@ template<class T>
 using decay_t = typename std::decay<T>::type;
 
 
+template<class... Conditions>
+struct conjunction;
+
+template<>
+struct conjunction<> : std::true_type {};
+
+template<class Condition, class... Conditions>
+struct conjunction<Condition, Conditions...>
+  : std::integral_constant<
+      bool,
+      Condition::value and conjunction<Conditions...>::value
+    >
+{};
+
+
 // define index sequence in case it is missing
 template<size_t... I> struct index_sequence {};
 
@@ -309,6 +324,41 @@ struct is_tuple_like
 
 
 static_assert(is_tuple_like<std::tuple<int,int>>::value, "std::tuple should be tuple-like.");
+
+
+template<class T, class... Types>
+struct tuple_rebind;
+
+
+// tuple-like templates can always be rebound
+template<template<class...> class TupleTemplate, class... OriginalTypes, class... ReboundTypes>
+struct tuple_rebind<TupleTemplate<OriginalTypes...>, ReboundTypes...>
+{
+  using type = TupleTemplate<ReboundTypes...>;
+};
+
+
+// array-like templates can be rebound if all of the types to use in the rebinding are the same
+template<template<class,std::size_t> class ArrayTemplate, class OriginalType, std::size_t N, class ReboundType, class... ReboundTypes>
+struct tuple_rebind<ArrayTemplate<OriginalType,N>, ReboundType, ReboundTypes...>
+  : std::conditional<
+      detail::conjunction<std::is_same<ReboundType,ReboundTypes>...>::value, // if all of the types to rebind are the same,
+      ArrayTemplate<ReboundType, 1 + sizeof...(ReboundTypes)>,               // then reinstantiate the ArrayTemplate using ReboundType
+      std::enable_if<false>                                                  // otherwise, do not define a member named type
+    >::type
+{};
+
+
+// pair-like templates can be rebound if we have two types to use in the rebinding
+template<template<class,class> class PairTemplate, class OriginalType1, class OriginalType2, class ReboundType1, class ReboundType2>
+struct tuple_rebind<PairTemplate<OriginalType1,OriginalType2>, ReboundType1, ReboundType2>
+{
+  using type = PairTemplate<ReboundType1, ReboundType2>;
+};
+
+
+template<class Tuple, class... Types>
+using tuple_rebind_t = typename tuple_rebind<Tuple,Types...>::type;
 
 
 namespace detail
