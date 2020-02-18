@@ -361,32 +361,25 @@ template<class Tuple, class... Types>
 using tuple_rebind_t = typename tuple_rebind<Tuple,Types...>::type;
 
 
-namespace detail
-{
-
-
 template<size_t i, class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto get(Tuple&& t)
   -> decltype(
-       tuple_traits<decay_t<Tuple>>::template get<i>(std::forward<Tuple>(t))
+       tuple_traits<TUPLE_UTILITY_NAMESPACE::detail::decay_t<Tuple>>::template get<i>(std::forward<Tuple>(t))
      )
 {
-  return tuple_traits<decay_t<Tuple>>::template get<i>(std::forward<Tuple>(t));
+  return tuple_traits<TUPLE_UTILITY_NAMESPACE::detail::decay_t<Tuple>>::template get<i>(std::forward<Tuple>(t));
 }
-
-
-} // end detail
 
 
 template<class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_head(Tuple&& t)
   -> decltype(
-       detail::get<0>(std::forward<Tuple>(t))
+       TUPLE_UTILITY_NAMESPACE::get<0>(std::forward<Tuple>(t))
      )
 {
-  return detail::get<0>(std::forward<Tuple>(t));
+  return TUPLE_UTILITY_NAMESPACE::get<0>(std::forward<Tuple>(t));
 }
 
 
@@ -399,11 +392,11 @@ TUPLE_UTILITY_ANNOTATION
 auto tuple_tail_invoke_impl(Tuple&& t, Function f, index_sequence<I...>)
   -> decltype(
        f(
-         detail::get<I+1>(std::forward<Tuple>(t))...
+         TUPLE_UTILITY_NAMESPACE::get<I+1>(std::forward<Tuple>(t))...
        )
      )
 {
-  return f(detail::get<I+1>(std::forward<Tuple>(t))...);
+  return f(TUPLE_UTILITY_NAMESPACE::get<I+1>(std::forward<Tuple>(t))...);
 }
 
 
@@ -446,11 +439,11 @@ TUPLE_UTILITY_ANNOTATION
 auto tuple_prefix_invoke_impl(Tuple&& t, Function f, index_sequence<I...>)
   -> decltype(
        f(
-         detail::get<I>(std::forward<Tuple>(t))...
+         TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuple>(t))...
        )
      )
 {
-  return f(detail::get<I>(std::forward<Tuple>(t))...);
+  return f(TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuple>(t))...);
 }
 
 
@@ -535,10 +528,10 @@ template<class Tuple, size_t... I>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_tail_impl(Tuple&& t, index_sequence<I...>)
   -> decltype(
-       detail::tuple_tail_impl_impl(detail::get<I+1>(std::forward<Tuple>(t))...)
+       detail::tuple_tail_impl_impl(TUPLE_UTILITY_NAMESPACE::get<I+1>(std::forward<Tuple>(t))...)
      )
 {
-  return detail::tuple_tail_impl_impl(detail::get<I+1>(std::forward<Tuple>(t))...);
+  return detail::tuple_tail_impl_impl(TUPLE_UTILITY_NAMESPACE::get<I+1>(std::forward<Tuple>(t))...);
 }
 
 
@@ -579,11 +572,11 @@ TUPLE_UTILITY_ANNOTATION
 auto tuple_take_invoke_impl(Tuple&& t, Function f, index_sequence<I...>)
   -> decltype(
        f(
-         detail::get<I>(std::forward<Tuple>(t))...
+         TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuple>(t))...
        )
      )
 {
-  return f(detail::get<I>(std::forward<Tuple>(t))...);
+  return f(TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuple>(t))...);
 }
 
 
@@ -641,10 +634,10 @@ template<size_t N, size_t... I, class Tuple, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_drop_invoke_impl(Tuple&& t, Function f, index_sequence<I...>)
   -> decltype(
-       f(detail::get<N + I>(std::forward<Tuple>(t))...)
+       f(TUPLE_UTILITY_NAMESPACE::get<N + I>(std::forward<Tuple>(t))...)
      )
 {
-  return f(detail::get<N + I>(std::forward<Tuple>(t))...);
+  return f(TUPLE_UTILITY_NAMESPACE::get<N + I>(std::forward<Tuple>(t))...);
 }
 
 
@@ -718,7 +711,7 @@ template<class Tuple>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_last(Tuple&& t)
   -> decltype(
-       detail::get<
+       TUPLE_UTILITY_NAMESPACE::get<
          std::tuple_size<
            typename std::decay<Tuple>::type
          >::value - 1
@@ -726,7 +719,7 @@ auto tuple_last(Tuple&& t)
      )
 {
   const size_t i = std::tuple_size<typename std::decay<Tuple>::type>::value - 1;
-  return detail::get<i>(std::forward<Tuple>(t));
+  return TUPLE_UTILITY_NAMESPACE::get<i>(std::forward<Tuple>(t));
 }
 
 
@@ -738,10 +731,10 @@ template<class Tuple, class T, class Function, size_t... I>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_append_invoke_impl(Tuple&& t, T&& x, Function f, index_sequence<I...>)
   -> decltype(
-       f(detail::get<I>(std::forward<Tuple>(t))..., std::forward<T>(x))
+       f(TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuple>(t))..., std::forward<T>(x))
      )
 {
-  return f(detail::get<I>(std::forward<Tuple>(t))..., std::forward<T>(x));
+  return f(TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuple>(t))..., std::forward<T>(x));
 }
 
 
@@ -779,10 +772,10 @@ template<class Tuple, class T, class Function, size_t... I>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_prepend_invoke_impl(Tuple&& t, T&& x, Function f, index_sequence<I...>)
   -> decltype(
-       f(std::forward<T>(x), detail::get<I>(std::forward<Tuple>(t))...)
+       f(std::forward<T>(x), TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuple>(t))...)
      )
 {
-  return f(std::forward<T>(x), detail::get<I>(std::forward<Tuple>(t))...);
+  return f(std::forward<T>(x), TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuple>(t))...);
 }
 
 
@@ -842,10 +835,10 @@ template<size_t I, typename Function, typename... Tuples>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_map_invoke(Function f, Tuples&&... ts)
   -> decltype(
-       f(detail::get<I>(std::forward<Tuples>(ts))...)
+       f(TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuples>(ts))...)
      )
 {
-  return f(detail::get<I>(std::forward<Tuples>(ts))...);
+  return f(TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuples>(ts))...);
 }
 
 
@@ -914,7 +907,7 @@ TUPLE_UTILITY_ANNOTATION
 T make_from_tuple_impl(const Tuple& t, index_sequence<I...>)
 {
   // use constructor syntax
-  return T(detail::get<I>(t)...);
+  return T(TUPLE_UTILITY_NAMESPACE::get<I>(t)...);
 }
 
 
@@ -952,7 +945,7 @@ template<size_t I, class Function, class... Tuples>
 TUPLE_UTILITY_ANNOTATION
 int apply_row(Function f, Tuples&&... ts)
 {
-  f(detail::get<I>(std::forward<Tuples>(ts))...);
+  f(TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuples>(ts))...);
   return 0;
 }
 
@@ -1122,7 +1115,7 @@ typename std::enable_if<
 >::type
   tuple_equal_impl(const Tuple1& t1, const Tuple2& t2)
 {
-  return (detail::get<i>(t1) != detail::get<i>(t2)) ? false :
+  return (TUPLE_UTILITY_NAMESPACE::get<i>(t1) != TUPLE_UTILITY_NAMESPACE::get<i>(t2)) ? false :
          tuple_equal_impl<i+1>(t1, t2);
 }
 
@@ -1174,8 +1167,8 @@ typename std::enable_if<
 >::type
   tuple_lexicographical_compare_impl(const Tuple1& t1, const Tuple2& t2)
 {
-  return (detail::get<i>(t1) < detail::get<i>(t2)) ? true :
-         (detail::get<i>(t2) < detail::get<i>(t1)) ? false :
+  return (TUPLE_UTILITY_NAMESPACE::get<i>(t1) < TUPLE_UTILITY_NAMESPACE::get<i>(t2)) ? true :
+         (TUPLE_UTILITY_NAMESPACE::get<i>(t2) < TUPLE_UTILITY_NAMESPACE::get<i>(t1)) ? false :
          tuple_lexicographical_compare_impl<i+1>(t1,t2);
 }
 
@@ -1297,7 +1290,7 @@ TUPLE_UTILITY_ANNOTATION
 typename tuple_cat_get_result<I,Tuple1&&,Tuples&&...>::type
   tuple_cat_get_impl(std::false_type, Tuple1&& t, Tuples&&...)
 {
-  return detail::get<I>(std::forward<Tuple1>(t));
+  return TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuple1>(t));
 }
 
 
@@ -1381,10 +1374,10 @@ template<class Function, class Tuple, size_t... I>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_apply_impl(Function f, Tuple&& t, index_sequence<I...>)
   -> decltype(
-       f(detail::get<I>(std::forward<Tuple>(t))...)
+       f(TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuple>(t))...)
      )
 {
-  return f(detail::get<I>(std::forward<Tuple>(t))...);
+  return f(TUPLE_UTILITY_NAMESPACE::get<I>(std::forward<Tuple>(t))...);
 }
 
 
@@ -1584,10 +1577,10 @@ template<size_t... Indices, class Tuple, class Function>
 TUPLE_UTILITY_ANNOTATION
 auto tuple_gather_invoke_impl(Tuple&& t, Function f)
   -> decltype(
-       f(detail::get<Indices>(std::forward<Tuple>(t))...)
+       f(TUPLE_UTILITY_NAMESPACE::get<Indices>(std::forward<Tuple>(t))...)
      )
 {
-  return f(detail::get<Indices>(std::forward<Tuple>(t))...);
+  return f(TUPLE_UTILITY_NAMESPACE::get<Indices>(std::forward<Tuple>(t))...);
 }
 
 
