@@ -97,12 +97,10 @@ class lattice
 
     // variadic constructor
     template<class Size1, class... Sizes,
-             typename = typename std::enable_if<
-               detail::conjunction<
-                 std::is_convertible<Size1,size_t>, std::is_convertible<Sizes,size_t>...
-               >::value &&
-               sizeof...(Sizes) == (rank() - 1)
-             >::type 
+             __AGENCY_REQUIRES(
+               detail::conjunction<std::is_convertible<Size1,std::size_t>, std::is_convertible<Sizes,std::size_t>...>::value
+             ),
+             __AGENCY_REQUIRES(sizeof...(Sizes) == (rank() - 1))
             >
     __AGENCY_ANNOTATION
     explicit lattice(const Size1& dimension1, const Sizes&... dimensions)
