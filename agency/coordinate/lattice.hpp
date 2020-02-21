@@ -28,7 +28,7 @@ struct index_size<T, typename std::enable_if<std::is_integral<T>::value>::type>
 };
 
 
-template<class T> class lattice_iterator;
+template<class Index> class lattice_iterator;
 
 
 template<typename Array, typename T>
@@ -57,16 +57,13 @@ template<class Index>
 class lattice
 {
   public:
-    using size_type              = std::size_t;
+    using size_type  = std::size_t;
+    using value_type = Index;
+    using reference  = value_type;
+    using iterator   = detail::lattice_iterator<Index>;
 
-    using value_type             = Index;
-    using reference              = value_type;
-    using const_reference        = reference;
-    using const_iterator         = detail::lattice_iterator<Index>;
-    using iterator               = const_iterator;
-
-    using index_type             = value_type;
-    using shape_type             = index_type;
+    using index_type = value_type;
+    using shape_type = index_type;
 
     // returns the number of dimensions spanned by this lattice
     __AGENCY_ANNOTATION
@@ -154,7 +151,7 @@ class lattice
 
     // returns the value of the (i,j,k,...)th lattice point
     __AGENCY_ANNOTATION
-    const_reference operator[](const index_type& idx) const
+    value_type operator[](const index_type& idx) const
     {
       return origin() + idx;
     }
@@ -165,7 +162,7 @@ class lattice
              __AGENCY_REQUIRES(std::is_convertible<Size,size_type>::value)
             >
     __AGENCY_ANNOTATION
-    const_reference operator[](Size idx) const
+    value_type operator[](Size idx) const
     {
       return begin()[idx];
     }
@@ -189,15 +186,15 @@ class lattice
     }
 
     __AGENCY_ANNOTATION
-    const_iterator begin() const
+    iterator begin() const
     {
       return detail::lattice_iterator<index_type>(*this);
     }
 
     __AGENCY_ANNOTATION
-    const_iterator end() const
+    iterator end() const
     {
-      return detail::lattice_iterator<index_type>(*this, detail::lattice_iterator<value_type>::past_the_end(*this));
+      return detail::lattice_iterator<index_type>(*this, detail::lattice_iterator<index_type>::past_the_end(*this));
     }
 
   private:
@@ -263,7 +260,7 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     lattice_iterator& operator--()
     {
-      return decrement(std::is_arithmetic<Index>());
+      return decrement();
     }
 
     __AGENCY_ANNOTATION
