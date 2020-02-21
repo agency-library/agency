@@ -81,13 +81,15 @@ class lattice
     // copy constructor
     lattice(const lattice&) = default;
 
-    // creates a new lattice with min as the first lattice point with the given shape
+    // (origin, shape) constructor
+    // creates a new lattice with at the origin at zero with the given shape
     __AGENCY_ANNOTATION
-    lattice(const index_type& min, const shape_type& shape)
-      : min_(min), max_(min + shape)
+    lattice(const index_type& origin, const shape_type& shape)
+      : origin_(origin), shape_(shape)
     {}
 
-    // creates a new lattice at the origin with the given shape
+    // shape constructor
+    // creates a new lattice with at the origin at zero with the given shape
     __AGENCY_ANNOTATION
     explicit lattice(const shape_type& shape)
       : lattice(index_type{}, shape)
@@ -119,16 +121,9 @@ class lattice
 
     // returns the value of the smallest lattice point
     __AGENCY_ANNOTATION
-    value_type min() const
+    index_type origin() const
     {
-      return min_;
-    }
-
-    // returns the value of the one-past-the-last lattice point
-    __AGENCY_ANNOTATION
-    value_type max() const
-    {
-      return max_;
+      return origin_;
     }
 
     // returns the number of lattice points along each of this lattice's dimensions
@@ -136,7 +131,7 @@ class lattice
     __AGENCY_ANNOTATION
     shape_type shape() const
     {
-      return max() - min();
+      return shape_;
     }
 
     // returns whether or not p is the value of a lattice point
@@ -156,14 +151,14 @@ class lattice
     __AGENCY_ANNOTATION
     bool empty() const
     {
-      return min() == max();
+      return shape() == shape_type{};
     }
 
     // returns the value of the (i,j,k,...)th lattice point
     __AGENCY_ANNOTATION
     const_reference operator[](const index_type& idx) const
     {
-      return min() + idx;
+      return origin() + idx;
     }
 
     // returns the value of the ith lattice point in lexicographic order
@@ -181,9 +176,9 @@ class lattice
 
     // reshape does not move the origin
     __AGENCY_ANNOTATION
-    void reshape(const index_type& dimensions)
+    void reshape(const shape_type& shape)
     {
-      max_ = min() + dimensions;
+      shape_ = shape;
     }
 
     // reshape does not move the origin
@@ -198,7 +193,7 @@ class lattice
     __AGENCY_ANNOTATION
     void reshape(const Size&... dimensions)
     {
-      reshape(index_type{static_cast<size_t>(dimensions)...});
+      reshape(shape_type{static_cast<size_t>(dimensions)...});
     }
 
     __AGENCY_ANNOTATION
@@ -218,12 +213,15 @@ class lattice
     __AGENCY_ANNOTATION
     bool contains(const value_type& x, std::false_type) const
     {
+      Index begin = origin();
+      Index end   = begin + shape();
+
       bool result = true;
 
       for(size_t dim = 0; dim != rank(); ++dim)
       {
-        result = result && min()[dim] <= x[dim];
-        result = result && x[dim] < max()[dim];
+        result = result and begin[dim] <= x[dim];
+        result = result and x[dim] < end[dim];
       }
 
       return result;
@@ -233,13 +231,15 @@ class lattice
     __AGENCY_ANNOTATION
     bool contains(const value_type& x, std::true_type) const
     {
-      return min() <= x && x < max();
+      return (origin() <= x) and (x < origin() + shape());
     }
 
-    value_type min_, max_;
+    index_type origin_;
+    shape_type shape_;
 };
 
 
+// XXX is this necessary?
 template<class Index>
 __AGENCY_ANNOTATION
 lattice<Index> make_lattice(const Index& max)
@@ -281,7 +281,7 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     explicit lattice_iterator(const lattice<T>& domain)
       : domain_(domain),
-        current_(domain_.min())
+        current_(domain_.origin())
     {}
 
     __AGENCY_ANNOTATION
@@ -403,21 +403,21 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     lattice_iterator& increment(std::false_type)
     {
-      T min = domain_.min();
-      T max = domain_.max();
+      T begin = domain_.origin();
+      T end   = begin + domain_.shape();
 
       for(int i = rank; i-- > 0;)
       {
         ++current_[i];
 
-        if(min[i] <= current_[i] && current_[i] < max[i])
+        if(begin[i] <= current_[i] and current_[i] < end[i])
         {
           return *this;
         }
         else if(i > 0)
         {
           // don't roll the final dimension over to the origin
-          current_[i] = min[i];
+          current_[i] = begin[i];
         }
       }
 
@@ -436,20 +436,20 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     lattice_iterator& decrement(std::false_type)
     {
-      T min = domain_.min();
-      T max = domain_.max();
+      T begin = domain_.origin();
+      T end   = begin + domain_.shape();
 
       for(int i = rank; i-- > 0;)
       {
         --current_[i];
 
-        if(min[i] <= current_[i])
+        if(begin[i] <= current_[i])
         {
           return *this;
         }
         else
         {
-          current_[i] = max[i] - 1;
+          current_[i] = end[i] - 1;
         }
       }
 
@@ -474,7 +474,7 @@ class lattice_iterator
 
       for(size_t i = 0; i < rank; ++i)
       {
-        current_[i] = domain_.min()[i] + idx / s[i];
+        current_[i] = domain_.origin()[i] + idx / s[i];
         idx %= s[i];
       }
 
@@ -519,9 +519,9 @@ class lattice_iterator
         return domain_.size();
       }
 
-      // subtract grid min from current to get
+      // subtract the origin from current to get
       // 0-based indices along each axis
-      T idx = current_ - domain_.min();
+      T idx = current_ - domain_.origin();
 
       difference_type multiplier = 1;
       difference_type result = 0;
@@ -546,8 +546,8 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     static T past_the_end(const lattice<T>& domain, std::false_type)
     {
-      T result = domain.min();
-      result[0] = domain.max()[0];
+      T result = domain.origin();
+      result[0] = domain.origin() + domain.shape()[0];
       return result;
     }
 
@@ -555,13 +555,14 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     static T past_the_end(const lattice<T>& domain, std::true_type)
     {
-      return domain.max();
+      return domain.origin() + domain.shape();
     }
 
     __AGENCY_ANNOTATION
     bool is_past_the_end() const
     {
-      return !(current_[0] < domain_.max()[0]);
+      auto end = domain_.origin() + domain_.shape();
+      return !(current_[0] < end[0]);
     }
 
     lattice<T> domain_;

@@ -157,10 +157,10 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
       auto outer_domain = outer_traits::domain(param.outer());
       auto inner_domain = inner_traits::domain(param.inner());
 
-      auto min = make_index(outer_domain.min(), inner_domain.min());
-      auto max = make_index(outer_domain.max(), inner_domain.max());
+      auto origin = make_index(outer_domain.origin(), inner_domain.origin());
+      auto shape  = make_index(outer_domain.shape(), inner_domain.shape());
 
-      return domain_type{min,max};
+      return domain_type{origin,shape};
     }
     
     __AGENCY_ANNOTATION
