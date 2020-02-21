@@ -249,7 +249,7 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     lattice_iterator& operator++()
     {
-      return increment(std::is_arithmetic<Index>());
+      return increment();
     }
 
     __AGENCY_ANNOTATION
@@ -349,10 +349,10 @@ class lattice_iterator
     }
 
   private:
-    // XXX use __AGENCY_REQUIRES
     // point-like case
+    template<__AGENCY_REQUIRES(!std::is_arithmetic<Index>::value)>
     __AGENCY_ANNOTATION
-    lattice_iterator& increment(std::false_type)
+    lattice_iterator& increment()
     {
       Index begin = domain_.origin();
       Index end   = begin + domain_.shape();
@@ -376,16 +376,18 @@ class lattice_iterator
     }
 
     // scalar case
+    template<__AGENCY_REQUIRES(std::is_arithmetic<Index>::value)>
     __AGENCY_ANNOTATION
-    lattice_iterator& increment(std::true_type)
+    lattice_iterator& increment()
     {
       ++current_;
       return *this;
     }
 
     // point-like case
+    template<__AGENCY_REQUIRES(!std::is_arithmetic<Index>::value)>
     __AGENCY_ANNOTATION
-    lattice_iterator& decrement(std::false_type)
+    lattice_iterator& decrement()
     {
       Index begin = domain_.origin();
       Index end   = begin + domain_.shape();
@@ -408,16 +410,18 @@ class lattice_iterator
     }
 
     // scalar case
+    template<__AGENCY_REQUIRES(std::is_arithmetic<Index>::value)>
     __AGENCY_ANNOTATION
-    lattice_iterator& decrement(std::true_type)
+    lattice_iterator& decrement()
     {
       --current_;
       return *this;
     }
 
     // point-like case
+    template<__AGENCY_REQUIRES(!std::is_arithmetic<Index>::value)>
     __AGENCY_ANNOTATION
-    lattice_iterator& advance(difference_type n, std::false_type)
+    lattice_iterator& advance(difference_type n)
     {
       difference_type idx = linearize() + n;
 
@@ -433,8 +437,9 @@ class lattice_iterator
     }
 
     // scalar case
+    template<__AGENCY_REQUIRES(std::is_arithmetic<Index>::value)>
     __AGENCY_ANNOTATION
-    lattice_iterator& advance(difference_type n, std::true_type)
+    lattice_iterator& advance(difference_type n)
     {
       current_ += n;
       return *this;
@@ -457,16 +462,10 @@ class lattice_iterator
       return result;
     }
 
+    // point-like case
+    template<__AGENCY_REQUIRES(!std::is_arithmetic<Index>::value)>
     __AGENCY_ANNOTATION
     difference_type linearize() const
-    {
-      return linearize(std::is_arithmetic<Index>());
-    }
-
-    // XXX use __AGENCY_REQUIRES
-    // point-like case
-    __AGENCY_ANNOTATION
-    difference_type linearize(std::false_type) const
     {
       if(is_past_the_end())
       {
@@ -489,28 +488,28 @@ class lattice_iterator
       return result;
     }
 
-    // XXX use __AGENCY_REQUIRES
     // scalar case
+    template<__AGENCY_REQUIRES(std::is_arithmetic<Index>::value)>
     __AGENCY_ANNOTATION
-    difference_type linearize(std::true_type) const
+    difference_type linearize() const
     {
       return current_;
     }
 
-    // XXX use __AGENCY_REQUIRES
     // point-like case
+    template<__AGENCY_REQUIRES(!std::is_arithmetic<Index>::value)>
     __AGENCY_ANNOTATION
-    static Index past_the_end(const lattice<Index>& domain, std::false_type)
+    static Index past_the_end(const lattice<Index>& domain)
     {
       Index result = domain.origin();
       result[0] = domain.origin() + domain.shape()[0];
       return result;
     }
 
-    // XXX use __AGENCY_REQUIRES
     // scalar case
+    template<__AGENCY_REQUIRES(std::is_arithmetic<Index>::value)>
     __AGENCY_ANNOTATION
-    static Index past_the_end(const lattice<Index>& domain, std::true_type)
+    static Index past_the_end(const lattice<Index>& domain)
     {
       return domain.origin() + domain.shape();
     }
