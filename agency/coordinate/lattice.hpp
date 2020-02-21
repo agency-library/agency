@@ -134,9 +134,9 @@ class lattice
 
     // returns whether or not p is the value of a lattice point
     __AGENCY_ANNOTATION
-    bool contains(const value_type& p) const
+    bool contains(const index_type& p) const
     {
-      return contains(p, std::is_arithmetic<value_type>());
+      return origin() <= p and p < (origin() + shape());
     }
 
     // returns the number of lattice points
@@ -201,31 +201,6 @@ class lattice
     }
 
   private:
-    // Index is point-like case
-    __AGENCY_ANNOTATION
-    bool contains(const value_type& x, std::false_type) const
-    {
-      Index begin = origin();
-      Index end   = begin + shape();
-
-      bool result = true;
-
-      for(size_t dim = 0; dim != rank(); ++dim)
-      {
-        result = result and begin[dim] <= x[dim];
-        result = result and x[dim] < end[dim];
-      }
-
-      return result;
-    }
-
-    // Index is scalar case
-    __AGENCY_ANNOTATION
-    bool contains(const value_type& x, std::true_type) const
-    {
-      return (origin() <= x) and (x < origin() + shape());
-    }
-
     index_type origin_;
     shape_type shape_;
 };
