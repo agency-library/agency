@@ -17,7 +17,7 @@ void use_device_lambda_with_no_result()
   std::cout << "Invoking device lambda on the GPU" << std::endl;
   agency::bulk_invoke(policy, [] __device__ (agency::parallel_agent& self)
   {
-    printf("agent %d: Hello, world from device lambda!\n", self.index());
+    printf("agent %zu: Hello, world from device lambda!\n", self.index());
   });
 }
 
