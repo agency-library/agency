@@ -17,7 +17,7 @@ void use_device_lambda_with_no_result()
   std::cout << "Invoking device lambda on the GPU" << std::endl;
   agency::bulk_invoke(policy, [] __device__ (agency::parallel_agent& self)
   {
-    printf("agent %zu: Hello, world from device lambda!\n", self.index());
+    printf("agent %llu: Hello, world from device lambda!\n", self.index());
   });
 }
 
@@ -55,7 +55,7 @@ void use_device_lambda_with_result()
   // in order to use them with functions like agency::bulk_invoke()
   auto device_lambda_with_result = [] __device__ (agency::parallel_agent& self)
   {
-    printf("agent %d: Hello, world! This lambda must wrapped for Agency to return its results.\n", self.index());
+    printf("agent %llu: Hello, world! This lambda must wrapped for Agency to return its results.\n", self.index());
 
     return self.index();
   };
@@ -88,7 +88,7 @@ void use_host_device_lambda()
 
   auto host_device_lambda = [] __host__ __device__ (agency::parallel_agent& self)
   {
-    printf("agent %d: Hello, world from host device lambda!\n", (int)self.index());
+    printf("agent %zu: Hello, world from host device lambda!\n", self.index());
     return self.index();
   };
 
