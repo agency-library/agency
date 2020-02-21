@@ -21,14 +21,13 @@ class basic_execution_agent
     using execution_requirement = ExecutionRequirement;
 
     using index_type = Index;
+    using domain_type = lattice<index_type>;
 
     __AGENCY_ANNOTATION
     index_type index() const
     {
       return index_;
     }
-
-    using domain_type = lattice<index_type>;
 
     __AGENCY_ANNOTATION
     const domain_type& domain() const
@@ -45,8 +44,7 @@ class basic_execution_agent
     }
 
     __AGENCY_ANNOTATION
-    auto group_shape() const
-      -> decltype(this->domain().shape())
+    typename domain_type::shape_type group_shape() const
     {
       return domain().shape();
     }
@@ -76,8 +74,13 @@ class basic_execution_agent
         {}
 
         __AGENCY_ANNOTATION
-        param_type(const index_type& min, const index_type& max)
-          : param_type(domain_type(min,max))
+        param_type(const index_type& origin, const typename domain_type::shape_type& shape)
+          : param_type(domain_type(origin,shape))
+        {}
+
+        __AGENCY_ANNOTATION
+        param_type(const typename domain_type::shape_type& shape)
+          : param_type(index_type{}, shape)
         {}
 
         __AGENCY_ANNOTATION
