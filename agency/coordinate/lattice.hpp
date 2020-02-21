@@ -11,7 +11,6 @@
 #include <type_traits>
 
 
-// XXX should move lattice into its own header underneath coordinate/
 namespace agency
 {
 namespace detail
@@ -54,20 +53,69 @@ using rebind_array_t = typename rebind_array<Array,T>::type;
 // operators +, +=, -, -=, *, *=, /, /= such that the rhs's type is regular_grid<T>::index_type
 // XXX this type should share a similar interface with ndarray
 //     (i.e., these types should model the same Concept)
-template<class T>
+template<class Index>
 class lattice
 {
   public:
-    // XXX should pick a different name for rank
-    //     or maybe just eliminate it and rely on .size()
-    constexpr static size_t rank = detail::index_size<T>::value;
-    using size_type              = size_t;
+    using size_type              = std::size_t;
 
-    using value_type             = T;
+    using value_type             = Index;
     using reference              = value_type;
     using const_reference        = reference;
-    using const_iterator         = detail::lattice_iterator<T>;
+    using const_iterator         = detail::lattice_iterator<Index>;
     using iterator               = const_iterator;
+
+    using index_type             = value_type;
+    using shape_type             = index_type;
+
+    // returns the number of dimensions spanned by this lattice
+    __AGENCY_ANNOTATION
+    static constexpr size_type rank()
+    {
+      return detail::index_size<Index>::value;
+    }
+
+    // default constructor
+    lattice() = default;
+
+    // copy constructor
+    lattice(const lattice&) = default;
+
+    // creates a new lattice with min as the first lattice point with the given shape
+    __AGENCY_ANNOTATION
+    lattice(const index_type& min, const shape_type& shape)
+      : min_(min), max_(min + shape)
+    {}
+
+    // creates a new lattice at the origin with the given shape
+    __AGENCY_ANNOTATION
+    explicit lattice(const shape_type& shape)
+      : lattice(index_type{}, shape)
+    {}
+
+    template<class Size1, class... Sizes,
+             typename = typename std::enable_if<
+               detail::conjunction<
+                 std::is_convertible<Size1,size_t>, std::is_convertible<Sizes,size_t>...
+               >::value &&
+               sizeof...(Sizes) == (rank() - 1)
+             >::type 
+            >
+    __AGENCY_ANNOTATION
+    lattice(const Size1& dimension1, const Sizes&... dimensions)
+      : lattice(index_type{static_cast<size_t>(dimension1), static_cast<size_t>(dimensions)...})
+    {}
+
+    // XXX upon c++14, assert that the intializer_list is of the correct size
+    template<class Size,
+             class = typename std::enable_if<
+               std::is_constructible<index_type, std::initializer_list<Size>>::value
+             >::type>
+    __AGENCY_ANNOTATION
+    lattice(std::initializer_list<Size> dimensions)
+      : lattice(index_type{dimensions})
+    {}
+
 
     // returns the value of the smallest lattice point
     __AGENCY_ANNOTATION
@@ -86,62 +134,10 @@ class lattice
     // returns the number of lattice points along each of this lattice's dimensions
     // chose the name shape instead of extent to jibe with e.g. numpy.ndarray.shape
     __AGENCY_ANNOTATION
-    auto shape() const
-      -> decltype(
-           this->max() - this->min()
-         )
+    shape_type shape() const
     {
       return max() - min();
     }
-
-    // XXX WAR cudafe perf issue
-    //using index_type = typename detail::result_of_t<
-    //  decltype(&lattice::shape)(lattice)
-    //>;
-    using index_type = decltype(value_type{} - value_type{});
-
-    // XXX should create a grid empty of points
-    lattice() = default;
-
-    // copy from
-    lattice(const lattice&) = default;
-
-    // creates a new lattice with min as the first lattice point
-    // through max exclusive
-    // XXX should probably make this (min, shape) instead
-    //     otherwise we'd have to require that min[i] <= max[i]
-    __AGENCY_ANNOTATION
-    lattice(const value_type& min, const value_type& max)
-      : min_(min), max_(max)
-    {}
-
-    template<class Size1, class... Sizes,
-             typename = typename std::enable_if<
-               detail::conjunction<
-                 std::is_convertible<Size1,size_t>, std::is_convertible<Sizes,size_t>...
-               >::value &&
-               sizeof...(Sizes) == (rank - 1)
-             >::type 
-            >
-    __AGENCY_ANNOTATION
-    lattice(const Size1& dimension1, const Sizes&... dimensions)
-      : lattice(index_type{static_cast<size_t>(dimension1), static_cast<size_t>(dimensions)...})
-    {}
-
-    __AGENCY_ANNOTATION
-    lattice(const index_type& dimensions)
-      : lattice(index_type{}, dimensions)
-    {}
-
-    // XXX upon c++14, assert that the intializer_list is of the correct size
-    template<class Size,
-             class = typename std::enable_if<
-               std::is_constructible<index_type, std::initializer_list<Size>>::value
-             >::type>
-    __AGENCY_ANNOTATION
-    lattice(std::initializer_list<Size> dimensions)
-      : lattice(index_type{dimensions})
-    {}
 
     // returns whether or not p is the value of a lattice point
     __AGENCY_ANNOTATION
@@ -173,7 +169,7 @@ class lattice
     // returns the value of the ith lattice point in lexicographic order
     template<class Size,
              typename std::enable_if<
-               (rank > 1) &&
+               (rank() > 1) &&
                std::is_convertible<Size,size_type>::value
              >::type
             >
@@ -196,7 +192,7 @@ class lattice
                detail::conjunction<
                  std::is_convertible<Size,size_t>...
                >::value &&
-               sizeof...(Size) == rank
+               sizeof...(Size) == rank()
              >::type 
             >
     __AGENCY_ANNOTATION
@@ -218,13 +214,13 @@ class lattice
     }
 
   private:
-    // T is point-like case
+    // Index is point-like case
     __AGENCY_ANNOTATION
     bool contains(const value_type& x, std::false_type) const
     {
       bool result = true;
 
-      for(size_t dim = 0; dim != rank; ++dim)
+      for(size_t dim = 0; dim != rank(); ++dim)
       {
         result = result && min()[dim] <= x[dim];
         result = result && x[dim] < max()[dim];
@@ -233,7 +229,7 @@ class lattice
       return result;
     }
 
-    // T is scalar case
+    // Index is scalar case
     __AGENCY_ANNOTATION
     bool contains(const value_type& x, std::true_type) const
     {
@@ -244,9 +240,9 @@ class lattice
 };
 
 
-template<class T>
+template<class Index>
 __AGENCY_ANNOTATION
-lattice<T> make_lattice(const T& max)
+lattice<Index> make_lattice(const Index& max)
 {
   return {max};
 }
