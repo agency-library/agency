@@ -31,20 +31,6 @@ struct index_size<T, typename std::enable_if<std::is_integral<T>::value>::type>
 template<class Index> class lattice_iterator;
 
 
-template<typename Array, typename T>
-struct rebind_array;
-
-template<template<typename,size_t> class array_template, size_t N, typename OldT, typename NewT>
-struct rebind_array<array_template<OldT,N>, NewT>
-{
-  using type = array_template<NewT,N>;
-};
-
-
-template<typename Array, typename T>
-using rebind_array_t = typename rebind_array<Array,T>::type;
-
-
 } // end detail
 
 
