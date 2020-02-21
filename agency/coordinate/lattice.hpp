@@ -95,6 +95,7 @@ class lattice
       : lattice(index_type{}, shape)
     {}
 
+    // variadic constructor
     template<class Size1, class... Sizes,
              typename = typename std::enable_if<
                detail::conjunction<
@@ -104,7 +105,7 @@ class lattice
              >::type 
             >
     __AGENCY_ANNOTATION
-    lattice(const Size1& dimension1, const Sizes&... dimensions)
+    explicit lattice(const Size1& dimension1, const Sizes&... dimensions)
       : lattice(index_type{static_cast<size_t>(dimension1), static_cast<size_t>(dimensions)...})
     {}
 
