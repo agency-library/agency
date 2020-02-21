@@ -191,13 +191,13 @@ class lattice
     __AGENCY_ANNOTATION
     const_iterator begin() const
     {
-      return detail::lattice_iterator<value_type>(*this);
+      return detail::lattice_iterator<index_type>(*this);
     }
 
     __AGENCY_ANNOTATION
     const_iterator end() const
     {
-      return detail::lattice_iterator<value_type>(*this, detail::lattice_iterator<value_type>::past_the_end(*this));
+      return detail::lattice_iterator<index_type>(*this, detail::lattice_iterator<value_type>::past_the_end(*this));
     }
 
   private:
@@ -206,12 +206,11 @@ class lattice
 };
 
 
-// XXX is this necessary?
-template<class Index>
+template<class Shape>
 __AGENCY_ANNOTATION
-lattice<Index> make_lattice(const Index& max)
+lattice<Shape> make_lattice(const Shape& shape)
 {
-  return {max};
+  return {shape};
 }
 
 
@@ -219,40 +218,24 @@ namespace detail
 {
 
 
-template<class T>
+template<class Index>
 class lattice_iterator
-  : public std::iterator<
-      std::random_access_iterator_tag,
-      T,
-      std::ptrdiff_t,
-      void, // XXX implement this
-      T
-    >
 {
-  private:
-    using super_t = std::iterator<
-      std::random_access_iterator_tag,
-      T,
-      std::ptrdiff_t,
-      void,
-      T
-    >;
-
-    static constexpr size_t rank = lattice<T>::rank;
-
   public:
-    using typename super_t::value_type;
-    using typename super_t::reference;
-    using typename super_t::difference_type;
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = Index;
+    using difference_type = std::ptrdiff_t;
+    using pointer = void;
+    using reference = value_type;
 
     __AGENCY_ANNOTATION
-    explicit lattice_iterator(const lattice<T>& domain)
+    explicit lattice_iterator(const lattice<Index>& domain)
       : domain_(domain),
         current_(domain_.origin())
     {}
 
     __AGENCY_ANNOTATION
-    explicit lattice_iterator(const lattice<T>& domain, T current)
+    explicit lattice_iterator(const lattice<Index>& domain, Index current)
       : domain_(domain),
         current_(current)
     {}
@@ -266,7 +249,7 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     lattice_iterator& operator++()
     {
-      return increment(std::is_arithmetic<T>());
+      return increment(std::is_arithmetic<Index>());
     }
 
     __AGENCY_ANNOTATION
@@ -280,7 +263,7 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     lattice_iterator& operator--()
     {
-      return decrement(std::is_arithmetic<T>());
+      return decrement(std::is_arithmetic<Index>());
     }
 
     __AGENCY_ANNOTATION
@@ -301,7 +284,7 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     lattice_iterator& operator+=(difference_type n)
     {
-      return advance(n, std::is_arithmetic<T>());
+      return advance(n, std::is_arithmetic<Index>());
     }
 
     __AGENCY_ANNOTATION
@@ -360,20 +343,21 @@ class lattice_iterator
     }
 
     __AGENCY_ANNOTATION
-    static T past_the_end(const lattice<T>& domain)
+    static Index past_the_end(const lattice<Index>& domain)
     {
-      return past_the_end(domain, std::is_arithmetic<T>());
+      return past_the_end(domain, std::is_arithmetic<Index>());
     }
 
   private:
+    // XXX use __AGENCY_REQUIRES
     // point-like case
     __AGENCY_ANNOTATION
     lattice_iterator& increment(std::false_type)
     {
-      T begin = domain_.origin();
-      T end   = begin + domain_.shape();
+      Index begin = domain_.origin();
+      Index end   = begin + domain_.shape();
 
-      for(int i = rank; i-- > 0;)
+      for(int i = domain_.rank(); i-- > 0;)
       {
         ++current_[i];
 
@@ -403,10 +387,10 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     lattice_iterator& decrement(std::false_type)
     {
-      T begin = domain_.origin();
-      T end   = begin + domain_.shape();
+      Index begin = domain_.origin();
+      Index end   = begin + domain_.shape();
 
-      for(int i = rank; i-- > 0;)
+      for(int i = domain_.rank(); i-- > 0;)
       {
         --current_[i];
 
@@ -439,7 +423,7 @@ class lattice_iterator
 
       auto s = stride();
 
-      for(size_t i = 0; i < rank; ++i)
+      for(size_t i = 0; i < domain_.rank(); ++i)
       {
         current_[i] = domain_.origin()[i] + idx / s[i];
         idx %= s[i];
@@ -457,8 +441,10 @@ class lattice_iterator
     }
 
     __AGENCY_ANNOTATION
-    point<difference_type,rank> stride() const
+    point<difference_type,lattice<Index>::rank()> stride() const
     {
+      constexpr std::size_t rank = lattice<Index>::rank();
+
       point<difference_type,rank> result;
       result[rank - 1] = 1;
 
@@ -474,9 +460,10 @@ class lattice_iterator
     __AGENCY_ANNOTATION
     difference_type linearize() const
     {
-      return linearize(std::is_arithmetic<T>());
+      return linearize(std::is_arithmetic<Index>());
     }
 
+    // XXX use __AGENCY_REQUIRES
     // point-like case
     __AGENCY_ANNOTATION
     difference_type linearize(std::false_type) const
@@ -488,12 +475,12 @@ class lattice_iterator
 
       // subtract the origin from current to get
       // 0-based indices along each axis
-      T idx = current_ - domain_.origin();
+      Index idx = current_ - domain_.origin();
 
       difference_type multiplier = 1;
       difference_type result = 0;
 
-      for(int i = rank; i-- > 0; )
+      for(int i = domain_.rank(); i-- > 0; )
       {
         result += multiplier * idx[i];
         multiplier *= domain_.shape()[i];
@@ -502,6 +489,7 @@ class lattice_iterator
       return result;
     }
 
+    // XXX use __AGENCY_REQUIRES
     // scalar case
     __AGENCY_ANNOTATION
     difference_type linearize(std::true_type) const
@@ -509,18 +497,20 @@ class lattice_iterator
       return current_;
     }
 
+    // XXX use __AGENCY_REQUIRES
     // point-like case
     __AGENCY_ANNOTATION
-    static T past_the_end(const lattice<T>& domain, std::false_type)
+    static Index past_the_end(const lattice<Index>& domain, std::false_type)
     {
-      T result = domain.origin();
+      Index result = domain.origin();
       result[0] = domain.origin() + domain.shape()[0];
       return result;
     }
 
+    // XXX use __AGENCY_REQUIRES
     // scalar case
     __AGENCY_ANNOTATION
-    static T past_the_end(const lattice<T>& domain, std::true_type)
+    static Index past_the_end(const lattice<Index>& domain, std::true_type)
     {
       return domain.origin() + domain.shape();
     }
@@ -532,8 +522,8 @@ class lattice_iterator
       return !(current_[0] < end[0]);
     }
 
-    lattice<T> domain_;
-    T current_;
+    lattice<Index> domain_;
+    Index current_;
 };
 
 
