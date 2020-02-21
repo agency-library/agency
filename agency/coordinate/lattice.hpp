@@ -161,10 +161,8 @@ class lattice
 
     // returns the value of the ith lattice point in lexicographic order
     template<class Size,
-             typename std::enable_if<
-               (rank() > 1) &&
-               std::is_convertible<Size,size_type>::value
-             >::type
+             __AGENCY_REQUIRES(rank() > 1),
+             __AGENCY_REQUIRES(std::is_convertible<Size,size_type>::value)
             >
     __AGENCY_ANNOTATION
     const_reference operator[](Size idx) const
@@ -181,12 +179,8 @@ class lattice
 
     // reshape does not move the origin
     template<class... Size,
-             typename = typename std::enable_if<
-               detail::conjunction<
-                 std::is_convertible<Size,size_t>...
-               >::value &&
-               sizeof...(Size) == rank()
-             >::type 
+             __AGENCY_REQUIRES(detail::conjunction<std::is_convertible<Size,size_t>...>::value),
+             __AGENCY_REQUIRES(sizeof...(Size) == rank())
             >
     __AGENCY_ANNOTATION
     void reshape(const Size&... dimensions)
