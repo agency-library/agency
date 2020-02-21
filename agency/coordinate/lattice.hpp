@@ -109,9 +109,8 @@ class lattice
 
     // XXX upon c++14, assert that the intializer_list is of the correct size
     template<class Size,
-             class = typename std::enable_if<
-               std::is_constructible<index_type, std::initializer_list<Size>>::value
-             >::type>
+             __AGENCY_REQUIRES(std::is_constructible<index_type, std::initializer_list<Size>>::value)
+            >
     __AGENCY_ANNOTATION
     lattice(std::initializer_list<Size> dimensions)
       : lattice(index_type{dimensions})
