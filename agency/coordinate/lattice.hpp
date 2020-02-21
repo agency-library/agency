@@ -35,10 +35,7 @@ template<class Index> class lattice_iterator;
 
 
 // this class is a lattice, the points of which take on values which are unit-spaced
-// T is any orderable (has strict weak <) type with
-// operators +, +=, -, -=, *, *=, /, /= such that the rhs's type is regular_grid<T>::index_type
-// XXX this type should share a similar interface with ndarray
-//     (i.e., these types should model the same Concept)
+// Index is any orderable (has strict weak <) type with operators +, +=, -, -=, *, *=, /, /=
 template<class Index>
 class lattice
 {
