@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/coordinate/lattice.hpp>
-#include <agency/detail/index_lexicographical_rank.hpp>
+#include <agency/coordinate/detail/index_lexicographical_rank.hpp>
 #include <agency/execution/execution_agent/execution_agent_traits.hpp>
 #include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <utility>

@@ -4,7 +4,7 @@
 #include <agency/execution/executor/concurrent_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/experimental/ndarray.hpp>
-#include <agency/detail/index_lexicographical_rank.hpp>
+#include <agency/coordinate/detail/index_lexicographical_rank.hpp>
 
 #include <agency/cuda/execution/executor/parallel_executor.hpp>
 #include <agency/cuda/execution/executor/concurrent_executor.hpp>

@@ -6,7 +6,7 @@
 #include <agency/execution/executor/executor_traits/executor_allocator.hpp>
 #include <agency/memory/detail/storage.hpp>
 #include <agency/memory/allocator/allocator.hpp>
-#include <agency/detail/index_lexicographical_rank.hpp>
+#include <agency/coordinate/detail/index_lexicographical_rank.hpp>
 
 namespace agency
 {

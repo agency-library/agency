@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/detail/shape.hpp>
-#include <agency/detail/index_lexicographical_rank.hpp>
+#include <agency/coordinate/detail/index_lexicographical_rank.hpp>
 #include <agency/coordinate/detail/shape/shape_size.hpp>
 #include <agency/coordinate.hpp>
 #include <cstddef>
