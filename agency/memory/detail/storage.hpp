@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/memory/allocator.hpp>
 #include <agency/memory/allocator/detail/allocator_traits.hpp>
-#include <agency/detail/shape_cast.hpp>
+#include <agency/coordinate/detail/shape/shape_cast.hpp>
 
 namespace agency
 {

@@ -35,7 +35,7 @@
 #include <agency/execution/executor/executor_traits/executor_future.hpp>
 #include <agency/execution/executor/executor_traits/detail/is_bulk_twoway_executor.hpp>
 #include <agency/future/future_traits.hpp>
-#include <agency/detail/shape_cast.hpp>
+#include <agency/coordinate/detail/shape/shape_cast.hpp>
 #include <type_traits>
 
 

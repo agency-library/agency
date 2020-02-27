@@ -5,8 +5,8 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/tuple.hpp>
-#include <agency/detail/shape_cast.hpp>
 #include <agency/coordinate.hpp>
+#include <agency/coordinate/detail/shape/shape_cast.hpp>
 #include <agency/detail/tuple/tuple_utility.hpp>
 #include <agency/detail/point_size.hpp>
 

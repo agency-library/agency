@@ -6,7 +6,7 @@
 #include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/cuda/device.hpp>
 #include <agency/coordinate/detail/shape/shape_size.hpp>
-#include <agency/detail/shape_cast.hpp>
+#include <agency/coordinate/detail/shape/shape_cast.hpp>
 #include <agency/detail/type_traits.hpp>
 #include <agency/tuple.hpp>
 #include <utility>
