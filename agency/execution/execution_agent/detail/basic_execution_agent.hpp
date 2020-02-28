@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/coordinate/lattice.hpp>
-#include <agency/coordinate/detail/index_lexicographical_rank.hpp>
+#include <agency/coordinate/detail/colexicographic_rank.hpp>
 #include <agency/execution/execution_agent/execution_agent_traits.hpp>
 #include <agency/execution/executor/properties/bulk_guarantee.hpp>
 #include <utility>
@@ -52,7 +52,7 @@ class basic_execution_agent
     __AGENCY_ANNOTATION
     size_type rank() const
     {
-      return agency::detail::index_lexicographical_rank(index(), group_shape());
+      return agency::detail::colexicographic_rank(index(), group_shape());
     }
 
     __AGENCY_ANNOTATION

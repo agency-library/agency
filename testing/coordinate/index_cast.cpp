@@ -14,7 +14,7 @@ void test()
     for(unsigned int from_idx = 0; from_idx < from_shape; ++from_idx)
     {
       agency::uint2 to_idx = agency::detail::index_cast<agency::uint2>(from_idx, from_shape, to_shape);
-      size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+      size_t rank = agency::detail::colexicographic_rank(to_idx, to_shape);
 
       assert(reference_rank == rank);
       ++reference_rank;
@@ -35,7 +35,7 @@ void test()
         agency::uint2 from_idx{i,j};
 
         unsigned int to_idx = agency::detail::index_cast<unsigned int>(from_idx, from_shape, to_shape);
-        size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+        size_t rank = agency::detail::colexicographic_rank(to_idx, to_shape);
 
         assert(reference_rank == rank);
         ++reference_rank;
@@ -59,7 +59,7 @@ void test()
         agency::uint2 from_idx{i,j};
 
         agency::uint3 to_idx = agency::detail::index_cast<agency::uint3>(from_idx, from_shape, to_shape);
-        size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+        size_t rank = agency::detail::colexicographic_rank(to_idx, to_shape);
 
         assert(reference_rank == rank);
         ++reference_rank;
@@ -85,7 +85,7 @@ void test()
           agency::uint3 from_idx{i,j,k};
 
           agency::uint2 to_idx = agency::detail::index_cast<agency::uint2>(from_idx, from_shape, to_shape);
-          size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+          size_t rank = agency::detail::colexicographic_rank(to_idx, to_shape);
 
           assert(reference_rank == rank);
           ++reference_rank;
@@ -112,7 +112,7 @@ void test()
         {
           uint3 from_idx{i,j,k};
           unsigned int to_idx = agency::detail::index_cast<unsigned int>(from_idx, from_shape, to_shape);
-          size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+          size_t rank = agency::detail::colexicographic_rank(to_idx, to_shape);
 
           assert(reference_rank == rank);
           ++reference_rank;
@@ -133,7 +133,7 @@ void test()
     for(unsigned int from_idx = 0; from_idx < from_shape; ++from_idx)
     {
       int to_idx = agency::detail::index_cast<int>(from_idx, from_shape, to_shape);
-      size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+      size_t rank = agency::detail::colexicographic_rank(to_idx, to_shape);
 
       assert(reference_rank == rank);
       ++reference_rank;
@@ -156,7 +156,7 @@ void test()
         agency::int2 from_idx{i,j};
 
         int to_idx = agency::detail::index_cast<int>(from_idx, from_shape, to_shape);
-        size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+        size_t rank = agency::detail::colexicographic_rank(to_idx, to_shape);
 
         assert(reference_rank == rank);
         ++reference_rank;
@@ -181,7 +181,7 @@ void test()
           agency::int3 from_idx{i,j,k};
 
           int to_idx = agency::detail::index_cast<int>(from_idx, from_shape, to_shape);
-          size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+          size_t rank = agency::detail::colexicographic_rank(to_idx, to_shape);
 
           assert(reference_rank == rank);
           ++reference_rank;
@@ -209,7 +209,7 @@ void test()
             agency::int4 from_idx{i,j,k,l};
 
             int to_idx = agency::detail::index_cast<int>(from_idx, from_shape, to_shape);
-            size_t rank = agency::detail::index_lexicographical_rank(to_idx, to_shape);
+            size_t rank = agency::detail::colexicographic_rank(to_idx, to_shape);
 
             assert(reference_rank == rank);
             ++reference_rank;

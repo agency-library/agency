@@ -4,7 +4,7 @@
 #include <agency/execution/executor/concurrent_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/experimental/ndarray.hpp>
-#include <agency/coordinate/detail/index_lexicographical_rank.hpp>
+#include <agency/coordinate/detail/colexicographic_rank.hpp>
 
 #include <iostream>
 #include <atomic>
@@ -67,7 +67,7 @@ int test_alternative(Executor alternative)
 
     auto future_results = exec.bulk_twoway_execute([](index_type idx, int_container& results, std::reference_wrapper<std::atomic<size_t>>& counter)
     {
-      results[idx] = detail::index_lexicographical_rank(idx, results.shape());
+      results[idx] = detail::colexicographic_rank(idx, results.shape());
       counter.get()++;
     },
     shape,
@@ -102,7 +102,7 @@ int test_alternative(Executor alternative)
 
     auto future_results = exec.bulk_then_execute([](index_type idx, int& predecessor, int_container& results, std::reference_wrapper<std::atomic<size_t>>& counter)
     {
-      results[idx] = detail::index_lexicographical_rank(idx, results.shape());
+      results[idx] = detail::colexicographic_rank(idx, results.shape());
       counter.get() += predecessor;
     },
     shape,

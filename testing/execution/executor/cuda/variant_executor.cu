@@ -4,7 +4,7 @@
 #include <agency/execution/executor/concurrent_executor.hpp>
 #include <agency/execution/executor/executor_traits.hpp>
 #include <agency/experimental/ndarray.hpp>
-#include <agency/coordinate/detail/index_lexicographical_rank.hpp>
+#include <agency/coordinate/detail/colexicographic_rank.hpp>
 
 #include <agency/cuda/execution/executor/parallel_executor.hpp>
 #include <agency/cuda/execution/executor/concurrent_executor.hpp>
@@ -116,7 +116,7 @@ int test_alternative(Executor alternative)
 
     auto future_results = exec.bulk_twoway_execute([] __host__ __device__ (index_type idx, int_container& results, int& inc)
     {
-      results[idx] = detail::index_lexicographical_rank(idx, results.shape());
+      results[idx] = detail::colexicographic_rank(idx, results.shape());
 
       atomic_increment_counter(counter, inc);
     },
@@ -156,7 +156,7 @@ int test_alternative(Executor alternative)
 
     auto future_results = exec.bulk_then_execute([] __host__ __device__ (index_type idx, int& predecessor, int_container& results, int& factor)
     {
-      results[idx] = detail::index_lexicographical_rank(idx, results.shape());
+      results[idx] = detail::colexicographic_rank(idx, results.shape());
 
       atomic_increment_counter(counter, factor * predecessor);
     },

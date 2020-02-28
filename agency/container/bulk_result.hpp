@@ -6,7 +6,7 @@
 #include <agency/execution/executor/executor_traits/executor_allocator.hpp>
 #include <agency/memory/detail/storage.hpp>
 #include <agency/memory/allocator/allocator.hpp>
-#include <agency/coordinate/detail/index_lexicographical_rank.hpp>
+#include <agency/coordinate/detail/colexicographic_rank.hpp>
 
 namespace agency
 {
@@ -112,7 +112,7 @@ class bulk_result : private detail::storage<T, Allocator, Shape>
     __AGENCY_ANNOTATION
     value_type& operator[](index_type idx)
     {
-      auto rank = agency::detail::index_lexicographical_rank(idx, shape());
+      auto rank = agency::detail::colexicographic_rank(idx, shape());
       return super_t::data()[rank];
     }
 

@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/requires.hpp>
 #include <agency/detail/shape.hpp>
-#include <agency/coordinate/detail/index_lexicographical_rank.hpp>
+#include <agency/coordinate/detail/colexicographic_rank.hpp>
 #include <agency/coordinate/detail/shape/shape_size.hpp>
 #include <agency/coordinate.hpp>
 #include <cstddef>
@@ -125,7 +125,7 @@ class basic_ndarray_ref
     __AGENCY_ANNOTATION
     reference operator[](const index_type& idx) const
     {
-      auto rank = agency::detail::index_lexicographical_rank(idx, shape());
+      auto rank = agency::detail::colexicographic_rank(idx, shape());
       return data_[rank];
     }
 

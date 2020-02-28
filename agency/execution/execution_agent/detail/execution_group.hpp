@@ -7,7 +7,7 @@
 #include <agency/detail/tuple/tuple_utility.hpp>
 #include <agency/detail/unwrap_tuple_if.hpp>
 #include <agency/detail/index_tuple.hpp>
-#include <agency/coordinate/detail/index_lexicographical_rank.hpp>
+#include <agency/coordinate/detail/colexicographic_rank.hpp>
 
 #include <utility>
 #include <type_traits>
@@ -181,7 +181,7 @@ class execution_group : public execution_group_base<OuterExecutionAgent>
     auto rank() const
       -> decltype(this->group_size())
     {
-      return agency::detail::index_lexicographical_rank(index(), group_shape());
+      return agency::detail::colexicographic_rank(index(), group_shape());
     }
 
     __AGENCY_ANNOTATION
