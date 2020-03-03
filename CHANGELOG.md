@@ -3,7 +3,7 @@ Agency v0.3.0 Changelog
 
 ## Summary
 
-TODO
+Various changes driven by ISO C++ proposal P0443.
 
 ### Breaking Changes
 
@@ -37,29 +37,15 @@ TODO
     * `bulk_guarantee`
   * `basic_span`
 
-### Control Structures
-
-TODO
-
 ### Containers
 
   * `cuda::vector`
-
-TODO
-
-### Execution Policies
-
-TODO
 
 ### Executors
 
 * Various executors now have equality operations.
 
-TODO
-
 ### Utilities
-
-TODO
 
 * `pointer_adaptor`
 * `cuda::device_ptr`
@@ -67,40 +53,19 @@ TODO
 
 ## New Experimental Features
 
-### Containers
-
-TODO
-
-### Execution Policies
-  
-TODO
-
 ### Utilities
-
-TODO
 
 * `experimental::domain`
 * `overload`
 
-## New Examples
-
-TODO
 
 ## Known Issues
-
-TODO
 
   * [#437](../../issues/437) Nvcc emits warnings regarding standard library functions calling `__host__`-only functions
 
 ## Resolved Issues
 
-TODO
-
   * [#428](../../issues/428) Warnings regarding ignored CUDA annotations have been eliminated
-
-## Acknowledgments
-
-TODO
 
 
 Agency v0.2.0 Changelog
