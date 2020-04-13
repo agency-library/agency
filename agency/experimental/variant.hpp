@@ -889,14 +889,14 @@ struct unary_visitor_binder
   ElementReference x;
 
   __AGENCY_ANNOTATION
-  unary_visitor_binder(VisitorReference visitor, ElementReference x) : visitor(visitor), x(x) {}
+  unary_visitor_binder(VisitorReference visitor, ElementReference ref) : visitor(std::forward<VisitorReference>(visitor)), x(ref) {}
 
   __agency_exec_check_disable__
   template<typename T>
   __AGENCY_ANNOTATION
   Result operator()(T&& y)
   {
-    return visitor(x, std::forward<T>(y));
+    return visitor(std::forward<ElementReference>(x), std::forward<T>(y));
   }
 };
 
@@ -924,13 +924,13 @@ struct binary_visitor_binder
   typename rvalue_reference_to_lvalue_reference<VariantReference>::type y;
 
   __AGENCY_ANNOTATION
-  binary_visitor_binder(VisitorReference visitor, VariantReference ref) : visitor(visitor), y(ref) {}
+  binary_visitor_binder(VisitorReference visitor, VariantReference ref) : visitor(std::forward<VisitorReference>(visitor)), y(ref) {}
 
   template<typename T>
   __AGENCY_ANNOTATION
   Result operator()(T&& x)
   {
-    auto unary_visitor = unary_visitor_binder<VisitorReference, Result, decltype(x)>(visitor, std::forward<T>(x));
+    auto unary_visitor = unary_visitor_binder<VisitorReference, Result, decltype(x)>(std::forward<VisitorReference>(visitor), std::forward<T>(x));
     return experimental::visit(unary_visitor, std::forward<VariantReference>(y));
   }
 };
