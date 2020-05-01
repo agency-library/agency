@@ -171,13 +171,25 @@ class lattice
     __AGENCY_ANNOTATION
     iterator begin() const
     {
-      return detail::lattice_iterator<index_type>(*this);
+      return iterator(*this);
     }
 
     __AGENCY_ANNOTATION
     iterator end() const
     {
-      return detail::lattice_iterator<index_type>(*this, detail::lattice_iterator<index_type>::past_the_end(*this));
+      return iterator(*this, iterator::past_the_end(*this));
+    }
+
+    __AGENCY_ANNOTATION
+    bool operator==(const lattice& other) const
+    {
+      return (origin_ == other.origin()) and (shape_ == other.shape());
+    }
+
+    __AGENCY_ANNOTATION
+    bool operator!=(const lattice& other) const
+    {
+      return !operator==(other);
     }
 
   private:
@@ -190,7 +202,7 @@ template<class Shape>
 __AGENCY_ANNOTATION
 lattice<Shape> make_lattice(const Shape& shape)
 {
-  return {shape};
+  return lattice<Shape>{shape};
 }
 
 
@@ -224,6 +236,13 @@ class lattice_iterator
     reference operator*() const
     {
       return current_;
+    }
+
+    __AGENCY_ANNOTATION
+    reference operator[](difference_type n) const
+    {
+      lattice_iterator tmp = *this + n;
+      return *tmp;
     }
 
     __AGENCY_ANNOTATION
@@ -322,11 +341,24 @@ class lattice_iterator
       return !(rhs > *this);
     }
 
+    // point-like case
+    template<__AGENCY_REQUIRES(!std::is_arithmetic<Index>::value)>
     __AGENCY_ANNOTATION
     static Index past_the_end(const lattice<Index>& domain)
     {
-      return past_the_end(domain, std::is_arithmetic<Index>());
+      Index result = domain.origin();
+      result[0] = domain.origin()[0] + domain.shape()[0];
+      return result;
     }
+
+    // scalar case
+    template<__AGENCY_REQUIRES(std::is_arithmetic<Index>::value)>
+    __AGENCY_ANNOTATION
+    static Index past_the_end(const lattice<Index>& domain)
+    {
+      return domain.origin() + domain.shape();
+    }
+
 
   private:
     // point-like case
@@ -474,24 +506,6 @@ class lattice_iterator
     difference_type linearize() const
     {
       return current_;
-    }
-
-    // point-like case
-    template<__AGENCY_REQUIRES(!std::is_arithmetic<Index>::value)>
-    __AGENCY_ANNOTATION
-    static Index past_the_end(const lattice<Index>& domain)
-    {
-      Index result = domain.origin();
-      result[0] = domain.origin() + domain.shape()[0];
-      return result;
-    }
-
-    // scalar case
-    template<__AGENCY_REQUIRES(std::is_arithmetic<Index>::value)>
-    __AGENCY_ANNOTATION
-    static Index past_the_end(const lattice<Index>& domain)
-    {
-      return domain.origin() + domain.shape();
     }
 
     __AGENCY_ANNOTATION
