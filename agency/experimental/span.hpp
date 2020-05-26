@@ -6,6 +6,7 @@
 #include <agency/detail/iterator/data.hpp>
 #include <agency/experimental/ranges/size.hpp>
 #include <cstddef>
+#include <memory>
 
 namespace agency
 {
