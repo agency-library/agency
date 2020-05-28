@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <memory>
 #include <future>
+#include <unordered_map>
 
 
 namespace agency
@@ -40,6 +41,9 @@ class thread_pool
       }
     };
 
+
+
+
   public:
     explicit thread_pool(size_t num_threads = std::max(1u, std::thread::hardware_concurrency()))
     {
@@ -50,6 +54,11 @@ class thread_pool
           work();
         });
       }
+      //Number the threads 1 to number of threads, 0 is left for any thread outside of these threads
+      //which would be the master thread
+      for(size_t i = 0; i < num_threads; ++i){
+        thread_map_[threads_[i].get_id()] = i+1;
+      }
     }
     
     ~thread_pool()
@@ -57,6 +66,7 @@ class thread_pool
       tasks_.close();
       threads_.clear();
     }
+
 
     template<class Function,
              class = result_of_t<Function()>>
@@ -78,6 +88,22 @@ class thread_pool
         // the submitting thread is part of this pool so execute immediately 
         std::forward<Function>(f)();
       }
+    }
+
+    //public function used to get the thread number
+    inline int get_thread_num(){
+      auto thread_num_iter = thread_map_.find(std::this_thread::get_id());
+
+      //Check to see if this is the master thread
+      if(thread_num_iter == thread_map_.end())
+      {
+        return 0;
+      }
+      else
+      {
+        return thread_num_iter->second;
+      }
+
     }
 
     inline size_t size() const
@@ -107,6 +133,7 @@ class thread_pool
     }
 
 
+
   private:
     inline void work()
     {
@@ -120,6 +147,10 @@ class thread_pool
 
     agency::detail::concurrent_queue<unique_function<void()>> tasks_;
     std::vector<joining_thread> threads_;
+
+    //Add a private data member which gives us a mapping from thread id to an integer of size 
+    //0 - max_number of threads
+    std::unordered_map<std::thread::id, int> thread_map_;
 };
 
 
